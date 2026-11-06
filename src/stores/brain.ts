@@ -3,7 +3,8 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
-import type { HabitLogRow, HabitRow, QuestRow, Remote, SyncStatus, TaskRow } from '@/sync/types'
+import type { HabitLogRow, HabitRow, QuestRow, Remote, RoutineRow, RoutineStepRow, SyncStatus, TaskRow } from '@/sync/types'
+import { activeSteps, recordStep, runFor } from '@/routines/rules'
 import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMisses } from '@/habits/rules'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
@@ -203,8 +204,67 @@ export const useBrainStore = defineStore('brain', () => {
     return action.kind
   }
 
+  /** A new routine starts today, runs every day, with no steps yet. */
+  function newRoutine(): RoutineRow {
+    return {
+      id: crypto.randomUUID(),
+      user_id: userId.value ?? undefined,
+      title: '',
+      notify_time: null,
+      weekdays: [0, 1, 2, 3, 4, 5, 6],
+      start_date: todayIn(deviceTimeZone()),
+      deleted_at: null,
+    }
+  }
+
+  /**
+   * Save a routine and its ordered steps. Steps keep their ids so history stays attached; steps no longer in the
+   * list are soft-deleted (their history is kept, SPEC §5 Routines).
+   */
+  async function saveRoutine(routine: RoutineRow, steps: { id?: string; title: string }[]) {
+    const { engine: e, uid, local } = requireReady()
+    await e.save('routines', { ...routine, user_id: uid })
+    const existing = activeSteps(await local.routine_steps.where('routine_id').equals(routine.id).toArray(), routine.id)
+    const keep = new Set<string>()
+    const today = todayIn(deviceTimeZone())
+    for (const [position, s] of steps.entries()) {
+      if (!s.title.trim()) continue
+      const before = s.id ? existing.find((x) => x.id === s.id) : undefined
+      const row: RoutineStepRow = before
+        ? { ...before, title: s.title.trim(), position }
+        : { id: crypto.randomUUID(), user_id: uid, routine_id: routine.id, position, title: s.title.trim(), start_date: today, deleted_at: null }
+      keep.add(row.id)
+      if (!before || before.title !== row.title || before.position !== row.position) await e.save('routine_steps', row)
+    }
+    for (const old of existing) if (!keep.has(old.id)) await e.remove('routine_steps', old.id)
+  }
+
+  async function deleteRoutine(id: string) {
+    await requireReady().engine.remove('routines', id)
+  }
+
+  /** Press Skip or Completed on the routine's current step for today (SPEC §5 Routines). */
+  async function recordRoutineStep(routine: RoutineRow, status: 'completed' | 'skipped', now = new Date()) {
+    const { engine: e, uid, local } = requireReady()
+    const date = todayIn(deviceTimeZone(), now)
+    const steps = activeSteps(await local.routine_steps.where('routine_id').equals(routine.id).toArray(), routine.id)
+    const runs = await local.routine_runs.where('routine_id').equals(routine.id).toArray()
+    const run = runFor(runs, routine.id, date)
+    const logs = run ? await local.routine_step_logs.where('run_id').equals(run.id).toArray() : []
+    const action = recordStep(routine, steps, run, logs, status, date, uid, now)
+    if (!action) return null
+    if (action.run) await e.save('routine_runs', action.run)
+    await e.save('routine_step_logs', action.log)
+    if (action.finish) await e.save('routine_runs', action.finish)
+    return action
+  }
+
   return {
     db,
+    newRoutine,
+    saveRoutine,
+    deleteRoutine,
+    recordRoutineStep,
     habitsReady,
     addHabit,
     saveHabit,

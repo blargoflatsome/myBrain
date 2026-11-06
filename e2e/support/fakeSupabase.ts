@@ -25,6 +25,10 @@ export class FakeSupabase {
     inbox: new Map(),
     habits: new Map(),
     habit_logs: new Map(),
+    routines: new Map(),
+    routine_steps: new Map(),
+    routine_runs: new Map(),
+    routine_step_logs: new Map(),
     profiles: new Map(),
   }
   readonly writes: { table: string; row: Row }[] = []

@@ -38,6 +38,7 @@ const showChrome = computed(() => !route.meta.public)
 const navItems = [
   { to: '/', label: messages.nav.home },
   { to: '/habits', label: messages.nav.habits },
+  { to: '/routines', label: messages.nav.routines },
   { to: '/quests', label: messages.nav.quests },
   { to: '/inbox', label: messages.nav.inbox },
   { to: '/profile', label: messages.nav.profile },

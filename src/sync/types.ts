@@ -1,6 +1,18 @@
 // Offline-first sync (SPEC §7): a custom queue on Dexie. See engine.ts.
 
-export const SYNC_TABLES = ['tasks', 'vault_buckets', 'vault_items', 'quests', 'inbox', 'habits', 'habit_logs'] as const
+export const SYNC_TABLES = [
+  'tasks',
+  'vault_buckets',
+  'vault_items',
+  'quests',
+  'inbox',
+  'habits',
+  'habit_logs',
+  'routines',
+  'routine_steps',
+  'routine_runs',
+  'routine_step_logs',
+] as const
 export type SyncTable = (typeof SYNC_TABLES)[number]
 
 /** Columns every synced row has (SPEC §4). Timestamps are set by the server. */
@@ -73,6 +85,36 @@ export interface HabitLogRow extends BaseRow {
   completed_at?: string | null
 }
 
+export interface RoutineRow extends BaseRow {
+  title: string
+  notify_time?: string | null
+  /** 0 = Sunday ... 6 = Saturday. */
+  weekdays: number[]
+  start_date: string
+}
+
+export interface RoutineStepRow extends BaseRow {
+  routine_id: string
+  position: number
+  title: string
+  /** The day the step was added; its stats start here. */
+  start_date: string
+}
+
+export interface RoutineRunRow extends BaseRow {
+  routine_id: string
+  date: string
+  started_at: string
+  finished_at?: string | null
+}
+
+export interface RoutineStepLogRow extends BaseRow {
+  run_id: string
+  step_id: string
+  status: 'completed' | 'skipped'
+  logged_at: string
+}
+
 export interface RowTypes {
   tasks: TaskRow
   vault_buckets: VaultBucketRow
@@ -81,6 +123,10 @@ export interface RowTypes {
   inbox: InboxRow
   habits: HabitRow
   habit_logs: HabitLogRow
+  routines: RoutineRow
+  routine_steps: RoutineStepRow
+  routine_runs: RoutineRunRow
+  routine_step_logs: RoutineStepLogRow
 }
 
 /** Thrown when the server can't be reached. The change stays queued and is retried later. */

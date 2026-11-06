@@ -236,6 +236,7 @@ test.describe('Navigation', () => {
       'My Brain',
       'Tasks',
       'Habits',
+      'Routines',
       'Quests',
       'Inbox',
       'Profile',
