@@ -23,7 +23,10 @@ export class SyncEngine {
   ) {}
 
   /** Save a row on the device and queue it for upload. Resolves once it is safely stored locally. */
-  async save<T extends SyncTable>(table: T, row: RowTypes[T]): Promise<RowTypes[T]> {
+  async save<T extends SyncTable>(table: T, input: RowTypes[T]): Promise<RowTypes[T]> {
+    // Store a plain copy: rows coming from the screens can be Vue reactive proxies (for example a habit's
+    // weekdays list), which IndexedDB cannot store. Rows are plain JSON, so this copy is exact.
+    const row = JSON.parse(JSON.stringify(input)) as RowTypes[T]
     await this.db.transaction('rw', [this.db.rows(table), this.db.outbox], async () => {
       await this.db.rows(table).put(row)
       await this.db.outbox.add({ table, rowId: row.id, row })
@@ -111,6 +114,8 @@ export class SyncEngine {
     const key = `pulled:${table}`
     const since = (await this.db.meta.get(key))?.value ?? null
     const rows = await this.remote.pullSince(table, since)
+    // Note that this device has the server's copy of the table, even when it was empty.
+    await this.db.meta.put({ key: `downloaded:${table}`, value: 'yes' })
     if (!rows.length) return
     await this.db.transaction('rw', [this.db.rows(table), this.db.outbox, this.db.meta], async () => {
       let latest = since

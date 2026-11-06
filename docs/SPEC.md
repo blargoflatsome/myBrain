@@ -119,8 +119,10 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Carry-over is calculated from each task's due date and today's date in my timezone when the list is displayed (and by a server-side job for notifications), not by a counter that only runs while the app is open. It stays correct when the app was closed or offline, or when I travel across timezones. `carry_over_count` is derived the same way. Test daylight saving changes and timezone changes.
 
 ### Habits
-- Fields: title, notify time, timer (time window to complete).
-- Track a days-in-a-row streak. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on my Profile page (see the Profile page section below).
+- Fields: title, notify time, timer (time window to complete), the weekdays it repeats on (default every day), private.
+- **Timer** starts at the notify time: notify 8:00 am with a 2-hour timer means done by 10:00 am. With no timer (or no notify time) the habit is due by midnight. A timer needs a notify time. A habit can be completed any time before its deadline, and a completion can be undone until then.
+- **Weekdays:** a habit only counts on its chosen weekdays. Days it isn't scheduled neither extend nor break the streak. A habit's history starts on the day it was created.
+- Track a streak of scheduled days in a row. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on my Profile page (see the Profile page section below).
 
 - The Habits page displays this tag line, worded exactly: "You are only ever truly in competition with past you." It reinforces the "past you" voice and keeps the focus on beating my own best streak.
 
@@ -134,7 +136,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Streaks are meant to create accountability and friendly competition between users, so the page can be viewed by other users I choose to share it with.
 - **Privacy comes first.** Streaks are private by default, and I can choose who sees them (only me, people I approve, or everyone). Other users must only ever see the streak numbers and habit titles I choose to share, never my tasks, journal, vault, reminders, or events. Enforce this with row-level security and a restricted view, not just in the user interface.
 - Habits marked private (see Habits) never appear on my Profile page, and other users cannot tell they exist, for example anything personal like meds.
-- Phase 1 builds the Profile page for myself, with the visibility setting in place. Following other users, comparing streaks, and leaderboards are Phase 2 (see section 10).
+- Phase 1 builds the Profile page for myself, with the visibility setting in place: it defaults to **only me**, can be changed now, and sharing takes effect only when Phase 2 adds other users. Display name and avatar come from Google sign-in; display name and bio are editable. Following other users, comparing streaks, and leaderboards are Phase 2 (see section 10).
 
 ### Routines (chained tasks)
 - A routine is an ordered series of steps with a notify time.
@@ -340,6 +342,9 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Habits (user's choices): the timer starts at the notify time; habits repeat on chosen weekdays; streak visibility defaults to only me and is editable now. Claude's calls: no timer means due by midnight; a completion can be undone until the deadline; misses are written to `habit_logs` when the app notices a deadline passed (the server job in step 7 will also do it); cached streaks on `habits` are recalculated from `habit_logs`. Other users can only read streaks through the `shared_streaks` view, which hides private habits and anyone not set to everyone ("people I approve" waits for Phase 2 approvals).
+- 2026-11-06 — Navigation moved to a bottom bar (Tasks, Habits, Quests, Inbox, Profile) because the header ran out of room on a phone.
 
 - 2026-11-06 — Energy levels changed (user's request): Meh removed, **Fun** added between Ugh and Needs setup; new quests default to **Ugh**. Quests that were Meh (the old lowest level) became Ugh (the new lowest).
 

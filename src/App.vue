@@ -33,21 +33,23 @@ const inboxCount = useLiveQuery(
 )
 
 const showChrome = computed(() => !route.meta.public)
+
+const navItems = [
+  { to: '/', label: messages.nav.home, icon: '✓' },
+  { to: '/habits', label: messages.nav.habits, icon: '🔥' },
+  { to: '/quests', label: messages.nav.quests, icon: '🎲' },
+  { to: '/inbox', label: messages.nav.inbox, icon: '📥' },
+  { to: '/profile', label: messages.nav.profile, icon: '🙂' },
+]
 </script>
 
 <template>
   <div class="flex min-h-dvh flex-col bg-bg text-ink">
     <header v-if="showChrome" class="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur">
-      <nav class="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-3">
+      <div class="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-3">
         <RouterLink to="/" class="font-bold">{{ messages.appName }}</RouterLink>
-        <div class="flex items-center gap-4">
-          <SyncIndicator />
-          <RouterLink to="/quests" class="text-sm text-muted">{{ messages.nav.quests }}</RouterLink>
-          <RouterLink to="/inbox" class="text-sm text-muted">
-            {{ messages.nav.inbox }}<span v-if="inboxCount" class="ml-1 rounded-full bg-accent px-1.5 text-xs text-accent-ink">{{ inboxCount }}</span>
-          </RouterLink>
-        </div>
-      </nav>
+        <SyncIndicator />
+      </div>
     </header>
 
     <RouterView class="flex-1" />
@@ -56,9 +58,34 @@ const showChrome = computed(() => !route.meta.public)
     <RouterLink
       v-if="showChrome && route.name !== 'capture'"
       to="/capture"
-      class="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] flex min-h-14 items-center rounded-full bg-accent px-6 text-lg font-semibold text-accent-ink shadow-lg"
+      class="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 flex min-h-14 items-center rounded-full bg-accent px-6 text-lg font-semibold text-accent-ink shadow-lg"
     >
       + {{ messages.capture.openButton }}
     </RouterLink>
+
+    <!-- Bottom navigation: fits a phone, large touch targets (SPEC §3, §9). -->
+    <nav
+      v-if="showChrome"
+      class="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+      :aria-label="messages.nav.label"
+    >
+      <ul class="mx-auto grid max-w-xl grid-cols-5">
+        <li v-for="item in navItems" :key="item.to">
+          <RouterLink
+            :to="item.to"
+            class="relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs text-muted"
+            exact-active-class="!text-accent font-semibold"
+          >
+            <span class="text-lg leading-none" aria-hidden="true">{{ item.icon }}</span>
+            {{ item.label }}
+            <span
+              v-if="item.to === '/inbox' && inboxCount"
+              class="absolute top-1 right-1/2 translate-x-5 rounded-full bg-accent px-1.5 text-[10px] text-accent-ink"
+              data-testid="inbox-count"
+            >{{ inboxCount }}</span>
+          </RouterLink>
+        </li>
+      </ul>
+    </nav>
   </div>
 </template>

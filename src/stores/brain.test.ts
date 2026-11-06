@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useBrainStore } from './brain'
 import { FakeRemote } from '@/sync/fakeRemote'
@@ -45,6 +45,27 @@ describe('Spec §5: Decide later, then sort it when I have time', () => {
 
     expect((await brain.db!.inbox.get(later.row.id))?.deleted_at).toBeTruthy()
     expect(await brain.db!.tasks.get(task.row.id)).toMatchObject({ title: 'renew passport', due_date: null })
+  })
+})
+
+describe('Spec §5 Habits: misses are never invented on a device that has not downloaded the history', () => {
+  it('a fresh device waits for the habit history before recording misses', async () => {
+    const habit = { id: '3f2b6c1e-9a7d-4c2e-8b1a-0f9e8d7c6b5a', title: 'Walk', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false, deleted_at: null }
+    remote.writeFromOtherDevice('habits', habit)
+    for (const date of ['2026-11-01', '2026-11-02', '2026-11-03']) {
+      remote.writeFromOtherDevice('habit_logs', { id: `log-${date}`, habit_id: habit.id, date, status: 'completed', completed_at: `${date}T15:00:00Z`, deleted_at: null })
+    }
+    const brain = useBrainStore()
+    brain.start(`u-${crypto.randomUUID()}`, remote)
+    const now = new Date('2026-11-04T01:00:00Z') // Nov 3, 8 pm in New York
+
+    await brain.refreshHabit(habit, now, 'America/New_York') // before the download finishes: must do nothing
+    expect([...remote.tables.habit_logs.values()].filter((l) => l.status === 'missed')).toEqual([])
+
+    await vi.waitFor(() => expect(brain.habitsReady).toBe(true))
+    await brain.refreshHabit(habit, now, 'America/New_York')
+    expect([...remote.tables.habit_logs.values()].filter((l) => l.status === 'missed')).toEqual([])
+    expect((await brain.db!.habits.get(habit.id))?.current_streak).toBe(3)
   })
 })
 

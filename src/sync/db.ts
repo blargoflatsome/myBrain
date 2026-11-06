@@ -22,6 +22,8 @@ export class LocalDb extends Dexie {
   vault_items!: Table<RowTypes['vault_items'], string>
   quests!: Table<RowTypes['quests'], string>
   inbox!: Table<RowTypes['inbox'], string>
+  habits!: Table<RowTypes['habits'], string>
+  habit_logs!: Table<RowTypes['habit_logs'], string>
   outbox!: Table<OutboxEntry, number>
   meta!: Table<MetaEntry, string>
 
@@ -35,6 +37,11 @@ export class LocalDb extends Dexie {
       inbox: 'id, updated_at',
       outbox: '++seq, table, rowId',
       meta: 'key',
+    })
+    // Step 5: habits and their daily logs.
+    this.version(2).stores({
+      habits: 'id, updated_at',
+      habit_logs: 'id, updated_at, habit_id, date',
     })
   }
 
