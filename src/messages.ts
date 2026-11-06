@@ -128,7 +128,7 @@ export const messages = {
     },
   },
   habits: {
-    // Tag line worded exactly as the spec requires (SPEC §5 Habits). The rest drafted by Claude in the established voice.
+    // Intro line chosen by the user (2026-11-06, SPEC §5 Habits). The rest drafted by Claude in the established voice.
     intro: 'You are only in competition with yourself.',
     heading: 'Habits',
     todayHeading: 'Today',

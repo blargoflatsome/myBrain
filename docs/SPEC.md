@@ -124,7 +124,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Weekdays:** a habit only counts on its chosen weekdays. Days it isn't scheduled neither extend nor break the streak. A habit's history starts on the day it was created.
 - Track a streak of scheduled days in a row. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on my Profile page (see the Profile page section below).
 
-- The Habits page displays this tag line, worded exactly: "You are only ever truly in competition with past you." It reinforces the "past you" voice and keeps the focus on beating my own best streak.
+- The Habits page displays this line, worded exactly: "You are only in competition with yourself." It keeps the focus on beating my own best streak.
 
 - When creating or editing a habit, I can mark it **private**. A private habit never appears on my Profile page, in comparisons or leaderboards, or in any badge or achievement shown to others, and other users cannot tell it exists. Enforce this in the database (row-level security and the restricted view), not just in the interface. Habits are not private by default, but nothing is shared with anyone until my profile visibility setting allows it.
 
@@ -342,6 +342,8 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Wording changed by the user (commit "message tweaks"): Habits line "You are only in competition with yourself.", Tasks page heading "Tasks" with "Let's get these To-Done.", Quests intro "Bored? We have a quest for that.", inbox empty state "Past you hasn't left anything to sort." Tests and spec follow the user's wording.
 
 - 2026-11-06 — Bug fix (user report): a habit created after its timer window was logged as missed immediately. The creation day is now due by midnight, and a "missed" log whose day is still open is removed automatically.
 

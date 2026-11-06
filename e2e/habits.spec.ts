@@ -38,9 +38,15 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Habits', () => {
-  test('the Habits page shows the tag line, worded exactly', async ({ page }) => {
+  test('the Habits page shows its intro line, worded exactly', async ({ page }) => {
     await open(page)
-    await expect(page.getByTestId('habits-tagline')).toHaveText('You are only ever truly in competition with past you.')
+    await expect(page.getByTestId('habits-tagline')).toHaveText('You are only in competition with yourself.')
+  })
+
+  test('the Tasks page shows its heading and intro line', async ({ page }) => {
+    await open(page, '/')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tasks')
+    await expect(page.getByTestId('tasks-intro')).toHaveText("Let's get these To-Done.")
   })
 
   test('a new habit has a title, reminder time, timer and weekdays; the timer starts at the reminder time', async ({ page }) => {

@@ -68,9 +68,9 @@ const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
 
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-28">
-    <div> 
+    <div>
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted italic" data-testid="habits-tagline">{{ m.intro }}</p>
+      <p class="text-muted italic" data-testid="tasks-intro">{{ m.intro }}</p>
     </div>
     <div class="flex gap-2 rounded-2xl bg-surface p-1" role="tablist">
       <button
@@ -96,11 +96,11 @@ const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
     <div v-if="view === 'day'" class="flex items-center justify-between">
       <button type="button" class="min-h-11 min-w-11 rounded-xl text-xl" :aria-label="m.day.previous" @click="day = addDays(day, -1)">‹</button>
       <button type="button" class="text-xl font-bold" @click="day = today">
-        <h1>{{ dayLabel }}</h1>
+        <h2>{{ dayLabel }}</h2>
       </button>
       <button type="button" class="min-h-11 min-w-11 rounded-xl text-xl" :aria-label="m.day.next" @click="day = addDays(day, 1)">›</button>
     </div>
-    <h1 v-else class="text-xl font-bold">{{ m.undatedHeading }}</h1>
+    <h2 v-else class="text-xl font-bold">{{ m.undatedHeading }}</h2>
 
     <form v-if="canAdd" class="flex gap-2" @submit.prevent="add">
       <input

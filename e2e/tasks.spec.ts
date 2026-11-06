@@ -111,14 +111,14 @@ test.describe('Spec §5 Tasks: scheduling and the Undated list', () => {
   test('a task can be scheduled for a future day and shows only on that day', async ({ page }) => {
     await open(page)
     await page.getByRole('button', { name: 'Next day' }).click()
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tomorrow')
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText('Tomorrow')
     await page.getByRole('textbox', { name: 'Add a task for tomorrow' }).fill('pick up dry cleaning')
     await page.getByRole('button', { name: 'Add' }).click()
     await expect(item(page, 'pick up dry cleaning')).toBeVisible()
     await expect.poll(() => server.written('tasks')[0]).toMatchObject({ due_date: '2026-11-11', source: 'manual', priority: 1 })
 
-    await page.getByRole('heading', { level: 1 }).click() // back to today
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Today')
+    await page.getByRole('heading', { level: 2 }).click() // back to today
+    await expect(page.getByRole('heading', { level: 2 })).toHaveText('Today')
     await expect(item(page, 'pick up dry cleaning')).toHaveCount(0)
   })
 
