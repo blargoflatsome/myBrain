@@ -23,7 +23,7 @@ Account walkthrough and remaining step 1 items (§13):
 - ~~Netlify env vars~~ — set per context; Google sign-in works on the Deploy Preview.
 - ~~Apply migration to prod~~ — applied 2026-11-06.
 
-## Step 2 — PWA shell, offline storage, sync queue, quick capture (in progress, branch `step-2-capture`)
+## Step 2 — PWA shell, offline storage, sync queue, quick capture (done; merged via PR #2)
 
 Done:
 - Sync layer chosen: custom Dexie queue (SPEC §7, §14). Wording approved.
@@ -34,8 +34,9 @@ Done:
 - Tests: 39 Vitest, 32 Playwright (incl. offline capture and offline app start), SQL checks `rls_capture.sql`.
 
 Left in step 2:
-- Apply the capture migration to dev, run `npm run test:db`, try capture on the Deploy Preview from phone and laptop (first milestone).
-- Apply to prod before merging.
+- ~~Capture migration on dev~~ — applied; `npm run test:db` passes (profiles + capture).
+- ~~First milestone~~ — capture works from phone and laptop, including offline, on Deploy Preview 2 (confirmed by the user 2026-11-06).
+- ~~Capture migration on prod~~ — applied 2026-11-06; merged PR #2.
 
 ## Rules without a test yet
 - None. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.
