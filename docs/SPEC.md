@@ -224,12 +224,12 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 ## 7. Offline and sync
 - Reads come from the local store first; writes are applied locally and queued.
-- Sync on reconnect and via Realtime; resolve conflicts simply (last write wins, with `updated_at`).
+- Sync on reconnect and via Realtime; resolve conflicts simply: **the last edit to reach the server wins** (the server sets `updated_at` on arrival). An older offline edit that syncs late can overwrite a newer edit from another device; this is accepted for Phase 1.
 - Show a small online/offline/syncing indicator.
 
 - Deletions are soft deletes (a `deleted_at` value) so they sync to other devices, and `updated_at` is set by the server rather than the device clock.
 - Actions that notify other people (cancelling, declining, invitation messages) need a connection. If I am offline they show as pending, and I am asked to confirm again when I reconnect, so nothing goes out late by surprise.
-- Before hand-building the sync queue, evaluate an existing sync layer that works with Supabase (for example PowerSync or RxDB; verify current status) and recommend one, or explain why a simple custom queue is enough.
+- Sync layer: a simple custom queue on Dexie (IndexedDB). Record ids are generated on the device, so retried uploads never create duplicates. Changes are pulled by `updated_at` since the last sync, plus Realtime for live updates. Evaluated and rejected: RxDB (free tier allows only 13 open collections; paid from $99/month) and PowerSync (extra service and account, free instances deactivate when idle, harder for Pi device pairing).
 
 ## 8. Auth and security
 - Google sign-in through Supabase Auth.
@@ -326,6 +326,8 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Sync layer: custom Dexie queue instead of RxDB or PowerSync (reasons in §7). Conflict rule clarified: last edit to reach the server wins, because device clocks are not trusted; accepted for Phase 1 as a single user.
 
 - 2026-11-06 — Step 1 schema covers the shared conventions (server-set `created_at`/`updated_at` trigger, soft delete, RLS pattern) and `profiles`, created automatically on first Google sign-in. Each later feature's tables are added in that feature's build step, following the same pattern. Clients never hard-delete; account deletion will be a server function.
 - 2026-11-06 — Docker is not installed, so there is no local Supabase stack. Database rules (RLS) are tested against the dev project two ways: Vitest integration tests as a signed-out visitor (`tests/integration`, skipped in CI where no keys are configured), and SQL rule checks that act as two fake users inside one rolled-back statement (`supabase/tests/*.sql`, run with `npm run test:db`; pgTAP's `supabase test db` needs Docker). Each check raises to force the rollback, so `scripts/test-db.mjs` reads the raised `PASS:`/`FAIL:` message and reports a normal pass or fail. Migrations go to dev with `npx supabase db push --remote`.
