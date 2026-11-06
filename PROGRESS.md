@@ -54,6 +54,20 @@ Done:
 Left in step 3:
 - ~~Merge PR #3~~ — merged 2026-11-06 with the user's OK.
 
+## Step 4 — Random Quest (done; merged via PR #4)
+
+Done:
+- Spec: energy Meh < Ugh < Medicated, time buckets, last-3 recent rule, untagged quests match any filter (§5, §14).
+- Migration `20261106030000_quest_levels.sql`; `rls_quests.sql`.
+- Picker (`src/quests/picker.ts`) with 15 Vitest tests; Quests screen with filters, pick/accept/re-roll/done, In progress, add/edit/delete.
+- Playwright: 7 quest tests (x2 devices), stable over 3 repeats.
+- Dev + prod migrated (prod confirmed up to date); `npm run test:db` passes (4 files). Tested on Deploy Preview 4 in Chrome against dev: add, set Meh/30 min, filtered pick, re-roll, delete (test quest soft-deleted).
+
+- User-requested change: Capture is type-first with a form per type (only title required); new quests default Meh / 30 min everywhere; Quests page Add box removed (SPEC §5, §14). 80 Vitest, 80 Playwright (stable over 2 repeats).
+
+Left in step 4:
+- ~~Test type-first capture on Deploy Preview 4~~ — done in Chrome (quest captured with Meh / 30 min defaults, then deleted). ~~Merge PR #4~~ — merged 2026-11-06 with the user's OK (includes type-first capture and the Needs setup energy level).
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - None else. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.

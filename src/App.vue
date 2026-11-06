@@ -42,6 +42,7 @@ const showChrome = computed(() => !route.meta.public)
         <RouterLink to="/" class="font-bold">{{ messages.appName }}</RouterLink>
         <div class="flex items-center gap-4">
           <SyncIndicator />
+          <RouterLink to="/quests" class="text-sm text-muted">{{ messages.nav.quests }}</RouterLink>
           <RouterLink to="/inbox" class="text-sm text-muted">
             {{ messages.nav.inbox }}<span v-if="inboxCount" class="ml-1 rounded-full bg-accent px-1.5 text-xs text-accent-ink">{{ inboxCount }}</span>
           </RouterLink>
