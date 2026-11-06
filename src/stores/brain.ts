@@ -3,7 +3,8 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
-import type { Remote, SyncStatus } from '@/sync/types'
+import type { Remote, SyncStatus, TaskRow } from '@/sync/types'
+import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
@@ -88,5 +89,31 @@ export const useBrainStore = defineStore('brain', () => {
     return create
   }
 
-  return { db, status, online, userId, start, stop, capture, createBucket, convert }
+  /** Add a task typed on the Tasks screen (source "manual", default priority Low). */
+  async function addTask(title: string, dueDate: string | null) {
+    const { engine: e, uid } = requireReady()
+    const trimmed = title.trim()
+    if (!trimmed) return null
+    const row: TaskRow = {
+      id: crypto.randomUUID(),
+      user_id: uid,
+      title: trimmed,
+      due_date: dueDate,
+      priority: DEFAULT_PRIORITY,
+      status: 'open',
+      source: 'manual',
+      deleted_at: null,
+    }
+    return e.save('tasks', row)
+  }
+
+  async function saveTask(row: TaskRow) {
+    return requireReady().engine.save('tasks', row)
+  }
+
+  async function deleteTask(id: string) {
+    await requireReady().engine.remove('tasks', id)
+  }
+
+  return { db, status, online, userId, start, stop, capture, createBucket, convert, addTask, saveTask, deleteTask }
 })

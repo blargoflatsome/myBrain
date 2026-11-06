@@ -2,9 +2,6 @@
 // Capture, inbox and sync wording approved 2026-11-06.
 export const messages = {
   appName: 'My Brain',
-  home: {
-    tagline: 'Past you set this place up. Present you gets to fill it.',
-  },
   signIn: {
     heading: 'Welcome back',
     body: 'Past you left some things here for you. Sign in to see them.',
@@ -44,8 +41,47 @@ export const messages = {
     savedOffline: "Saved on this device. It'll sync when you're back online.",
     emptyError: 'Nothing to save yet. What did past you want to remember?',
   },
+  tasks: {
+    // Drafted by Claude at the user's request (2026-11-06); adjust freely.
+    todayHeading: 'Today',
+    undatedHeading: 'Undated',
+    pastYouToday: 'Past you left you these for today.',
+    emptyToday: 'Past you left nothing for today. Enjoy it, or add something.',
+    allDone: 'Everything past you asked for today is done. Past you would be proud.',
+    emptyFuture: "Past you hasn't planned anything for this day yet.",
+    emptyPast: 'Nothing was crossed off this day.',
+    emptyUndated: "Past you hasn't parked anything here.",
+    addPlaceholder: (where: string) => `Add a task for ${where}`,
+    addPlaceholderUndated: 'Add an undated task',
+    add: 'Add',
+    carriedOnce: 'Past you hoped this would happen yesterday. Want to give it another go?',
+    carriedMany: (days: number) => `Past you has carried this for ${days} days. Make it easier, or let it go?`,
+    cancel: 'Cancel task',
+    edit: 'Edit',
+    crossOff: (title: string) => `Cross off ${title}`,
+    uncross: (title: string) => `Un-cross ${title}`,
+    priorityLabel: 'Priority',
+    priority: { low: 'Low', medium: 'Medium', high: 'High' },
+    day: { today: 'Today', tomorrow: 'Tomorrow', yesterday: 'Yesterday', previous: 'Previous day', next: 'Next day' },
+    editor: {
+      heading: 'Edit task',
+      title: 'Title',
+      notes: 'Notes',
+      date: 'Date',
+      dateHint: 'Leave it blank to move it to Undated.',
+      save: 'Save',
+      close: 'Close',
+      delete: 'Delete task',
+    },
+    confirmDelete: {
+      heading: 'Delete this task?',
+      body: (title: string) => `"${title}" will be removed from all your devices.`,
+      confirm: 'Delete',
+      keep: 'Keep it',
+    },
+  },
   nav: {
-    home: 'Home',
+    home: 'Tasks',
     inbox: 'Inbox',
   },
   inbox: {

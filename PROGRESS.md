@@ -38,8 +38,25 @@ Left in step 2:
 - ~~First milestone~~ — capture works from phone and laptop, including offline, on Deploy Preview 2 (confirmed by the user 2026-11-06).
 - ~~Capture migration on prod~~ — applied 2026-11-06; merged PR #2.
 
+## Step 3 — Tasks (done; merged via PR #3)
+
+Done:
+- Spec: priorities Low/Medium/High (green/yellow/red dot), default Low; red text only for carry-over; today follows the device timezone (§5, §14).
+- Migration `20261106020000_task_priority.sql` (levels 1–3, default Low).
+- Task rules (`src/tasks`): carry-over from dates, day lists, Undated, ordering, cross off, cancel.
+- Tasks screen is now the home screen: Today/Undated tabs, day navigation, add, edit, delete with confirmation, Cancel/Edit after two carry-overs.
+- Wording drafted in `src/messages.ts` (user asked Claude to choose).
+- Tests: 57 Vitest (19 with a mocked clock: midnight, DST spring/fall, timezone travel), 58 Playwright (incl. rollover at midnight with the app open), `rls_tasks.sql`.
+
+- Dev migrated; `npm run test:db` passes (3 files). Tested on Deploy Preview 3 in the user's Chrome against dev: add, priority edit, cross off, Undated, delete with confirmation (test task soft-deleted).
+- Prod migrated (capture + priority; the step 2 capture migration had been missing on prod, see SPEC §14). Sync queue now retries refused changes on every sync.
+
+Left in step 3:
+- ~~Merge PR #3~~ — merged 2026-11-06 with the user's OK.
+
 ## Rules without a test yet
-- None. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.
+- Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
+- None else. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.
 
 ## Decisions
 See the Decisions list in `docs/SPEC.md`.

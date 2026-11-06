@@ -170,6 +170,18 @@ describe('Spec §7: small online/offline/syncing indicator', () => {
     expect(statuses.at(-1)).toEqual({ state: 'synced', pending: 0 })
   })
 
+  it('a change the server refused is retried on the next sync, so captures are never stranded', async () => {
+    remote.rejectNext = 'relation "public.inbox" does not exist'
+    await engine.save('inbox', { id: 'n1', body: 'saved before the table existed', deleted_at: null })
+    await engine.flush()
+    expect(engine.getStatus().state).toBe('error')
+    expect(remote.tables.inbox.has('n1')).toBe(false)
+
+    await engine.sync() // e.g. next app start, after the migration is applied
+    expect(remote.tables.inbox.get('n1')?.body).toBe('saved before the table existed')
+    expect(engine.getStatus()).toEqual({ state: 'synced', pending: 0 })
+  })
+
   it('reports an error and keeps going when the server refuses one change', async () => {
     remote.rejectNext = 'violates row-level security policy'
     await engine.save('tasks', task('bad', 'x'))
