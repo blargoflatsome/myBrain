@@ -66,7 +66,7 @@ Done:
 - User-requested change: Capture is type-first with a form per type (only title required); new quests default Meh / 30 min everywhere; Quests page Add box removed (SPEC §5, §14). 80 Vitest, 80 Playwright (stable over 2 repeats).
 
 Left in step 4:
-- Test type-first capture on Deploy Preview 4, then merge PR #4 (user's OK).
+- ~~Test type-first capture on Deploy Preview 4~~ — done in Chrome (quest captured with Meh / 30 min defaults, then deleted). Merge PR #4 (user's OK).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
