@@ -6,7 +6,7 @@ import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { dayStatus, deadline, isScheduled, newHabit, streaks } from '@/habits/rules'
+import { dayStatus, deadline, dueByMidnight, isScheduled, newHabit, streaks } from '@/habits/rules'
 import { messages } from '@/messages'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
 
@@ -48,7 +48,7 @@ function status(h: HabitRow) {
   return dayStatus(h, today.value, logs.value, now.value, timeZone.value)
 }
 function dueText(h: HabitRow) {
-  if (!h.notify_time || !h.timer_minutes) return m.dueToday
+  if (dueByMidnight(h, today.value)) return m.dueToday
   const time = new Date(deadline(h, today.value, timeZone.value)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
   return m.dueBy(time)
 }
@@ -93,7 +93,7 @@ const ring = {
   <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
     <div>
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted italic" data-testid="habits-tagline">{{ m.tagline }}</p>
+      <p class="text-muted italic" data-testid="habits-tagline">{{ m.intro }}</p>
     </div>
 
     <button type="button" class="min-h-12 self-start rounded-xl border border-line bg-surface px-4 font-medium" @click="startNew">

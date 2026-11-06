@@ -27,7 +27,7 @@ test.describe('Spec §5 Random Quest', () => {
       quest('q1', 'Build a birdhouse', { details: 'Plans are in the garage drawer.', time_bucket: 'half_day', energy_level: 'medicated' }),
     ])
     await openQuests(page, 'Build a birdhouse')
-    await expect(page.getByText('Bored? Past you saved some ideas for exactly this.')).toBeVisible()
+    await expect(page.getByText('Bored? We have a quest for that.')).toBeVisible()
     await page.getByRole('button', { name: /Pick a quest for me/ }).click()
 
     await expect(result(page)).toContainText('Past you thought this would be fun:')

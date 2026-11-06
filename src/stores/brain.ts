@@ -4,7 +4,7 @@ import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
 import type { HabitLogRow, HabitRow, QuestRow, Remote, SyncStatus, TaskRow } from '@/sync/types'
-import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction } from '@/habits/rules'
+import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMisses } from '@/habits/rules'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
@@ -164,6 +164,11 @@ export const useBrainStore = defineStore('brain', () => {
     if (!habitsReady.value) return
     const { engine: e, uid } = requireReady()
     let logs = await logsFor(habit.id)
+    // Remove "missed" logs whose day is still open (written too early, e.g. on the day the habit was created).
+    for (const wrong of wrongMisses(habit, logs, now, timeZone)) {
+      await e.remove('habit_logs', wrong.id)
+      logs = logs.map((l) => (l.id === wrong.id ? { ...l, deleted_at: now.toISOString() } : l))
+    }
     for (const date of missedDaysToRecord(habit, logs, now, timeZone)) {
       const log: HabitLogRow = { id: logIdFor(habit.id, date), user_id: uid, habit_id: habit.id, date, status: 'missed', deleted_at: null }
       await e.save('habit_logs', log)

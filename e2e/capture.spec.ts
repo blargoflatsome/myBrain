@@ -148,7 +148,7 @@ test.describe('Spec §5: Decide later, then sort it when I have time', () => {
     await goTo(page, /Inbox/)
     await expect(page.getByText('Past you jotted this down. Where should it go?')).toBeVisible()
     await page.getByRole('button', { name: 'Quest' }).click()
-    await expect(page.getByText("Past you hasn't left anything to sort. Nice.")).toBeVisible()
+    await expect(page.getByText("Past you hasn't left anything to sort.")).toBeVisible()
     await expect.poll(() => server.written('quests')[0]).toMatchObject({
       title: 'maybe learn Portuguese',
       energy_level: 'ugh',
