@@ -23,6 +23,9 @@ export class FakeSupabase {
     vault_items: new Map(),
     quests: new Map(),
     inbox: new Map(),
+    habits: new Map(),
+    habit_logs: new Map(),
+    profiles: new Map(),
   }
   readonly writes: { table: string; row: Row }[] = []
   private clock = 0
@@ -32,6 +35,21 @@ export class FakeSupabase {
     ;['Shopping list', 'Restaurant reviews', 'Places to go'].forEach((name, position) =>
       this.store('vault_buckets', { id: `bucket-${position}`, user_id: TEST_USER_ID, name, position, deleted_at: null }),
     )
+    // The profile the database creates on first sign-in (SPEC §4), private by default.
+    this.store('profiles', {
+      id: 'profile-1',
+      user_id: TEST_USER_ID,
+      display_name: 'Test Person',
+      bio: null,
+      avatar_url: null,
+      streak_visibility: 'private',
+      timezone: 'UTC',
+      deleted_at: null,
+    })
+  }
+
+  get profile() {
+    return this.tables.profiles!.get('profile-1')!
   }
 
   /** Put rows on the "server" as if another device had saved them. */
@@ -75,16 +93,23 @@ export class FakeSupabase {
   private handle(req: Request) {
     const url = new URL(req.url())
     const table = url.pathname.split('/').pop()!
+    const single = (req.headers()['accept'] ?? '').includes('vnd.pgrst.object')
     if (req.method() === 'GET') {
       const rows = [...(this.tables[table]?.values() ?? [])]
-      return { json: rows }
+      return { json: single ? (rows[0] ?? null) : rows }
+    }
+    if (req.method() === 'PATCH' && table === 'profiles') {
+      const body = req.postDataJSON() as Partial<Row>
+      // The app quietly keeps the timezone in step on every start; only count edits the user made.
+      if (Object.keys(body).some((k) => k !== 'timezone')) this.writes.push({ table, row: { ...this.profile, ...body } })
+      this.store('profiles', { ...this.profile, ...body })
+      return { status: 204, body: '' }
     }
     if (req.method() === 'POST') {
       const body = req.postDataJSON() as Row
       const row = { user_id: TEST_USER_ID, ...body }
       this.writes.push({ table, row })
       const stored = this.store(table, row)
-      const single = (req.headers()['accept'] ?? '').includes('vnd.pgrst.object')
       return { json: single ? stored : [stored], status: 201 }
     }
     return { status: 204, body: '' }

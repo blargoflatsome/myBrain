@@ -97,7 +97,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Choose the type first**, then fill in a form that fits it. Only the title is required; everything else is optional or has a default:
    - **Task:** Title, Notes, Date (blank = the Undated list), Priority (default Low).
    - **The Vault:** Bucket (pick one, or make a new one; the first bucket is preselected), Title, Notes.
-   - **Quest:** Title, Details, Energy needed (default Meh), Time needed (default 30 min).
+   - **Quest:** Title, Details, Energy needed (default Ugh), Time needed (default 30 min).
    - **Decide later:** just the text, saved to the inbox.
 - Text shared from another app is kept while I pick the type: its first line fills the title and the rest fills notes or details.
 - Works offline; items are queued and synced later.
@@ -119,8 +119,10 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Carry-over is calculated from each task's due date and today's date in my timezone when the list is displayed (and by a server-side job for notifications), not by a counter that only runs while the app is open. It stays correct when the app was closed or offline, or when I travel across timezones. `carry_over_count` is derived the same way. Test daylight saving changes and timezone changes.
 
 ### Habits
-- Fields: title, notify time, timer (time window to complete).
-- Track a days-in-a-row streak. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on my Profile page (see the Profile page section below).
+- Fields: title, notify time, timer (time window to complete), the weekdays it repeats on (default every day), private.
+- **Timer** starts at the notify time: notify 8:00 am with a 2-hour timer means done by 10:00 am. With no timer (or no notify time) the habit is due by midnight. A timer needs a notify time. A habit can be completed any time before its deadline, and a completion can be undone until then.
+- **Weekdays:** a habit only counts on its chosen weekdays. Days it isn't scheduled neither extend nor break the streak. A habit's history starts on the day it was created.
+- Track a streak of scheduled days in a row. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on my Profile page (see the Profile page section below).
 
 - The Habits page displays this tag line, worded exactly: "You are only ever truly in competition with past you." It reinforces the "past you" voice and keeps the focus on beating my own best streak.
 
@@ -134,7 +136,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Streaks are meant to create accountability and friendly competition between users, so the page can be viewed by other users I choose to share it with.
 - **Privacy comes first.** Streaks are private by default, and I can choose who sees them (only me, people I approve, or everyone). Other users must only ever see the streak numbers and habit titles I choose to share, never my tasks, journal, vault, reminders, or events. Enforce this with row-level security and a restricted view, not just in the user interface.
 - Habits marked private (see Habits) never appear on my Profile page, and other users cannot tell they exist, for example anything personal like meds.
-- Phase 1 builds the Profile page for myself, with the visibility setting in place. Following other users, comparing streaks, and leaderboards are Phase 2 (see section 10).
+- Phase 1 builds the Profile page for myself, with the visibility setting in place: it defaults to **only me**, can be changed now, and sharing takes effect only when Phase 2 adds other users. Display name and avatar come from Google sign-in; display name and bio are editable. Following other users, comparing streaks, and leaderboards are Phase 2 (see section 10).
 
 ### Routines (chained tasks)
 - A routine is an ordered series of steps with a notify time.
@@ -173,10 +175,10 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - A bucket of projects I want to do, each with details, estimated time, and energy level.
 - The pick is random but **skips recently picked quests** and can be **filtered by time and energy available**.
 - Display the chosen quest's full details, with buttons to accept, re-roll, or mark done.
-- **Energy levels**, least to most: **Meh**, **Ugh**, **Needs setup**, **Medicated**. Choosing an energy level offers quests that need that much energy or less.
+- **Energy levels**, least to most: **Ugh**, **Fun**, **Needs setup**, **Medicated**. Choosing an energy level offers quests that need that much energy or less.
 - **Time buckets**: **30 min**, **2 hours**, **Half a day**, **A full day**. Choosing one offers quests that fit in that time or less.
 - A quest with no time or energy set (for example one made by quick capture) matches any filter.
-- Quests are added through Capture, not on the Quests page. Every new quest, including one filed from the inbox or converted from another item, starts as **Meh** and **30 min** unless changed.
+- Quests are added through Capture, not on the Quests page. Every new quest, including one filed from the inbox or converted from another item, starts as **Ugh** and **30 min** unless changed.
 - **Recently picked** means the last 3 quests picked. If every matching quest is recent, the least recently picked match is offered instead of nothing.
 - Accepting moves a quest to In progress, where it can be marked done; accepted and done quests are not offered by the picker. Every pick counts toward `times_picked` and sets `last_picked_at`.
 
@@ -340,6 +342,11 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Habits (user's choices): the timer starts at the notify time; habits repeat on chosen weekdays; streak visibility defaults to only me and is editable now. Claude's calls: no timer means due by midnight; a completion can be undone until the deadline; misses are written to `habit_logs` when the app notices a deadline passed (the server job in step 7 will also do it); cached streaks on `habits` are recalculated from `habit_logs`. Other users can only read streaks through the `shared_streaks` view, which hides private habits and anyone not set to everyone ("people I approve" waits for Phase 2 approvals).
+- 2026-11-06 — Navigation is a text-only menu on the left (Tasks, Habits, Quests, Inbox, Profile), user's request; it replaced a short-lived bottom bar with icons. Always shown from tablet width up (laptop, Pi display); on a phone a Menu button slides it out from the left (Claude's call, as the user didn't choose).
+
+- 2026-11-06 — Energy levels changed (user's request): Meh removed, **Fun** added between Ugh and Needs setup; new quests default to **Ugh**. Quests that were Meh (the old lowest level) became Ugh (the new lowest).
 
 - 2026-11-06 — Added energy level **Needs setup**, ranked between Ugh and Medicated (user's choice).
 

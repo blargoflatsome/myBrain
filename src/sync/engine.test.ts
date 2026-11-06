@@ -87,6 +87,22 @@ describe('Spec §2/§7: capturing works offline and syncs later', () => {
   })
 })
 
+describe('Spec §7: anything a screen hands over can be saved', () => {
+  it('saves rows that are Vue reactive objects with lists inside (e.g. habit weekdays)', async () => {
+    const { reactive } = await import('vue')
+    const habit = reactive({
+      id: 'h1',
+      title: 'Stretch',
+      weekdays: [1, 2, 3],
+      start_date: '2026-11-10',
+      is_private: false,
+      deleted_at: null,
+    })
+    await engine.save('habits', habit)
+    expect(await db.habits.get('h1')).toMatchObject({ weekdays: [1, 2, 3] })
+  })
+})
+
 describe('Spec §7: retried uploads never create duplicates', () => {
   it('sending the same change twice leaves one row on the server', async () => {
     await engine.save('tasks', task('t1', 'first'))

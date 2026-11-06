@@ -1,7 +1,7 @@
 // Random Quest (SPEC §5): random pick, skipping the last 3 picked, filtered by time and energy available.
 import type { EnergyLevel, QuestRow, TimeBucket } from '@/sync/types'
 
-export const ENERGY_LEVELS: EnergyLevel[] = ['meh', 'ugh', 'needs_setup', 'medicated'] // least to most
+export const ENERGY_LEVELS: EnergyLevel[] = ['ugh', 'fun', 'needs_setup', 'medicated'] // least to most
 export const TIME_BUCKETS: TimeBucket[] = ['30m', '2h', 'half_day', 'full_day'] // shortest to longest
 export const RECENT_PICKS = 3
 

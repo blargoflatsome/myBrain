@@ -1,11 +1,9 @@
 <script setup lang="ts">
 // SPEC §5 Tasks: daily list (with carry-over), scheduling for other days, and the Undated list.
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import TaskItem from '@/components/TaskItem.vue'
 import TaskEditor from '@/components/TaskEditor.vue'
 import { useBrainStore } from '@/stores/brain'
-import { useAuthStore } from '@/stores/auth'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { addDays, daysBetween } from '@/tasks/days'
@@ -14,8 +12,6 @@ import { messages } from '@/messages'
 import type { TaskRow } from '@/sync/types'
 
 const brain = useBrainStore()
-const auth = useAuthStore()
-const router = useRouter()
 const m = messages.tasks
 const { today, timeZone } = useToday()
 
@@ -65,11 +61,6 @@ async function saveEdit(t: TaskRow) {
 async function remove(t: TaskRow) {
   await brain.deleteTask(t.id)
   editing.value = null
-}
-
-async function signOut() {
-  await auth.signOut()
-  await router.push({ name: 'sign-in' })
 }
 
 const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
@@ -132,7 +123,6 @@ const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
         @cancel="brain.saveTask(cancelTask(t))"
       />
     </ul>
-    <button type="button" class="mt-6 self-start text-sm text-muted underline" @click="signOut">{{ messages.signOut.button }}</button>
 
     <TaskEditor :task="editing" @save="saveEdit" @delete="remove" @close="editing = null" />
   </main>

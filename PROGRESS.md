@@ -68,8 +68,28 @@ Done:
 Left in step 4:
 - ~~Test type-first capture on Deploy Preview 4~~ — done in Chrome (quest captured with Meh / 30 min defaults, then deleted). ~~Merge PR #4~~ — merged 2026-11-06 with the user's OK (includes type-first capture and the Needs setup energy level).
 
+## Between steps 4 and 5 — energy levels (branch `energy-levels`, PR #5)
+
+- User's request: remove Meh, add Fun between Ugh and Needs setup, default Ugh (SPEC §5, §14). Meh quests migrate to Ugh.
+- Dev migrated (2 Meh quests became Ugh); `npm run test:db` passes. Prod is migrated at merge time, because the live app still saves Meh until this deploys.
+- User chose to ship this together with step 5 (saves a production deploy): `step-5-habits` is built on top of it.
+
+## Step 5 — Habits, streaks, private habits, Profile page (done; merged via PR #6, includes the energy change from PR #5)
+
+Done:
+- Spec: timer starts at notify time, chosen weekdays, visibility only-me by default and editable, misses logged, shared_streaks view (§5, §14). Left text-only menu (slide-out on phones), replacing the bottom bar at the user's request.
+- Migration `20261106060000_habits.sql`: habits, habit_logs (one per habit per day), RLS, Realtime, `shared_streaks` restricted view. Dev migrated; `rls_habits.sql` passes.
+- Habit rules (`src/habits/rules.ts`): weekdays, deadlines across DST, streaks/best from logs, misses, undo, deterministic log ids.
+- Habits page (exact tag line), habit editor, Profile page (name, bio, visibility, streaks without private habits, sign out).
+- Fixed while building: reactive objects could not be saved to IndexedDB; a fresh device could invent misses before downloading history.
+- Tests: 105 Vitest (habits with mocked clock), 106 Playwright, 5 SQL check files.
+
+Left in step 5:
+- ~~Chrome test on Deploy Preview 6~~ — created a habit, completed it (streak 1, fixed log id on dev), Profile showed it under the Google name, deleted it. ~~Prod migrations (energy + habits)~~ — applied right before merge. ~~Merge~~ — merged 2026-11-06 with the user's OK.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
+- Habit notify time only stored for now; the reminder itself is step 7 (notifications).
 - None else. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.
 
 ## Decisions

@@ -3,7 +3,9 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
-import type { QuestRow, Remote, SyncStatus, TaskRow } from '@/sync/types'
+import type { HabitLogRow, HabitRow, QuestRow, Remote, SyncStatus, TaskRow } from '@/sync/types'
+import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction } from '@/habits/rules'
+import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
@@ -21,6 +23,11 @@ export const useBrainStore = defineStore('brain', () => {
   const userId = ref<string | null>(null)
   const status = ref<SyncStatus>({ state: 'synced', pending: 0 })
   const online = ref(typeof navigator === 'undefined' ? true : navigator.onLine)
+  /**
+   * True once this device holds the server's habit history (after a first full download, now or in an earlier
+   * session). Misses are only recorded after that, so a fresh device never mistakes "not downloaded yet" for "missed".
+   */
+  const habitsReady = ref(false)
   let cleanup: (() => void) | null = null
 
   /** Open this user's on-device store and start syncing. One store per user, so accounts never mix. */
@@ -47,7 +54,14 @@ export const useBrainStore = defineStore('brain', () => {
       window.removeEventListener('offline', goOffline)
       unsubscribe()
     }
-    background(engine.value.sync())
+    habitsReady.value = false
+    const local = db.value
+    const markReady = async () => {
+      if (await local.meta.get('downloaded:habit_logs')) habitsReady.value = true
+    }
+    background(markReady())
+    background(engine.value.sync().then(markReady))
+    window.addEventListener('online', () => background(engine.value?.sync().then(markReady)), { once: true })
   }
 
   function stop() {
@@ -123,8 +137,75 @@ export const useBrainStore = defineStore('brain', () => {
     await requireReady().engine.remove('quests', id)
   }
 
+  async function addHabit(title: string) {
+    const { engine: e, uid } = requireReady()
+    if (!title.trim()) return null
+    return e.save('habits', newHabit(title, uid, deviceTimeZone()))
+  }
+
+  async function saveHabit(row: HabitRow) {
+    return requireReady().engine.save('habits', row)
+  }
+
+  async function deleteHabit(id: string) {
+    await requireReady().engine.remove('habits', id)
+  }
+
+  async function logsFor(habitId: string): Promise<HabitLogRow[]> {
+    const { local } = requireReady()
+    return local.habit_logs.where('habit_id').equals(habitId).toArray()
+  }
+
+  /**
+   * SPEC §5 Habits: write a "missed" log for each scheduled day whose deadline passed, then refresh the cached
+   * streak numbers from the logs. Safe to run often; it only writes when something changed.
+   */
+  async function refreshHabit(habit: HabitRow, now = new Date(), timeZone = deviceTimeZone()) {
+    if (!habitsReady.value) return
+    const { engine: e, uid } = requireReady()
+    let logs = await logsFor(habit.id)
+    for (const date of missedDaysToRecord(habit, logs, now, timeZone)) {
+      const log: HabitLogRow = { id: logIdFor(habit.id, date), user_id: uid, habit_id: habit.id, date, status: 'missed', deleted_at: null }
+      await e.save('habit_logs', log)
+      logs = [...logs, log]
+    }
+    const { current, best } = streaks(habit, logs, now, timeZone)
+    if (current !== habit.current_streak || best !== habit.best_streak) {
+      await e.save('habits', { ...habit, current_streak: current, best_streak: best })
+    }
+  }
+
+  /** Complete today's habit, or undo a completion before its deadline. */
+  async function toggleHabit(habit: HabitRow, now = new Date(), timeZone = deviceTimeZone()) {
+    const { engine: e, uid } = requireReady()
+    const date = todayIn(timeZone, now)
+    const logs = await logsFor(habit.id)
+    const action = toggleAction(habit, date, logs, now, timeZone)
+    if (action.kind === 'complete') {
+      await e.save('habit_logs', {
+        id: logIdFor(habit.id, date),
+        user_id: uid,
+        habit_id: habit.id,
+        date,
+        status: 'completed',
+        completed_at: now.toISOString(),
+        deleted_at: null,
+      })
+    } else if (action.kind === 'undo') {
+      await e.remove('habit_logs', action.log.id)
+    }
+    await refreshHabit(habit, now, timeZone)
+    return action.kind
+  }
+
   return {
     db,
+    habitsReady,
+    addHabit,
+    saveHabit,
+    deleteHabit,
+    refreshHabit,
+    toggleHabit,
     status,
     online,
     userId,

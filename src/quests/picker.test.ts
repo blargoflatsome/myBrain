@@ -7,19 +7,19 @@ function quest(id: string, over: Partial<QuestRow> = {}): QuestRow {
 }
 const ids = (qs: QuestRow[]) => qs.map((q) => q.id).sort()
 
-describe('Spec §5 Random Quest: filter by energy available (Meh < Ugh < Needs setup < Medicated)', () => {
+describe('Spec §5 Random Quest: filter by energy available (Ugh < Fun < Needs setup < Medicated)', () => {
   const qs = [
-    quest('meh', { energy_level: 'meh' }),
     quest('ugh', { energy_level: 'ugh' }),
+    quest('fun', { energy_level: 'fun' }),
     quest('setup', { energy_level: 'needs_setup' }),
     quest('med', { energy_level: 'medicated' }),
   ]
-  it('Meh offers only Meh quests', () => expect(ids(matchingQuests(qs, { energy: 'meh' }))).toEqual(['meh']))
-  it('Ugh offers Meh and Ugh quests', () => expect(ids(matchingQuests(qs, { energy: 'ugh' }))).toEqual(['meh', 'ugh']))
-  it('Needs setup offers Meh, Ugh and Needs setup quests', () =>
-    expect(ids(matchingQuests(qs, { energy: 'needs_setup' }))).toEqual(['meh', 'setup', 'ugh']))
+  it('Ugh offers only Ugh quests', () => expect(ids(matchingQuests(qs, { energy: 'ugh' }))).toEqual(['ugh']))
+  it('Fun offers Ugh and Fun quests', () => expect(ids(matchingQuests(qs, { energy: 'fun' }))).toEqual(['fun', 'ugh']))
+  it('Needs setup offers Ugh, Fun and Needs setup quests', () =>
+    expect(ids(matchingQuests(qs, { energy: 'needs_setup' }))).toEqual(['fun', 'setup', 'ugh']))
   it('Medicated offers everything', () =>
-    expect(ids(matchingQuests(qs, { energy: 'medicated' }))).toEqual(['med', 'meh', 'setup', 'ugh']))
+    expect(ids(matchingQuests(qs, { energy: 'medicated' }))).toEqual(['fun', 'med', 'setup', 'ugh']))
 })
 
 describe('Spec §5 Random Quest: filter by time available', () => {
@@ -33,14 +33,14 @@ describe('Spec §5 Random Quest: filter by time available', () => {
   it('half a day offers anything up to half a day', () =>
     expect(ids(matchingQuests(qs, { time: 'half_day' }))).toEqual(['2h', '30m', 'half']))
   it('time and energy filters combine', () => {
-    const mixed = [quest('a', { time_bucket: '30m', energy_level: 'medicated' }), quest('b', { time_bucket: '30m', energy_level: 'meh' })]
-    expect(ids(matchingQuests(mixed, { time: '30m', energy: 'meh' }))).toEqual(['b'])
+    const mixed = [quest('a', { time_bucket: '30m', energy_level: 'medicated' }), quest('b', { time_bucket: '30m', energy_level: 'ugh' })]
+    expect(ids(matchingQuests(mixed, { time: '30m', energy: 'ugh' }))).toEqual(['b'])
   })
 })
 
 describe('Spec §5 Random Quest: what can be picked', () => {
   it('untagged quests (e.g. from quick capture) match any filter', () => {
-    expect(ids(matchingQuests([quest('captured')], { time: '30m', energy: 'meh' }))).toEqual(['captured'])
+    expect(ids(matchingQuests([quest('captured')], { time: '30m', energy: 'ugh' }))).toEqual(['captured'])
   })
   it('accepted, done and deleted quests are never offered', () => {
     const qs = [quest('open'), quest('acc', { status: 'accepted' }), quest('done', { status: 'done' }), quest('del', { deleted_at: 'x' })]

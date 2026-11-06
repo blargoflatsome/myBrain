@@ -22,7 +22,7 @@ async function file(item: InboxRow, choice: Omit<CaptureInput, 'text'>) {
 </script>
 
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-6">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-28">
     <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
     <p v-if="!items.length" class="text-muted">{{ m.empty }}</p>
     <ul class="flex flex-col gap-4">

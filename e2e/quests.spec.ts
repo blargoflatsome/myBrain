@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { goTo } from './support/nav'
 
 let server: FakeSupabase
 
@@ -41,13 +42,13 @@ test.describe('Spec §5 Random Quest', () => {
     expect(server.written('quests').at(-1)?.last_picked_at).toBeTruthy()
   })
 
-  test('filters by energy (Meh < Ugh < Medicated) and time available', async ({ page }) => {
+  test('filters by energy (Ugh < Fun < Needs setup < Medicated) and time available', async ({ page }) => {
     server.seed('quests', [
       quest('big', 'Repaint the fence', { time_bucket: 'full_day', energy_level: 'medicated' }),
-      quest('small', 'Sort the sock drawer', { time_bucket: '30m', energy_level: 'meh' }),
+      quest('small', 'Sort the sock drawer', { time_bucket: '30m', energy_level: 'ugh' }),
     ])
     await openQuests(page, 'Sort the sock drawer')
-    await page.getByRole('group', { name: "How's your energy?" }).getByRole('button', { name: 'Meh' }).click()
+    await page.getByRole('group', { name: "How's your energy?" }).getByRole('button', { name: 'Ugh' }).click()
     await page.getByRole('group', { name: 'How much time do you have?' }).getByRole('button', { name: '30 min' }).click()
     for (let i = 0; i < 3; i++) {
       await page.getByRole('button', { name: /Pick a quest for me/ }).click()
@@ -106,13 +107,13 @@ test.describe('Spec §5 Random Quest', () => {
     await page.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Quest' }).click()
     await page.getByLabel('Title', { exact: true }).fill('Visit the planetarium')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
-    await page.getByRole('link', { name: 'Quests' }).click()
+    await goTo(page, 'Quests')
     await expect(page.getByRole('button', { name: /Visit the planetarium/ })).toContainText('30 min')
-    await expect(page.getByRole('button', { name: /Visit the planetarium/ })).toContainText('Meh')
+    await expect(page.getByRole('button', { name: /Visit the planetarium/ })).toContainText('Ugh')
   })
 
   test('a quest can be edited and deleted after confirming', async ({ page }) => {
-    server.seed('quests', [quest('p1', 'Visit the planetarium', { energy_level: 'meh', time_bucket: '30m' })])
+    server.seed('quests', [quest('p1', 'Visit the planetarium', { energy_level: 'ugh', time_bucket: '30m' })])
     await openQuests(page, 'Visit the planetarium')
     await page.getByRole('button', { name: /Visit the planetarium/ }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit quest' })
@@ -134,7 +135,7 @@ test.describe('Spec §5 Random Quest', () => {
   test('an older quest with no time or energy still comes up with filters on', async ({ page }) => {
     server.seed('quests', [quest('cap', 'Try bouldering')])
     await openQuests(page, 'Try bouldering')
-    await page.getByRole('group', { name: "How's your energy?" }).getByRole('button', { name: 'Meh' }).click()
+    await page.getByRole('group', { name: "How's your energy?" }).getByRole('button', { name: 'Ugh' }).click()
     await page.getByRole('button', { name: /Pick a quest for me/ }).click()
     await expect(result(page).getByRole('heading')).toHaveText('Try bouldering')
   })

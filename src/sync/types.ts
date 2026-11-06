@@ -1,6 +1,6 @@
 // Offline-first sync (SPEC §7): a custom queue on Dexie. See engine.ts.
 
-export const SYNC_TABLES = ['tasks', 'vault_buckets', 'vault_items', 'quests', 'inbox'] as const
+export const SYNC_TABLES = ['tasks', 'vault_buckets', 'vault_items', 'quests', 'inbox', 'habits', 'habit_logs'] as const
 export type SyncTable = (typeof SYNC_TABLES)[number]
 
 /** Columns every synced row has (SPEC §4). Timestamps are set by the server. */
@@ -33,7 +33,7 @@ export interface VaultItemRow extends BaseRow {
   notes?: string | null
 }
 
-export type EnergyLevel = 'meh' | 'ugh' | 'needs_setup' | 'medicated'
+export type EnergyLevel = 'ugh' | 'fun' | 'needs_setup' | 'medicated'
 export type TimeBucket = '30m' | '2h' | 'half_day' | 'full_day'
 
 export interface QuestRow extends BaseRow {
@@ -50,12 +50,37 @@ export interface InboxRow extends BaseRow {
   body: string
 }
 
+export interface HabitRow extends BaseRow {
+  title: string
+  /** 'HH:MM' or 'HH:MM:SS' local time; null = no reminder. */
+  notify_time?: string | null
+  /** Minutes after the notify time to complete it; null = due by midnight. */
+  timer_minutes?: number | null
+  /** 0 = Sunday ... 6 = Saturday. */
+  weekdays: number[]
+  /** First day the habit counts, YYYY-MM-DD. */
+  start_date: string
+  is_private: boolean
+  current_streak?: number
+  best_streak?: number
+}
+
+export interface HabitLogRow extends BaseRow {
+  habit_id: string
+  /** YYYY-MM-DD */
+  date: string
+  status: 'completed' | 'missed'
+  completed_at?: string | null
+}
+
 export interface RowTypes {
   tasks: TaskRow
   vault_buckets: VaultBucketRow
   vault_items: VaultItemRow
   quests: QuestRow
   inbox: InboxRow
+  habits: HabitRow
+  habit_logs: HabitLogRow
 }
 
 /** Thrown when the server can't be reached. The change stays queued and is retried later. */
