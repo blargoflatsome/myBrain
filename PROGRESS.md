@@ -68,6 +68,11 @@ Done:
 Left in step 4:
 - ~~Test type-first capture on Deploy Preview 4~~ — done in Chrome (quest captured with Meh / 30 min defaults, then deleted). ~~Merge PR #4~~ — merged 2026-11-06 with the user's OK (includes type-first capture and the Needs setup energy level).
 
+## Between steps 4 and 5 — energy levels (branch `energy-levels`, PR #5)
+
+- User's request: remove Meh, add Fun between Ugh and Needs setup, default Ugh (SPEC §5, §14). Meh quests migrate to Ugh.
+- Dev migrated (2 Meh quests became Ugh); `npm run test:db` passes. Prod is migrated at merge time, because the live app still saves Meh until this deploys.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - None else. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.

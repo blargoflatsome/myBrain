@@ -11,10 +11,17 @@ begin
   insert into public.quests (title, energy_level, time_bucket) values ('ok', 'medicated', 'half_day');
   insert into public.quests (title) values ('untagged is fine');
   insert into public.quests (title, energy_level) values ('needs setup is allowed', 'needs_setup');
+  insert into public.quests (title, energy_level) values ('fun is allowed', 'fun');
+
+  begin
+    insert into public.quests (title, energy_level) values ('meh is gone', 'meh');
+    raise exception 'FAIL: Spec §5 Random Quest: Meh is no longer an energy level';
+  exception when check_violation then null;
+  end;
 
   begin
     insert into public.quests (title, energy_level) values ('bad energy', 'high');
-    raise exception 'FAIL: Spec §5 Random Quest: energy is Meh, Ugh, Needs setup or Medicated only';
+    raise exception 'FAIL: Spec §5 Random Quest: energy is Ugh, Fun, Needs setup or Medicated only';
   exception when check_violation then null;
   end;
 

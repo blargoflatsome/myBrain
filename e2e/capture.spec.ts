@@ -106,10 +106,10 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
 })
 
 test.describe('Spec §5 Quick capture: Quest form', () => {
-  test('shows Title, Details, Energy needed and Time needed; defaults are Meh and 30 min', async ({ page }) => {
+  test('shows Title, Details, Energy needed and Time needed; defaults are Ugh and 30 min', async ({ page }) => {
     await startCapture(page, 'Quest')
     await expect(page.getByLabel('Details (optional)')).toBeVisible()
-    await expect(page.getByRole('group', { name: 'Energy needed' }).getByRole('button', { name: 'Meh' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByRole('group', { name: 'Energy needed' }).getByRole('button', { name: 'Ugh' })).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByRole('group', { name: 'Time needed' }).getByRole('button', { name: '30 min' })).toHaveAttribute('aria-pressed', 'true')
     await titleBox(page).fill('build a birdhouse')
     await save(page).click()
@@ -117,7 +117,7 @@ test.describe('Spec §5 Quick capture: Quest form', () => {
     await expect.poll(() => server.written('quests')[0]).toMatchObject({
       title: 'build a birdhouse',
       details: null,
-      energy_level: 'meh',
+      energy_level: 'ugh',
       time_bucket: '30m',
     })
   })
@@ -138,7 +138,7 @@ test.describe('Spec §5 Quick capture: Quest form', () => {
 })
 
 test.describe('Spec §5: Decide later, then sort it when I have time', () => {
-  test('Decide later saves the text to the inbox, and filing it as a Quest gives Meh / 30 min', async ({ page }) => {
+  test('Decide later saves the text to the inbox, and filing it as a Quest gives Ugh / 30 min', async ({ page }) => {
     await startCapture(page, 'Decide later')
     await page.getByLabel("What's on your mind?").fill('maybe learn Portuguese')
     await save(page).click()
@@ -150,7 +150,7 @@ test.describe('Spec §5: Decide later, then sort it when I have time', () => {
     await expect(page.getByText("Past you hasn't left anything to sort. Nice.")).toBeVisible()
     await expect.poll(() => server.written('quests')[0]).toMatchObject({
       title: 'maybe learn Portuguese',
-      energy_level: 'meh',
+      energy_level: 'ugh',
       time_bucket: '30m',
     })
     await expect.poll(() => server.written('inbox').some((r) => r.deleted_at)).toBe(true)

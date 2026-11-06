@@ -104,7 +104,7 @@ export const messages = {
     empty: "Past you hasn't added any quests yet. Tap Capture and choose Quest to add something you'd love to do someday.",
     inProgress: 'In progress',
     allHeading: 'Your quests',
-    energy: { meh: 'Meh', ugh: 'Ugh', needs_setup: 'Needs setup', medicated: 'Medicated' },
+    energy: { ugh: 'Ugh', fun: 'Fun', needs_setup: 'Needs setup', medicated: 'Medicated' },
     time: { '30m': '30 min', '2h': '2 hours', half_day: 'Half a day', full_day: 'A full day' },
     pickedCount: (n: number) => (n === 1 ? 'Picked once before' : `Picked ${n} times before`),
     editor: {

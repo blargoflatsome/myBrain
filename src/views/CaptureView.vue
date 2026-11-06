@@ -253,7 +253,7 @@ const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' }
         </fieldset>
       </template>
 
-      <!-- Quest: energy and time, defaults Meh / 30 min -->
+      <!-- Quest: energy and time, defaults Ugh / 30 min -->
       <template v-if="type === 'quest'">
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-1 text-sm text-muted">{{ q.editor.energy }}</legend>

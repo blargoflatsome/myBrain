@@ -27,9 +27,9 @@ describe('Spec §5 Quick capture: type-first forms; only the title is required',
     expect(rec.row).toMatchObject({ title: 'kayak the river', details: 'rent at the dock', energy_level: 'medicated', time_bucket: 'half_day' })
   })
 
-  it('Quest form: energy defaults to Meh and time to 30 min; details are optional', () => {
+  it('Quest form: energy defaults to Ugh and time to 30 min; details are optional', () => {
     expect(buildCaptureRecord({ text: 'doodle', destination: 'quest' }, 'u1', id).row).toMatchObject({
-      energy_level: 'meh',
+      energy_level: 'ugh',
       time_bucket: '30m',
       details: null,
     })
@@ -130,10 +130,10 @@ describe('Spec §5: any item can later be converted to another type', () => {
     expect(retire).toEqual({ table: 'vault_items', id: 'v1' })
   })
 
-  it('an inbox item filed as a Quest gets the Meh / 30 min defaults', () => {
+  it('an inbox item filed as a Quest gets the Ugh / 30 min defaults', () => {
     const later = buildCaptureRecord({ text: 'learn to whistle', destination: 'later' }, 'u1', () => 'n2')
     const { create } = buildConversion(later, { destination: 'quest' }, 'u1')
-    expect(create.row).toMatchObject({ title: 'learn to whistle', energy_level: 'meh', time_bucket: '30m' })
+    expect(create.row).toMatchObject({ title: 'learn to whistle', energy_level: 'ugh', time_bucket: '30m' })
   })
 
   it('filing an inbox item moves it to the chosen destination', () => {

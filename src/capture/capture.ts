@@ -4,7 +4,7 @@ import type { EnergyLevel, InboxRow, QuestRow, TaskRow, TimeBucket, VaultBucketR
 export type Destination = 'task' | 'vault' | 'quest' | 'later'
 
 /** Defaults for every new quest (SPEC §5 Random Quest). */
-export const DEFAULT_QUEST_ENERGY: EnergyLevel = 'meh'
+export const DEFAULT_QUEST_ENERGY: EnergyLevel = 'ugh'
 export const DEFAULT_QUEST_TIME: TimeBucket = '30m'
 /** Default task priority: Low (SPEC §5 Tasks). */
 export const DEFAULT_TASK_PRIORITY = 1
@@ -21,7 +21,7 @@ export interface CaptureInput {
   priority?: number
   /** Vault only. */
   bucketId?: string
-  /** Quest only. Default Meh. */
+  /** Quest only. Default Ugh. */
   energy?: EnergyLevel
   /** Quest only. Default 30 min. */
   time?: TimeBucket
