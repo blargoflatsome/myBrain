@@ -61,6 +61,10 @@ Done:
 - Migration `20261106030000_quest_levels.sql`; `rls_quests.sql`.
 - Picker (`src/quests/picker.ts`) with 15 Vitest tests; Quests screen with filters, pick/accept/re-roll/done, In progress, add/edit/delete.
 - Playwright: 7 quest tests (x2 devices), stable over 3 repeats.
+- Dev + prod migrated (prod confirmed up to date); `npm run test:db` passes (4 files). Tested on Deploy Preview 4 in Chrome against dev: add, set Meh/30 min, filtered pick, re-roll, delete (test quest soft-deleted).
+
+Left in step 4:
+- Merge PR #4 (user's OK).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
