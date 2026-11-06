@@ -147,3 +147,12 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# My Brain additions
+.env.local
+.netlify/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+supabase/.temp/
