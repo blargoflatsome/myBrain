@@ -2,6 +2,8 @@
 
 A personal productivity and "boredom buster" app for capturing everything you need to remember: tasks, habits, routines, a journal, The Vault, and a Random Quest picker. Installable as a PWA on Android, usable on desktop and on a Raspberry Pi touch display.
 
+Live app: https://myadhdbrain.netlify.app (deployed from `main`).
+
 The full spec lives in [docs/SPEC.md](docs/SPEC.md). Progress is tracked in [PROGRESS.md](PROGRESS.md).
 
 ## Stack

@@ -323,9 +323,11 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **SMS sending (only if I choose it):** after explaining the options to me, either an Android SMS gateway app on my phone (no signup; explain the setup) or Twilio (https://www.twilio.com; paid, and US sender registration is required).
 - **Google Calendar API** (Phase 2): enabled in the same Google Cloud project, with its own OAuth scopes and Google's verification process.
 - **Home Assistant and Alexa** (Phase 2): Home Assistant is already running on my linknlink device, so ask me for its URL and a long-lived access token when we get there. Alexa needs an Amazon developer account (https://developer.amazon.com).
-- **Domain name:** none for now (decided 2026-11-06). The app uses its free `*.netlify.app` address. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
+- **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Netlify project created: https://myadhdbrain.netlify.app (production = `main`; Deploy Previews on for pull requests; branch deploys off to save credits).
 
 - 2026-11-06 — Netlify deploy budget: merge to main once per build step, using a branch and its deploy preview during the step (rule in §3). Chosen over manual publishing or changing hosts to keep the spec's Netlify Functions plan.
 

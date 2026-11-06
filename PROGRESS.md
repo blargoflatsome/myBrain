@@ -15,7 +15,7 @@ Done:
 Next (needs the user — §13 account walkthrough):
 - ~~Domain name question~~ — answered: none for now (SPEC §13, §14).
 - ~~Netlify deploy budget~~ — decided: merge to main once per build step (SPEC §3, §14).
-- Netlify site linked to the GitHub repo; deploy previews on.
+- ~~Netlify site~~ — created: https://myadhdbrain.netlify.app (first `main` build expected to fail until step 1 is merged).
 - Two Supabase projects (dev + prod) — verify the free tier allows two.
 - Google Cloud OAuth client for Google sign-in through Supabase.
 - Supabase CLI, migrations folder, base schema with RLS; Google sign-in in the app.
