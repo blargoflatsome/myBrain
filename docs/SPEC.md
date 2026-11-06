@@ -327,6 +327,8 @@ Before building, walk me through creating each account below. Ask me for the cre
 
 ## 14. Decisions
 
+- 2026-11-06 — Supabase projects created in us-east-1: `my-brain-dev` (ref `qtrsmslghsbiezbdmmmd`) and `my-brain-prod` (ref `lcpmvpjjvdkzebbpbymy`). Local development and Netlify Deploy Previews use dev; production (`main`) uses prod. One Google OAuth web client serves both projects.
+
 - 2026-11-06 — Netlify project created: https://myadhdbrain.netlify.app (production = `main`; Deploy Previews on for pull requests; branch deploys off to save credits).
 
 - 2026-11-06 — Netlify deploy budget: merge to main once per build step, using a branch and its deploy preview during the step (rule in §3). Chosen over manual publishing or changing hosts to keep the spec's Netlify Functions plan.
