@@ -16,6 +16,10 @@ export class FakeRemote implements Remote {
     inbox: new Map(),
     habits: new Map(),
     habit_logs: new Map(),
+    routines: new Map(),
+    routine_steps: new Map(),
+    routine_runs: new Map(),
+    routine_step_logs: new Map(),
   }
 
   private now() {

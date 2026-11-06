@@ -68,7 +68,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **habit_logs:** habit id, date, status (completed or missed), completed_at (so history and streaks can be recalculated and stats survive).
 - **routines:** title, notify time, ordered list of steps.
 - **routine_steps:** routine id, position, title.
-- **routine_runs / routine_step_logs:** per day, which steps were completed or skipped, for completion stats.
+- **routine_runs / routine_step_logs:** per day, which steps were completed or skipped, for completion stats. Routines and steps also store weekdays and a start date.
 - **priority_tasks:** title, description, reminder time, recurrence, status. Example: take meds.
 - **journal_entries:** date, body text, auto-generated stats snapshot for that day.
 - **vault_buckets / vault_items:** user-defined buckets (restaurant reviews, places to go, books, shows, ideas to research, shopping list) and the items inside them.
@@ -149,6 +149,11 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Skip:** the step simply moves on to the next one, with no animation. The step is recorded as skipped.
 - **Completed:** the current step plays a cross-out (strikethrough) animation, then clears and the next step appears. The step is recorded as completed.
 - Skipped steps still count as possible steps in the completion stats, so the stats compare completed steps against all the times each step could have been done.
+- **Weekdays:** like habits, a routine runs on chosen weekdays (default every day) and its history starts the day it was created.
+- **Completed overall** means reaching the last step that day, even if some steps were skipped; the per-step stats still show the skips.
+- **Possible days** are every scheduled day from the routine's start (for a step, from the day it was added) up to yesterday, plus today once finished. A scheduled day I never start counts as possible, so it lowers the stats.
+- A run can be left and continued later the same day; it picks up at the first step not yet completed or skipped. Removing a step keeps its history.
+- Each routine has its own screen (`/routines/<id>/run`) so the step 7 notification can open it straight to the routine in progress.
 
 ### Priority tasks
 - Reminder time, title, description.
@@ -342,6 +347,8 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Routines (user's choices): chosen weekdays like habits; completed overall = reached the last step even with skips; unstarted scheduled days count as possible. Claude's calls: today counts as possible only once finished; a run can be continued later the same day; removed steps keep their history; one run per routine per day and one log per step per run, with fixed ids so two devices never collide.
 
 - 2026-11-06 — Wording changed by the user (commit "message tweaks"): Habits line "You are only in competition with yourself.", Tasks page heading "Tasks" with "Let's get these To-Done.", Quests intro "Bored? We have a quest for that.", inbox empty state "Past you hasn't left anything to sort." Tests and spec follow the user's wording.
 

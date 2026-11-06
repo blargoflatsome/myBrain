@@ -24,6 +24,10 @@ export class LocalDb extends Dexie {
   inbox!: Table<RowTypes['inbox'], string>
   habits!: Table<RowTypes['habits'], string>
   habit_logs!: Table<RowTypes['habit_logs'], string>
+  routines!: Table<RowTypes['routines'], string>
+  routine_steps!: Table<RowTypes['routine_steps'], string>
+  routine_runs!: Table<RowTypes['routine_runs'], string>
+  routine_step_logs!: Table<RowTypes['routine_step_logs'], string>
   outbox!: Table<OutboxEntry, number>
   meta!: Table<MetaEntry, string>
 
@@ -42,6 +46,13 @@ export class LocalDb extends Dexie {
     this.version(2).stores({
       habits: 'id, updated_at',
       habit_logs: 'id, updated_at, habit_id, date',
+    })
+    // Step 6: routines, their steps, daily runs and step logs.
+    this.version(3).stores({
+      routines: 'id, updated_at',
+      routine_steps: 'id, updated_at, routine_id',
+      routine_runs: 'id, updated_at, routine_id, date',
+      routine_step_logs: 'id, updated_at, run_id, step_id',
     })
   }
 

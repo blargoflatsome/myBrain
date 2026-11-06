@@ -12,6 +12,8 @@ declare module 'vue-router' {
 export const routes = [
   { path: '/', name: 'home', component: TasksView },
   { path: '/capture', name: 'capture', component: () => import('@/views/CaptureView.vue') },
+  { path: '/routines', name: 'routines', component: () => import('@/views/RoutinesView.vue') },
+  { path: '/routines/:id/run', name: 'routine-run', component: () => import('@/views/RoutineRunView.vue') },
   { path: '/habits', name: 'habits', component: () => import('@/views/HabitsView.vue') },
   { path: '/profile', name: 'profile', component: () => import('@/views/ProfileView.vue') },
   { path: '/quests', name: 'quests', component: () => import('@/views/QuestsView.vue') },
