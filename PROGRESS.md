@@ -100,7 +100,7 @@ Done:
 - Playwright: 9 routine tests (x2 devices), stable over 3 repeats.
 
 Left in step 6:
-- Chrome test on the Deploy Preview; prod migration right before merge; merge (user's OK).
+- ~~Chrome test on Deploy Preview 8~~ — created a 2-step routine, ran it (Completed then Skip), saw it finish and show 1 of 1 days (100%); dev logs matched; deleted it. Prod migration right before merge; merge (user's OK).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
