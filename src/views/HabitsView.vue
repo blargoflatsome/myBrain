@@ -6,7 +6,7 @@ import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { dayStatus, deadline, isScheduled, newHabit, streaks } from '@/habits/rules'
+import { dayStatus, deadline, dueByMidnight, isScheduled, newHabit, streaks } from '@/habits/rules'
 import { messages } from '@/messages'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
 
@@ -48,7 +48,7 @@ function status(h: HabitRow) {
   return dayStatus(h, today.value, logs.value, now.value, timeZone.value)
 }
 function dueText(h: HabitRow) {
-  if (!h.notify_time || !h.timer_minutes) return m.dueToday
+  if (dueByMidnight(h, today.value)) return m.dueToday
   const time = new Date(deadline(h, today.value, timeZone.value)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
   return m.dueBy(time)
 }

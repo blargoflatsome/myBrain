@@ -44,13 +44,19 @@ export function zonedTime(date: string, time: string, timeZone: string): number 
   return result
 }
 
+/** True when the day's deadline is simply midnight: no timer, or the day the habit was created. */
+export function dueByMidnight(habit: HabitRow, date: string): boolean {
+  return !(habit.notify_time && habit.timer_minutes) || date === habit.start_date
+}
+
 /**
  * When a habit must be done by on a day: notify time + timer, or midnight when there is no timer.
- * The timer starts at the notify time (SPEC §5 Habits).
+ * The timer starts at the notify time (SPEC §5 Habits). On the day a habit is created it is always due by
+ * midnight, so a habit made after its timer window has passed is not missed the moment it is saved.
  */
 export function deadline(habit: HabitRow, date: string, timeZone: string): number {
-  if (habit.notify_time && habit.timer_minutes) {
-    return zonedTime(date, habit.notify_time, timeZone) + habit.timer_minutes * 60_000
+  if (!dueByMidnight(habit, date)) {
+    return zonedTime(date, habit.notify_time!, timeZone) + habit.timer_minutes! * 60_000
   }
   return zonedTime(addDays(date, 1), '00:00', timeZone)
 }
@@ -62,8 +68,18 @@ function liveLog(logs: HabitLogRow[], habitId: string, date: string) {
 export function dayStatus(habit: HabitRow, date: string, logs: HabitLogRow[], now: Date, timeZone: string): DayStatus {
   if (!isScheduled(habit, date)) return 'not_scheduled'
   const log = liveLog(logs, habit.id, date)
-  if (log) return log.status
-  return now.getTime() > deadline(habit, date, timeZone) ? 'missed' : 'open'
+  const late = now.getTime() > deadline(habit, date, timeZone)
+  if (log?.status === 'completed') return 'completed'
+  // A "missed" log written before the deadline (for example by an older version of the app) does not count.
+  if (log?.status === 'missed') return late ? 'missed' : 'open'
+  return late ? 'missed' : 'open'
+}
+
+/** "Missed" logs whose day is in fact still open. They are removed so the history stays true. */
+export function wrongMisses(habit: HabitRow, logs: HabitLogRow[], now: Date, timeZone: string): HabitLogRow[] {
+  return logs.filter(
+    (l) => l.habit_id === habit.id && !l.deleted_at && l.status === 'missed' && now.getTime() <= deadline(habit, l.date, timeZone),
+  )
 }
 
 /**

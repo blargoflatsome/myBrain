@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
-import { dayStatus, deadline, isScheduled, logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, weekdayOf, zonedTime } from './rules'
+import { dayStatus, deadline, isScheduled, logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, weekdayOf, wrongMisses, zonedTime } from './rules'
 
 const NY = 'America/New_York'
 
@@ -45,6 +45,33 @@ describe('Spec §5 Habits: the timer starts at the notify time', () => {
 
   it('midnight deadline on the 25-hour fall-back day is still local midnight', () => {
     expect(new Date(deadline(habit(), '2026-11-01', NY)).toISOString()).toBe('2026-11-02T05:00:00.000Z')
+  })
+})
+
+describe('Spec §5 Habits: the day a habit is created stays open until midnight', () => {
+  const LA = 'America/Los_Angeles'
+  // The reported case: created 11:17 am with a 9:00 am reminder and a 1-hour timer.
+  const pills = habit({ title: 'Take Morning Pills', notify_time: '09:00:00', timer_minutes: 60, start_date: '2026-11-06' })
+
+  it('is not missed when created after its timer window', () => {
+    expect(dayStatus(pills, '2026-11-06', [], at('2026-11-06T19:17:19Z'), LA)).toBe('open')
+    expect(missedDaysToRecord(pills, [], at('2026-11-06T19:17:19Z'), LA)).toEqual([])
+  })
+
+  it('is due by midnight on the creation day, then missed if not done', () => {
+    expect(dayStatus(pills, '2026-11-06', [], at('2026-11-07T07:59:00Z'), LA)).toBe('open') // 11:59 pm
+    expect(dayStatus(pills, '2026-11-06', [], at('2026-11-07T08:01:00Z'), LA)).toBe('missed') // 12:01 am
+  })
+
+  it('from the next day the timer applies as normal', () => {
+    expect(new Date(deadline(pills, '2026-11-07', LA)).toISOString()).toBe('2026-11-07T18:00:00.000Z') // 10:00 am
+  })
+
+  it('a "missed" log written too early does not count, and is flagged for removal', () => {
+    const early = { ...missed('2026-11-06'), habit_id: pills.id }
+    expect(dayStatus(pills, '2026-11-06', [early], at('2026-11-06T20:00:00Z'), LA)).toBe('open')
+    expect(wrongMisses(pills, [early], at('2026-11-06T20:00:00Z'), LA)).toEqual([early])
+    expect(wrongMisses(pills, [early], at('2026-11-07T09:00:00Z'), LA)).toEqual([])
   })
 })
 

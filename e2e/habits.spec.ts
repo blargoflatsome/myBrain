@@ -53,7 +53,8 @@ test.describe('Spec §5 Habits', () => {
     await expect(dialog.getByRole('group', { name: 'Repeats on' }).getByRole('button', { pressed: true })).toHaveCount(7)
     await dialog.getByRole('button', { name: 'Save' }).click()
 
-    await expect(row(page, 'Stretch').getByTestId('habit-status')).toHaveText('Due by 10:00 AM')
+    // Created today, so due by midnight today; the timer applies from tomorrow (SPEC §5 Habits).
+    await expect(row(page, 'Stretch').getByTestId('habit-status')).toHaveText('Due today')
     await expect.poll(() => server.written('habits').at(-1)).toMatchObject({
       title: 'Stretch',
       notify_time: '08:00',
@@ -62,6 +63,29 @@ test.describe('Spec §5 Habits', () => {
       is_private: false,
       start_date: '2026-11-10',
     })
+  })
+
+  test('bug fix: a habit created after its timer window is not missed on its first day', async ({ page }) => {
+    await open(page, '/habits', new Date('2026-11-10T16:17:00Z')) // 11:17 am New York
+    await page.getByRole('button', { name: '+ New habit' }).click()
+    const dialog = page.getByRole('dialog', { name: 'New habit' })
+    await dialog.getByLabel('Title').fill('Take Morning Pills')
+    await dialog.getByLabel('Reminder time (optional)').fill('09:00')
+    await dialog.getByLabel('Timer').selectOption({ label: '1 hour' })
+    await dialog.getByRole('button', { name: 'Save' }).click()
+
+    await expect(row(page, 'Take Morning Pills').getByTestId('habit-status')).toHaveText('Due today')
+    await expect(page.getByRole('button', { name: 'Mark Take Morning Pills done' })).toBeEnabled()
+    await page.clock.runFor(2 * 60_000)
+    expect(server.written('habit_logs').filter((l) => l.status === 'missed')).toEqual([])
+  })
+
+  test('a "missed" log saved too early on the first day is cleaned up', async ({ page }) => {
+    server.seed('habits', [habit('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'Take Morning Pills', { notify_time: '09:00:00', timer_minutes: 60 })])
+    server.seed('habit_logs', [{ ...log('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', '2026-11-10', 'missed'), id: 'early-miss' }])
+    await open(page, '/habits', new Date('2026-11-10T16:17:00Z'))
+    await expect(row(page, 'Take Morning Pills').getByTestId('habit-status')).toHaveText('Due today')
+    await expect.poll(() => server.written('habit_logs').find((l) => l.id === 'early-miss')?.deleted_at).toBeTruthy()
   })
 
   test('a timer needs a reminder time', async ({ page }) => {
