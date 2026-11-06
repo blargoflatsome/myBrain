@@ -94,12 +94,16 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 ### Quick capture
 - One-tap access from the home screen shortcut and a persistent button in the app.
-- Type or paste text, then choose the destination each time: **Task**, **The Vault** (with bucket picker), or **Quest**.
-- Choosing Task offers an optional date. It never blocks saving: left blank, the task goes to the Undated list.
+- **Choose the type first**, then fill in a form that fits it. Only the title is required; everything else is optional or has a default:
+   - **Task:** Title, Notes, Date (blank = the Undated list), Priority (default Low).
+   - **The Vault:** Bucket (pick one, or make a new one; the first bucket is preselected), Title, Notes.
+   - **Quest:** Title, Details, Energy needed (default Meh), Time needed (default 30 min).
+   - **Decide later:** just the text, saved to the inbox.
+- Text shared from another app is kept while I pick the type: its first line fills the title and the rest fills notes or details.
 - Works offline; items are queued and synced later.
 
 - A fourth option, **Decide later**, saves the text to the inbox so I can sort it when I have time.
-- A microphone button fills in the text using the device's speech recognition (free; verify browser support). Accepted: on Chrome this sends the audio to Google's servers for transcription. Hide the button where the browser has no speech recognition.
+- A microphone button fills in the title (or the Decide later text) using the device's speech recognition (free; verify browser support). Accepted: on Chrome this sends the audio to Google's servers for transcription. Hide the button where the browser has no speech recognition.
 - Any item can later be converted to another type, for example a vault item into a task.
 
 ### Tasks
@@ -172,6 +176,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Energy levels**, least to most: **Meh**, **Ugh**, **Medicated**. Choosing an energy level offers quests that need that much energy or less.
 - **Time buckets**: **30 min**, **2 hours**, **Half a day**, **A full day**. Choosing one offers quests that fit in that time or less.
 - A quest with no time or energy set (for example one made by quick capture) matches any filter.
+- Quests are added through Capture, not on the Quests page. Every new quest, including one filed from the inbox or converted from another item, starts as **Meh** and **30 min** unless changed.
 - **Recently picked** means the last 3 quests picked. If every matching quest is recent, the least recently picked match is offered instead of nothing.
 - Accepting moves a quest to In progress, where it can be marked done; accepted and done quests are not offered by the picker. Every pick counts toward `times_picked` and sets `last_picked_at`.
 
@@ -335,6 +340,8 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Capture is type-first (user's request): pick Task, The Vault, Quest or Decide later, then a form made for that type; only the title is required. New quests default to Meh / 30 min everywhere. The Quests page no longer has its own Add box. Quests saved before this keep no time/energy and still match any filter.
 
 - 2026-11-06 — Random Quest: energy Meh < Ugh < Medicated, time buckets 30 min / 2 hours / Half a day / A full day, recent = last 3 picks (user's choices). Untagged quests match any filter so captured quests still come up (Claude's call; easy to change). Quest wording drafted by Claude in the established voice.
 

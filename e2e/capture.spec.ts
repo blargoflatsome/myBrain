@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
 
 let server: FakeSupabase
@@ -8,94 +8,151 @@ test.beforeEach(async ({ page }) => {
   await server.install(page)
 })
 
-const box = (page: import('@playwright/test').Page) => page.getByRole('textbox', { name: "What's on your mind?" })
+const typeGroup = (page: Page) => page.getByRole('group', { name: 'What are you capturing?' })
+const titleBox = (page: Page) => page.getByLabel('Title', { exact: true })
+const save = (page: Page) => page.getByRole('button', { name: 'Save', exact: true })
 
-test.describe('Spec §5 Quick capture', () => {
-  test('a persistent Capture button opens capture from anywhere in the app', async ({ page }) => {
+/** Open capture and choose a type (SPEC §5: type first). */
+async function startCapture(page: Page, type: 'Task' | 'The Vault' | 'Quest' | 'Decide later') {
+  await page.goto('/capture')
+  await typeGroup(page).getByRole('button', { name: type, exact: true }).click()
+}
+
+test.describe('Spec §5 Quick capture: choose the type first', () => {
+  test('a persistent Capture button opens capture, which asks for the type first', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('link', { name: '+ Capture' }).click()
     await expect(page).toHaveURL(/\/capture$/)
-    await expect(box(page)).toBeFocused()
+    await expect(page.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()
+    await expect(typeGroup(page).getByRole('button')).toHaveText(['Task', 'The Vault', 'Quest', 'Decide later'])
   })
 
-  test('Task with no date is saved to the Undated list', async ({ page }) => {
-    await page.goto('/capture')
-    await box(page).fill('call the plumber')
-    await page.getByRole('button', { name: 'Task', exact: true }).click()
-    await page.getByRole('button', { name: 'Save task' }).click()
+  test('Back returns to the type choice without saving', async ({ page }) => {
+    await startCapture(page, 'Quest')
+    await titleBox(page).fill('never mind')
+    await page.getByRole('button', { name: 'Back' }).click()
+    await expect(page.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()
+    expect(server.writes).toHaveLength(0)
+  })
 
+  test('only the title is required: an empty title is not saved', async ({ page }) => {
+    await startCapture(page, 'Quest')
+    await save(page).click()
+    await expect(page.getByRole('alert')).toHaveText('Nothing to save yet. What did past you want to remember?')
+    expect(server.writes).toHaveLength(0)
+  })
+})
+
+test.describe('Spec §5 Quick capture: Task form', () => {
+  test('title only: saved as Low priority to the Undated list', async ({ page }) => {
+    await startCapture(page, 'Task')
+    await expect(titleBox(page)).toBeFocused()
+    await titleBox(page).fill('call the plumber')
+    await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Saved. Future you will find it in Undated.')
-    await expect(box(page)).toHaveValue('')
     await expect.poll(() => server.written('tasks')).toEqual([
-      expect.objectContaining({ title: 'call the plumber', due_date: null, source: 'capture', status: 'open' }),
+      expect.objectContaining({ title: 'call the plumber', notes: null, due_date: null, priority: 1, source: 'capture' }),
     ])
   })
 
-  test('Task with a date is scheduled for that day', async ({ page }) => {
-    await page.goto('/capture')
-    await box(page).fill('dentist')
-    await page.getByRole('button', { name: 'Task', exact: true }).click()
+  test('notes, date and priority are saved', async ({ page }) => {
+    await startCapture(page, 'Task')
+    await titleBox(page).fill('dentist')
+    await page.getByLabel('Notes (optional)').fill('bring insurance card')
     await page.getByLabel('When? (optional)').fill('2026-11-09')
-    await page.getByRole('button', { name: 'Save task' }).click()
+    await page.getByRole('group', { name: 'Priority' }).getByRole('button', { name: 'High' }).click()
+    await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Saved. Future you will find it waiting in Tasks.')
-    await expect.poll(() => server.written('tasks')[0]?.due_date).toBe('2026-11-09')
+    await expect.poll(() => server.written('tasks')[0]).toMatchObject({
+      notes: 'bring insurance card',
+      due_date: '2026-11-09',
+      priority: 3,
+    })
   })
+})
 
-  test('The Vault saves into the picked bucket (starter buckets are there)', async ({ page }) => {
-    await page.goto('/capture')
-    await box(page).fill('oat milk')
-    await page.getByRole('button', { name: 'The Vault' }).click()
-    await expect(page.getByRole('group', { name: 'Which bucket?' }).getByRole('button')).toHaveText([
-      'Shopping list',
-      'Restaurant reviews',
-      'Places to go',
-      '+ New bucket',
-    ])
-    await page.getByRole('button', { name: 'Shopping list' }).click()
+test.describe('Spec §5 Quick capture: The Vault form', () => {
+  test('the first bucket is preselected, so only the title is needed', async ({ page }) => {
+    await startCapture(page, 'The Vault')
+    const buckets = page.getByRole('group', { name: 'Which bucket?' })
+    await expect(buckets.getByRole('button')).toHaveText(['Shopping list', 'Restaurant reviews', 'Places to go', '+ New bucket'])
+    await expect(buckets.getByRole('button', { name: 'Shopping list' })).toHaveAttribute('aria-pressed', 'true')
+    await titleBox(page).fill('oat milk')
+    await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Saved to Shopping list. Future you will be glad you did.')
     await expect.poll(() => server.written('vault_items')[0]).toMatchObject({ title: 'oat milk', bucket_id: 'bucket-0' })
   })
 
-  test('The Vault bucket picker can make a new bucket and save into it', async ({ page }) => {
-    await page.goto('/capture')
-    await box(page).fill('Piranesi')
-    await page.getByRole('button', { name: 'The Vault' }).click()
+  test('another bucket and notes can be chosen', async ({ page }) => {
+    await startCapture(page, 'The Vault')
+    await page.getByRole('group', { name: 'Which bucket?' }).getByRole('button', { name: 'Restaurant reviews' }).click()
+    await titleBox(page).fill('Thai Garden')
+    await page.getByLabel('Notes (optional)').fill('try the green curry')
+    await save(page).click()
+    await expect(page.getByTestId('capture-notice')).toHaveText('Saved to Restaurant reviews. Future you will be glad you did.')
+    await expect.poll(() => server.written('vault_items')[0]).toMatchObject({ bucket_id: 'bucket-1', notes: 'try the green curry' })
+  })
+
+  test('a new bucket can be made from the form', async ({ page }) => {
+    await startCapture(page, 'The Vault')
     await page.getByRole('button', { name: '+ New bucket' }).click()
     await page.getByRole('textbox', { name: 'New bucket' }).fill('Books')
-    await page.getByRole('button', { name: 'Add' }).click()
+    await titleBox(page).fill('Piranesi')
+    await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Saved to Books. Future you will be glad you did.')
     await expect.poll(() => server.written('vault_buckets').map((b) => b.name)).toEqual(['Books'])
     await expect.poll(() => server.written('vault_items')[0]?.title).toBe('Piranesi')
   })
+})
 
-  test('Quest saves to the quest bucket', async ({ page }) => {
-    await page.goto('/capture')
-    await box(page).fill('build a birdhouse')
-    await page.getByRole('button', { name: 'Quest' }).click()
+test.describe('Spec §5 Quick capture: Quest form', () => {
+  test('shows Title, Details, Energy needed and Time needed; defaults are Meh and 30 min', async ({ page }) => {
+    await startCapture(page, 'Quest')
+    await expect(page.getByLabel('Details (optional)')).toBeVisible()
+    await expect(page.getByRole('group', { name: 'Energy needed' }).getByRole('button', { name: 'Meh' })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByRole('group', { name: 'Time needed' }).getByRole('button', { name: '30 min' })).toHaveAttribute('aria-pressed', 'true')
+    await titleBox(page).fill('build a birdhouse')
+    await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Added to your quests. Future you has something for a bored day.')
-    await expect.poll(() => server.written('quests')[0]?.title).toBe('build a birdhouse')
+    await expect.poll(() => server.written('quests')[0]).toMatchObject({
+      title: 'build a birdhouse',
+      details: null,
+      energy_level: 'meh',
+      time_bucket: '30m',
+    })
   })
 
-  test('an empty thought is not saved', async ({ page }) => {
-    await page.goto('/capture')
-    await page.getByRole('button', { name: 'Quest' }).click()
-    await expect(page.getByRole('alert')).toHaveText('Nothing to save yet. What did past you want to remember?')
-    expect(server.writes).toHaveLength(0)
+  test('details, energy and time can be changed', async ({ page }) => {
+    await startCapture(page, 'Quest')
+    await titleBox(page).fill('kayak the river')
+    await page.getByLabel('Details (optional)').fill('rent at the dock')
+    await page.getByRole('group', { name: 'Energy needed' }).getByRole('button', { name: 'Medicated' }).click()
+    await page.getByRole('group', { name: 'Time needed' }).getByRole('button', { name: 'Half a day' }).click()
+    await save(page).click()
+    await expect.poll(() => server.written('quests')[0]).toMatchObject({
+      details: 'rent at the dock',
+      energy_level: 'medicated',
+      time_bucket: 'half_day',
+    })
   })
+})
 
-  test('Decide later saves to the inbox, and filing it from the inbox moves it', async ({ page }) => {
-    await page.goto('/capture')
-    await box(page).fill('maybe learn Portuguese')
-    await page.getByRole('button', { name: 'Decide later' }).click()
+test.describe('Spec §5: Decide later, then sort it when I have time', () => {
+  test('Decide later saves the text to the inbox, and filing it as a Quest gives Meh / 30 min', async ({ page }) => {
+    await startCapture(page, 'Decide later')
+    await page.getByLabel("What's on your mind?").fill('maybe learn Portuguese')
+    await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText("Saved to your inbox. Future you can sort it when there's time.")
 
     await page.getByRole('link', { name: /Inbox/ }).click()
     await expect(page.getByText('Past you jotted this down. Where should it go?')).toBeVisible()
-    await expect(page.getByText('maybe learn Portuguese')).toBeVisible()
     await page.getByRole('button', { name: 'Quest' }).click()
-
     await expect(page.getByText("Past you hasn't left anything to sort. Nice.")).toBeVisible()
-    await expect.poll(() => server.written('quests')[0]?.title).toBe('maybe learn Portuguese')
+    await expect.poll(() => server.written('quests')[0]).toMatchObject({
+      title: 'maybe learn Portuguese',
+      energy_level: 'meh',
+      time_bucket: '30m',
+    })
     await expect.poll(() => server.written('inbox').some((r) => r.deleted_at)).toBe(true)
   })
 })
@@ -106,8 +163,9 @@ test.describe('Spec §2/§5/§7: capture works offline and syncs later', () => {
     await expect(page.getByTestId('sync-indicator')).toHaveText('Synced')
 
     await context.setOffline(true)
-    await box(page).fill('idea on the subway')
-    await page.getByRole('button', { name: 'Decide later' }).click()
+    await typeGroup(page).getByRole('button', { name: 'Decide later' }).click()
+    await page.getByLabel("What's on your mind?").fill('idea on the subway')
+    await save(page).click()
 
     await expect(page.getByTestId('capture-notice')).toHaveText("Saved on this device. It'll sync when you're back online.")
     await expect(page.getByTestId('sync-indicator')).toHaveText('Offline · 1 waiting to sync')
@@ -123,7 +181,7 @@ test.describe('Spec §2/§5/§7: capture works offline and syncs later', () => {
     await page.evaluate(() => navigator.serviceWorker.ready)
     await context.setOffline(true)
     await page.reload()
-    await expect(box(page)).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()
   })
 })
 
@@ -136,9 +194,12 @@ test.describe('Spec §3: PWA install, home-screen shortcut, Web Share Target', (
     expect(manifest.icons.map((i: { sizes: string }) => i.sizes)).toEqual(expect.arrayContaining(['192x192', '512x512']))
   })
 
-  test('text shared from another app arrives in the capture box', async ({ page }) => {
+  test('shared text waits while I pick the type, then fills the title and notes', async ({ page }) => {
     await page.goto('/capture?title=Great%20recipe&text=https%3A%2F%2Fexample.com%2Fsoup')
-    await expect(box(page)).toHaveValue('Great recipe\nhttps://example.com/soup')
+    await expect(page.getByTestId('shared-text')).toHaveText('Great recipe\nhttps://example.com/soup')
     await expect(page).toHaveURL(/\/capture$/)
+    await typeGroup(page).getByRole('button', { name: 'The Vault' }).click()
+    await expect(titleBox(page)).toHaveValue('Great recipe')
+    await expect(page.getByLabel('Notes (optional)')).toHaveValue('https://example.com/soup')
   })
 })

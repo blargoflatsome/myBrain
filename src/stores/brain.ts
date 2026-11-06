@@ -115,14 +115,6 @@ export const useBrainStore = defineStore('brain', () => {
     await requireReady().engine.remove('tasks', id)
   }
 
-  async function addQuest(title: string) {
-    const { engine: e, uid } = requireReady()
-    const trimmed = title.trim()
-    if (!trimmed) return null
-    const row: QuestRow = { id: crypto.randomUUID(), user_id: uid, title: trimmed, status: 'open', times_picked: 0, deleted_at: null }
-    return e.save('quests', row)
-  }
-
   async function saveQuest(row: QuestRow) {
     return requireReady().engine.save('quests', row)
   }
@@ -144,7 +136,6 @@ export const useBrainStore = defineStore('brain', () => {
     addTask,
     saveTask,
     deleteTask,
-    addQuest,
     saveQuest,
     deleteQuest,
   }

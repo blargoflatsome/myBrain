@@ -1,14 +1,69 @@
 import { describe, expect, it } from 'vitest'
-import { buildBucket, buildCaptureRecord, buildConversion, CaptureError, sharedText } from './capture'
+import { buildBucket, buildCaptureRecord, buildConversion, CaptureError, sharedText, splitTitle } from './capture'
 
 const id = () => 'fixed-id'
+
+describe('Spec §5 Quick capture: type-first forms; only the title is required', () => {
+  it('Task form: notes, date and priority are saved; priority defaults to Low', () => {
+    const rec = buildCaptureRecord(
+      { text: 'dentist', destination: 'task', notes: 'bring insurance card', dueDate: '2026-11-09', priority: 3 },
+      'u1',
+      id,
+    )
+    expect(rec.row).toMatchObject({ title: 'dentist', notes: 'bring insurance card', due_date: '2026-11-09', priority: 3 })
+  })
+
+  it('Vault form: notes are saved with the item', () => {
+    const rec = buildCaptureRecord({ text: 'Thai Garden', destination: 'vault', bucketId: 'b1', notes: 'try the curry' }, 'u1', id)
+    expect(rec.row).toMatchObject({ title: 'Thai Garden', notes: 'try the curry', bucket_id: 'b1' })
+  })
+
+  it('Quest form: details, energy and time are saved', () => {
+    const rec = buildCaptureRecord(
+      { text: 'kayak the river', destination: 'quest', notes: 'rent at the dock', energy: 'medicated', time: 'half_day' },
+      'u1',
+      id,
+    )
+    expect(rec.row).toMatchObject({ title: 'kayak the river', details: 'rent at the dock', energy_level: 'medicated', time_bucket: 'half_day' })
+  })
+
+  it('Quest form: energy defaults to Meh and time to 30 min; details are optional', () => {
+    expect(buildCaptureRecord({ text: 'doodle', destination: 'quest' }, 'u1', id).row).toMatchObject({
+      energy_level: 'meh',
+      time_bucket: '30m',
+      details: null,
+    })
+  })
+
+  it('blank optional fields are saved as empty, not as spaces', () => {
+    expect(buildCaptureRecord({ text: 'x', destination: 'task', notes: '   ' }, 'u1', id).row).toMatchObject({ notes: null })
+  })
+
+  it('shared text: the first line becomes the title, the rest the notes', () => {
+    expect(splitTitle('Great recipe\nhttps://example.com/soup\nfrom Sam')).toEqual({
+      title: 'Great recipe',
+      rest: 'https://example.com/soup\nfrom Sam',
+    })
+    expect(splitTitle('just one line')).toEqual({ title: 'just one line', rest: '' })
+  })
+})
 
 describe('Spec §5 Quick capture: choose the destination each time', () => {
   it('Task: saves a captured task with source "capture"', () => {
     const rec = buildCaptureRecord({ text: ' call mom ', destination: 'task' }, 'u1', id)
     expect(rec).toEqual({
       table: 'tasks',
-      row: { id: 'fixed-id', user_id: 'u1', deleted_at: null, title: 'call mom', due_date: null, status: 'open', source: 'capture' },
+      row: {
+        id: 'fixed-id',
+        user_id: 'u1',
+        deleted_at: null,
+        title: 'call mom',
+        notes: null,
+        due_date: null,
+        priority: 1,
+        status: 'open',
+        source: 'capture',
+      },
     })
   })
 
@@ -73,6 +128,12 @@ describe('Spec §5: any item can later be converted to another type', () => {
     const { create, retire } = buildConversion(item, { destination: 'task' }, 'u1', () => 't1')
     expect(create).toMatchObject({ table: 'tasks', row: { id: 't1', title: 'book the dentist', due_date: null } })
     expect(retire).toEqual({ table: 'vault_items', id: 'v1' })
+  })
+
+  it('an inbox item filed as a Quest gets the Meh / 30 min defaults', () => {
+    const later = buildCaptureRecord({ text: 'learn to whistle', destination: 'later' }, 'u1', () => 'n2')
+    const { create } = buildConversion(later, { destination: 'quest' }, 'u1')
+    expect(create.row).toMatchObject({ title: 'learn to whistle', energy_level: 'meh', time_bucket: '30m' })
   })
 
   it('filing an inbox item moves it to the chosen destination', () => {

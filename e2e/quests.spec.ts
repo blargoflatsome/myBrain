@@ -97,12 +97,23 @@ test.describe('Spec §5 Random Quest', () => {
     await expect.poll(() => server.written('quests').at(-1)?.status).toBe('done')
   })
 
-  test('a quest can be added, given time and energy, and deleted after confirming', async ({ page }) => {
+  test('the Quests page has no Add box; quests come from Capture', async ({ page }) => {
     await page.goto('/quests')
-    await expect(page.getByText("Past you hasn't added any quests yet.")).toBeVisible()
-    await page.getByRole('textbox', { name: 'Add a quest' }).fill('Visit the planetarium')
-    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(page.getByText("Past you hasn't added any quests yet. Tap Capture and choose Quest")).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Add a quest' })).toHaveCount(0)
 
+    await page.getByRole('link', { name: '+ Capture' }).click()
+    await page.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Quest' }).click()
+    await page.getByLabel('Title', { exact: true }).fill('Visit the planetarium')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await page.getByRole('link', { name: 'Quests' }).click()
+    await expect(page.getByRole('button', { name: /Visit the planetarium/ })).toContainText('30 min')
+    await expect(page.getByRole('button', { name: /Visit the planetarium/ })).toContainText('Meh')
+  })
+
+  test('a quest can be edited and deleted after confirming', async ({ page }) => {
+    server.seed('quests', [quest('p1', 'Visit the planetarium', { energy_level: 'meh', time_bucket: '30m' })])
+    await openQuests(page, 'Visit the planetarium')
     await page.getByRole('button', { name: /Visit the planetarium/ }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit quest' })
     await dialog.getByLabel('Energy needed').selectOption('ugh')
@@ -120,7 +131,7 @@ test.describe('Spec §5 Random Quest', () => {
     await expect.poll(() => server.written('quests').at(-1)?.deleted_at).toBeTruthy()
   })
 
-  test('a quest made by quick capture (no time or energy) still comes up with filters on', async ({ page }) => {
+  test('an older quest with no time or energy still comes up with filters on', async ({ page }) => {
     server.seed('quests', [quest('cap', 'Try bouldering')])
     await openQuests(page, 'Try bouldering')
     await page.getByRole('group', { name: "How's your energy?" }).getByRole('button', { name: 'Meh' }).click()

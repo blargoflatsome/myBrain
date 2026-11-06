@@ -46,12 +46,6 @@ async function finish(q: QuestRow) {
   notice.value = m.finished
 }
 
-const newTitle = ref('')
-async function add() {
-  await brain.addQuest(newTitle.value)
-  newTitle.value = ''
-}
-
 const editing = ref<QuestRow | null>(null)
 async function saveEdit(q: QuestRow) {
   await brain.saveQuest(q)
@@ -130,15 +124,6 @@ const btn = 'min-h-12 rounded-xl border border-line bg-surface px-4 font-medium'
 
     <section class="flex flex-col gap-2">
       <h2 class="text-lg font-semibold">{{ m.allHeading }}</h2>
-      <form class="flex gap-2" @submit.prevent="add">
-        <input
-          v-model="newTitle"
-          :placeholder="m.addPlaceholder"
-          :aria-label="m.addPlaceholder"
-          class="min-h-12 flex-1 rounded-xl border border-line bg-surface px-3 text-base text-ink"
-        >
-        <button type="submit" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.add }}</button>
-      </form>
       <p v-if="!open.length" class="text-muted">{{ m.empty }}</p>
       <ul class="flex flex-col gap-2">
         <li v-for="q in open" :key="q.id">
