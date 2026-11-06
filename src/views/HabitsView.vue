@@ -93,7 +93,7 @@ const ring = {
   <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
     <div>
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted italic" data-testid="habits-tagline">{{ m.tagline }}</p>
+      <p class="text-muted italic" data-testid="habits-tagline">{{ m.intro }}</p>
     </div>
 
     <button type="button" class="min-h-12 self-start rounded-xl border border-line bg-surface px-4 font-medium" @click="startNew">

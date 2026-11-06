@@ -68,6 +68,10 @@ const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
 
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-28">
+    <div> 
+      <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
+      <p class="text-muted italic" data-testid="habits-tagline">{{ m.intro }}</p>
+    </div>
     <div class="flex gap-2 rounded-2xl bg-surface p-1" role="tablist">
       <button
         type="button"

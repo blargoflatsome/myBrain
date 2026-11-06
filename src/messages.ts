@@ -49,6 +49,8 @@ export const messages = {
   },
   tasks: {
     // Drafted by Claude at the user's request (2026-11-06); adjust freely.
+    heading: 'Tasks',
+    intro: 'Let\'s get these To-Done.',
     todayHeading: 'Today',
     undatedHeading: 'Undated',
     pastYouToday: 'Past you left you these for today.',
@@ -89,7 +91,7 @@ export const messages = {
   quests: {
     // Drafted by Claude in the established voice (2026-11-06); adjust freely.
     heading: 'Random Quest',
-    intro: 'Bored? Past you saved some ideas for exactly this.',
+    intro: 'Bored? We have a quest for that.',
     energyLabel: "How's your energy?",
     timeLabel: 'How much time do you have?',
     any: 'Any',
@@ -127,7 +129,7 @@ export const messages = {
   },
   habits: {
     // Tag line worded exactly as the spec requires (SPEC §5 Habits). The rest drafted by Claude in the established voice.
-    tagline: 'You are only ever truly in competition with past you.',
+    intro: 'You are only in competition with yourself.',
     heading: 'Habits',
     todayHeading: 'Today',
     notTodayHeading: 'Not today',
@@ -194,7 +196,7 @@ export const messages = {
   inbox: {
     heading: 'Inbox',
     itemPrompt: 'Past you jotted this down. Where should it go?',
-    empty: "Past you hasn't left anything to sort. Nice.",
+    empty: "Past you hasn't left anything to sort.",
   },
   sync: {
     online: 'Synced',
