@@ -43,6 +43,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - "Past you" only speaks to the user about themselves. Messages sent to other people, such as the standard cancellation text to guests and invitees, are written normally from the user to them.
 
 ## 3. Tech stack
+- **Visual style:** calm, soft neutral colors with one accent color; light or dark following the device's system setting.
 - **Front end:** Vue 3 (Composition API) with Vite, Vue Router, and Pinia. Use TypeScript throughout (front end and server functions) and Tailwind CSS for styling, mobile-first so it also works on the 10 inch touch display.
 - **PWA:** installable on Android, with a service worker (for example vite-plugin-pwa / Workbox), a web app manifest, home-screen shortcuts for quick capture, and Web Share Target so I can share text from other apps into the capture screen.
 - **Backend/data:** Supabase (open source; hosted free tier): Postgres, Google sign-in, row-level security, and Realtime for syncing across devices.
@@ -70,7 +71,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **routine_runs / routine_step_logs:** per day, which steps were completed or skipped, for completion stats.
 - **priority_tasks:** title, description, reminder time, recurrence, status. Example: take meds.
 - **journal_entries:** date, body text, auto-generated stats snapshot for that day.
-- **vault_buckets / vault****_items:** user-defined buckets (restaurant reviews, places to go, books, shows, ideas to research, shopping list) and the items inside them.
+- **vault_buckets / vault_items:** user-defined buckets (restaurant reviews, places to go, books, shows, ideas to research, shopping list) and the items inside them.
 - **quests:** title, details, estimated time, energy level, status, last_picked_at, times_picked.
 - **reminders / events:** title, start, end, recurrence, notify offset (calendar items).
 - **dashboard_config:** which blocks are shown and their positions, per device or layout name.
@@ -94,14 +95,16 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 ### Quick capture
 - One-tap access from the home screen shortcut and a persistent button in the app.
 - Type or paste text, then choose the destination each time: **Task**, **The Vault** (with bucket picker), or **Quest**.
+- Choosing Task offers an optional date. It never blocks saving: left blank, the task goes to the Undated list.
 - Works offline; items are queued and synced later.
 
 - A fourth option, **Decide later**, saves the text to the inbox so I can sort it when I have time.
-- A microphone button fills in the text using the device's speech recognition (free; verify browser support).
+- A microphone button fills in the text using the device's speech recognition (free; verify browser support). Accepted: on Chrome this sends the audio to Google's servers for transcription. Hide the button where the browser has no speech recognition.
 - Any item can later be converted to another type, for example a vault item into a task.
 
 ### Tasks
 - Daily list, plus the ability to schedule tasks for future days.
+- An Undated list holds tasks with no due date. Undated tasks never carry over; giving one a date moves it onto that day's list.
 - Completing a task crosses it off.
 - The day ends at **midnight in my timezone**. A task not completed by then carries over to the next day, shown in **red text**.
 - If it carries over a second time, show **Cancel** and **Edit** buttons so I can make it easier or remove it.
@@ -154,6 +157,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 ### The Vault
 - User-defined buckets of things to remember that are not tasks (restaurant reviews, places to go, books, shows, ideas to research, shopping list).
+- New accounts start with three buckets: Shopping list, Restaurant reviews, and Places to go. They can be renamed or deleted like any other bucket.
 
 ### Global search and tags
 - A search box reachable from every screen searches tasks, journal entries, vault items, quests, and events. Results show what type each item is, and tapping one opens it. Use Postgres full-text search, and make search work on the locally stored copy too, so it works offline if that is practical.
@@ -285,7 +289,6 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 After each step, the app should deploy and be usable, and all Vitest and Playwright tests must pass.
 
 ## 12. Questions for Claude Code to confirm with me before or during the build
-- Visual style (theme, colors, dark mode). The app name is decided: My Brain.
 - The "past you" voice is decided (see Voice and tone in section 2). Ask me if a new kind of message isn't covered.
 - Recurrence options for tasks, reminders, and priority tasks (daily, weekdays, weekly, custom).
 - Which stats to show on the dashboard and in journal entries.
@@ -326,6 +329,8 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Answered §12 visual style: calm neutrals, one accent, follows system dark mode (§3). Quick capture: optional non-blocking task date, blank goes to a new Undated list (§5 Tasks). Starter Vault buckets: Shopping list, Restaurant reviews, Places to go. Chrome speech recognition accepted despite audio going to Google.
 
 - 2026-11-06 — Sync layer: custom Dexie queue instead of RxDB or PowerSync (reasons in §7). Conflict rule clarified: last edit to reach the server wins, because device clocks are not trusted; accepted for Phase 1 as a single user.
 
