@@ -107,8 +107,9 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - An Undated list holds tasks with no due date. Undated tasks never carry over; giving one a date moves it onto that day's list.
 - Completing a task crosses it off.
 - The day ends at **midnight in my timezone**. A task not completed by then carries over to the next day, shown in **red text**.
-- If it carries over a second time, show **Cancel** and **Edit** buttons so I can make it easier or remove it.
-- Priority levels change how the task is rendered (for example emphasis, order, color).
+- If it carries over a second time, show **Cancel** and **Edit** buttons so I can make it easier or remove it. Cancel marks the task cancelled (it leaves the list but stays in history); Delete, inside Edit, asks for confirmation first.
+- "Today" is the calendar date in the device's current timezone, so carry-over follows me when I travel. The profile's timezone is kept in step with the device for server-side jobs (notifications).
+- Priority levels change how the task is rendered (for example emphasis, order, color). Three levels: **Low** (green), **Medium** (yellow), **High** (red), shown as a colored dot and label beside the task. New tasks default to Low. Open tasks are ordered High, Medium, Low, then oldest first. Red title text is reserved for carried-over tasks, so the two never look alike.
 - Present tasks in the "past you" voice.
 
 - Carry-over is calculated from each task's due date and today's date in my timezone when the list is displayed (and by a server-side job for notifications), not by a counter that only runs while the app is open. It stays correct when the app was closed or offline, or when I travel across timezones. `carry_over_count` is derived the same way. Test daylight saving changes and timezone changes.
@@ -329,6 +330,8 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Task priorities: Low green, Medium yellow, High red, shown as a dot and label; default Low; red title text only for carry-over. Carry-over wording drafted by Claude at the user's request (in `src/messages.ts`). Today = date in the device's current timezone; carry-over count = whole calendar days from due date to today, computed on display.
 
 - 2026-11-06 — Step 2 build details: Quest and Decide later save in one tap after typing; Task asks for the optional date, then Save; The Vault saves when a bucket is tapped. The whole captured text becomes the item's title (inbox: body). Filing an inbox item is a conversion: the new item is created and the inbox row is soft-deleted. Convert buttons on tasks, vault items and quests arrive with those screens (steps 3, 4, 8). Each user's on-device data lives in its own IndexedDB store and is kept on sign-out so unsynced captures are never lost.
 

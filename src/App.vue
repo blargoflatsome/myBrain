@@ -8,6 +8,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { supabase } from '@/lib/supabase'
 import { supabaseRemote } from '@/sync/supabaseRemote'
 import { messages } from '@/messages'
+import { deviceTimeZone } from '@/tasks/days'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -16,7 +17,12 @@ const brain = useBrainStore()
 // Open the signed-in user's on-device store and start syncing; close it on sign-out.
 watch(
   () => auth.user?.id,
-  (id) => (id ? brain.start(id, supabaseRemote(supabase)) : brain.stop()),
+  (id) => {
+    if (!id) return brain.stop()
+    brain.start(id, supabaseRemote(supabase))
+    // SPEC §5 Tasks: keep the profile's timezone in step with the device, for server-side jobs.
+    void supabase.from('profiles').update({ timezone: deviceTimeZone() }).eq('user_id', id).then(() => {})
+  },
   { immediate: true },
 )
 

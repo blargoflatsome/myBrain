@@ -12,7 +12,7 @@ type Row = Record<string, unknown> & { id: string }
 
 function fakeJwt() {
   const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
-  const exp = Math.floor(Date.now() / 1000) + 3600 * 24
+  const exp = Math.floor(Date.now() / 1000) + 3600 * 24 * 365
   return `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: TEST_USER_ID, role: 'authenticated', aud: 'authenticated', exp })}.sig`
 }
 
@@ -34,6 +34,11 @@ export class FakeSupabase {
     )
   }
 
+  /** Put rows on the "server" as if another device had saved them. */
+  seed(table: string, rows: Row[]) {
+    rows.forEach((r) => this.store(table, { user_id: TEST_USER_ID, deleted_at: null, ...r }))
+  }
+
   private store(table: string, row: Row) {
     this.clock += 1
     const now = new Date(Date.UTC(2026, 10, 6, 12, 0, this.clock)).toISOString()
@@ -49,8 +54,8 @@ export class FakeSupabase {
       access_token: fakeJwt(),
       refresh_token: 'fake-refresh',
       token_type: 'bearer',
-      expires_in: 86400,
-      expires_at: Math.floor(Date.now() / 1000) + 86400,
+      expires_in: 86400 * 365,
+      expires_at: Math.floor(Date.now() / 1000) + 86400 * 365, // far ahead: tests move the clock forward
       user: { id: TEST_USER_ID, aud: 'authenticated', role: 'authenticated', email: 'test@example.invalid' },
     }
     await page.addInitScript(
