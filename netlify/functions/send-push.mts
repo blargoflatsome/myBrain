@@ -1,6 +1,6 @@
 // Sends Web Push notifications (SPEC §6). Called only by Supabase Cron when a reminder is due, with a shared secret.
 // It never reads the database: the job sends the subscriptions and the message, and gets back the ones that are gone.
-import webpush from 'web-push'
+import * as webpush from 'web-push'
 
 interface Subscription {
   endpoint: string
