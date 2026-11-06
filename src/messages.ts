@@ -1,5 +1,5 @@
 // Every piece of wording the app says to the user lives here, in the "past you" voice (SPEC §2 Voice and tone).
-// DRAFT: capture, inbox and sync wording awaiting the user's review.
+// Capture, inbox and sync wording approved 2026-11-06.
 export const messages = {
   appName: 'My Brain',
   home: {
