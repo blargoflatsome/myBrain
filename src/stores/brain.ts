@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
-import type { Remote, SyncStatus, TaskRow } from '@/sync/types'
+import type { QuestRow, Remote, SyncStatus, TaskRow } from '@/sync/types'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
@@ -115,5 +115,37 @@ export const useBrainStore = defineStore('brain', () => {
     await requireReady().engine.remove('tasks', id)
   }
 
-  return { db, status, online, userId, start, stop, capture, createBucket, convert, addTask, saveTask, deleteTask }
+  async function addQuest(title: string) {
+    const { engine: e, uid } = requireReady()
+    const trimmed = title.trim()
+    if (!trimmed) return null
+    const row: QuestRow = { id: crypto.randomUUID(), user_id: uid, title: trimmed, status: 'open', times_picked: 0, deleted_at: null }
+    return e.save('quests', row)
+  }
+
+  async function saveQuest(row: QuestRow) {
+    return requireReady().engine.save('quests', row)
+  }
+
+  async function deleteQuest(id: string) {
+    await requireReady().engine.remove('quests', id)
+  }
+
+  return {
+    db,
+    status,
+    online,
+    userId,
+    start,
+    stop,
+    capture,
+    createBucket,
+    convert,
+    addTask,
+    saveTask,
+    deleteTask,
+    addQuest,
+    saveQuest,
+    deleteQuest,
+  }
 })

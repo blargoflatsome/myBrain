@@ -54,6 +54,14 @@ Done:
 Left in step 3:
 - ~~Merge PR #3~~ — merged 2026-11-06 with the user's OK.
 
+## Step 4 — Random Quest (in progress, branch `step-4-quests`)
+
+Done:
+- Spec: energy Meh < Ugh < Medicated, time buckets, last-3 recent rule, untagged quests match any filter (§5, §14).
+- Migration `20261106030000_quest_levels.sql`; `rls_quests.sql`.
+- Picker (`src/quests/picker.ts`) with 15 Vitest tests; Quests screen with filters, pick/accept/re-roll/done, In progress, add/edit/delete.
+- Playwright: 7 quest tests (x2 devices), stable over 3 repeats.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - None else. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.

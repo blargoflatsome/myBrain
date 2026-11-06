@@ -33,10 +33,17 @@ export interface VaultItemRow extends BaseRow {
   notes?: string | null
 }
 
+export type EnergyLevel = 'meh' | 'ugh' | 'medicated'
+export type TimeBucket = '30m' | '2h' | 'half_day' | 'full_day'
+
 export interface QuestRow extends BaseRow {
   title: string
   details?: string | null
+  energy_level?: EnergyLevel | null
+  time_bucket?: TimeBucket | null
   status: 'open' | 'accepted' | 'done'
+  last_picked_at?: string | null
+  times_picked?: number
 }
 
 export interface InboxRow extends BaseRow {
