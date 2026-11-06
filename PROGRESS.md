@@ -2,7 +2,7 @@
 
 Tracks build steps from [docs/SPEC.md §11](docs/SPEC.md#11-suggested-build-order). Update at the end of every session.
 
-## Step 1 — Foundation (in progress)
+## Step 1 — Foundation (done; merging via PR #1)
 
 Done:
 - Spec saved to `docs/SPEC.md`; `CLAUDE.md` and this file created.
@@ -12,7 +12,7 @@ Done:
 - GitHub Actions CI: lint, typecheck, Vitest, Playwright on every PR and push to main (§3).
 - `netlify.toml` (build, SPA redirect, functions dir) and `.env.example` (§13).
 
-Next (needs the user — §13 account walkthrough):
+Account walkthrough and remaining step 1 items (§13):
 - ~~Domain name question~~ — answered: none for now (SPEC §13, §14).
 - ~~Netlify deploy budget~~ — decided: merge to main once per build step (SPEC §3, §14).
 - ~~Netlify site~~ — created: https://myadhdbrain.netlify.app (first `main` build expected to fail until step 1 is merged).
@@ -21,7 +21,11 @@ Next (needs the user — §13 account walkthrough):
 - ~~Base schema with RLS~~ — `profiles` + shared conventions migrated to dev (not yet prod).
 - ~~Google sign-in in the app~~ — sign-in screen, auth guard, sign out.
 - ~~Netlify env vars~~ — set per context; Google sign-in works on the Deploy Preview.
-- Apply migration to prod before merging step 1.
+- ~~Apply migration to prod~~ — applied 2026-11-06.
+
+## Step 2 — PWA shell, offline storage, sync queue, quick capture (next)
+
+Before building (SPEC §7): evaluate PowerSync / RxDB versus a simple custom Dexie queue and recommend one. Draft quick-capture wording in `src/messages.ts` for review.
 
 ## Rules without a test yet
 - None. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.
