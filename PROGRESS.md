@@ -13,7 +13,8 @@ Done:
 - `netlify.toml` (build, SPA redirect, functions dir) and `.env.example` (§13).
 
 Next (needs the user — §13 account walkthrough):
-- Domain name question (§13: ask at the start).
+- ~~Domain name question~~ — answered: none for now (SPEC §13, §14).
+- Decide the Netlify deploy-budget conflict (SPEC §12) before linking the site.
 - Netlify site linked to the GitHub repo; deploy previews on.
 - Two Supabase projects (dev + prod) — verify the free tier allows two.
 - Google Cloud OAuth client for Google sign-in through Supabase.

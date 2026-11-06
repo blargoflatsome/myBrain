@@ -290,6 +290,7 @@ After each step, the app should deploy and be usable, and all Vitest and Playwri
 - Recurrence options for tasks, reminders, and priority tasks (daily, weekdays, weekly, custom).
 - Which stats to show on the dashboard and in journal entries.
 - Anything in this document that conflicts with current platform limits; flag it rather than silently working around it.
+- **Open conflict (flagged 2026-11-06): Netlify free-plan deploy budget.** The free plan is 300 credits a month, a hard limit (the site pauses when they run out). Each production deploy costs 15 credits, so at most about 20 production deploys a month, before bandwidth, requests, and function compute. "Auto-deploy main on every merge" plus small commits can exhaust this. Options: batch merges to main, stop auto-publishing and deploy main manually, or move hosting. Decide before linking the Netlify site.
 
 - **Decision needed before building automatic texting:** explain the open source Android SMS gateway option to me in plain language, then wait for my decision. Cover how it works, the setup steps on my Android phone, cost, reliability (the phone must stay on and connected), battery and permission impact, privacy and security (where messages and phone numbers pass through, and how requests are authenticated), and how it compares with a Capacitor SMS plugin and a paid provider like Twilio. Check the project's current documentation rather than relying on memory.
 
@@ -315,7 +316,7 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Netlify** (https://www.netlify.com): hosts the web app and runs the server-side functions, including scheduled ones. Needed: an account, a site linked to the GitHub repository, and environment variables for the secrets below. Verify the current free-tier limits.
 - **Supabase** (https://supabase.com): database, Google sign-in, row-level security, and realtime sync. Needed: an account, a new project, the project URL, the anon key (browser), the service role key (server only), the database password, and an access token if you use the command line tool for migrations.
 - **Google Cloud Console** (https://console.cloud.google.com): provides the OAuth client used for Google sign-in through Supabase. Needed: a project, the OAuth consent screen, a web OAuth client ID and secret, and the redirect URL that Supabase provides.
-- **Email sending service** (free tier, for example Resend at https://resend.com or Brevo at https://www.brevo.com): sends invitations, RSVP notices, and cancellation emails. Recommend one after checking current free limits. Needed: an account, an API key, and a verified sender address or domain. A domain name that I own makes email delivery much more reliable, so ask me whether I have one.
+- **Email sending service** (free tier, for example Resend at https://resend.com or Brevo at https://www.brevo.com): sends invitations, RSVP notices, and cancellation emails. Recommend one after checking current free limits. Needed: an account, an API key, and a verified sender address or domain. A domain name that I own makes email delivery much more reliable; there is none yet (see Domain name below), so revisit this when choosing the service.
 - **ntfy** (https://ntfy.sh): push notifications to my phone. No account is needed to start. Treat the topic name like a password: use a long random one, since anyone who knows it can read or send to it. Ask me before using a self-hosted server instead.
 - **Web Push keys (VAPID):** no account needed. Generate the key pair yourself; the private key is server-side only.
 
@@ -323,9 +324,12 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **SMS sending (only if I choose it):** after explaining the options to me, either an Android SMS gateway app on my phone (no signup; explain the setup) or Twilio (https://www.twilio.com; paid, and US sender registration is required).
 - **Google Calendar API** (Phase 2): enabled in the same Google Cloud project, with its own OAuth scopes and Google's verification process.
 - **Home Assistant and Alexa** (Phase 2): Home Assistant is already running on my linknlink device, so ask me for its URL and a long-lived access token when we get there. Alexa needs an Amazon developer account (https://developer.amazon.com).
-- **Domain name (****recommended early****):** for a custom app address and for email sending. Google's verification for public apps and reliable email delivery both need one, so ask me about it at the start.
+- **Domain name:** none for now (decided 2026-11-06). The app uses its free `*.netlify.app` address. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — No domain name for now; use the `*.netlify.app` address. Revisit before the email service and Google OAuth verification.
+- 2026-11-06 — Verified free tiers. Supabase: 2 active free projects (exactly dev + prod); free projects pause after 1 week of low activity, so the dev project may need unpausing. Netlify: 300 credits/month hard limit; production deploy 15 credits, bandwidth 20 credits/GB, web requests 2 credits per 10,000, compute 10 credits/GB-hour. Deploy budget conflict flagged in §12. A once-a-minute Netlify scheduled function also spends compute credits, which counts against it in the §6 scheduler comparison.
 
 - 2026-11-06 — Scaffolded the local project (step 1 code that needs no accounts) before the §13 account walkthrough, so the walkthrough can end in a working deploy. The walkthrough happens next.
 - 2026-11-06 — Tailwind CSS v4 via the `@tailwindcss/vite` plugin (no `tailwind.config` file). Pinned to 4.3.4 because the 4.3.5 package was missing from npm on this date; unpin later.
