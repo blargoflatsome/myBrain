@@ -14,10 +14,10 @@ async function signOut() {
 </script>
 
 <template>
-  <main class="mx-auto flex max-w-xl flex-col gap-4 px-4 py-10">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-10">
     <h1 class="text-3xl font-bold">{{ messages.appName }}</h1>
-    <p class="text-slate-600">{{ messages.home.tagline }}</p>
-    <button type="button" class="self-start text-sm text-slate-500 underline" @click="signOut">
+    <p class="text-muted">{{ messages.home.tagline }}</p>
+    <button type="button" class="self-start text-sm text-muted underline" @click="signOut">
       {{ messages.signOut.button }}
     </button>
   </main>

@@ -22,18 +22,18 @@ async function signIn() {
 <template>
   <main class="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-4">
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">{{ messages.appName }}</p>
+      <p class="text-sm font-semibold uppercase tracking-wide text-muted">{{ messages.appName }}</p>
       <h1 class="mt-1 text-3xl font-bold">{{ messages.signIn.heading }}</h1>
-      <p class="mt-2 text-slate-600">{{ messages.signIn.body }}</p>
+      <p class="mt-2 text-muted">{{ messages.signIn.body }}</p>
     </div>
     <button
       type="button"
-      class="min-h-12 rounded-lg bg-slate-900 px-4 text-lg font-medium text-white disabled:opacity-60"
+      class="min-h-12 rounded-lg bg-accent px-4 text-lg font-medium text-accent-ink disabled:opacity-60"
       :disabled="busy"
       @click="signIn"
     >
       {{ messages.signIn.button }}
     </button>
-    <p v-if="failed" role="alert" class="text-red-700">{{ messages.signIn.error }}</p>
+    <p v-if="failed" role="alert" class="text-danger">{{ messages.signIn.error }}</p>
   </main>
 </template>

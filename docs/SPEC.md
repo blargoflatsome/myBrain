@@ -330,6 +330,8 @@ Before building, walk me through creating each account below. Ask me for the cre
 
 ## 14. Decisions
 
+- 2026-11-06 — Step 2 build details: Quest and Decide later save in one tap after typing; Task asks for the optional date, then Save; The Vault saves when a bucket is tapped. The whole captured text becomes the item's title (inbox: body). Filing an inbox item is a conversion: the new item is created and the inbox row is soft-deleted. Convert buttons on tasks, vault items and quests arrive with those screens (steps 3, 4, 8). Each user's on-device data lives in its own IndexedDB store and is kept on sign-out so unsynced captures are never lost.
+
 - 2026-11-06 — Answered §12 visual style: calm neutrals, one accent, follows system dark mode (§3). Quick capture: optional non-blocking task date, blank goes to a new Undated list (§5 Tasks). Starter Vault buckets: Shopping list, Restaurant reviews, Places to go. Chrome speech recognition accepted despite audio going to Google.
 
 - 2026-11-06 — Sync layer: custom Dexie queue instead of RxDB or PowerSync (reasons in §7). Conflict rule clarified: last edit to reach the server wins, because device clocks are not trusted; accepted for Phase 1 as a single user.

@@ -23,9 +23,19 @@ Account walkthrough and remaining step 1 items (§13):
 - ~~Netlify env vars~~ — set per context; Google sign-in works on the Deploy Preview.
 - ~~Apply migration to prod~~ — applied 2026-11-06.
 
-## Step 2 — PWA shell, offline storage, sync queue, quick capture (next)
+## Step 2 — PWA shell, offline storage, sync queue, quick capture (in progress, branch `step-2-capture`)
 
-Before building (SPEC §7): evaluate PowerSync / RxDB versus a simple custom Dexie queue and recommend one. Draft quick-capture wording in `src/messages.ts` for review.
+Done:
+- Sync layer chosen: custom Dexie queue (SPEC §7, §14). Wording approved.
+- Migration `20261106010000_capture.sql`: tasks, vault buckets/items, quests, inbox with RLS, Realtime, starter buckets.
+- Sync engine (`src/sync`), capture logic and conversion (`src/capture`), brain store.
+- PWA: manifest, icons, Capture shortcut, Web Share Target, service worker (offline app start).
+- Screens: capture (with mic), inbox filing, sync indicator, persistent Capture button, calm light/dark theme.
+- Tests: 39 Vitest, 32 Playwright (incl. offline capture and offline app start), SQL checks `rls_capture.sql`.
+
+Left in step 2:
+- Apply the capture migration to dev, run `npm run test:db`, try capture on the Deploy Preview from phone and laptop (first milestone).
+- Apply to prod before merging.
 
 ## Rules without a test yet
 - None. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.

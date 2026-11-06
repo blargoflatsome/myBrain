@@ -1,1 +1,44 @@
 @import 'tailwindcss';
+
+/* SPEC §3 visual style: calm neutrals, one accent (teal), light or dark following the system setting. */
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+}
+
+:root {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --accent: #0f766e;
+  --accent-ink: #ffffff;
+  --danger: #b91c1c;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1120;
+    --surface: #111827;
+    --ink: #e2e8f0;
+    --muted: #94a3b8;
+    --line: #1f2937;
+    --accent: #2dd4bf;
+    --accent-ink: #042f2e;
+    --danger: #f87171;
+    color-scheme: dark;
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+}

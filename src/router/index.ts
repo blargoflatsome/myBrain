@@ -11,6 +11,8 @@ declare module 'vue-router' {
 
 export const routes = [
   { path: '/', name: 'home', component: HomeView },
+  { path: '/capture', name: 'capture', component: () => import('@/views/CaptureView.vue') },
+  { path: '/inbox', name: 'inbox', component: () => import('@/views/InboxView.vue') },
   { path: '/sign-in', name: 'sign-in', component: () => import('@/views/SignInView.vue'), meta: { public: true } },
 ]
 

@@ -31,6 +31,9 @@ export const messages = {
     taskDateHint: 'Leave it blank and it waits in Undated.',
     bucketLabel: 'Which bucket?',
     newBucket: 'New bucket',
+    saveTask: 'Save task',
+    saveBucket: 'Add',
+    back: 'Back',
     saved: {
       task: 'Saved. Future you will find it waiting in Tasks.',
       taskUndated: 'Saved. Future you will find it in Undated.',
@@ -40,6 +43,10 @@ export const messages = {
     },
     savedOffline: "Saved on this device. It'll sync when you're back online.",
     emptyError: 'Nothing to save yet. What did past you want to remember?',
+  },
+  nav: {
+    home: 'Home',
+    inbox: 'Inbox',
   },
   inbox: {
     heading: 'Inbox',
