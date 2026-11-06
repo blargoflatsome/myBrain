@@ -234,7 +234,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 - Deletions are soft deletes (a `deleted_at` value) so they sync to other devices, and `updated_at` is set by the server rather than the device clock.
 - Actions that notify other people (cancelling, declining, invitation messages) need a connection. If I am offline they show as pending, and I am asked to confirm again when I reconnect, so nothing goes out late by surprise.
-- Sync layer: a simple custom queue on Dexie (IndexedDB). Record ids are generated on the device, so retried uploads never create duplicates. Changes are pulled by `updated_at` since the last sync, plus Realtime for live updates. Evaluated and rejected: RxDB (free tier allows only 13 open collections; paid from $99/month) and PowerSync (extra service and account, free instances deactivate when idle, harder for Pi device pairing).
+- Sync layer: a simple custom queue on Dexie (IndexedDB). Record ids are generated on the device, so retried uploads never create duplicates. Changes are pulled by `updated_at` since the last sync, plus Realtime for live updates. A change the server refuses is kept and retried on every sync (app start, reconnect), never dropped. Evaluated and rejected: RxDB (free tier allows only 13 open collections; paid from $99/month) and PowerSync (extra service and account, free instances deactivate when idle, harder for Pi device pairing).
 
 ## 8. Auth and security
 - Google sign-in through Supabase Auth.
@@ -330,6 +330,8 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Incident: the step 2 capture migration had not been applied to prod when step 2 merged, so captures on the live site could not upload, and the sync queue stopped retrying them. Fixed by applying the migration to prod and retrying refused changes on every sync (§7). From now on Claude applies migrations to prod itself right before merging and confirms with `supabase db push`.
 
 - 2026-11-06 — Task priorities: Low green, Medium yellow, High red, shown as a dot and label; default Low; red title text only for carry-over. Carry-over wording drafted by Claude at the user's request (in `src/messages.ts`). Today = date in the device's current timezone; carry-over count = whole calendar days from due date to today, computed on display.
 

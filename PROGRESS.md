@@ -48,8 +48,11 @@ Done:
 - Wording drafted in `src/messages.ts` (user asked Claude to choose).
 - Tests: 57 Vitest (19 with a mocked clock: midnight, DST spring/fall, timezone travel), 58 Playwright (incl. rollover at midnight with the app open), `rls_tasks.sql`.
 
+- Dev migrated; `npm run test:db` passes (3 files). Tested on Deploy Preview 3 in the user's Chrome against dev: add, priority edit, cross off, Undated, delete with confirmation (test task soft-deleted).
+- Prod migrated (capture + priority; the step 2 capture migration had been missing on prod, see SPEC §14). Sync queue now retries refused changes on every sync.
+
 Left in step 3:
-- Apply the migration to dev, run `npm run test:db`, try it on the Deploy Preview, then prod and merge.
+- Merge PR #3 (user's OK).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

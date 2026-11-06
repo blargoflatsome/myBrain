@@ -123,8 +123,15 @@ export class SyncEngine {
     })
   }
 
-  /** Upload everything queued, then pull everything new. */
+  /**
+   * Upload everything queued, then pull everything new. Changes the server refused earlier are tried again
+   * on every sync (app start, reconnect), so a temporary server problem, such as a table not migrated yet,
+   * never strands a capture on the device.
+   */
   async sync(): Promise<void> {
+    await this.db.outbox.toCollection().modify((e) => {
+      delete e.error
+    })
     await this.flush()
     if (this.status.state === 'offline') return
     await this.pull()
