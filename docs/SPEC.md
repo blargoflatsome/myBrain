@@ -173,7 +173,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - A bucket of projects I want to do, each with details, estimated time, and energy level.
 - The pick is random but **skips recently picked quests** and can be **filtered by time and energy available**.
 - Display the chosen quest's full details, with buttons to accept, re-roll, or mark done.
-- **Energy levels**, least to most: **Meh**, **Ugh**, **Medicated**. Choosing an energy level offers quests that need that much energy or less.
+- **Energy levels**, least to most: **Meh**, **Ugh**, **Needs setup**, **Medicated**. Choosing an energy level offers quests that need that much energy or less.
 - **Time buckets**: **30 min**, **2 hours**, **Half a day**, **A full day**. Choosing one offers quests that fit in that time or less.
 - A quest with no time or energy set (for example one made by quick capture) matches any filter.
 - Quests are added through Capture, not on the Quests page. Every new quest, including one filed from the inbox or converted from another item, starts as **Meh** and **30 min** unless changed.
@@ -340,6 +340,8 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Added energy level **Needs setup**, ranked between Ugh and Medicated (user's choice).
 
 - 2026-11-06 — Capture is type-first (user's request): pick Task, The Vault, Quest or Decide later, then a form made for that type; only the title is required. New quests default to Meh / 30 min everywhere. The Quests page no longer has its own Add box. Quests saved before this keep no time/energy and still match any filter.
 

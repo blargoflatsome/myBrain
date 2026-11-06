@@ -33,7 +33,7 @@ export interface VaultItemRow extends BaseRow {
   notes?: string | null
 }
 
-export type EnergyLevel = 'meh' | 'ugh' | 'medicated'
+export type EnergyLevel = 'meh' | 'ugh' | 'needs_setup' | 'medicated'
 export type TimeBucket = '30m' | '2h' | 'half_day' | 'full_day'
 
 export interface QuestRow extends BaseRow {

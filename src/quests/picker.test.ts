@@ -7,15 +7,19 @@ function quest(id: string, over: Partial<QuestRow> = {}): QuestRow {
 }
 const ids = (qs: QuestRow[]) => qs.map((q) => q.id).sort()
 
-describe('Spec §5 Random Quest: filter by energy available (Meh < Ugh < Medicated)', () => {
+describe('Spec §5 Random Quest: filter by energy available (Meh < Ugh < Needs setup < Medicated)', () => {
   const qs = [
     quest('meh', { energy_level: 'meh' }),
     quest('ugh', { energy_level: 'ugh' }),
+    quest('setup', { energy_level: 'needs_setup' }),
     quest('med', { energy_level: 'medicated' }),
   ]
   it('Meh offers only Meh quests', () => expect(ids(matchingQuests(qs, { energy: 'meh' }))).toEqual(['meh']))
   it('Ugh offers Meh and Ugh quests', () => expect(ids(matchingQuests(qs, { energy: 'ugh' }))).toEqual(['meh', 'ugh']))
-  it('Medicated offers everything', () => expect(ids(matchingQuests(qs, { energy: 'medicated' }))).toEqual(['med', 'meh', 'ugh']))
+  it('Needs setup offers Meh, Ugh and Needs setup quests', () =>
+    expect(ids(matchingQuests(qs, { energy: 'needs_setup' }))).toEqual(['meh', 'setup', 'ugh']))
+  it('Medicated offers everything', () =>
+    expect(ids(matchingQuests(qs, { energy: 'medicated' }))).toEqual(['med', 'meh', 'setup', 'ugh']))
 })
 
 describe('Spec §5 Random Quest: filter by time available', () => {
