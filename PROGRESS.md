@@ -54,7 +54,7 @@ Done:
 Left in step 3:
 - ~~Merge PR #3~~ — merged 2026-11-06 with the user's OK.
 
-## Step 4 — Random Quest (in progress, branch `step-4-quests`)
+## Step 4 — Random Quest (done; merged via PR #4)
 
 Done:
 - Spec: energy Meh < Ugh < Medicated, time buckets, last-3 recent rule, untagged quests match any filter (§5, §14).
@@ -66,7 +66,7 @@ Done:
 - User-requested change: Capture is type-first with a form per type (only title required); new quests default Meh / 30 min everywhere; Quests page Add box removed (SPEC §5, §14). 80 Vitest, 80 Playwright (stable over 2 repeats).
 
 Left in step 4:
-- ~~Test type-first capture on Deploy Preview 4~~ — done in Chrome (quest captured with Meh / 30 min defaults, then deleted). Merge PR #4 (user's OK).
+- ~~Test type-first capture on Deploy Preview 4~~ — done in Chrome (quest captured with Meh / 30 min defaults, then deleted). ~~Merge PR #4~~ — merged 2026-11-06 with the user's OK (includes type-first capture and the Needs setup energy level).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
