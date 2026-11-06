@@ -102,9 +102,23 @@ Done:
 Left in step 6:
 - ~~Chrome test on Deploy Preview 8~~ — created a 2-step routine, ran it (Completed then Skip), saw it finish and show 1 of 1 days (100%); dev logs matched; deleted it. ~~Prod migration~~ — applied right before merge. ~~Merge~~ — merged 2026-11-06 with the user's OK.
 
+## Step 7 — Notifications, priority habits and tasks (in progress, branch `step-7-notifications`)
+
+Done:
+- Spec: Supabase Cron scheduler (user approved), priority habits, priority tasks one-off or weekdays, reminder offers slide/Snooze 10 min/Cancel (§5, §6, §14).
+- Migration `20261106080000_notifications.sql`: priority flag on habits, priority_tasks + logs, reminder_state (snooze/cancel/last sent), push_subscriptions, notification_log, `due_reminders()`, `send_due_reminders()` (ntfy direct via pg_net, Web Push via Netlify function), cleanup of gone subscriptions, two cron jobs. Dev migrated; job running; `rls_reminders.sql` passes.
+- Netlify function `send-push` (shared secret; no database access). Custom service worker with push + notification click deep links.
+- App: full-screen priority reminder with slide to complete, Snooze, Cancel; Priority checkbox on habits; Tasks > Priority tab; reminder settings on Profile (device push, ntfy topic, quiet hours).
+- Fixed: a background streak refresh could overwrite a habit edit (now a one-step patch).
+- VAPID keys and push secret generated into `.env.local` (never printed).
+
+Left in step 7:
+- Netlify CLI login (user), then set Netlify env vars and Supabase Vault secrets (dev + prod).
+- Chrome test on the Deploy Preview, prod migration, merge; then try a real reminder on the phone.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
-- Habit and routine notify times only stored for now; the reminders themselves are step 7 (notifications).
+- Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).
 - None else. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.
 
 ## Decisions

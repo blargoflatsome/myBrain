@@ -103,6 +103,22 @@ describe('Spec §7: anything a screen hands over can be saved', () => {
   })
 })
 
+describe('Spec §7: background updates never overwrite an edit', () => {
+  it('patch changes only the given fields of the latest stored copy', async () => {
+    await engine.save('habits', { id: 'h1', title: 'Stretch', weekdays: [1], start_date: '2026-11-10', is_private: false, is_priority: false, deleted_at: null })
+    await engine.save('habits', { id: 'h1', title: 'Stretch', weekdays: [1], start_date: '2026-11-10', is_private: false, is_priority: true, deleted_at: null })
+    await engine.patch('habits', 'h1', () => ({ current_streak: 4 }))
+    expect(await db.habits.get('h1')).toMatchObject({ is_priority: true, current_streak: 4 })
+  })
+
+  it('patch saves nothing when there is nothing to change', async () => {
+    await engine.save('habits', { id: 'h2', title: 'Read', weekdays: [1], start_date: '2026-11-10', is_private: false, deleted_at: null })
+    await engine.flush()
+    expect(await engine.patch('habits', 'h2', () => null)).toBe(false)
+    expect(await db.outbox.count()).toBe(0)
+  })
+})
+
 describe('Spec §7: retried uploads never create duplicates', () => {
   it('sending the same change twice leaves one row on the server', async () => {
     await engine.save('tasks', task('t1', 'first'))

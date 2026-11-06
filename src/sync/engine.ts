@@ -36,6 +36,30 @@ export class SyncEngine {
     return row
   }
 
+  /**
+   * Change some fields of the latest stored copy, reading and writing in one step so an edit saved at the same
+   * moment is never overwritten (used for background updates such as cached streak numbers).
+   * Returns false when nothing needed changing.
+   */
+  async patch<T extends SyncTable>(table: T, id: string, change: (row: RowTypes[T]) => Partial<RowTypes[T]> | null): Promise<boolean> {
+    let changed = false
+    await this.db.transaction('rw', [this.db.rows(table), this.db.outbox], async () => {
+      const current = await this.db.rows(table).get(id)
+      if (!current) return
+      const fields = change(current)
+      if (!fields) return
+      const row = JSON.parse(JSON.stringify({ ...current, ...fields })) as RowTypes[T]
+      await this.db.rows(table).put(row)
+      await this.db.outbox.add({ table, rowId: row.id, row })
+      changed = true
+    })
+    if (changed) {
+      await this.refreshPending()
+      this.flush().catch(() => {})
+    }
+    return changed
+  }
+
   /** Soft delete (SPEC §7): the row is kept with deleted_at set, so the deletion syncs to other devices. */
   async remove<T extends SyncTable>(table: T, id: string): Promise<void> {
     const row = await this.db.rows(table).get(id)

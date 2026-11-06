@@ -3,6 +3,7 @@
 import { computed, ref, watch } from 'vue'
 import TaskItem from '@/components/TaskItem.vue'
 import TaskEditor from '@/components/TaskEditor.vue'
+import PriorityTasks from '@/components/PriorityTasks.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
@@ -15,7 +16,7 @@ const brain = useBrainStore()
 const m = messages.tasks
 const { today, timeZone } = useToday()
 
-const view = ref<'day' | 'undated'>('day')
+const view = ref<'day' | 'undated' | 'priority'>('day')
 const day = ref(today.value)
 // When midnight passes while the app is open on today, follow it to the new day.
 watch(today, (next, prev) => {
@@ -91,42 +92,54 @@ const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
       >
         {{ m.undatedHeading }}
       </button>
-    </div>
-
-    <div v-if="view === 'day'" class="flex items-center justify-between">
-      <button type="button" class="min-h-11 min-w-11 rounded-xl text-xl" :aria-label="m.day.previous" @click="day = addDays(day, -1)">‹</button>
-      <button type="button" class="text-xl font-bold" @click="day = today">
-        <h2>{{ dayLabel }}</h2>
-      </button>
-      <button type="button" class="min-h-11 min-w-11 rounded-xl text-xl" :aria-label="m.day.next" @click="day = addDays(day, 1)">›</button>
-    </div>
-    <h2 v-else class="text-xl font-bold">{{ m.undatedHeading }}</h2>
-
-    <form v-if="canAdd" class="flex gap-2" @submit.prevent="add">
-      <input
-        v-model="newTitle"
-        :placeholder="addLabel"
-        :aria-label="addLabel"
-        class="min-h-12 flex-1 rounded-xl border border-line bg-surface px-3 text-base text-ink"
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="view === 'priority'"
+        :class="[tab, view === 'priority' ? 'bg-accent text-accent-ink' : 'text-muted']"
+        @click="view = 'priority'"
       >
-      <button type="submit" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.add }}</button>
-    </form>
+        {{ messages.priority.tabHeading }}
+      </button>
+    </div>
 
-    <p v-if="view === 'day' && offset === 0 && list.length && !allDoneToday" class="text-muted">{{ m.pastYouToday }}</p>
-    <p v-if="allDoneToday" class="text-muted" role="status">{{ m.allDone }}</p>
-    <p v-if="!list.length" class="text-muted">{{ emptyText }}</p>
+    <PriorityTasks v-if="view === 'priority'" />
+    <template v-else>
+      <div v-if="view === 'day'" class="flex items-center justify-between">
+        <button type="button" class="min-h-11 min-w-11 rounded-xl text-xl" :aria-label="m.day.previous" @click="day = addDays(day, -1)">‹</button>
+        <button type="button" class="text-xl font-bold" @click="day = today">
+          <h2>{{ dayLabel }}</h2>
+        </button>
+        <button type="button" class="min-h-11 min-w-11 rounded-xl text-xl" :aria-label="m.day.next" @click="day = addDays(day, 1)">›</button>
+      </div>
+      <h2 v-else class="text-xl font-bold">{{ m.undatedHeading }}</h2>
 
-    <ul class="flex flex-col gap-2">
-      <TaskItem
-        v-for="t in list"
-        :key="t.id"
-        :task="t"
-        :today="today"
-        @toggle="brain.saveTask(toggleDone(t))"
-        @edit="editing = t"
-        @cancel="brain.saveTask(cancelTask(t))"
-      />
-    </ul>
+      <form v-if="canAdd" class="flex gap-2" @submit.prevent="add">
+        <input
+          v-model="newTitle"
+          :placeholder="addLabel"
+          :aria-label="addLabel"
+          class="min-h-12 flex-1 rounded-xl border border-line bg-surface px-3 text-base text-ink"
+        >
+        <button type="submit" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.add }}</button>
+      </form>
+
+      <p v-if="view === 'day' && offset === 0 && list.length && !allDoneToday" class="text-muted">{{ m.pastYouToday }}</p>
+      <p v-if="allDoneToday" class="text-muted" role="status">{{ m.allDone }}</p>
+      <p v-if="!list.length" class="text-muted">{{ emptyText }}</p>
+
+      <ul class="flex flex-col gap-2">
+        <TaskItem
+          v-for="t in list"
+          :key="t.id"
+          :task="t"
+          :today="today"
+          @toggle="brain.saveTask(toggleDone(t))"
+          @edit="editing = t"
+          @cancel="brain.saveTask(cancelTask(t))"
+        />
+      </ul>
+    </template>
 
     <TaskEditor :task="editing" @save="saveEdit" @delete="remove" @close="editing = null" />
   </main>

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import SyncIndicator from '@/components/SyncIndicator.vue'
+import PriorityReminder from '@/components/PriorityReminder.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -112,5 +113,8 @@ watch(() => route.fullPath, () => (menuOpen.value = false))
     >
       + {{ messages.capture.openButton }}
     </RouterLink>
+
+    <!-- SPEC §5: full-screen reminder for due priority habits and tasks, on every screen. -->
+    <PriorityReminder v-if="showChrome" />
   </div>
 </template>

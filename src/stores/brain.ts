@@ -5,6 +5,8 @@ import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
 import type { HabitLogRow, HabitRow, QuestRow, Remote, RoutineRow, RoutineStepRow, SyncStatus, TaskRow } from '@/sync/types'
 import { activeSteps, recordStep, runFor } from '@/routines/rules'
+import { cancelState, snoozeState, type DuePriority } from '@/reminders/priority'
+import type { PriorityTaskRow } from '@/sync/types'
 import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMisses } from '@/habits/rules'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
@@ -176,9 +178,10 @@ export const useBrainStore = defineStore('brain', () => {
       logs = [...logs, log]
     }
     const { current, best } = streaks(habit, logs, now, timeZone)
-    if (current !== habit.current_streak || best !== habit.best_streak) {
-      await e.save('habits', { ...habit, current_streak: current, best_streak: best })
-    }
+    // Update only the cached numbers on the latest copy, in one step, so an edit saved meanwhile is kept.
+    await e.patch('habits', habit.id, (fresh) =>
+      current !== fresh.current_streak || best !== fresh.best_streak ? { current_streak: current, best_streak: best } : null,
+    )
   }
 
   /** Complete today's habit, or undo a completion before its deadline. */
@@ -259,8 +262,53 @@ export const useBrainStore = defineStore('brain', () => {
     return action
   }
 
+  // ---------- Priority reminders (SPEC §5) ----------
+  async function savePriorityTask(row: PriorityTaskRow) {
+    const { engine: e, uid } = requireReady()
+    return e.save('priority_tasks', { ...row, user_id: uid })
+  }
+
+  async function deletePriorityTask(id: string) {
+    await requireReady().engine.remove('priority_tasks', id)
+  }
+
+  /** Slide to complete: a priority habit is completed for the day; a priority task gets today's completion. */
+  async function completePriority(item: DuePriority, now = new Date()) {
+    const { engine: e, uid, local } = requireReady()
+    if (item.kind === 'habit') {
+      const habit = await local.habits.get(item.id)
+      if (habit) await toggleHabit(habit, now)
+      return
+    }
+    await e.save('priority_task_logs', {
+      id: `${item.id.slice(0, 24)}${item.date.replaceAll('-', '')}0000`,
+      user_id: uid,
+      task_id: item.id,
+      date: item.date,
+      completed_at: now.toISOString(),
+      deleted_at: null,
+    })
+  }
+
+  async function snoozePriority(item: DuePriority, now = new Date()) {
+    const { engine: e, uid, local } = requireReady()
+    const existing = (await local.reminder_state.where('item_id').equals(item.id).toArray()).find((s) => s.date === item.date && !s.deleted_at)
+    await e.save('reminder_state', snoozeState(item, existing, uid, now))
+  }
+
+  async function cancelPriority(item: DuePriority, now = new Date()) {
+    const { engine: e, uid, local } = requireReady()
+    const existing = (await local.reminder_state.where('item_id').equals(item.id).toArray()).find((s) => s.date === item.date && !s.deleted_at)
+    await e.save('reminder_state', cancelState(item, existing, uid, now))
+  }
+
   return {
     db,
+    savePriorityTask,
+    deletePriorityTask,
+    completePriority,
+    snoozePriority,
+    cancelPriority,
     newRoutine,
     saveRoutine,
     deleteRoutine,
