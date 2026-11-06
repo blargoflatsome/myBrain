@@ -77,7 +77,7 @@ Left in step 4:
 ## Step 5 — Habits, streaks, private habits, Profile page (in progress, branch `step-5-habits`, includes the energy change)
 
 Done:
-- Spec: timer starts at notify time, chosen weekdays, visibility only-me by default and editable, misses logged, shared_streaks view (§5, §14). Bottom navigation bar.
+- Spec: timer starts at notify time, chosen weekdays, visibility only-me by default and editable, misses logged, shared_streaks view (§5, §14). Left text-only menu (slide-out on phones), replacing the bottom bar at the user's request.
 - Migration `20261106060000_habits.sql`: habits, habit_logs (one per habit per day), RLS, Realtime, `shared_streaks` restricted view. Dev migrated; `rls_habits.sql` passes.
 - Habit rules (`src/habits/rules.ts`): weekdays, deadlines across DST, streaks/best from logs, misses, undo, deterministic log ids.
 - Habits page (exact tag line), habit editor, Profile page (name, bio, visibility, streaks without private habits, sign out).

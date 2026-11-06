@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { goTo } from './support/nav'
 
 let server: FakeSupabase
 
@@ -144,7 +145,7 @@ test.describe('Spec §5: Decide later, then sort it when I have time', () => {
     await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText("Saved to your inbox. Future you can sort it when there's time.")
 
-    await page.getByRole('link', { name: /Inbox/ }).click()
+    await goTo(page, /Inbox/)
     await expect(page.getByText('Past you jotted this down. Where should it go?')).toBeVisible()
     await page.getByRole('button', { name: 'Quest' }).click()
     await expect(page.getByText("Past you hasn't left anything to sort. Nice.")).toBeVisible()

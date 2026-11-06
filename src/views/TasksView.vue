@@ -67,7 +67,7 @@ const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
 </script>
 
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-36">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-28">
     <div class="flex gap-2 rounded-2xl bg-surface p-1" role="tablist">
       <button
         type="button"

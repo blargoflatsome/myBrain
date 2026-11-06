@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { goTo } from './support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -146,7 +147,7 @@ test.describe('Spec §5 Habits and Profile page: private habits', () => {
     await open(page)
     await expect(row(page, 'Take meds')).toContainText('🔒 Private')
 
-    await page.getByRole('link', { name: 'Profile' }).click()
+    await goTo(page, 'Profile')
     await expect(page.getByTestId('profile-streak')).toHaveCount(1)
     await expect(page.getByTestId('profile-streak')).toContainText('Run')
     await expect(page.getByText('Take meds')).toHaveCount(0)
@@ -187,9 +188,8 @@ test.describe('Spec §5 Profile page', () => {
 })
 
 test.describe('Navigation', () => {
-  test('the bottom bar reaches Tasks, Habits, Quests, Inbox and Profile', async ({ page }) => {
+  test('the left menu reaches Tasks, Habits, Quests, Inbox and Profile, with text labels only', async ({ page }) => {
     await open(page, '/')
-    const nav = page.getByRole('navigation', { name: 'Main' })
     for (const [name, url] of [
       ['Habits', /\/habits$/],
       ['Quests', /\/quests$/],
@@ -197,8 +197,38 @@ test.describe('Navigation', () => {
       ['Profile', /\/profile$/],
       ['Tasks', /\/$/],
     ] as const) {
-      await nav.getByRole('link', { name }).click()
+      await goTo(page, name)
       await expect(page).toHaveURL(url)
     }
+    const menu = page.getByRole('button', { name: 'Menu' })
+    if (await menu.isVisible()) await menu.click()
+    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link')).toHaveText([
+      'My Brain',
+      'Tasks',
+      'Habits',
+      'Quests',
+      'Inbox',
+      'Profile',
+    ])
+  })
+
+  test('on a phone the menu is closed until Menu is tapped, and closes after choosing a page', async ({ page }, info) => {
+    test.skip(info.project.name !== 'android-phone', 'phone-only behaviour')
+    await open(page, '/')
+    const nav = page.getByRole('navigation', { name: 'Main' })
+    await expect(nav).toBeHidden()
+    await page.getByRole('button', { name: 'Menu' }).click()
+    await expect(nav).toBeVisible()
+    await nav.getByRole('link', { name: 'Habits' }).click()
+    await expect(page).toHaveURL(/\/habits$/)
+    await expect(nav).toBeHidden()
+  })
+
+  test('on a wider screen the menu is always shown on the left', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop-chromium', 'desktop-only behaviour')
+    await open(page, '/')
+    await expect(page.getByRole('button', { name: 'Menu' })).toBeHidden()
+    const box = await page.getByRole('navigation', { name: 'Main' }).boundingBox()
+    expect(box?.x).toBe(0)
   })
 })

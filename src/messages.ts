@@ -184,6 +184,7 @@ export const messages = {
   },
   nav: {
     label: 'Main',
+    menu: 'Menu',
     home: 'Tasks',
     habits: 'Habits',
     profile: 'Profile',

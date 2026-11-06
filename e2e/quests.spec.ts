@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { goTo } from './support/nav'
 
 let server: FakeSupabase
 
@@ -106,7 +107,7 @@ test.describe('Spec §5 Random Quest', () => {
     await page.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Quest' }).click()
     await page.getByLabel('Title', { exact: true }).fill('Visit the planetarium')
     await page.getByRole('button', { name: 'Save', exact: true }).click()
-    await page.getByRole('link', { name: 'Quests' }).click()
+    await goTo(page, 'Quests')
     await expect(page.getByRole('button', { name: /Visit the planetarium/ })).toContainText('30 min')
     await expect(page.getByRole('button', { name: /Visit the planetarium/ })).toContainText('Ugh')
   })

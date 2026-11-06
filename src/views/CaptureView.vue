@@ -155,7 +155,7 @@ const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' }
 </script>
 
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-36">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-28">
     <template v-if="!type">
       <h1 class="text-2xl font-bold">{{ m.typeHeading }}</h1>
       <div v-if="shared" class="rounded-xl border border-line bg-surface p-3 text-sm">

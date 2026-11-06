@@ -73,7 +73,7 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
 </script>
 
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-36">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
     <div class="flex items-center gap-4">
       <img v-if="avatarUrl" :src="avatarUrl" alt="" class="size-16 rounded-full border border-line" referrerpolicy="no-referrer">
       <div v-else class="flex size-16 items-center justify-center rounded-full bg-surface text-2xl" aria-hidden="true">🙂</div>
