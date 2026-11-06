@@ -85,7 +85,7 @@ Done:
 - Tests: 105 Vitest (habits with mocked clock), 106 Playwright, 5 SQL check files.
 
 Left in step 5:
-- Chrome test on the Deploy Preview; prod migrations (energy + habits) right before merge; merge (user's OK).
+- ~~Chrome test on Deploy Preview 6~~ — created a habit, completed it (streak 1, fixed log id on dev), Profile showed it under the Google name, deleted it. Prod migrations (energy + habits) right before merge; merge (user's OK).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
