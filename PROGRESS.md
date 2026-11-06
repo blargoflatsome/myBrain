@@ -38,7 +38,7 @@ Left in step 2:
 - ~~First milestone~~ — capture works from phone and laptop, including offline, on Deploy Preview 2 (confirmed by the user 2026-11-06).
 - ~~Capture migration on prod~~ — applied 2026-11-06; merged PR #2.
 
-## Step 3 — Tasks (in progress, branch `step-3-tasks`)
+## Step 3 — Tasks (done; merged via PR #3)
 
 Done:
 - Spec: priorities Low/Medium/High (green/yellow/red dot), default Low; red text only for carry-over; today follows the device timezone (§5, §14).
@@ -52,7 +52,7 @@ Done:
 - Prod migrated (capture + priority; the step 2 capture migration had been missing on prod, see SPEC §14). Sync queue now retries refused changes on every sync.
 
 Left in step 3:
-- Merge PR #3 (user's OK).
+- ~~Merge PR #3~~ — merged 2026-11-06 with the user's OK.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
