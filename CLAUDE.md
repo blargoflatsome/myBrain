@@ -10,6 +10,7 @@
 - Secrets live only in `.env.local` (gitignored) and Netlify env vars. Only the Supabase anon key may reach the browser. Ask for each credential when first needed.
 - Every table: `id, user_id, created_at, updated_at (server-set), deleted_at`, with RLS.
 - All user-facing wording in the "past you" voice, kept in one messages file.
+- Work on a branch per build step; merge to main once per step (Netlify free plan ≈ 20 production deploys/month).
 - Confirm before anything that removes data or affects other users.
 
 ## Commands

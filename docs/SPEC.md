@@ -56,7 +56,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Use **Vitest** for unit and integration tests and **Playwright** for end-to-end tests in a real browser (including a phone-sized screen and, where possible, offline and installed-PWA behavior).
 - **Prove it works.** Claude Code must use Vitest and Playwright to show that its code works: write tests for each feature as it is built, run the full test suite before calling any step done, and run it again after every change so new work doesn't break old behavior. Fix any regression before moving on, and tell me what was tested.
 - Time-dependent logic (midnight rollover, carry-over, streaks, expired habit timers, timezones, daylight saving changes) must be tested with a mocked clock.
-- GitHub Actions runs linting, type checking, Vitest, and Playwright on every pull request. Netlify deploy previews are used for branches, and the main branch is production.
+- GitHub Actions runs linting, type checking, Vitest, and Playwright on every pull request. Netlify deploy previews are used for branches, and the main branch is production. **Merge to main once per build step** (one production deploy per step), because the Netlify free plan allows only about 20 production deploys a month (see Decisions). Work happens on a branch per step, tried out through its deploy preview.
 - Use two Supabase projects, one for development and one for production (verify the free tier allows this), with migrations stored in the repo.
 - Keep a `PROGRESS.md` (what is done, what is next, and decisions made) and update it at the end of each session. Also create a short `CLAUDE.md` with the key rules and the build and test commands, pointing back to this document.
 
@@ -290,7 +290,6 @@ After each step, the app should deploy and be usable, and all Vitest and Playwri
 - Recurrence options for tasks, reminders, and priority tasks (daily, weekdays, weekly, custom).
 - Which stats to show on the dashboard and in journal entries.
 - Anything in this document that conflicts with current platform limits; flag it rather than silently working around it.
-- **Open conflict (flagged 2026-11-06): Netlify free-plan deploy budget.** The free plan is 300 credits a month, a hard limit (the site pauses when they run out). Each production deploy costs 15 credits, so at most about 20 production deploys a month, before bandwidth, requests, and function compute. "Auto-deploy main on every merge" plus small commits can exhaust this. Options: batch merges to main, stop auto-publishing and deploy main manually, or move hosting. Decide before linking the Netlify site.
 
 - **Decision needed before building automatic texting:** explain the open source Android SMS gateway option to me in plain language, then wait for my decision. Cover how it works, the setup steps on my Android phone, cost, reliability (the phone must stay on and connected), battery and permission impact, privacy and security (where messages and phone numbers pass through, and how requests are authenticated), and how it compares with a Capacitor SMS plugin and a paid provider like Twilio. Check the project's current documentation rather than relying on memory.
 
@@ -328,8 +327,10 @@ Before building, walk me through creating each account below. Ask me for the cre
 
 ## 14. Decisions
 
+- 2026-11-06 — Netlify deploy budget: merge to main once per build step, using a branch and its deploy preview during the step (rule in §3). Chosen over manual publishing or changing hosts to keep the spec's Netlify Functions plan.
+
 - 2026-11-06 — No domain name for now; use the `*.netlify.app` address. Revisit before the email service and Google OAuth verification.
-- 2026-11-06 — Verified free tiers. Supabase: 2 active free projects (exactly dev + prod); free projects pause after 1 week of low activity, so the dev project may need unpausing. Netlify: 300 credits/month hard limit; production deploy 15 credits, bandwidth 20 credits/GB, web requests 2 credits per 10,000, compute 10 credits/GB-hour. Deploy budget conflict flagged in §12. A once-a-minute Netlify scheduled function also spends compute credits, which counts against it in the §6 scheduler comparison.
+- 2026-11-06 — Verified free tiers. Supabase: 2 active free projects (exactly dev + prod); free projects pause after 1 week of low activity, so the dev project may need unpausing. Netlify: 300 credits/month hard limit; production deploy 15 credits, bandwidth 20 credits/GB, web requests 2 credits per 10,000, compute 10 credits/GB-hour.  A once-a-minute Netlify scheduled function also spends compute credits, which counts against it in the §6 scheduler comparison.
 
 - 2026-11-06 — Scaffolded the local project (step 1 code that needs no accounts) before the §13 account walkthrough, so the walkthrough can end in a working deploy. The walkthrough happens next.
 - 2026-11-06 — Tailwind CSS v4 via the `@tailwindcss/vite` plugin (no `tailwind.config` file). Pinned to 4.3.4 because the 4.3.5 package was missing from npm on this date; unpin later.
