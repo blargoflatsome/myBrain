@@ -74,7 +74,7 @@ Left in step 4:
 - Dev migrated (2 Meh quests became Ugh); `npm run test:db` passes. Prod is migrated at merge time, because the live app still saves Meh until this deploys.
 - User chose to ship this together with step 5 (saves a production deploy): `step-5-habits` is built on top of it.
 
-## Step 5 — Habits, streaks, private habits, Profile page (in progress, branch `step-5-habits`, includes the energy change)
+## Step 5 — Habits, streaks, private habits, Profile page (done; merged via PR #6, includes the energy change from PR #5)
 
 Done:
 - Spec: timer starts at notify time, chosen weekdays, visibility only-me by default and editable, misses logged, shared_streaks view (§5, §14). Left text-only menu (slide-out on phones), replacing the bottom bar at the user's request.
@@ -85,7 +85,7 @@ Done:
 - Tests: 105 Vitest (habits with mocked clock), 106 Playwright, 5 SQL check files.
 
 Left in step 5:
-- ~~Chrome test on Deploy Preview 6~~ — created a habit, completed it (streak 1, fixed log id on dev), Profile showed it under the Google name, deleted it. Prod migrations (energy + habits) right before merge; merge (user's OK).
+- ~~Chrome test on Deploy Preview 6~~ — created a habit, completed it (streak 1, fixed log id on dev), Profile showed it under the Google name, deleted it. ~~Prod migrations (energy + habits)~~ — applied right before merge. ~~Merge~~ — merged 2026-11-06 with the user's OK.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
