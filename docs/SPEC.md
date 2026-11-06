@@ -69,7 +69,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **routines:** title, notify time, ordered list of steps.
 - **routine_steps:** routine id, position, title.
 - **routine_runs / routine_step_logs:** per day, which steps were completed or skipped, for completion stats. Routines and steps also store weekdays and a start date.
-- **priority_tasks:** title, description, reminder time, recurrence, status. Example: take meds.
+- **priority_tasks:** title, description, reminder time, a date (one-off) or weekdays (repeating), status. Priority habits are habits with a priority flag.
 - **journal_entries:** date, body text, auto-generated stats snapshot for that day.
 - **vault_buckets / vault_items:** user-defined buckets (restaurant reviews, places to go, books, shows, ideas to research, shopping list) and the items inside them.
 - **quests:** title, details, time bucket (estimated time), energy level, status (open, accepted, done), last_picked_at, times_picked.
@@ -155,13 +155,16 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - A run can be left and continued later the same day; it picks up at the first step not yet completed or skipped. Removing a step keeps its history.
 - Each routine has its own screen (`/routines/<id>/run`) so the step 7 notification can open it straight to the routine in progress.
 
-### Priority tasks
+### Priority tasks and priority habits
 - Reminder time, title, description.
+- **Priority habits:** any habit can be marked **Priority** (medication is usually a habit). A priority habit gets the same full-screen reminder, slider and backup alerts as a priority task, at its reminder time. Completing it with the slider completes the habit for the day.
+- **Priority tasks** stay for critical things that are not habits. A priority task is either one-off (a date) or repeats on chosen weekdays, like habits.
+- **When a priority reminder is due** it stays up until I act: **slide to complete**, **Snooze** (10 minutes), or **Cancel** (no more reminders for it today; a habit is not completed by cancelling). It does not re-send on its own; the notification stays on screen until I respond, and an urgent ntfy alert goes out as a backup.
 - Full-screen reminder that must be marked complete with a **slider**.
-- In the PWA, build the best version possible: a full-screen in-app overlay plus persistent, repeating notifications until completed. Note the limits of what a browser can do; a Capacitor Android wrapper in Phase 2 can provide a true full-screen alert.
+- In the PWA, build the best version possible: a full-screen in-app overlay plus a persistent notification until I complete, snooze or cancel it. Note the limits of what a browser can do; a Capacitor Android wrapper in Phase 2 can provide a true full-screen alert.
 
 - Medication-style reminders matter, so don't rely on the PWA alone. Android battery saving can delay web notifications. Also send an ntfy notification at urgent priority as a backup (verify whether the ntfy Android app can break through Do Not Disturb), show a short in-app notice that reminders may be delayed and shouldn't be the only safeguard for critical medication, and build the Capacitor Android wrapper earlier if reliability falls short.
-- Quiet hours never silence priority tasks unless I choose that.
+- Quiet hours never silence priority tasks or priority habits unless I choose that.
 
 ### Journal
 - End-of-day check-in: write how the day went and create new tasks.
@@ -237,12 +240,12 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 ## 6. Notifications
 - Support both Web Push and ntfy, selectable in settings.
-- A scheduled server-side job finds due reminders and sends them. Pick the simplest reliable approach (for example a Netlify scheduled function, or Supabase scheduled jobs) and document its limits.
+- A scheduled server-side job finds due reminders and sends them. **Decision: Supabase Cron (pg_cron)** runs a check inside the database every minute; ntfy messages are sent straight from the database (pg_net), and a Netlify Function is called only when a Web Push is due, to sign and send it. Limits: one-minute resolution; Supabase pauses free projects after a week without activity (prod is used daily); pg_net calls are asynchronous, so failed pushes are cleaned up on the next run.
 - Android is my phone, so test on Android Chrome installed as a PWA.
 
 - Quiet hours (notifications are held until they end) and snooze options on reminders and routine prompts. Priority tasks are exempt from quiet hours unless I choose otherwise.
 - Each device (phone, laptop, Pi) registers its own push subscription. Remove stale subscriptions when the push service reports them invalid.
-- Reminder timing is critical, and it must respect each user's timezone. Before building notifications, compare Netlify scheduled functions with Supabase's built-in scheduler (pg_cron) for running a job at least every minute, and recommend one to me with the trade-offs.
+- Reminder timing is critical, and it must respect each user's timezone: reminder times are local times in the profile's timezone, which the app keeps in step with the device.
 
 ## 7. Offline and sync
 - Reads come from the local store first; writes are applied locally and queued.
@@ -347,6 +350,9 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
 ## 14. Decisions
+
+- 2026-11-06 — Scheduler: Supabase Cron instead of a Netlify scheduled function. A Netlify function every minute is ~43,000 runs a month (roughly 120 of the 300 monthly credits at 10 credits per GB-hour); Supabase Cron is free and checks inside the database. User approved.
+- 2026-11-06 — Priority habits added (user's request): a habit can be Priority and gets the full-screen reminder and slider. Standalone priority tasks remain. A due priority reminder offers slide to complete, Snooze (10 min) or Cancel, and does not re-send on its own. Claude's call: priority tasks are one-off or repeat on chosen weekdays.
 
 - 2026-11-06 — Routines (user's choices): chosen weekdays like habits; completed overall = reached the last step even with skips; unstarted scheduled days count as possible. Claude's calls: today counts as possible only once finished; a run can be continued later the same day; removed steps keep their history; one run per routine per day and one log per step per run, with fixed ids so two devices never collide.
 
