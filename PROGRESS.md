@@ -91,7 +91,7 @@ Left in step 5:
 
 - Creation day is due by midnight; wrong early "missed" logs are removed automatically. Also shipped the user's own wording tweaks ("message tweaks"); tests and spec follow them.
 
-## Step 6 — Routines and completion stats (in progress, branch `step-6-routines`)
+## Step 6 — Routines and completion stats (done; merged via PR #8)
 
 Done:
 - Spec: chosen weekdays, completed = reached the last step, unstarted scheduled days count as possible, run screen URL for step 7 notifications (§5, §14).
@@ -100,7 +100,7 @@ Done:
 - Playwright: 9 routine tests (x2 devices), stable over 3 repeats.
 
 Left in step 6:
-- ~~Chrome test on Deploy Preview 8~~ — created a 2-step routine, ran it (Completed then Skip), saw it finish and show 1 of 1 days (100%); dev logs matched; deleted it. Prod migration right before merge; merge (user's OK).
+- ~~Chrome test on Deploy Preview 8~~ — created a 2-step routine, ran it (Completed then Skip), saw it finish and show 1 of 1 days (100%); dev logs matched; deleted it. ~~Prod migration~~ — applied right before merge. ~~Merge~~ — merged 2026-11-06 with the user's OK.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
