@@ -1,7 +1,8 @@
 -- Database rule checks for profiles (SPEC §2, §4, §7, §8).
 -- Runs as one statement and always rolls back, so it leaves no data behind. No Docker needed.
 -- Run against dev:  npm run test:db
--- Result: an error line saying "PASS: ..." means every check passed; "FAIL: <rule>" names the broken rule.
+-- npm run test:db reads the result: it raises "FAIL: <rule>" on the first broken rule, or "PASS: ..." at the end
+-- (raising is what forces the rollback, so the raw Supabase CLI shows even a pass as an error).
 do $$
 declare
   alice constant uuid := '11111111-1111-1111-1111-111111111111';
