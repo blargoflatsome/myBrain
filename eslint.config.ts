@@ -9,6 +9,7 @@ export default defineConfigWithVueTs(
     rules: {
       // Formatting rules that fight short one-line elements; layout is left to the author.
       'vue/singleline-html-element-content-newline': 'off',
+      'vue/max-attributes-per-line': 'off',
     },
   },
 )

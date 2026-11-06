@@ -17,11 +17,15 @@ Next (needs the user — §13 account walkthrough):
 - ~~Netlify deploy budget~~ — decided: merge to main once per build step (SPEC §3, §14).
 - ~~Netlify site~~ — created: https://myadhdbrain.netlify.app (first `main` build expected to fail until step 1 is merged).
 - ~~Two Supabase projects~~ — created (dev + prod, us-east-1); CLI linked to dev; dev keys in `.env.local` and verified.
-- Google Cloud OAuth client for Google sign-in through Supabase.
-- Supabase CLI, migrations folder, base schema with RLS; Google sign-in in the app.
+- ~~Google Cloud OAuth client~~ — done; Google enabled in both Supabase projects.
+- ~~Base schema with RLS~~ — `profiles` + shared conventions migrated to dev (not yet prod).
+- ~~Google sign-in in the app~~ — sign-in screen, auth guard, sign out.
+- Netlify env vars (dev keys for Deploy Previews, prod keys for production), then a real sign-in on the preview.
+- Apply migration to prod before merging step 1.
 
-## Tests without a rule yet
-- None so far.
+## Rules without a test yet
+- RLS "users only access their own rows" across two signed-in users (needs two test accounts).
+- Profile auto-created on first sign-in (needs a real sign-in).
 
 ## Decisions
 See the Decisions list in `docs/SPEC.md`.
