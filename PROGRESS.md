@@ -20,12 +20,11 @@ Next (needs the user — §13 account walkthrough):
 - ~~Google Cloud OAuth client~~ — done; Google enabled in both Supabase projects.
 - ~~Base schema with RLS~~ — `profiles` + shared conventions migrated to dev (not yet prod).
 - ~~Google sign-in in the app~~ — sign-in screen, auth guard, sign out.
-- Netlify env vars (dev keys for Deploy Previews, prod keys for production), then a real sign-in on the preview.
+- ~~Netlify env vars~~ — set per context; Google sign-in works on the Deploy Preview.
 - Apply migration to prod before merging step 1.
 
 ## Rules without a test yet
-- RLS "users only access their own rows" across two signed-in users (needs two test accounts).
-- Profile auto-created on first sign-in (needs a real sign-in).
+- None. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.
 
 ## Decisions
 See the Decisions list in `docs/SPEC.md`.

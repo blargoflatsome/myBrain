@@ -20,4 +20,5 @@
 - `npm test` — Vitest (unit/integration, `src/**/*.test.ts`)
 - `npm run test:e2e` — Playwright (`e2e/`, desktop + Pixel 7; builds and serves on :4173)
 - `npm run test:all` — everything CI runs
+- `npm run test:db` — SQL rule checks (RLS) against dev; asks for confirmation; success prints `PASS:`
 - `npx supabase db push --remote` — apply new migrations to the linked dev project (no Docker, so no local stack)
