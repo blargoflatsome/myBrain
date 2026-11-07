@@ -31,6 +31,7 @@ export const messages = {
       task: 'Task',
       vault: 'The Vault',
       quest: 'Quest',
+      habit: 'Habit',
       later: 'Decide later',
     },
     taskDateLabel: 'When? (optional)',
@@ -45,7 +46,8 @@ export const messages = {
       taskUndated: 'Saved. Future you will find it in Undated.',
       vault: (bucket: string) => `Saved to ${bucket}. Future you will be glad you did.`,
       quest: 'Added to your quests. Future you has something for a bored day.',
-      later: "Saved to your inbox. Future you can sort it when there's time.",
+      habit: 'Added to your habits. Future you is building something.',
+      later: "Saved to Orphans. Future you can sort it when there's time.",
     },
     savedOffline: "Saved on this device. It'll sync when you're back online.",
     emptyError: 'Nothing to save yet. What did past you want to remember?',
@@ -302,12 +304,23 @@ export const messages = {
     priorityDone: (title: string) => `${title}: done`,
     priorityNotDone: (title: string) => `${title}: not done`,
     olderHeading: 'Earlier',
+    tomorrowLabel: 'How to make tomorrow better?',
+    betterLabel: 'Was today better than yesterday?',
+    yes: 'Yes',
+    no: 'No',
+    betterYes: 'Better than yesterday',
+    betterNo: 'Not better than yesterday',
   },
   tags: {
     label: 'Tags (optional)',
     add: 'Add a tag',
     placeholder: 'Type a tag and press Enter',
     remove: (name: string) => `Remove tag ${name}`,
+  },
+  howOften: {
+    label: 'How often',
+    weekly: 'Every week',
+    biweekly: 'Every 2 weeks',
   },
   welcome: {
     // Wording approved by the user (2026-11-07).
@@ -365,7 +378,7 @@ export const messages = {
     removes: 'Tick what to permanently delete, on all your devices:',
     parts: {
       tasks: 'Tasks',
-      inbox: 'Inbox',
+      inbox: 'Orphans',
       quests: 'Quests',
       vault: 'The Vault (it goes back to the 3 starter buckets)',
       journal: 'Journal entries',
@@ -520,6 +533,9 @@ export const messages = {
     journalHeading: 'Journal',
     journalCurrent: 'Days in a row',
     journalBest: 'Best run',
+    worstDay: 'Days since your worst day',
+    favoritesHeading: 'Favorite buckets',
+    openBucket: (name: string) => `Open ${name}`,
     eventsHeading: 'Events',
     created: 'Created',
     attended: 'Attended',
@@ -550,6 +566,9 @@ export const messages = {
     open: (title: string) => `Open ${title}`,
     stars: (n: number) => `${n} of 5 stars`,
     settings: 'Bucket settings',
+    star: (name: string) => `Star ${name}`,
+    unstar: (name: string) => `Unstar ${name}`,
+    starHint: 'Starred buckets show on the Dashboard.',
     drag: (name: string) => `Reorder ${name}: drag, or use the up and down arrow keys`,
     dragHint: 'Drag ⠿ to change the order.',
     bucketEditor: {
@@ -618,7 +637,7 @@ export const messages = {
     today: 'Today',
     previous: 'Previous',
     next: 'Next',
-    repeat: { never: "Doesn't repeat", daily: 'Every day', weekdays: 'Weekdays (Mon–Fri)', weekly: 'Every week', monthly: 'Every month', yearly: 'Every year' },
+    repeat: { never: "Doesn't repeat", daily: 'Every day', weekdays: 'Weekdays (Mon–Fri)', weekly: 'Every week', biweekly: 'Every 2 weeks', monthly: 'Every month', yearly: 'Every year' },
     reminder: (minutes: number | null) =>
       minutes === null
         ? 'No reminder'
@@ -710,7 +729,7 @@ export const messages = {
     deleteButton: 'Delete My Account',
     deleteConfirm: {
       heading: 'Delete your account?',
-      body: 'This permanently deletes your account and everything in it: tasks, habits, routines, priority tasks, journal, The Vault, quests, inbox and settings, on all your devices. It cannot be undone.',
+      body: 'This permanently deletes your account and everything in it: tasks, habits, routines, priority tasks, journal, The Vault, quests, Orphans and settings, on all your devices. It cannot be undone.',
       typeLabel: 'Type DELETE to confirm',
       word: 'DELETE',
       confirm: 'Delete everything',
@@ -743,12 +762,12 @@ export const messages = {
     search: 'Search',
     account: 'Account',
     quests: 'Quests',
-    inbox: 'Inbox',
+    inbox: 'Orphans',
   },
   inbox: {
-    heading: 'Inbox',
+    heading: 'Orphans',
     itemPrompt: 'Past you jotted this down. Where should it go?',
-    empty: "Past you hasn't left anything to sort.",
+    empty: "Past you hasn't left any orphans.",
   },
   sync: {
     online: 'Synced',

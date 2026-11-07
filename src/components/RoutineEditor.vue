@@ -3,6 +3,7 @@
 // one of my habits (SPEC §5 Routines). Delete asks first (SPEC §2).
 import { computed, nextTick, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
+import HowOften from '@/components/HowOften.vue'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { arrowStep, useDragSort } from '@/composables/useDragSort'
 import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
@@ -20,6 +21,7 @@ const title = ref('')
 const notifyTime = ref('')
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
 const anytime = ref(false)
+const weekInterval = ref(1)
 const stepRows = ref<{ key: string; id?: string; title: string; habitId?: string | null }[]>([])
 
 // My habits, for habit steps.
@@ -51,6 +53,7 @@ watch(
     title.value = r.title
     notifyTime.value = r.notify_time?.slice(0, 5) ?? ''
     anytime.value = !r.weekdays
+    weekInterval.value = r.week_interval ?? 1
     weekdays.value = r.weekdays ? [...r.weekdays] : [...ALL_WEEKDAYS]
     stepRows.value = props.steps.map((s) => ({ key: s.id, id: s.id, title: s.title, habitId: s.habit_id ?? null }))
     choosingHabit.value = false
@@ -101,6 +104,7 @@ function save() {
       // A run-anytime routine has no weekdays and no reminder (SPEC §5 Routines).
       notify_time: anytime.value ? null : notifyTime.value || null,
       weekdays: anytime.value ? null : weekdays.value,
+      week_interval: weekInterval.value,
     },
     stepRows.value.map((s) => ({ id: s.id, title: s.habitId ? (habitById(s.habitId)?.title ?? s.title) : s.title, habitId: s.habitId ?? null })),
   )
@@ -150,6 +154,7 @@ const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disa
           </button>
         </div>
       </fieldset>
+      <HowOften v-if="!anytime" v-model="weekInterval" />
       <fieldset class="flex flex-col gap-2">
         <legend class="mb-1 text-sm text-muted">{{ m.editor.steps }}</legend>
         <p v-if="stepRows.length > 1" class="-mt-1 text-xs text-muted">{{ m.editor.dragHint }}</p>

@@ -2,7 +2,7 @@
 // The server sends the notifications; the app shows the full-screen reminder while one is due.
 import type { HabitLogRow, HabitRow, PriorityTaskLogRow, PriorityTaskRow, ReminderStateRow } from '@/sync/types'
 import { dayStatus, isScheduled, weekdayOf, zonedTime } from '@/habits/rules'
-import { todayIn } from '@/tasks/days'
+import { onWeek, todayIn } from '@/tasks/days'
 
 export const SNOOZE_MINUTES = 10
 
@@ -32,7 +32,7 @@ function held(state: ReminderStateRow | undefined, now: Date): boolean {
 
 export function isTaskScheduled(task: PriorityTaskRow, date: string): boolean {
   if (task.due_date) return task.due_date === date
-  return date >= task.start_date && (task.weekdays ?? []).includes(weekdayOf(date))
+  return date >= task.start_date && (task.weekdays ?? []).includes(weekdayOf(date)) && onWeek(task.start_date, task.week_interval, date)
 }
 
 export function duePriorities(

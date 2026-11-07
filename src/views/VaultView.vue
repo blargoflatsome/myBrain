@@ -161,7 +161,7 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
             ⠿
           </button>
           <button type="button" class="flex min-h-14 flex-1 items-center justify-between gap-3 pr-4 pl-1 text-left" @click="openBucket(b)">
-            <span class="font-medium">{{ b.name }}</span>
+            <span class="font-medium"><span v-if="b.starred" class="text-yellow-400" aria-hidden="true">★ </span>{{ b.name }}</span>
             <span class="text-sm text-muted">{{ m.itemCount(countIn(b)) }}</span>
           </button>
         </li>
@@ -181,7 +181,20 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
         <button type="button" class="self-start text-sm text-muted underline" @click="router.push({ query: {} })">← {{ m.back }}</button>
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-2xl font-bold">{{ bucket.name }}</h1>
-          <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="editingBucket = bucket">{{ m.settings }}</button>
+          <div class="flex shrink-0 gap-2">
+            <button
+              type="button"
+              class="flex size-11 items-center justify-center rounded-xl border text-xl"
+              :class="bucket.starred ? 'border-accent text-yellow-400' : 'border-line text-muted'"
+              :aria-pressed="!!bucket.starred"
+              :aria-label="bucket.starred ? m.unstar(bucket.name) : m.star(bucket.name)"
+              :title="m.starHint"
+              @click="brain.saveBucket({ ...bucket, starred: !bucket.starred })"
+            >
+              {{ bucket.starred ? '★' : '☆' }}
+            </button>
+            <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="editingBucket = bucket">{{ m.settings }}</button>
+          </div>
         </div>
       </div>
 

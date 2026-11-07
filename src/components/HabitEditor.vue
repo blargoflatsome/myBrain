@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import HowOften from '@/components/HowOften.vue'
 // New or edit habit: title, reminder time, timer, weekdays, private (SPEC §5 Habits). Delete asks first (SPEC §2).
 import { computed, ref, watch } from 'vue'
 import type { HabitRow } from '@/sync/types'
@@ -15,6 +16,7 @@ const title = ref('')
 const notifyTime = ref('')
 const timer = ref<number | null>(null)
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
+const weekInterval = ref(1)
 const isPrivate = ref(false)
 const isPriority = ref(false)
 const timerOptions = [15, 30, 60, 120, 180, 240]
@@ -27,6 +29,7 @@ watch(
     notifyTime.value = h.notify_time?.slice(0, 5) ?? ''
     timer.value = h.timer_minutes ?? null
     weekdays.value = [...h.weekdays]
+    weekInterval.value = h.week_interval ?? 1
     isPrivate.value = h.is_private
     isPriority.value = !!h.is_priority
     dialog.value?.showModal()
@@ -53,6 +56,7 @@ function save() {
     notify_time: notifyTime.value || null,
     timer_minutes: notifyTime.value ? timer.value : null,
     weekdays: weekdays.value,
+    week_interval: weekInterval.value,
     is_private: isPrivate.value,
     is_priority: isPriority.value,
   })
@@ -110,6 +114,7 @@ const chip = (on: boolean) => [
           </button>
         </div>
       </fieldset>
+      <HowOften v-model="weekInterval" />
       <label class="flex items-start gap-3">
         <input v-model="isPrivate" type="checkbox" class="mt-1 size-5 accent-[var(--accent)]">
         <span>

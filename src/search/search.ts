@@ -59,8 +59,8 @@ export function searchDocs(data: SearchData): SearchDoc[] {
       .filter((v) => !v.deleted_at)
       .map((v) => doc('vault_item', v.id, v.title, [v.notes, v.link].filter(Boolean).join('\n'), v.updated_at, { bucketId: v.bucket_id, context: bucketName.get(v.bucket_id) })),
     ...data.journal
-      .filter((j) => !j.deleted_at && j.body.trim())
-      .map((j) => doc('journal_entry', j.id, j.date, plainText(j.body), j.updated_at, { date: j.date })),
+      .filter((j) => !j.deleted_at && (j.body.trim() || j.tomorrow?.trim()))
+      .map((j) => doc('journal_entry', j.id, j.date, [plainText(j.body), j.tomorrow?.trim()].filter(Boolean).join('\n'), j.updated_at, { date: j.date })),
     ...data.quests.filter((q) => !q.deleted_at).map((q) => doc('quest', q.id, q.title, q.details ?? '', q.updated_at)),
     ...data.events.filter((e) => !e.deleted_at).map((e) => doc('event', e.id, e.title, e.notes ?? '', e.updated_at, { date: e.start_date })),
   ]

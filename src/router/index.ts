@@ -25,7 +25,9 @@ export const routes = [
   // The page was called Profile before; old links still work.
   { path: '/profile', redirect: '/account' },
   { path: '/quests', name: 'quests', component: () => import('@/views/QuestsView.vue') },
-  { path: '/inbox', name: 'inbox', component: () => import('@/views/InboxView.vue') },
+  { path: '/orphans', name: 'inbox', component: () => import('@/views/InboxView.vue') },
+  // Orphans was called Inbox before; old links still work.
+  { path: '/inbox', redirect: '/orphans' },
   { path: '/welcome', name: 'welcome', component: () => import('@/views/WelcomeView.vue') },
   { path: '/rsvp/:invite/:token', name: 'rsvp', component: () => import('@/views/GuestRsvpView.vue'), meta: { public: true, guest: true } },
   { path: '/privacy', name: 'privacy', component: () => import('@/views/PrivacyView.vue'), meta: { public: true, guest: true } },

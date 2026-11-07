@@ -78,7 +78,7 @@ const navItems = [
   { to: '/calendar', label: messages.nav.calendar },
   { to: '/vault', label: messages.nav.vault },
   { to: '/quests', label: messages.nav.quests },
-  { to: '/inbox', label: messages.nav.inbox },
+  { to: '/orphans', label: messages.nav.inbox },
   { to: '/account', label: messages.nav.account },
 ]
 
@@ -116,7 +116,7 @@ watch(() => route.fullPath, () => (menuOpen.value = false))
             >
               {{ item.label }}
               <span
-                v-if="item.to === '/inbox' && inboxCount"
+                v-if="item.to === '/orphans' && inboxCount"
                 class="rounded-full bg-accent px-2 text-xs text-accent-ink"
                 data-testid="inbox-count"
               >{{ inboxCount }}</span>

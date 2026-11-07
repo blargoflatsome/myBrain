@@ -23,6 +23,17 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((toUtcMidnight(to) - toUtcMidnight(from)) / 86_400_000)
 }
 
+/**
+ * Whether a date falls in an "on" week: every week, or every other week counted from the week of the start date.
+ * Weeks run Sunday to Saturday (SPEC §5: every week or every 2 weeks).
+ */
+export function onWeek(startDate: string, weekInterval: number | null | undefined, date: string): boolean {
+  if (!weekInterval || weekInterval === 1) return true
+  const sunday = (d: string) => toUtcMidnight(d) - new Date(toUtcMidnight(d)).getUTCDay() * 86_400_000
+  const weeks = Math.round((sunday(date) - sunday(startDate)) / (7 * 86_400_000))
+  return weeks % weekInterval === 0
+}
+
 export function addDays(date: string, days: number): string {
   return new Date(toUtcMidnight(date) + days * 86_400_000).toISOString().slice(0, 10)
 }

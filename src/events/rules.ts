@@ -4,7 +4,7 @@ import { weekdayOf } from '@/habits/rules'
 import { isTaskScheduled } from '@/reminders/priority'
 import { addDays, daysBetween } from '@/tasks/days'
 
-export const REPEATS: EventRepeat[] = ['never', 'daily', 'weekdays', 'weekly', 'monthly', 'yearly']
+export const REPEATS: EventRepeat[] = ['never', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'yearly']
 /** Reminder choices, in minutes before the start (null = none). All-day events count from 9:00 am. */
 export const REMINDERS: (number | null)[] = [null, 0, 5, 10, 15, 30, 60, 1440]
 
@@ -25,6 +25,8 @@ export function occursOn(event: Pick<EventRow, 'start_date' | 'repeat'>, date: s
     }
     case 'weekly':
       return weekdayOf(date) === weekdayOf(event.start_date)
+    case 'biweekly':
+      return weekdayOf(date) === weekdayOf(event.start_date) && daysBetween(event.start_date, date) % 14 === 0
     case 'monthly':
       return day(date) === day(event.start_date)
     case 'yearly':

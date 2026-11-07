@@ -74,12 +74,12 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **journal_entries:** date (one entry per day), body text, auto-generated stats snapshot for that day (`stats`, JSON), whether the stats are final (`stats_final`), and whether the app wrote the entry on my behalf (`auto`).
 - **vault_buckets / vault_items:** user-defined buckets (restaurant reviews, places to go, books, shows, ideas to research, shopping list) and the items inside them. A bucket has a name, position, and whether its items can be checked off. An item has a title, notes, an optional star rating (1–5), an optional link or address, and, in checklist buckets, whether it is checked.
 - **quests:** title, details, time bucket (estimated time), energy level, status (open, accepted, done), last_picked_at, times_picked.
-- **events:** title, notes, start, end (or all day), repeat (never, daily, weekdays, weekly, monthly, yearly), and reminder (none, or minutes before the start). Personal calendar items; shared events and invitations come in step 11.
+- **events:** title, notes, start, end (or all day), repeat (never, daily, weekdays, weekly, every 2 weeks, monthly, yearly), and reminder (none, or minutes before the start). Personal calendar items; shared events and invitations come in step 11.
 - **event_invites:** one per person invited to an event: the event, a name, an email and/or phone number, whether they are an app user (kept server-side, never shown to the inviter), their answer (pending, yes, maybe, no, or dropped out) and when, and for guests a secret answer link (stored hashed). The creator sees the people they invited and their answers; an invited user sees only their own invite.
 - **availability:** my weekly unavailable times (weekday, from, until) and one-off exceptions for specific dates (all day or from–until, unavailable or available), plus whether I share my free/busy times.
 - **outbound_messages:** every email, text and push sent to someone about an event (who, how, kind, when, status, error), written by the server; also the queue the server sends from. **message_optouts:** email addresses and phone numbers that asked not to be messaged.
 - **dashboard_config:** which blocks are shown and their positions, per device or layout name.
-- **inbox (capture queue):** raw captured text that hasn't been filed yet, used when I choose Decide later, or when a capture is saved before its destination is chosen.
+- **inbox (capture queue, shown as **Orphans**):** raw captured text that hasn't been filed yet, used when I choose Decide later, or when a capture is saved before its destination is chosen.
 
 - **events (additions):** status (active or cancelled), cancelled_at.
 - **event_attendees:** event id, user id (for app users) or guest name, email and phone number, role (creator or invitee), RSVP status (pending, accepted, maybe, declined, cancelled), and a secure token for guest RSVP links.
@@ -102,11 +102,12 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
    - **Task:** Title, Notes, Date (blank = the Undated list), Priority (default Low).
    - **The Vault:** Bucket (pick one, or make a new one; the first bucket is preselected), Title, Notes.
    - **Quest:** Title, Details, Energy needed (default Ugh), Time needed (default 30 min).
-   - **Decide later:** just the text, saved to the inbox.
+   - **Habit:** the full habit form: Title, the days it repeats on and whether every week or every 2 weeks (default every day, every week), reminder time, timer, private, and Priority.
+   - **Decide later:** just the text, saved to **Orphans**.
 - Text shared from another app is kept while I pick the type: its first line fills the title and the rest fills notes or details.
 - Works offline; items are queued and synced later.
 
-- A fourth option, **Decide later**, saves the text to the inbox so I can sort it when I have time.
+- **Decide later** saves the text to **Orphans** (the menu item and page formerly called Inbox) so I can sort it when I have time.
 - A microphone button fills in the title (or the Decide later text) using the device's speech recognition (free; verify browser support). Accepted: on Chrome this sends the audio to Google's servers for transcription. Hide the button where the browser has no speech recognition.
 - Any item can later be converted to another type, for example a vault item into a task.
 
@@ -123,10 +124,10 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Carry-over is calculated from each task's due date and today's date in my timezone when the list is displayed (and by a server-side job for notifications), not by a counter that only runs while the app is open. It stays correct when the app was closed or offline, or when I travel across timezones. `carry_over_count` is derived the same way. Test daylight saving changes and timezone changes.
 
 ### Habits
-- Fields: title, notify time, timer (time window to complete), the weekdays it repeats on (default every day), private.
+- Fields: title, notify time, timer (time window to complete), the weekdays it repeats on (default every day), how often (**every week** or **every 2 weeks**, default every week), private.
 - **Timer** starts at the notify time: notify 8:00 am with a 2-hour timer means done by 10:00 am. With no timer (or no notify time) the habit is due by midnight. **On the day a habit is created it is always due by midnight**, so it is never missed the moment it is saved; the timer applies from the next day. A timer needs a notify time. A habit can be completed any time before its deadline, and a completion can be undone until then.
-- **Weekdays:** a habit only counts on its chosen weekdays. Days it isn't scheduled neither extend nor break the streak. A habit's history starts on the day it was created.
-- Track a streak of scheduled days in a row. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on my Account page (see the Account page section below).
+- **Weekdays:** a habit only counts on its chosen weekdays (and, if it repeats every 2 weeks, only in every other week, counted from the week it started; weeks run Sunday to Saturday). Days it isn't scheduled neither extend nor break the streak. A habit's history starts on the day it was created.
+- Track a streak of scheduled days in a row. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on the Habits page and the Dashboard (see the Account page section below).
 
 - The Habits page displays this line, worded exactly: "You are only in competition with yourself." It keeps the focus on beating my own best streak.
 
@@ -135,7 +136,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Timer:** if the timer expires before I complete the habit, it counts as a **miss**. The habit is logged as missed for that day and the streak resets to zero, while my best streak is kept.
 
 ### Account page
-- Every user has an Account page with a display name and avatar.
+- Every user has an Account page with a display name and avatar. Streaks are shown on the Dashboard, not on the Account page.
 - **Delete My Account** is at the bottom of the Account page. It first shows a confirmation that says everything will be permanently deleted on all devices and cannot be undone, and I must type DELETE. Then it deletes my account and all of my data on the server, clears this device's stored copy and push subscription, signs me out, and tells me it is done. If it fails (for example, offline), it says so and nothing is deleted.
 - The page shows each habit's **current streak** and **best streak**, plus overall highlights such as my longest streak ever, so I can feel proud of them.
 - Streaks are meant to create accountability and friendly competition between users, so the page can be viewed by other users I choose to share it with.
@@ -154,7 +155,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Skip:** the step simply moves on to the next one, with no animation. The step is recorded as skipped.
 - **Completed:** the current step plays a cross-out (strikethrough) animation, then clears and the next step appears. The step is recorded as completed.
 - Skipped steps still count as possible steps in the completion stats, so the stats compare completed steps against all the times each step could have been done.
-- **Weekdays:** like habits, a routine runs on chosen weekdays (default every day) and its history starts the day it was created.
+- **Weekdays:** like habits, a routine runs on chosen weekdays (default every day), every week or every 2 weeks, and its history starts the day it was created.
 - **Completed overall** means reaching the last step that day, even if some steps were skipped; the per-step stats still show the skips.
 - **Habits as steps:** when adding a step I can type a routine-only step (as now) or choose one of my habits (for example "Take medication" inside the Morning Routine). A habit step shows the habit's name (and ⚠ if it is a priority habit) and stays linked to it:
   - Completing the step also completes the habit for that day (one tick counts for both; the habit's streak goes up as usual).
@@ -170,7 +171,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 ### Priority tasks and priority habits
 - Reminder time, title, description.
 - **Priority habits:** any habit can be marked **Priority** (medication is usually a habit). A priority habit gets the same full-screen reminder, slider and backup alerts as a priority task, at its reminder time. Completing it with the slider completes the habit for the day.
-- **Priority tasks** stay for critical things that are not habits. A priority task is either one-off (a date) or repeats on chosen weekdays, like habits.
+- **Priority tasks** stay for critical things that are not habits. A priority task is either one-off (a date) or repeats on chosen weekdays, every week or every 2 weeks, like habits.
 - **When a priority reminder is due** it stays up until I act: **slide to complete**, **Snooze** (10 minutes), or **Cancel** (no more reminders for it today; a habit is not completed by cancelling). It does not re-send on its own; the notification stays on screen until I respond, and an urgent ntfy alert goes out as a backup.
 - Full-screen reminder that must be marked complete with a **slider**.
 - In the PWA, build the best version possible: a full-screen in-app overlay plus a persistent notification until I complete, snooze or cancel it. Note the limits of what a browser can do; a Capacitor Android wrapper in Phase 2 can provide a true full-screen alert.
@@ -182,6 +183,8 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - End-of-day check-in: write how the day went and create new tasks. "Add a task for tomorrow" sits in its own box below the writing and opens the Capture window over the Journal, with Task chosen and tomorrow's date filled in (it can be changed or cleared). The task has source `journal`; after saving, the window is ready for another task, and closing it returns to my writing.
 - The writing is formatted text: bold, italic, underline, strikethrough, headings, bulleted and numbered lists, checklists, quotes and links. The writing area is large, and can be opened full screen for easier typing.
 - One entry per day. Each entry summarizes that day's activity.
+- Below the writing, a separate box asks **"How to make tomorrow better?"** (plain text, saved as I type, editable later like the rest of the entry).
+- **"Was today better than yesterday?"** with **Yes** and **No** to choose (or leave unanswered). It can be changed later, including on past entries.
 - The day's stats are added to the entry automatically:
   - tasks done (x of y due that day),
   - habits kept (x of y scheduled that day),
@@ -198,6 +201,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - User-defined buckets of things to remember that are not tasks (restaurant reviews, places to go, books, shows, ideas to research, shopping list).
 - New accounts start with three buckets: Shopping list, Restaurant reviews, and Places to go. They can be renamed or deleted like any other bucket.
 - The Vault page (in the menu) lists my buckets; opening one shows its items, with a quick box to add an item (title only needed). Buckets can be added, renamed, reordered by drag and drop (a drag handle that works with mouse and touch, and with the arrow keys), and deleted. Deleting a bucket that has items deletes its items too, after a confirmation that says how many will be deleted.
+- A bucket can be **starred** as a favorite (any number of buckets). Each starred bucket gets a card on the Dashboard that links to it and shows its 3 newest items.
 - Each item has a title and optional notes, an optional **star rating** (1–5), an optional **link or address** (a web link opens in a new tab; anything else opens in maps), and tags. Items can be edited and deleted (after confirming).
 - A bucket can be set so its items can be **checked off** (the Shopping list starts that way). Checked items move to the bottom, and "Clear checked" deletes them after confirming.
 
@@ -223,7 +227,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
   - tasks with a due date, as all-day items with their priority colour (tapping one opens the task editor),
   - priority tasks on their days at their reminder time (tapping opens the priority task editor),
   - my own events.
-- Events: tap a day or time, or "+ New event", to add one with a title, start and end (or all day), optional notes, repeat (never, daily, weekdays, weekly, monthly, yearly), and an optional reminder (at the start, or 5, 10, 15 or 30 minutes, 1 hour, or 1 day before). Events can be edited and deleted (after confirming; deleting a repeating event deletes the whole series). Event reminders are sent like other reminders (Web Push and ntfy, respecting quiet hours) and open the calendar on that day.
+- Events: tap a day or time, or "+ New event", to add one with a title, start and end (or all day), optional notes, repeat (never, daily, weekdays, weekly, every 2 weeks, monthly, yearly), and an optional reminder (at the start, or 5, 10, 15 or 30 minutes, 1 hour, or 1 day before). Events can be edited and deleted (after confirming; deleting a repeating event deletes the whole series). Event reminders are sent like other reminders (Web Push and ntfy, respecting quiet hours) and open the calendar on that day.
 
 - Everything below from Accounts and contact info through Google Calendar sync is built after the Dashboard (see the build order). Only the basic calendar view is built earlier.
 
@@ -277,7 +281,8 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
   - **Longest current streak:** the habit kept going the most days in a row right now;
   - **Best streak ever:** the longest streak any habit has reached;
   - **Oldest habit:** the habit I have been tracking the longest, since its start date.
-- **Journal:** my current streak and my best streak of days in a row with a journal entry I wrote (entries the app wrote for me don't count).
+- **Journal:** my current streak and my best streak of days in a row with a journal entry I wrote (entries the app wrote for me don't count), and **Days since your worst day**: how many days in a row, up to today, I answered Yes to "Was today better than yesterday?" A No, or a day with no answer, resets it to zero; today without an answer yet doesn't break it until the day ends.
+- **Favorite Vault buckets:** a card for each starred bucket, linking to it and showing its 3 newest items.
 - **Events:** in the period, events I **created**, events I **attended** (dates that have passed of my own events and of invited events I answered Yes, not counting cancelled ones), and events I **cancelled** (events I cancelled for everyone or dropped out of, plus events I deleted).
 - **Tasks, routines and quests:** in the period, tasks done, each routine's completion rate (or how many times a run-anytime routine was finished), and quests finished.
 - More stats and Achievements (section 10) may be added later. Configurable blocks and layouts per device come with the optional Pi display (section 9).
@@ -461,3 +466,4 @@ Before building, walk me through creating each account below. Ask me for the cre
 - 2026-11-07 — Email sending moves to Phase 2 (user): buy the domain at Porkbun (about $15 a year for `.app` versus about $27 through Netlify) and set up Resend then. Step 11 is completed up to that point: emails are queued and logged, guests are reached through the one-at-a-time sharing flow (email app or messaging app) with their answer link, and the calendar file is offered on the guest page. Step 11 spec approved with this change.
 - 2026-11-07 — Delete my data (user): start fresh while keeping the account and settings. User's choices: remove everything added; reset the Vault to the three starter buckets; leave events I've invited people to alone; keep availability times and invitations I received (tags are removed). Claude's calls: a server function deletes the rows permanently (like account deletion), with the same typed-DELETE confirmation; the message log is kept because it is the record of what was sent to other people and backs the rate limits; a reset time on my profile tells my other devices to clear their stored copy and download again.
 - 2026-11-07 — Delete my data becomes a checklist (user), so parts like tags can be kept; everything is ticked to start. A tags management page is added to Phase 2 (user).
+- 2026-11-07 — Feedback round 1 (user): every week or every 2 weeks for habits, routines, repeating priority tasks and events (every 2 weeks counts from the week the item started, Sunday to Saturday weeks); Capture can add a habit with the full habit form; Inbox is renamed **Orphans**; streaks are removed from the Account page (they're on the Dashboard); the journal gets a "How to make tomorrow better?" box and a Yes/No "Was today better than yesterday?"; the Dashboard gets "Days since your worst day" (days in a row answered Yes; a No or a missing answer resets it); Vault buckets can be starred (several), each adding a Dashboard card with a link and its 3 newest items.

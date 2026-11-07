@@ -165,7 +165,7 @@ test.describe('Spec §5 Habits', () => {
 })
 
 test.describe('Spec §5 Habits and Profile page: private habits', () => {
-  test('a private habit is marked on the Habits page and never appears on the Profile page', async ({ page }) => {
+  test('a private habit is marked on the Habits page; streaks are on the Dashboard, not the Account page', async ({ page }) => {
     server.seed('habits', [
       habit('h1', 'Run', { start_date: '2026-11-07' }),
       habit('h2', 'Take meds', { is_private: true, start_date: '2026-11-01' }),
@@ -178,10 +178,10 @@ test.describe('Spec §5 Habits and Profile page: private habits', () => {
     await expect(row(page, 'Take meds')).toContainText('🔒 Private')
 
     await goTo(page, 'Account')
-    await expect(page.getByTestId('profile-streak')).toHaveCount(1)
-    await expect(page.getByTestId('profile-streak')).toContainText('Run')
+    await expect(page.getByTestId('profile-streak')).toHaveCount(0)
     await expect(page.getByText('Take meds')).toHaveCount(0)
-    await expect(page.getByTestId('longest-streak')).toHaveText('🏆 Longest streak ever: 3 (Run)')
+    await goTo(page, 'Dashboard')
+    await expect(page.getByTestId('dash-habit')).toHaveCount(2)
   })
 
   test('new habits are not private by default, and can be made private', async ({ page }) => {
@@ -267,12 +267,12 @@ test.describe('Spec §5 Account page', () => {
 })
 
 test.describe('Navigation', () => {
-  test('the left menu reaches Dashboard, Tasks, Habits, Quests, Inbox and Account, with text labels only', async ({ page }) => {
+  test('the left menu reaches Dashboard, Tasks, Habits, Quests, Orphans and Account, with text labels only', async ({ page }) => {
     await open(page, '/')
     for (const [name, url] of [
       ['Habits', /\/habits$/],
       ['Quests', /\/quests$/],
-      ['Inbox', /\/inbox$/],
+      ['Orphans', /\/orphans$/],
       ['Account', /\/account$/],
       ['Tasks', /\/tasks$/],
       ['Dashboard', /\/$/],
@@ -292,7 +292,7 @@ test.describe('Navigation', () => {
       'Calendar',
       'The Vault',
       'Quests',
-      'Inbox',
+      'Orphans',
       'Account',
     ])
   })

@@ -1,6 +1,6 @@
 // Routine rules (SPEC §5 Routines): weekdays or run anytime, runs, habit steps, next step, and completion stats.
 import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
-import { addDays } from '@/tasks/days'
+import { addDays, onWeek } from '@/tasks/days'
 import { isScheduled as habitScheduled, weekdayOf } from '@/habits/rules'
 
 export const ALL_WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]
@@ -11,7 +11,7 @@ export function isAnytime(routine: RoutineRow): boolean {
 }
 
 export function isScheduled(routine: RoutineRow, date: string): boolean {
-  return !!routine.weekdays && date >= routine.start_date && routine.weekdays.includes(weekdayOf(date))
+  return !!routine.weekdays && date >= routine.start_date && routine.weekdays.includes(weekdayOf(date)) && onWeek(routine.start_date, routine.week_interval, date)
 }
 
 /** The routine's current steps, in order. Removed steps are kept for history but not shown. */

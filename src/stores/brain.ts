@@ -375,6 +375,27 @@ export const useBrainStore = defineStore('brain', () => {
     await e.save('journal_entries', { ...emptyEntry(uid, date, false), body, stats, stats_final: date < today })
   }
 
+  /**
+   * Save the journal's other answers for a day: "How to make tomorrow better?" and "Was today better than
+   * yesterday?" (SPEC §5 Journal). Creates the day's entry if needed; always editable.
+   */
+  async function saveJournalFields(
+    date: string,
+    fields: { tomorrow?: string; better_than_yesterday?: boolean | null },
+    now = new Date(),
+    timeZone = deviceTimeZone(),
+  ) {
+    const { engine: e, uid, local } = requireReady()
+    const today = todayIn(timeZone, now)
+    const existing = (await local.journal_entries.where('date').equals(date).toArray()).find((x) => !x.deleted_at)
+    if (existing) {
+      await e.patch('journal_entries', existing.id, () => ({ ...fields, auto: false }))
+      return
+    }
+    const stats = dayStats(await dayData(), date, now, timeZone)
+    await e.save('journal_entries', { ...emptyEntry(uid, date, false), ...fields, stats, stats_final: date < today })
+  }
+
   // ---------- The Vault (SPEC §5 The Vault) ----------
   async function saveBucket(row: VaultBucketRow) {
     const { engine: e, uid } = requireReady()
@@ -504,6 +525,7 @@ export const useBrainStore = defineStore('brain', () => {
 
   return {
     db,
+    saveJournalFields,
     applyDataReset,
     saveAvailabilityRule,
     deleteAvailabilityRule,

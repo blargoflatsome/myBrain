@@ -2,6 +2,7 @@
 // SPEC §5: priority tasks — one-off (a date) or repeating on chosen weekdays — with a reminder time.
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
+import HowOften from '@/components/HowOften.vue'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { messages } from '@/messages'
@@ -23,7 +24,7 @@ const sorted = computed(() => [...tasks.value].sort((a, b) => a.reminder_time.lo
 
 function when(t: PriorityTaskRow) {
   const time = t.reminder_time.slice(0, 5)
-  return t.due_date ? `${m.once(t.due_date)} ${m.at(time)}` : `${m.repeats((t.weekdays ?? []).map((d) => dayNames[d]).join(' '))} ${m.at(time)}`
+  return t.due_date ? `${m.once(t.due_date)} ${m.at(time)}` : `${m.repeats((t.weekdays ?? []).map((d) => dayNames[d]).join(' '))}${t.week_interval === 2 ? `, ${messages.howOften.biweekly.toLowerCase()}` : ''} ${m.at(time)}`
 }
 
 // ---------- editor ----------
@@ -37,6 +38,7 @@ const time = ref('08:00')
 const mode = ref<'once' | 'repeat'>('repeat')
 const date = ref('')
 const weekdays = ref<number[]>([...ALL])
+const weekInterval = ref(1)
 
 function open(t: PriorityTaskRow | null) {
   isNew.value = !t
@@ -72,6 +74,7 @@ watch(editing, (t) => {
   mode.value = t.due_date ? 'once' : 'repeat'
   date.value = t.due_date ?? todayIn(deviceTimeZone())
   weekdays.value = [...(t.weekdays ?? ALL)]
+  weekInterval.value = t.week_interval ?? 1
   dialog.value?.showModal()
 })
 function toggleDay(d: number) {
@@ -88,6 +91,7 @@ async function save() {
     reminder_time: time.value,
     due_date: mode.value === 'once' ? date.value : null,
     weekdays: mode.value === 'repeat' ? weekdays.value : null,
+    week_interval: mode.value === 'repeat' ? weekInterval.value : 1,
   })
   editing.value = null
 }
@@ -138,6 +142,7 @@ const chip = (on: boolean) => [
           <div v-if="mode === 'repeat'" class="flex flex-wrap gap-1.5" role="group" :aria-label="m.editor.repeat">
             <button v-for="d in ALL" :key="d" type="button" :class="chip(weekdays.includes(d))" :aria-pressed="weekdays.includes(d)" @click="toggleDay(d)">{{ dayNames[d] }}</button>
           </div>
+          <HowOften v-if="mode === 'repeat'" v-model="weekInterval" />
           <label v-else class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.date }}<input v-model="date" type="date" required :class="field"></label>
         </fieldset>
         <div class="flex gap-2">

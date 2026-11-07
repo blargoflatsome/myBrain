@@ -11,6 +11,8 @@ import type {
   RoutineStepLogRow,
   RoutineStepRow,
   TaskRow,
+  VaultBucketRow,
+  VaultItemRow,
 } from '@/sync/types'
 import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
 import { isAnytime, routineStats } from '@/routines/rules'
@@ -94,6 +96,35 @@ export function journalStreaks(entries: JournalEntryRow[], today: string): { cur
     d = addDays(d, -1)
   }
   return { current, best }
+}
+
+/**
+ * "Days since your worst day" (SPEC §5 Dashboard): days in a row, up to today, answered Yes to "Was today better
+ * than yesterday?". A No or a day with no answer resets it; today without an answer yet doesn't break it.
+ */
+export function daysSinceWorstDay(entries: JournalEntryRow[], today: string): number {
+  const answers = new Map(live(entries).map((e) => [e.date, e.better_than_yesterday ?? null]))
+  let d = answers.get(today) == null ? addDays(today, -1) : today
+  let count = 0
+  while (answers.get(d) === true) {
+    count++
+    d = addDays(d, -1)
+  }
+  return count
+}
+
+/** Starred Vault buckets, in bucket order, each with its 3 newest items (SPEC §5 The Vault). */
+export function favoriteBuckets(buckets: VaultBucketRow[], items: VaultItemRow[]) {
+  return live(buckets)
+    .filter((b) => b.starred)
+    .sort((a, b) => a.position - b.position)
+    .map((bucket) => ({
+      bucket,
+      newest: live(items)
+        .filter((i) => i.bucket_id === bucket.id)
+        .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+        .slice(0, 3),
+    }))
 }
 
 // ---------- Events ----------
