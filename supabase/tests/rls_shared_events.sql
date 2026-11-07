@@ -172,6 +172,15 @@ begin
   select count(*) into n from public.event_invites where event_id = picnic and deleted_at is null;
   if n <> 0 then raise exception 'FAIL: Spec §8: deleting my account removes invitations I received'; end if;
 
+  -- An all-day event's message has no "at {{time}}".
+  select count(*) into n from public.events e
+  where e.id = picnic and public.fill_message('See you on {{date}} at {{time}}!', 'Bob', (e.*)::public.events) = 'See you on Saturday, November 21 at 12:00 pm!';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Cancelling: times are filled in'; end if;
+  update public.events set start_time = null, end_time = null where id = picnic;
+  select count(*) into n from public.events e
+  where e.id = picnic and public.fill_message('See you on {{date}} at {{time}}!', 'Bob', (e.*)::public.events) = 'See you on Saturday, November 21!';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Cancelling: an all-day event''s message leaves out the time'; end if;
+
   raise exception 'PASS: all shared event checks passed (test data rolled back)';
 end
 $$;

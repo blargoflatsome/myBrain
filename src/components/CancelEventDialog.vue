@@ -39,7 +39,9 @@ const preview = computed(() => {
   const e = props.event
   if (!e) return ''
   const [date, time] = whenText(e).split(' at ')
-  return template.value
+  // An all-day event has no time: "on Saturday, November 7", not "at all day".
+  const text = e.start_time ? template.value : template.value.replaceAll(' at {{time}}', '')
+  return text
     .replaceAll('{{name}}', people.value[0]?.name || 'there')
     .replaceAll('{{event}}', e.title)
     .replaceAll('{{date}}', date ?? '')
