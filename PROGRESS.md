@@ -154,6 +154,8 @@ Done:
 
 - The Vault buckets now sort by drag and drop (SortableJS, drag handle; arrow keys on the handle too), replacing the up/down buttons.
 
+- Anywhere we sort is drag and drop (user): shared `useDragSort` helper; routine steps now drag too. New spec principle "Sort by dragging".
+
 Left in step 9: merge.
 
 ## Rules without a test yet

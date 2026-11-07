@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // New or edit routine: title, reminder time, weekdays, ordered steps (SPEC §5 Routines). Delete asks first (SPEC §2).
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
+import { arrowStep, useDragSort } from '@/composables/useDragSort'
 import type { RoutineRow, RoutineStepRow } from '@/sync/types'
 import { ALL_WEEKDAYS } from '@/routines/rules'
 import { messages } from '@/messages'
@@ -33,12 +34,25 @@ watch(
 function addStep() {
   stepRows.value.push({ key: crypto.randomUUID(), title: '' })
 }
-function move(i: number, by: number) {
-  const j = i + by
-  if (j < 0 || j >= stepRows.value.length) return
+/** Move a step from one place to another (saved with the routine). */
+function reorder(from: number, to: number) {
+  if (from === to || to < 0 || to >= stepRows.value.length) return
   const rows = [...stepRows.value]
-  ;[rows[i], rows[j]] = [rows[j]!, rows[i]!]
+  const [row] = rows.splice(from, 1)
+  rows.splice(to, 0, row!)
   stepRows.value = rows
+}
+// Steps are sorted by dragging the handle; the arrow keys on the handle move a step too.
+const stepList = ref<HTMLOListElement | null>(null)
+useDragSort(stepList, reorder)
+async function moveByKey(event: KeyboardEvent, i: number) {
+  const step = arrowStep(event)
+  if (!step) return
+  event.preventDefault()
+  const key = stepRows.value[i]?.key
+  reorder(i, i + step)
+  await nextTick()
+  stepList.value?.querySelector<HTMLButtonElement>(`[data-handle="${key}"]`)?.focus()
 }
 function remove(i: number) {
   stepRows.value.splice(i, 1)
@@ -97,11 +111,19 @@ const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disa
       </fieldset>
       <fieldset class="flex flex-col gap-2">
         <legend class="mb-1 text-sm text-muted">{{ m.editor.steps }}</legend>
-        <ol class="flex flex-col gap-2">
-          <li v-for="(s, i) in stepRows" :key="s.key" class="flex items-center gap-1.5">
+        <p v-if="stepRows.length > 1" class="-mt-1 text-xs text-muted">{{ m.editor.dragHint }}</p>
+        <ol ref="stepList" class="flex flex-col gap-2">
+          <li v-for="(s, i) in stepRows" :key="s.key" class="flex items-center gap-1.5" data-testid="routine-step-row">
+            <button
+              type="button"
+              class="drag-handle flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-xl text-xl text-muted active:cursor-grabbing"
+              :aria-label="m.editor.drag(s.title || m.editor.stepLabel(i + 1))"
+              :data-handle="s.key"
+              @keydown="moveByKey($event, i)"
+            >
+              ⠿
+            </button>
             <input v-model="s.title" :aria-label="m.editor.stepLabel(i + 1)" :placeholder="m.editor.stepLabel(i + 1)" :class="[field, 'min-w-0 flex-1']">
-            <button type="button" :class="small" :disabled="i === 0" :aria-label="m.editor.moveUp(s.title)" @click="move(i, -1)">↑</button>
-            <button type="button" :class="small" :disabled="i === stepRows.length - 1" :aria-label="m.editor.moveDown(s.title)" @click="move(i, 1)">↓</button>
             <button type="button" :class="small" :aria-label="m.editor.removeStep(s.title)" @click="remove(i)">✕</button>
           </li>
         </ol>

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { dragHandle } from './support/drag'
 
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
 const NOW = new Date('2026-11-10T12:00:00Z') // Tue Nov 10, 7:00 am New York
@@ -121,7 +122,10 @@ test.describe('Spec §5 Routines: list and stats', () => {
     await dialog.getByLabel('Step 1', { exact: true }).fill('Phone on charger')
     await dialog.getByRole('button', { name: '+ Add step' }).click()
     await dialog.getByLabel('Step 2', { exact: true }).fill('Read')
-    await dialog.getByRole('button', { name: 'Move Read up' }).click()
+    // Steps are sorted by drag and drop.
+    await expect(dialog.getByText('Drag ⠿ to change the order.')).toBeVisible()
+    await dragHandle(page, dialog.getByRole('button', { name: /^Reorder Read/ }), dialog.getByRole('button', { name: /^Reorder Phone on charger/ }), 'above')
+    await expect(dialog.getByTestId('routine-step-row').first().getByRole('textbox')).toHaveValue('Read')
     await dialog.getByRole('button', { name: 'Save' }).click()
 
     await expect(page.getByRole('heading', { name: 'Evening wind-down' })).toBeVisible()
@@ -129,6 +133,25 @@ test.describe('Spec §5 Routines: list and stats', () => {
     await expect
       .poll(() => server.written('routine_steps').sort((a, b) => Number(a.position) - Number(b.position)).map((s) => s.title))
       .toEqual(['Read', 'Phone on charger'])
+  })
+
+  test('steps can also be moved with the arrow keys on their handle', async ({ page }) => {
+    await open(page, '/routines')
+    await page.getByRole('button', { name: '+ New routine' }).click()
+    const dialog = page.getByRole('dialog', { name: 'New routine' })
+    await dialog.getByLabel('Title').fill('Morning')
+    await dialog.getByLabel('Step 1', { exact: true }).fill('Wake')
+    await dialog.getByRole('button', { name: '+ Add step' }).click()
+    await dialog.getByLabel('Step 2', { exact: true }).fill('Stretch')
+    await dialog.getByRole('button', { name: '+ Add step' }).click()
+    await dialog.getByLabel('Step 3', { exact: true }).fill('Coffee')
+    await dialog.getByRole('button', { name: /^Reorder Coffee/ }).focus()
+    await page.keyboard.press('ArrowUp')
+    await page.keyboard.press('ArrowUp')
+    const titles = dialog.getByTestId('routine-step-row').getByRole('textbox')
+    await expect(titles.nth(0)).toHaveValue('Coffee')
+    await expect(titles.nth(1)).toHaveValue('Wake')
+    await expect(titles.nth(2)).toHaveValue('Stretch')
   })
 
   test('a weekdays-only routine shows "Not today" on Saturday and offers no Start', async ({ page }) => {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 The Vault: my buckets; inside one, its items with a quick add box, check-off, ratings and links.
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import Sortable from 'sortablejs'
+import { computed, ref, watch } from 'vue'
+import { arrowStep, useDragSort } from '@/composables/useDragSort'
 import { useRoute, useRouter } from 'vue-router'
 import VaultItemEditor from '@/components/VaultItemEditor.vue'
 import BucketEditor from '@/components/BucketEditor.vue'
@@ -53,39 +53,14 @@ async function reorder(from: number, to: number) {
 
 // Drag and drop by the handle (mouse or touch). The arrow keys on the handle move a bucket too.
 const list = ref<HTMLUListElement | null>(null)
-let sortable: Sortable | null = null
-watch(
-  list,
-  (el) => {
-    sortable?.destroy()
-    sortable = null
-    if (!el) return
-    sortable = Sortable.create(el, {
-      handle: '.drag-handle',
-      animation: 150,
-      forceFallback: true,
-      fallbackTolerance: 3,
-      ghostClass: 'opacity-40',
-      onEnd: (evt) => {
-        const { oldIndex, newIndex, item, from } = evt
-        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return
-        // Put the element back where Vue rendered it; the new order is saved and Vue redraws the list.
-        from.removeChild(item)
-        from.insertBefore(item, from.children[oldIndex] ?? null)
-        void reorder(oldIndex, newIndex)
-      },
-    })
-  },
-  { flush: 'post' },
-)
-onBeforeUnmount(() => sortable?.destroy())
+useDragSort(list, reorder)
 
 // Key presses queue up, so quick presses each move the bucket one place, in order.
 let keyMoves: Promise<void> = Promise.resolve()
 /** The bucket being moved with the keyboard: its handle keeps focus while the list redraws. */
 const keyboardId = ref<string | null>(null)
 function moveByKey(event: KeyboardEvent, b: VaultBucketRow) {
-  const step = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0
+  const step = arrowStep(event)
   if (!step) return
   event.preventDefault()
   keyboardId.value = b.id

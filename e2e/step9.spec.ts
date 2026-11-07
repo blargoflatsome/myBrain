@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
 import { goTo } from './support/nav'
+import { dragHandle } from './support/drag'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -103,34 +104,11 @@ test.describe('Spec §5 The Vault', () => {
   test('buckets are sorted by drag and drop', async ({ page }) => {
     await open(page, '/vault')
     const handle = (name: string) => page.getByRole('button', { name: new RegExp(`^Reorder ${name}`) })
-    const from = (await handle('Places to go').boundingBox())!
-    const to = (await handle('Shopping list').boundingBox())!
-    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
-    await page.mouse.down()
-    // Move like a person would: in small steps, ending just above the first bucket.
-    const startY = from.y + from.height / 2
-    const endY = to.y - 6
-    for (let step = 1; step <= 15; step++) {
-      await page.mouse.move(from.x + from.width / 2, startY + ((endY - startY) * step) / 15)
-      await page.waitForTimeout(20)
-    }
-    await page.waitForTimeout(200)
-    await page.mouse.up()
+    await dragHandle(page, handle('Places to go'), handle('Shopping list'), 'above')
     await expect(page.getByTestId('vault-bucket')).toHaveText([/Places to go/, /Shopping list/, /Restaurant reviews/])
 
     // And downward: Places to go back to the bottom.
-    const top = (await handle('Places to go').boundingBox())!
-    const bottom = (await handle('Restaurant reviews').boundingBox())!
-    await page.mouse.move(top.x + top.width / 2, top.y + top.height / 2)
-    await page.mouse.down()
-    const downStart = top.y + top.height / 2
-    const downEnd = bottom.y + bottom.height + 6
-    for (let step = 1; step <= 15; step++) {
-      await page.mouse.move(top.x + top.width / 2, downStart + ((downEnd - downStart) * step) / 15)
-      await page.waitForTimeout(20)
-    }
-    await page.waitForTimeout(200)
-    await page.mouse.up()
+    await dragHandle(page, handle('Places to go'), handle('Restaurant reviews'), 'below')
     await expect(page.getByTestId('vault-bucket')).toHaveText([/Shopping list/, /Restaurant reviews/, /Places to go/])
     await expect.poll(() => server.written('vault_buckets').map((b) => [b.name, b.position])).toEqual(
       expect.arrayContaining([

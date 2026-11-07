@@ -29,6 +29,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 1. **Simple and documented.** Prefer simple, mainstream choices. Make small commits, keep a README that explains setup and key decisions, and explain notable trade-offs as you go.
 
 1. **Confirm before impact.** Any button that affects other users (cancelling or declining an event, sending messages to others) or removes data (deleting tasks, habits, entries, or an account) first shows a confirmation that says what will happen and who is affected. Routine actions like checking off a task or a quick capture do not need one.
+1. **Sort by dragging.** Anywhere I put things in order (Vault buckets, routine steps, and any list added later), I drag them by a handle (⠿) with mouse or touch. The arrow keys on the handle move an item too, for keyboard use.
 
 ### Voice and tone: "past you"
 - The whole app speaks to the user in one consistent voice: it reminds them of what **past them** established. Nothing is ever the current user's fault. Past you made the plan, and present you gets to decide what to do about it. The tone is friendly and light, never scolding or guilt-inducing.
@@ -140,7 +141,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Phase 1 builds the Account page for myself, with the visibility setting in place: it defaults to **only me**, can be changed now, and sharing takes effect only when Phase 2 adds other users. Display name and avatar come from Google sign-in; the display name is editable. Settings on the Account page are grouped into two cards, Your profile and Reminders, each with its own Save. Following other users, comparing streaks, and leaderboards are Phase 2 (see section 10).
 
 ### Routines (chained tasks)
-- A routine is an ordered series of steps with a notify time.
+- A routine is an ordered series of steps with a notify time. In the routine editor, steps are put in order by drag and drop.
 - Completing a step shows the next step.
 - Track how often I complete the routine overall, and how often I complete each step versus how many times it was possible.
 
@@ -427,3 +428,4 @@ Before building, walk me through creating each account below. Ask me for the cre
 - 2026-11-06 — Delete My Account (user), part of the §9 "account deletion that removes everything" rule. Claude's calls: a database function `delete_my_account()` deletes the signed-in user, and every table cascades from the user, so all data goes in one step with no service key in the browser (the one deliberate hard delete in the app); typing DELETE is required because it cannot be undone; other devices lose access because the account no longer exists, and their local copies are unreadable without signing in again.
 - 2026-11-06 — Step 9 (user's choices): the calendar shows dated tasks, priority tasks and my own events (not habits or routines); vault items get check-off, star rating, and link or address; deleting a bucket deletes its items after a confirmation; search opens as a window from the menu and phone header. Claude's calls (approved with the spec): check-off is a per-bucket setting (on for the Shopping list); events repeat never/daily/weekdays/weekly/monthly/yearly with simple reminder choices, and a repeating event is edited or deleted as a whole series; tags are free text, unique per user ignoring case; search runs on the device copy instead of Postgres full-text search, because every item is already stored on the device, which makes it instant and offline (a server index can be added later if the dashboard or Pi needs it); calendar is FullCalendar (MIT licence).
 - 2026-11-06 — The Vault buckets are sorted by drag and drop (user), replacing up/down buttons. Claude's calls: SortableJS (MIT) with a drag handle, so scrolling and tapping a bucket still work on a phone; the handle also moves a bucket with the arrow keys for keyboard users.
+- 2026-11-06 — Anywhere I sort is drag and drop (user, e.g. routines): Vault buckets and routine steps now use a shared drag handle (SortableJS), replacing up/down buttons; this is a general rule for new lists too.
