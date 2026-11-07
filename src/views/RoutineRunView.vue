@@ -6,9 +6,9 @@ import { RouterLink, useRoute } from 'vue-router'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { activeSteps, runFor, runState } from '@/routines/rules'
+import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, runState, stepsForDay } from '@/routines/rules'
 import { messages } from '@/messages'
-import type { RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
+import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
 
 const CROSS_OUT_MS = 600
 
@@ -35,7 +35,27 @@ const runs = useLiveQuery<RoutineRunRow[]>(
 )
 const logs = useLiveQuery<RoutineStepLogRow[]>(async () => (brain.db ? brain.db.routine_step_logs.toArray() : []), [], [() => brain.db])
 
-const state = computed(() => runState(steps.value, runFor(runs.value, id.value, today.value), logs.value))
+const habits = useLiveQuery<HabitRow[]>(async () => (brain.db ? brain.db.habits.toArray() : []), [], [() => brain.db])
+const habitLogs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
+
+// Today's steps: habit steps only on days their habit is scheduled; habits already done count as passed.
+const daySteps = computed(() => stepsForDay(steps.value, habits.value, today.value))
+const run = computed(() => (routine.value ? currentRun(routine.value, runs.value, today.value) : undefined))
+const habitDone = computed(() => habitDoneStepIds(daySteps.value, habitLogs.value, today.value))
+const state = computed(() => runState(daySteps.value, run.value, logs.value, habitDone.value))
+const currentHabit = computed(() => (state.value.current ? habitOf(state.value.current, habits.value) : undefined))
+const stepTitle = computed(() => currentHabit.value?.title ?? state.value.current?.title ?? '')
+
+// A run-anytime routine just finished: say so, and offer "Start again" for a fresh run (SPEC §5 Routines).
+const startAgain = ref(false)
+const anytimeFinished = computed(
+  () =>
+    !!routine.value &&
+    isAnytime(routine.value) &&
+    !run.value &&
+    !startAgain.value &&
+    runs.value.some((r) => r.routine_id === id.value && !r.deleted_at && r.finished_at),
+)
 const crossing = ref(false)
 const busy = ref(false)
 
@@ -63,9 +83,18 @@ async function act(status: 'completed' | 'skipped') {
         <h1 class="mt-2 text-2xl font-bold">{{ routine.title }}</h1>
       </div>
 
-      <section v-if="state.current" class="flex flex-col gap-6 rounded-2xl border border-line bg-surface p-6" aria-live="polite">
+      <template v-if="anytimeFinished">
+        <p class="rounded-2xl bg-surface p-6 text-lg font-medium" role="status" data-testid="routine-finished">{{ m.run.finished }}</p>
+        <button type="button" class="min-h-12 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="startAgain = true">
+          {{ m.run.startAgain }}
+        </button>
+      </template>
+      <section v-else-if="state.current" class="flex flex-col gap-6 rounded-2xl border border-line bg-surface p-6" aria-live="polite">
         <p class="text-sm text-muted" data-testid="step-of">{{ m.run.stepOf(state.index, state.total) }}</p>
-        <p class="cross-out text-3xl font-bold break-words" :class="{ crossing }" data-testid="current-step">{{ state.current.title }}</p>
+        <p class="cross-out text-3xl font-bold break-words" :class="{ crossing }" data-testid="current-step">{{ stepTitle }}</p>
+        <p v-if="currentHabit" class="-mt-4 text-sm text-muted" data-testid="habit-step-note">
+          <span v-if="currentHabit.is_priority" class="text-danger">⚠ </span>{{ m.run.habitNote }}
+        </p>
         <div class="grid grid-cols-2 gap-3">
           <button type="button" class="min-h-14 rounded-xl border border-line px-4 text-lg font-medium" :disabled="busy" @click="act('skipped')">
             {{ m.run.skip }}

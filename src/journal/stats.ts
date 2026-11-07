@@ -14,7 +14,7 @@ import type {
   TaskRow,
 } from '@/sync/types'
 import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
-import { activeSteps, isScheduled as routineScheduled, runFor } from '@/routines/rules'
+import { activeSteps, isAnytime, isScheduled as routineScheduled, runFor, stepsForDay } from '@/routines/rules'
 import { isTaskScheduled } from '@/reminders/priority'
 import { addDays, todayIn } from '@/tasks/days'
 
@@ -76,14 +76,24 @@ export function dayStats(data: DayData, date: string, now: Date, timeZone: strin
     }
   }
 
+  // Scheduled routines that day (habit steps only on days their habit is scheduled), plus run-anytime routines I
+  // made progress on that day (steps completed that day).
+  const stepLogs = live(data.routineStepLogs)
   const routines = live(data.routines)
-    .filter((r) => routineScheduled(r, date))
     .map((r) => {
-      const steps = activeSteps(data.routineSteps, r.id)
+      const steps = stepsForDay(activeSteps(data.routineSteps, r.id), data.habits, date)
+      if (isAnytime(r)) {
+        const runIds = new Set(data.routineRuns.filter((x) => x.routine_id === r.id && !x.deleted_at).map((x) => x.id))
+        const done = stepLogs.filter((l) => runIds.has(l.run_id) && l.status === 'completed' && localDay(l.logged_at, timeZone) === date).length
+        return done ? { id: r.id, title: r.title, done: Math.min(done, steps.length), total: steps.length } : null
+      }
+      if (!routineScheduled(r, date)) return null
       const run = runFor(data.routineRuns, r.id, date)
-      const done = run ? live(data.routineStepLogs).filter((l) => l.run_id === run.id && l.status === 'completed').length : 0
+      const ids = new Set(steps.map((x) => x.id))
+      const done = run ? stepLogs.filter((l) => l.run_id === run.id && l.status === 'completed' && ids.has(l.step_id)).length : 0
       return { id: r.id, title: r.title, done: Math.min(done, steps.length), total: steps.length }
     })
+    .filter((r): r is JournalStats['routines'][number] => !!r)
 
   for (const t of live(data.priorityTasks).filter((t) => isTaskScheduled(t, date))) {
     priority.push({ title: t.title, done: live(data.priorityTaskLogs).some((l) => l.task_id === t.id && l.date === date) })

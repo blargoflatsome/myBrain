@@ -6,9 +6,9 @@ import RoutineEditor from '@/components/RoutineEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { activeSteps, isScheduled, percent, routineStats, runFor, runState } from '@/routines/rules'
+import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, isScheduled, percent, routineStats, runState, stepsForDay } from '@/routines/rules'
 import { messages } from '@/messages'
-import type { RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
+import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
 
 const brain = useBrainStore()
 const m = messages.routines
@@ -23,17 +23,23 @@ const steps = useLiveQuery<RoutineStepRow[]>(async () => (brain.db ? brain.db.ro
 const runs = useLiveQuery<RoutineRunRow[]>(async () => (brain.db ? brain.db.routine_runs.toArray() : []), [], [() => brain.db])
 const logs = useLiveQuery<RoutineStepLogRow[]>(async () => (brain.db ? brain.db.routine_step_logs.toArray() : []), [], [() => brain.db])
 
+const habits = useLiveQuery<HabitRow[]>(async () => (brain.db ? brain.db.habits.toArray() : []), [], [() => brain.db])
+const habitLogs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
+
 const rows = computed(() =>
   routines.value.map((r) => {
-    const s = activeSteps(steps.value, r.id)
-    const state = runState(s, runFor(runs.value, r.id, today.value), logs.value)
-    const stats = routineStats(r, steps.value, runs.value, logs.value, today.value)
-    return { routine: r, steps: s, state, stats, scheduled: isScheduled(r, today.value) }
+    const s = stepsForDay(activeSteps(steps.value, r.id), habits.value, today.value)
+    const state = runState(s, currentRun(r, runs.value, today.value), logs.value, habitDoneStepIds(s, habitLogs.value, today.value))
+    const stats = routineStats(r, steps.value, runs.value, logs.value, today.value, habits.value)
+    const anytime = isAnytime(r)
+    // A run-anytime routine can always be started (SPEC §5 Routines).
+    return { routine: r, steps: s, state, stats, anytime, scheduled: anytime || isScheduled(r, today.value) }
   }),
 )
 
 function statusText(row: (typeof rows.value)[number]) {
   if (!row.steps.length) return m.noSteps
+  if (row.anytime) return row.state.started ? m.progress(row.state.done, row.state.total) : m.anytime
   if (!row.scheduled) return m.notToday
   if (row.state.finished) return m.doneToday
   if (row.state.started) return m.progress(row.state.done, row.state.total)
@@ -53,7 +59,7 @@ function edit(r: RoutineRow) {
   isNew.value = false
   editing.value = r
 }
-async function save(r: RoutineRow, s: { id?: string; title: string }[]) {
+async function save(r: RoutineRow, s: { id?: string; title: string; habitId?: string | null }[]) {
   await brain.saveRoutine(r, s)
   editing.value = null
 }
@@ -98,13 +104,19 @@ async function remove(r: RoutineRow) {
           data-testid="routine-stats"
           @click="expanded = expanded === row.routine.id ? null : row.routine.id"
         >
-          {{ row.stats.possible ? m.stats(row.stats.completed, row.stats.possible, percent(row.stats.completed, row.stats.possible)) : m.noHistory }}
+          {{
+            row.anytime
+              ? m.finishedTimes(row.stats.completed)
+              : row.stats.possible
+                ? m.stats(row.stats.completed, row.stats.possible, percent(row.stats.completed, row.stats.possible))
+                : m.noHistory
+          }}
         </button>
         <div v-if="expanded === row.routine.id && row.stats.steps.length" class="flex flex-col gap-1">
           <h3 class="text-sm font-semibold">{{ m.stepStatsHeading }}</h3>
           <ul class="flex flex-col gap-1 text-sm">
             <li v-for="s in row.stats.steps" :key="s.step.id" class="flex justify-between gap-3" data-testid="step-stat">
-              <span>{{ s.step.title }}</span>
+              <span>{{ habitOf(s.step, habits)?.title ?? s.step.title }}</span>
               <span class="text-muted">{{ m.stepStat(s.completed, s.possible, s.skipped) }}</span>
             </li>
           </ul>

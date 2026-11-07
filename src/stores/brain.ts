@@ -4,7 +4,7 @@ import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
 import type { HabitLogRow, HabitRow, QuestRow, Remote, RoutineRow, RoutineStepRow, SyncStatus, TaskRow } from '@/sync/types'
-import { activeSteps, recordStep, runFor } from '@/routines/rules'
+import { activeSteps, currentRun, habitDoneStepIds, recordStep, stepsForDay } from '@/routines/rules'
 import { cancelState, snoozeState, type DuePriority } from '@/reminders/priority'
 import type { PriorityTaskRow } from '@/sync/types'
 import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMisses } from '@/habits/rules'
@@ -155,8 +155,13 @@ export const useBrainStore = defineStore('brain', () => {
     return requireReady().engine.save('habits', row)
   }
 
+  /** Delete a habit; any routine step linked to it is removed too (SPEC §5 Routines). */
   async function deleteHabit(id: string) {
-    await requireReady().engine.remove('habits', id)
+    const { engine: e, local } = requireReady()
+    await e.remove('habits', id)
+    for (const step of (await local.routine_steps.toArray()).filter((s) => s.habit_id === id && !s.deleted_at)) {
+      await e.remove('routine_steps', step.id)
+    }
   }
 
   async function logsFor(habitId: string): Promise<HabitLogRow[]> {
@@ -229,7 +234,7 @@ export const useBrainStore = defineStore('brain', () => {
    * Save a routine and its ordered steps. Steps keep their ids so history stays attached; steps no longer in the
    * list are soft-deleted (their history is kept, SPEC §5 Routines).
    */
-  async function saveRoutine(routine: RoutineRow, steps: { id?: string; title: string }[]) {
+  async function saveRoutine(routine: RoutineRow, steps: { id?: string; title: string; habitId?: string | null }[]) {
     const { engine: e, uid, local } = requireReady()
     await e.save('routines', { ...routine, user_id: uid })
     const existing = activeSteps(await local.routine_steps.where('routine_id').equals(routine.id).toArray(), routine.id)
@@ -238,11 +243,14 @@ export const useBrainStore = defineStore('brain', () => {
     for (const [position, s] of steps.entries()) {
       if (!s.title.trim()) continue
       const before = s.id ? existing.find((x) => x.id === s.id) : undefined
+      const habitId = s.habitId ?? null
       const row: RoutineStepRow = before
-        ? { ...before, title: s.title.trim(), position }
-        : { id: crypto.randomUUID(), user_id: uid, routine_id: routine.id, position, title: s.title.trim(), start_date: today, deleted_at: null }
+        ? { ...before, title: s.title.trim(), position, habit_id: habitId }
+        : { id: crypto.randomUUID(), user_id: uid, routine_id: routine.id, position, title: s.title.trim(), habit_id: habitId, start_date: today, deleted_at: null }
       keep.add(row.id)
-      if (!before || before.title !== row.title || before.position !== row.position) await e.save('routine_steps', row)
+      if (!before || before.title !== row.title || before.position !== row.position || (before.habit_id ?? null) !== habitId) {
+        await e.save('routine_steps', row)
+      }
     }
     for (const old of existing) if (!keep.has(old.id)) await e.remove('routine_steps', old.id)
   }
@@ -255,16 +263,29 @@ export const useBrainStore = defineStore('brain', () => {
   async function recordRoutineStep(routine: RoutineRow, status: 'completed' | 'skipped', now = new Date()) {
     const { engine: e, uid, local } = requireReady()
     const date = todayIn(deviceTimeZone(), now)
-    const steps = activeSteps(await local.routine_steps.where('routine_id').equals(routine.id).toArray(), routine.id)
+    const habits = await local.habits.toArray()
+    const steps = stepsForDay(activeSteps(await local.routine_steps.where('routine_id').equals(routine.id).toArray(), routine.id), habits, date)
     const runs = await local.routine_runs.where('routine_id').equals(routine.id).toArray()
-    const run = runFor(runs, routine.id, date)
+    const run = currentRun(routine, runs, date)
     const logs = run ? await local.routine_step_logs.where('run_id').equals(run.id).toArray() : []
-    const action = recordStep(routine, steps, run, logs, status, date, uid, now)
+    const habitDone = habitDoneStepIds(steps, await local.habit_logs.toArray(), date)
+    const action = recordStep(routine, steps, run, logs, status, date, uid, now, habitDone)
     if (!action) return null
     if (action.run) await e.save('routine_runs', action.run)
-    await e.save('routine_step_logs', action.log)
+    for (const log of action.logs) await e.save('routine_step_logs', log)
     if (action.finish) await e.save('routine_runs', action.finish)
+    // A completed habit step completes the habit for the day too (SPEC §5 Routines: one tick counts for both).
+    if (action.completeHabitId) {
+      const habit = habits.find((h) => h.id === action.completeHabitId && !h.deleted_at)
+      if (habit) await completeHabit(habit, now)
+    }
     return action
+  }
+
+  /** Complete a habit for today if it is still open (never undoes a completion). */
+  async function completeHabit(habit: HabitRow, now = new Date(), timeZone = deviceTimeZone()) {
+    const date = todayIn(timeZone, now)
+    if (toggleAction(habit, date, await logsFor(habit.id), now, timeZone).kind === 'complete') await toggleHabit(habit, now, timeZone)
   }
 
   // ---------- Journal (SPEC §5 Journal) ----------
