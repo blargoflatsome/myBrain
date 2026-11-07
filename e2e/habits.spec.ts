@@ -44,7 +44,7 @@ test.describe('Spec §5 Habits', () => {
   })
 
   test('the Tasks page shows its heading and intro line', async ({ page }) => {
-    await open(page, '/')
+    await open(page, '/tasks')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tasks')
     await expect(page.getByTestId('tasks-intro')).toHaveText("Let's get these To-Done.")
   })
@@ -267,14 +267,15 @@ test.describe('Spec §5 Account page', () => {
 })
 
 test.describe('Navigation', () => {
-  test('the left menu reaches Tasks, Habits, Quests, Inbox and Account, with text labels only', async ({ page }) => {
+  test('the left menu reaches Dashboard, Tasks, Habits, Quests, Inbox and Account, with text labels only', async ({ page }) => {
     await open(page, '/')
     for (const [name, url] of [
       ['Habits', /\/habits$/],
       ['Quests', /\/quests$/],
       ['Inbox', /\/inbox$/],
       ['Account', /\/account$/],
-      ['Tasks', /\/$/],
+      ['Tasks', /\/tasks$/],
+      ['Dashboard', /\/$/],
     ] as const) {
       await goTo(page, name)
       await expect(page).toHaveURL(url)
@@ -283,6 +284,7 @@ test.describe('Navigation', () => {
     if (await menu.isVisible()) await menu.click()
     await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link')).toHaveText([
       'My Brain',
+      'Dashboard',
       'Tasks',
       'Habits',
       'Routines',

@@ -163,7 +163,12 @@ Merged and live.
 - Habit steps: picked in the editor; completing completes the habit; habit already done is passed (and logged); skipping leaves the habit open; left out on days the habit isn't scheduled; deleting a habit removes its steps.
 - Run anytime: no weekdays/reminder, never missed, progress kept across days, Start again; stats show times finished; journal counts its progress on the day.
 - Tests: `src/routines/habits-anytime.test.ts`, more in `e2e/routines.spec.ts`. Vitest 179, Playwright 232, SQL 11 files.
-- PR #13; Deploy Preview 13 checked in Chrome (run-anytime routine created, run to the end, Start again shown; test routine deleted). Prod migrated and verified. Left: merge.
+- PR #13; Deploy Preview 13 checked in Chrome (run-anytime routine created, run to the end, Start again shown; test routine deleted). Prod migrated and verified. Merged and live.
+
+## Step 10 — Dashboard (branch `step-10-dashboard`)
+- The Raspberry Pi display moved to an optional later step (user). Spec §5 Dashboard approved.
+- Dashboard is the first page (Tasks at /tasks): period dropdown (This year default, Last 12 months, All time; remembered on the device); habits (every habit's current/best streak, top 3 most missed, longest current, best ever, oldest); journal current/best streak (written entries only); events created/attended/cancelled; tasks done, quests finished, routine completion rates.
+- No database change. Tests: `src/dashboard/stats.test.ts`, `e2e/dashboard.spec.ts`; Tasks tests now open /tasks. Vitest 188, Playwright 244.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

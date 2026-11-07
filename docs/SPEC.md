@@ -222,7 +222,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
   - my own events.
 - Events: tap a day or time, or "+ New event", to add one with a title, start and end (or all day), optional notes, repeat (never, daily, weekdays, weekly, monthly, yearly), and an optional reminder (at the start, or 5, 10, 15 or 30 minutes, 1 hour, or 1 day before). Events can be edited and deleted (after confirming; deleting a repeating event deletes the whole series). Event reminders are sent like other reminders (Web Push and ntfy, respecting quiet hours) and open the calendar on that day.
 
-- Everything below from Accounts and contact info through Google Calendar sync is built after the Dashboard and Pi display (see the build order). Only the basic calendar view is built earlier.
+- Everything below from Accounts and contact info through Google Calendar sync is built after the Dashboard (see the build order). Only the basic calendar view is built earlier.
 
 ### Accounts and contact info
 - At signup, every user provides an email address and a phone number. Google sign-in supplies the email; the phone number is entered in a short profile step. Phone numbers start as unverified, because verifying them needs an SMS service; decide that together with the SMS decision (see section 12).
@@ -264,8 +264,18 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Google treats Calendar access as a sensitive scope, and public apps need Google's OAuth verification. Verify the current requirements and plan for them before opening the app to the public. Keep tokens server-side only and encrypted.
 
 ### Dashboard
-- Configurable blocks and positions. Blocks: stats, task checklist, habits checklist, Random Quest button.
-- Updates live via Supabase Realtime.
+- The Dashboard is the first page the app opens on (Tasks moves to its own menu item), and the first item in the menu. It shows all of my stats at a glance, visually (big numbers, small bars and chips), updating live as I use the app.
+- **Period:** a dropdown at the top chooses **This year** (the default, January 1 to today), **Last 12 months**, or **All time**. It applies to every count below; streaks are always counted over all time.
+- **Habits:**
+  - every habit with its current streak and its longest streak ever;
+  - **Most missed:** the top 3 habits with the most missed days in the period (a habit is missed when its deadline passes without completing it; skipping its step in a routine doesn't count until the day is missed);
+  - **Longest current streak:** the habit kept going the most days in a row right now;
+  - **Best streak ever:** the longest streak any habit has reached;
+  - **Oldest habit:** the habit I have been tracking the longest, since its start date.
+- **Journal:** my current streak and my best streak of days in a row with a journal entry I wrote (entries the app wrote for me don't count).
+- **Events:** in the period, events I **created**, events I **attended**, and events I **cancelled**. Until shared events and RSVPs exist (step 11), attended counts my event dates that have passed and cancelled counts events I deleted; step 11 replaces these with RSVP answers.
+- **Tasks, routines and quests:** in the period, tasks done, each routine's completion rate (or how many times a run-anytime routine was finished), and quests finished.
+- More stats and Achievements (section 10) may be added later. Configurable blocks and layouts per device come with the optional Pi display (section 9).
 
 ## 6. Notifications
 - Support both Web Push and ntfy, selectable in settings.
@@ -331,8 +341,9 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 1. Notifications (Web Push and ntfy, quiet hours, snooze) and priority task full-screen reminders.
 1. Journal with auto stats.
 1. The Vault buckets, global search and tags, and the basic calendar view.
-1. Dashboard and Pi kiosk setup, including device pairing.
+1. Dashboard with all my stats.
 1. Shared events: contact info at signup, invitations, RSVPs, cancellations and notifications, and the availability schedule. Data export, account deletion, privacy policy and terms, and rate limits must be in place before anyone other than me uses the app.
+1. Optional, later: the Raspberry Pi kiosk display with device pairing and configurable dashboard blocks (section 9). Not needed for the core app.
 1. Phase 2 integrations, including Google Calendar sync.
 1. Phase 3: iPhone support.
 
@@ -437,3 +448,4 @@ Before building, walk me through creating each account below. Ask me for the cre
 - 2026-11-06 — The Vault buckets are sorted by drag and drop (user), replacing up/down buttons. Claude's calls: SortableJS (MIT) with a drag handle, so scrolling and tapping a bucket still work on a phone; the handle also moves a bucket with the arrow keys for keyboard users.
 - 2026-11-06 — Anywhere I sort is drag and drop (user, e.g. routines): Vault buckets and routine steps now use a shared drag handle (SortableJS), replacing up/down buttons; this is a general rule for new lists too.
 - 2026-11-06 — Routines can include habits and can be run anytime (user's idea; proposed by Claude). Claude's calls: a habit step stays linked (completing it completes the habit; skipping leaves the habit open; already-done habits show as done); the habit keeps its own reminders as a safety net; a habit step is left out on days the habit isn't scheduled; a run-anytime routine has no weekdays or reminder, is never missed, and keeps its progress across days until finished.
+- 2026-11-06 — Step 10 is the Dashboard (user); the Raspberry Pi kiosk display becomes an optional later step, since it is not core. Dashboard (user's choices): every habit's current and longest streak, top 3 most-missed habits, longest current streak, best streak ever and oldest habit as separate stats; journal current and best streak; events created, attended and cancelled; tasks, routines and quests too; a period dropdown (This year by default, Last 12 months, All time); the Dashboard becomes the first page. Claude's calls: streaks are always all-time; until step 11, attended = past event dates and cancelled = deleted events; journal streaks count only entries I wrote; Tasks moves to /tasks.

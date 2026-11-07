@@ -98,7 +98,7 @@ test.describe('Spec §5: full-screen reminder for priority habits', () => {
 
 test.describe('Spec §5: priority tasks, one-off or repeating', () => {
   test('a repeating priority task is added under Tasks > Priority and reminds at its time', async ({ page }) => {
-    await open(page, '/', '2026-11-10T16:55:00Z') // 11:55 am Tue
+    await open(page, '/tasks', '2026-11-10T16:55:00Z') // 11:55 am Tue
     await page.getByRole('tab', { name: 'Priority' }).click()
     await expect(page.getByText("Past you hasn't added any priority tasks yet.")).toBeVisible()
     await page.getByRole('button', { name: '+ New priority task' }).click()
@@ -121,7 +121,7 @@ test.describe('Spec §5: priority tasks, one-off or repeating', () => {
   })
 
   test('a one-off priority task can be set for a single date', async ({ page }) => {
-    await open(page, '/', '2026-11-10T12:00:00Z')
+    await open(page, '/tasks', '2026-11-10T12:00:00Z')
     await page.getByRole('tab', { name: 'Priority' }).click()
     await page.getByRole('button', { name: '+ New priority task' }).click()
     const dialog = page.getByRole('dialog', { name: 'New priority task' })

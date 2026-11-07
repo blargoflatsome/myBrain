@@ -194,7 +194,7 @@ test.describe('Spec §5 Global search and tags', () => {
 
   test('tags can be added to a task, and to a quest', async ({ page }) => {
     server.seed('tasks', [{ id: 'aaaaaaaa-0000-4000-8000-000000000001', title: 'Pay rent', due_date: '2026-11-10', priority: 1, status: 'open', source: 'manual' }])
-    await open(page, '/')
+    await open(page, '/tasks')
     await page.getByRole('button', { name: /^Pay rent/ }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit task' })
     await dialog.getByRole('combobox', { name: 'Add a tag' }).fill('money')

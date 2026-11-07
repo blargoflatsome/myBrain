@@ -43,7 +43,8 @@ const inboxCount = useLiveQuery(
 const showChrome = computed(() => !route.meta.public)
 
 const navItems = [
-  { to: '/', label: messages.nav.home },
+  { to: '/', label: messages.nav.dashboard },
+  { to: '/tasks', label: messages.nav.home },
   { to: '/habits', label: messages.nav.habits },
   { to: '/routines', label: messages.nav.routines },
   { to: '/journal', label: messages.nav.journal },

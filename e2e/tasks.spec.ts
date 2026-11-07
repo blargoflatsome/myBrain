@@ -13,7 +13,7 @@ function task(id: string, title: string, due_date: string | null, extra: Record<
 
 async function open(page: Page, time = NOW) {
   await page.clock.install({ time })
-  await page.goto('/')
+  await page.goto('/tasks')
 }
 
 const item = (page: Page, title: string) => page.getByRole('listitem').filter({ hasText: title })
