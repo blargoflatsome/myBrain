@@ -32,7 +32,16 @@ watch(notes, (list) => {
 })
 const announcement = ref('')
 function go(step: -1 | 1) {
+  const fromArrow = (document.activeElement as HTMLElement | null)?.dataset.testid
   show_(index.value + step)
+  // At either end one arrow goes away: keep focus on the other one rather than losing it.
+  if (fromArrow === 'postit-prev' || fromArrow === 'postit-next') {
+    void nextTick(() => {
+      const same = document.querySelector<HTMLElement>(`[data-testid="${fromArrow}"]`)
+      const other = document.querySelector<HTMLElement>(`[data-testid="${fromArrow === 'postit-prev' ? 'postit-next' : 'postit-prev'}"]`)
+      ;(same ?? other)?.focus()
+    })
+  }
 }
 /** Show the note at this place in the stack (the dots on a phone jump straight to one). */
 function show_(to: number) {
@@ -131,6 +140,9 @@ async function toTask(n: PostItRow) {
 }
 
 const btn = 'min-h-11 rounded-xl border border-current/30 px-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-40'
+// Hidden until the mouse is over the stack or the keyboard reaches an arrow (so keyboard users always find them).
+const arrow =
+  'absolute top-1/2 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-3xl leading-none text-ink shadow-md opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 md:flex'
 const navBtn = 'flex min-h-11 items-center gap-1 rounded-xl border border-line bg-surface px-3 text-sm font-medium disabled:opacity-40'
 </script>
 
@@ -143,58 +155,80 @@ const navBtn = 'flex min-h-11 items-center gap-1 rounded-xl border border-line b
     :aria-label="m.heading"
     @keydown="onKeydown"
   >
-    <!-- touch-pan-y: the page still scrolls up and down, but a sideways swipe comes to the stack instead of being
+    <!-- On a computer, arrows sit either side of the stack and appear when the mouse is over it (or a key reaches them). -->
+    <div v-if="current" class="group relative w-full max-w-sm" data-testid="postit-carousel">
+      <!-- touch-pan-y: the page still scrolls up and down, but a sideways swipe comes to the stack instead of being
          taken by the browser (which would cancel the touch before it ends). -->
-    <div
-      v-if="current"
-      class="postit-stack relative mb-3 w-full max-w-sm touch-pan-y pt-3"
-      @pointerdown="onPointerDown"
-      @pointerup="onPointerUp"
-      @pointercancel="onPointerCancel"
-    >
-      <!-- The notes underneath, peeking out (decoration only). -->
       <div
-        v-for="(n, k) in under"
-        :key="n.id"
-        :class="['postit-under absolute inset-x-0 top-3 bottom-0 rounded-sm', `note-${n.color}`, `postit-under-${k + 1}`]"
-        aria-hidden="true"
-      />
-      <Transition name="postit-flip" mode="out-in">
-        <article
-          :key="current.id"
-          :class="['postit-card relative flex min-h-56 flex-col gap-3 rounded-sm px-5 pt-7 pb-4', `note-${editingId === current.id ? draftColor : current.color}`, editingId === current.id ? '' : 'postit-tilt']"
-          aria-roledescription="slide"
-          :aria-label="m.position(index + 1, notes.length)"
-          data-testid="postit"
-        >
-          <span class="postit-tape" aria-hidden="true" />
-          <template v-if="editingId === current.id">
-            <RichTextEditor v-model="draft" :label="m.note(index + 1)" min-height="6rem" autofocus @update:model-value="editError = ''" />
-            <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="m.color">
-              <button
-                v-for="c in POST_IT_COLORS"
-                :key="c"
-                type="button"
-                role="radio"
-                :aria-checked="draftColor === c"
-                :class="['min-h-11 rounded-full border-2 px-3 text-sm', `note-${c}`, draftColor === c ? 'border-current' : 'border-black/10']"
-                @click="draftColor = c"
-              >
-                <span v-if="draftColor === c" aria-hidden="true">✓ </span>{{ m.colors[c] }}
-              </button>
-            </div>
-            <p v-if="editError" class="text-sm font-medium" role="alert">{{ editError }}</p>
-            <div class="flex flex-wrap gap-2">
-              <button type="button" :class="[btn, 'font-semibold']" @click="saveEdit(current)">{{ m.save }}</button>
-              <button type="button" :class="btn" @click="cancelEdit">{{ m.cancel }}</button>
-            </div>
-          </template>
-          <template v-else>
-            <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
-            <div class="rich flex-1 text-lg" data-testid="postit-body" v-html="cleanHtml(current.body)" />
-          </template>
-        </article>
-      </Transition>
+        class="postit-stack relative mb-3 w-full touch-pan-y pt-3"
+        @pointerdown="onPointerDown"
+        @pointerup="onPointerUp"
+        @pointercancel="onPointerCancel"
+      >
+        <!-- The notes underneath, peeking out (decoration only). -->
+        <div
+          v-for="(n, k) in under"
+          :key="n.id"
+          :class="['postit-under absolute inset-x-0 top-3 bottom-0 rounded-sm', `note-${n.color}`, `postit-under-${k + 1}`]"
+          aria-hidden="true"
+        />
+        <Transition name="postit-flip" mode="out-in">
+          <article
+            :key="current.id"
+            :class="['postit-card relative flex min-h-56 flex-col gap-3 rounded-sm px-5 pt-7 pb-4', `note-${editingId === current.id ? draftColor : current.color}`, editingId === current.id ? '' : 'postit-tilt']"
+            aria-roledescription="slide"
+            :aria-label="m.position(index + 1, notes.length)"
+            data-testid="postit"
+          >
+            <span class="postit-tape" aria-hidden="true" />
+            <template v-if="editingId === current.id">
+              <RichTextEditor v-model="draft" :label="m.note(index + 1)" min-height="6rem" autofocus @update:model-value="editError = ''" />
+              <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="m.color">
+                <button
+                  v-for="c in POST_IT_COLORS"
+                  :key="c"
+                  type="button"
+                  role="radio"
+                  :aria-checked="draftColor === c"
+                  :class="['min-h-11 rounded-full border-2 px-3 text-sm', `note-${c}`, draftColor === c ? 'border-current' : 'border-black/10']"
+                  @click="draftColor = c"
+                >
+                  <span v-if="draftColor === c" aria-hidden="true">✓ </span>{{ m.colors[c] }}
+                </button>
+              </div>
+              <p v-if="editError" class="text-sm font-medium" role="alert">{{ editError }}</p>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" :class="[btn, 'font-semibold']" @click="saveEdit(current)">{{ m.save }}</button>
+                <button type="button" :class="btn" @click="cancelEdit">{{ m.cancel }}</button>
+              </div>
+            </template>
+            <template v-else>
+              <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
+              <div class="rich flex-1 text-lg" data-testid="postit-body" v-html="cleanHtml(current.body)" />
+            </template>
+          </article>
+        </Transition>
+      </div>
+      <button
+        v-if="notes.length > 1 && index > 0"
+        type="button"
+        :class="[arrow, '-left-16']"
+        :aria-label="m.previous"
+        data-testid="postit-prev"
+        @click="go(-1)"
+      >
+        <span aria-hidden="true">‹</span>
+      </button>
+      <button
+        v-if="notes.length > 1 && index < notes.length - 1"
+        type="button"
+        :class="[arrow, '-right-16']"
+        :aria-label="m.next"
+        data-testid="postit-next"
+        @click="go(1)"
+      >
+        <span aria-hidden="true">›</span>
+      </button>
     </div>
 
     <!-- What I can do with the note shown, kept off the paper so it reads like a real note. -->
@@ -204,16 +238,8 @@ const navBtn = 'flex min-h-11 items-center gap-1 rounded-xl border border-line b
       <button type="button" :class="navBtn" data-action="done" @click="done(current)">{{ m.done }}</button>
     </div>
 
-    <!-- Computer: Previous / Next. -->
-    <div v-if="notes.length > 1" class="hidden w-full max-w-sm items-center justify-between gap-3 md:flex" data-testid="postit-nav">
-      <button type="button" :class="navBtn" :disabled="index === 0" data-testid="postit-prev" @click="go(-1)">
-        <span aria-hidden="true">‹</span> {{ m.previous }}
-      </button>
-      <span class="text-sm text-muted tabular-nums" data-testid="postit-count">{{ m.position(index + 1, notes.length) }}</span>
-      <button type="button" :class="navBtn" :disabled="index === notes.length - 1" data-testid="postit-next" @click="go(1)">
-        {{ m.next }} <span aria-hidden="true">›</span>
-      </button>
-    </div>
+    <!-- Computer: where I am in the stack. -->
+    <p v-if="notes.length > 1" class="hidden text-sm text-muted tabular-nums md:block" data-testid="postit-count">{{ m.position(index + 1, notes.length) }}</p>
     <!-- Phone: swipe, or tap a dot (a tap is needed as well as the swipe, WCAG 2.5.1). -->
     <div v-if="notes.length > 1" class="flex flex-wrap justify-center gap-1 md:hidden" data-testid="postit-dots">
       <button

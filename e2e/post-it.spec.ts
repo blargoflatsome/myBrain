@@ -75,20 +75,21 @@ test.describe('Spec §5 Post It', () => {
       await expect(dots.nth(1)).toHaveAttribute('aria-current', 'true')
       await expect(page.getByTestId('postit-announcement')).toHaveText('2 of 2')
     } else {
-      // Computer: Previous / Next with "1 of 2"; no dots.
+      // Computer: arrows either side of the stack (none past either end), "1 of 2" below; no dots.
       await expect(page.getByTestId('postit-dots')).toBeHidden()
       await expect(page.getByTestId('postit-count')).toHaveText('1 of 2')
-      await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled()
+      await expect(page.getByRole('button', { name: 'Previous' })).toHaveCount(0)
       await page.getByRole('button', { name: 'Next' }).click()
       await expect(board(page).getByTestId('postit-body')).toHaveText('Older')
       await expect(page.getByTestId('postit-count')).toHaveText('2 of 2')
       await expect(page.getByTestId('postit-announcement')).toHaveText('2 of 2')
-      await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+      await expect(page.getByRole('button', { name: 'Next' })).toHaveCount(0)
+      // The arrow that went away hands focus to the other one, so the keyboard isn't lost.
+      await expect(page.getByRole('button', { name: 'Previous' })).toBeFocused()
       // The left and right arrow keys flip through the stack too.
-      await page.getByRole('button', { name: 'Previous' }).focus()
       await page.keyboard.press('ArrowLeft')
       await expect(board(page).getByTestId('postit-body')).toHaveText('Newer')
-      await page.getByRole('button', { name: 'Next' }).focus()
+      await expect(page.getByRole('button', { name: 'Next' })).toBeFocused()
       await page.keyboard.press('ArrowRight')
       await expect(board(page).getByTestId('postit-body')).toHaveText('Older')
     }
@@ -120,6 +121,31 @@ test.describe('Spec §5 Post It', () => {
     await expect(board(page).getByTestId('postit-body')).toHaveText('Top')
   })
 
+
+  test('on a computer the arrows sit beside the stack and appear on mouse over or keyboard focus', async ({ page }, info) => {
+    test.skip(info.project.name === 'android-phone', 'computer only')
+    server.seed('post_its', [
+      { id: 'p1', body: '<p>Top</p>', color: 'yellow', position: 0 },
+      { id: 'p2', body: '<p>Next one</p>', color: 'pink', position: 1 },
+    ])
+    await open(page, '/')
+    const next = page.getByRole('button', { name: 'Next' })
+    const opacity = () => next.evaluate((el) => getComputedStyle(el).opacity)
+    await page.mouse.move(5, 5)
+    await expect.poll(opacity).toBe('0')
+    // Beside the stack, level with it.
+    const stack = (await page.locator('.postit-stack').boundingBox())!
+    const arrow = (await next.boundingBox())!
+    expect(arrow.x).toBeGreaterThan(stack.x + stack.width)
+    expect(arrow.y).toBeGreaterThan(stack.y)
+    expect(arrow.y + arrow.height).toBeLessThan(stack.y + stack.height)
+    await page.locator('.postit-stack').hover()
+    await expect.poll(opacity).toBe('1')
+    await page.mouse.move(5, 5)
+    await expect.poll(opacity).toBe('0')
+    await next.focus()
+    await expect.poll(opacity).toBe('1')
+  })
 
   test('it looks taped to the page: a strip of tape, a tilt, and the notes underneath peeking out', async ({ page }) => {
     server.seed('post_its', [
