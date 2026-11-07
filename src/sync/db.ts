@@ -38,6 +38,7 @@ export class LocalDb extends Dexie {
   event_invites!: Table<RowTypes['event_invites'], string>
   availability_rules!: Table<RowTypes['availability_rules'], string>
   availability_exceptions!: Table<RowTypes['availability_exceptions'], string>
+  post_its!: Table<RowTypes['post_its'], string>
   outbox!: Table<OutboxEntry, number>
   meta!: Table<MetaEntry, string>
 
@@ -85,6 +86,10 @@ export class LocalDb extends Dexie {
       event_invites: 'id, updated_at, event_id',
       availability_rules: 'id, updated_at',
       availability_exceptions: 'id, updated_at, date',
+    })
+    // Post Its on the Dashboard.
+    this.version(8).stores({
+      post_its: 'id, updated_at, position',
     })
   }
 

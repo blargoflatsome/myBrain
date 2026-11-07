@@ -87,6 +87,19 @@ textarea:focus {
   }
 }
 
+/* Post It colours (SPEC §5): soft paper tints, with dark text in light mode and light text in dark mode (WCAG 1.4.3). */
+.note-yellow { background: #fef3c7; color: #451a03; }
+.note-pink { background: #fce7f3; color: #500724; }
+.note-blue { background: #dbeafe; color: #172554; }
+.note-green { background: #dcfce7; color: #052e16; }
+@media (prefers-color-scheme: dark) {
+  .note-yellow { background: #422006; color: #fef3c7; }
+  .note-pink { background: #500724; color: #fce7f3; }
+  .note-blue { background: #172554; color: #dbeafe; }
+  .note-green { background: #052e16; color: #dcfce7; }
+}
+.note-yellow .rich a, .note-pink .rich a, .note-blue .rich a, .note-green .rich a { color: inherit; }
+
 /* Formatted journal writing (SPEC §5 Journal), in the editor and when shown read-only. */
 .rich {
   line-height: 1.6;

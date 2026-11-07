@@ -2,6 +2,7 @@
 // SPEC §5 Dashboard: all my stats at a glance, for This year (default), Last 12 months or All time. Updates live.
 import { computed, onScopeDispose, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import PostItBoard from '@/components/PostItBoard.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
@@ -115,6 +116,9 @@ const big = 'text-3xl font-bold tabular-nums'
         </select>
       </label>
     </div>
+
+    <!-- Post Its first (SPEC §5 Dashboard). -->
+    <PostItBoard />
 
     <template v-if="stats">
       <!-- Yesterday, at the top (SPEC §5 Dashboard). Not affected by the period. -->

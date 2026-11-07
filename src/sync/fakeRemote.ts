@@ -10,6 +10,7 @@ export class FakeRemote implements Remote {
   private listeners = new Set<(table: SyncTable) => void>()
   readonly tables: { [T in SyncTable]: Map<string, RowTypes[T]> } = {
     tasks: new Map(),
+    post_its: new Map(),
     vault_buckets: new Map(),
     vault_items: new Map(),
     quests: new Map(),

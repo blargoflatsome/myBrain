@@ -30,6 +30,12 @@ function seedData() {
   server.seed('journal_entries', [
     { id: 'j9', date: '2026-11-09', body: '<p>A <strong>good</strong> day.</p>', tomorrow: '<p>Sleep early</p>', better_than_yesterday: true, stats: {}, auto: false, stats_final: true },
   ])
+  server.seed('post_its', [
+    { id: 'p1', body: '<p><strong>Call the vet</strong></p><ul><li><p>shots</p></li></ul>', color: 'yellow', position: 0 },
+    { id: 'p2', body: '<p>Pink idea</p>', color: 'pink', position: 1 },
+    { id: 'p3', body: '<p>Blue idea</p>', color: 'blue', position: 2 },
+    { id: 'p4', body: '<p>Green idea</p>', color: 'green', position: 3 },
+  ])
   server.seed('vault_buckets', [{ id: 'b1', name: 'Books', position: 5, checkable: true, starred: true }])
   server.seed('vault_items', [
     { id: 'v1', bucket_id: 'b1', title: 'Dune', notes: 'Recommended by Sam', rating: 4, link: 'example.com', checked: false },
@@ -93,6 +99,9 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'Capture types')
       await page.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Habit', exact: true }).click()
       await scan(page, 'Capture habit')
+      await page.getByRole('button', { name: 'Back' }).click()
+      await page.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Post It', exact: true }).click()
+      await scan(page, 'Capture Post It')
     })
 
     test('Search window with results', async ({ page }) => {
@@ -121,6 +130,12 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.keyboard.press('Escape')
       await page.getByRole('button', { name: 'Delete Dune' }).click()
       await scan(page, 'Delete item confirmation')
+    })
+
+    test('Post It being edited on the Dashboard', async ({ page }) => {
+      await page.goto('/')
+      await page.getByTestId('postit').first().getByRole('button', { name: 'Edit' }).click()
+      await scan(page, 'Post It editing')
     })
 
     test('Journal full screen writing', async ({ page }) => {

@@ -15,6 +15,8 @@ import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayDa
 import type { AvailabilityExceptionRow, AvailabilityRuleRow, EventRow, JournalEntryRow, SyncTable, TaggedType, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { tagChanges } from '@/tags/rules'
 import { normalizeBody } from '@/journal/body'
+import { boardOrder, frontPosition, noteToTask } from '@/postits/rules'
+import type { PostItColor, PostItRow } from '@/sync/types'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
@@ -417,6 +419,50 @@ export const useBrainStore = defineStore('brain', () => {
     await e.save('journal_entries', { ...emptyEntry(uid, date, false), ...fields, stats, stats_final: date < today })
   }
 
+  // ---------- Post Its (SPEC §5 Quick capture and Dashboard) ----------
+  /** A new Post It goes in front of the others. Returns null when nothing was written. */
+  async function addPostIt(html: string, color: PostItColor) {
+    const { engine: e, uid, local } = requireReady()
+    const body = normalizeBody(html)
+    if (!body) return null
+    const row: PostItRow = { id: crypto.randomUUID(), user_id: uid, body, color, position: frontPosition(await local.post_its.toArray()), deleted_at: null }
+    return e.save('post_its', row)
+  }
+  async function savePostIt(row: PostItRow) {
+    const body = normalizeBody(row.body)
+    if (!body) return null
+    return requireReady().engine.save('post_its', { ...row, body })
+  }
+  /** Done: off the Dashboard straight away (Undo puts it back). */
+  async function removePostIt(id: string) {
+    await requireReady().engine.remove('post_its', id)
+  }
+  async function restorePostIt(id: string) {
+    await requireReady().engine.patch('post_its', id, () => ({ deleted_at: null }))
+  }
+  /** Make a task: first line the title, the rest notes, in Undated; the Post It is removed. */
+  async function postItToTask(id: string) {
+    const { engine: e, uid, local } = requireReady()
+    const note = await local.post_its.get(id)
+    const parts = note ? noteToTask(note.body) : null
+    if (!note || !parts) return null
+    const task: TaskRow = { id: crypto.randomUUID(), user_id: uid, title: parts.title, notes: parts.notes, due_date: null, priority: DEFAULT_PRIORITY, status: 'open', source: 'capture', deleted_at: null }
+    await e.save('tasks', task)
+    await e.remove('post_its', id)
+    return task
+  }
+  /** Move a note from one place on the board to another and save the new order. */
+  async function reorderPostIts(from: number, to: number) {
+    const { engine: e, local } = requireReady()
+    const order = boardOrder(await local.post_its.toArray())
+    if (from === to || from < 0 || to < 0 || from >= order.length || to >= order.length) return
+    const [moved] = order.splice(from, 1)
+    order.splice(to, 0, moved!)
+    for (const [position, note] of order.entries()) {
+      if (note.position !== position) await e.patch('post_its', note.id, () => ({ position }))
+    }
+  }
+
   // ---------- The Vault (SPEC §5 The Vault) ----------
   async function saveBucket(row: VaultBucketRow) {
     const { engine: e, uid } = requireReady()
@@ -556,6 +602,12 @@ export const useBrainStore = defineStore('brain', () => {
     saveBucket,
     deleteBucket,
     addVaultItem,
+    addPostIt,
+    savePostIt,
+    removePostIt,
+    restorePostIt,
+    postItToTask,
+    reorderPostIts,
     saveVaultItem,
     deleteVaultItem,
     toggleVaultItem,
