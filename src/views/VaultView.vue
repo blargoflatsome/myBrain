@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // SPEC §5 The Vault: my buckets; inside one, its items with a quick add box, check-off, ratings and links.
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import Sortable from 'sortablejs'
 import { useRoute, useRouter } from 'vue-router'
 import VaultItemEditor from '@/components/VaultItemEditor.vue'
@@ -80,13 +80,37 @@ watch(
 )
 onBeforeUnmount(() => sortable?.destroy())
 
-async function moveByKey(event: KeyboardEvent, index: number) {
+// Key presses queue up, so quick presses each move the bucket one place, in order.
+let keyMoves: Promise<void> = Promise.resolve()
+/** The bucket being moved with the keyboard: its handle keeps focus while the list redraws. */
+const keyboardId = ref<string | null>(null)
+function moveByKey(event: KeyboardEvent, b: VaultBucketRow) {
   const step = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0
   if (!step) return
   event.preventDefault()
-  await reorder(index, index + step)
-  await nextTick()
-  list.value?.querySelectorAll<HTMLButtonElement>('.drag-handle')[index + step]?.focus()
+  keyboardId.value = b.id
+  keyMoves = keyMoves.then(() => moveOne(b.id, step)).catch(() => {})
+}
+async function moveOne(id: string, step: number) {
+  const from = buckets.value.findIndex((x) => x.id === id)
+  const to = from + step
+  if (from < 0 || to < 0 || to >= buckets.value.length) return
+  await reorder(from, to)
+  // Let the list catch up before the next queued move reads the order.
+  for (let i = 0; i < 50 && buckets.value.findIndex((x) => x.id === id) !== to; i++) await new Promise((r) => setTimeout(r, 20))
+}
+// Right after each redraw, put focus back on the handle being moved (moving an element can drop its focus).
+watch(
+  buckets,
+  () => {
+    const el = keyboardId.value ? list.value?.querySelector<HTMLButtonElement>(`[data-handle="${keyboardId.value}"]`) : null
+    if (el && document.activeElement !== el) el.focus()
+  },
+  { flush: 'post' },
+)
+function onHandleBlur(event: FocusEvent) {
+  // Focus moved somewhere else on purpose (not lost to a redraw): stop following.
+  if (event.relatedTarget) keyboardId.value = null
 }
 
 const editingBucket = ref<VaultBucketRow | null>(null)
@@ -150,12 +174,14 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
       <p v-if="!buckets.length" class="text-muted">{{ m.noBuckets }}</p>
       <p v-if="buckets.length > 1" class="-mt-3 text-xs text-muted">{{ m.dragHint }}</p>
       <ul ref="list" class="flex flex-col gap-2" :aria-label="m.bucketsHeading">
-        <li v-for="(b, i) in buckets" :key="b.id" class="flex items-center gap-1 rounded-2xl border border-line bg-surface pl-1" data-testid="vault-bucket">
+        <li v-for="b in buckets" :key="b.id" class="flex items-center gap-1 rounded-2xl border border-line bg-surface pl-1" data-testid="vault-bucket">
           <button
             type="button"
             class="drag-handle flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-xl text-muted active:cursor-grabbing"
             :aria-label="m.drag(b.name)"
-            @keydown="moveByKey($event, i)"
+            :data-handle="b.id"
+            @keydown="moveByKey($event, b)"
+            @blur="onHandleBlur"
           >
             ⠿
           </button>

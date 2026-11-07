@@ -79,9 +79,16 @@ test.describe('Spec §5 The Vault', () => {
     await page.getByRole('textbox', { name: 'Bucket name' }).fill('Books')
     await page.getByRole('button', { name: 'Add bucket' }).click()
     await expect(page.getByTestId('vault-bucket')).toHaveCount(4)
+    // The arrow keys on the handle move a bucket, and focus stays with it for the next press.
     await page.getByRole('button', { name: /^Reorder Books/ }).focus()
     await page.keyboard.press('ArrowUp')
     await expect(page.getByTestId('vault-bucket').nth(2)).toContainText('Books')
+    await page.keyboard.press('ArrowUp')
+    await expect(page.getByTestId('vault-bucket').nth(1)).toContainText('Books')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+    await expect(page.getByTestId('vault-bucket').nth(3)).toContainText('Books')
 
     await page.getByRole('button', { name: /^Books/ }).click()
     await page.getByRole('button', { name: 'Bucket settings' }).click()
@@ -110,6 +117,21 @@ test.describe('Spec §5 The Vault', () => {
     await page.waitForTimeout(200)
     await page.mouse.up()
     await expect(page.getByTestId('vault-bucket')).toHaveText([/Places to go/, /Shopping list/, /Restaurant reviews/])
+
+    // And downward: Places to go back to the bottom.
+    const top = (await handle('Places to go').boundingBox())!
+    const bottom = (await handle('Restaurant reviews').boundingBox())!
+    await page.mouse.move(top.x + top.width / 2, top.y + top.height / 2)
+    await page.mouse.down()
+    const downStart = top.y + top.height / 2
+    const downEnd = bottom.y + bottom.height + 6
+    for (let step = 1; step <= 15; step++) {
+      await page.mouse.move(top.x + top.width / 2, downStart + ((downEnd - downStart) * step) / 15)
+      await page.waitForTimeout(20)
+    }
+    await page.waitForTimeout(200)
+    await page.mouse.up()
+    await expect(page.getByTestId('vault-bucket')).toHaveText([/Shopping list/, /Restaurant reviews/, /Places to go/])
     await expect.poll(() => server.written('vault_buckets').map((b) => [b.name, b.position])).toEqual(
       expect.arrayContaining([
         ['Places to go', 0],
