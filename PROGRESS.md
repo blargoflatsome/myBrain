@@ -207,9 +207,13 @@ Merged and live.
 - App: `post_its` sync table (Dexie v8), `src/postits/rules.ts`, store functions, Capture form (editor + color), `PostItBoard` at the top of the Dashboard; RichTextEditor gains `autofocus`.
 - Tests: `src/postits/rules.test.ts`, `e2e/post-it.spec.ts`, Delete my data and axe scans updated. Vitest 232, Playwright 445.
 
-## Post It look (branch `post-it-stack`)
+## Post It look (done, PR #20)
 - Post Its look taped on (tape strip, tilt, shadow); several form a stack showing one at a time with the notes underneath peeking out; Previous/Next, swipe, arrow keys, "2 of 5", never automatic; Move earlier/later replaces dragging; Edit / Make a task / Done sit under the note. Checked in screenshots (light/dark, desktop/phone).
 - Tests: `e2e/post-it.spec.ts` (stack, look, swipe, keys, move). Playwright 449.
+
+## Post It swipe fix (branch `post-it-swipe`)
+- Swiping didn't work on a real phone: the browser took the sideways drag as a page gesture and cancelled the touch. The stack now allows only vertical page scrolling (`touch-action: pan-y`), so sideways swipes reach it. The old test faked pointer events; the new one sends real touch input (Chromium touch events) on the phone project, and failed before the fix.
+- Then (user): phones lose Previous/Next and get tappable dots (swipe needs a tap alternative, WCAG 2.5.1); Move earlier/later removed everywhere (notes stay newest first; store reorder removed). Playwright 446.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

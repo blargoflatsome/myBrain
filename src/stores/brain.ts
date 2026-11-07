@@ -15,7 +15,7 @@ import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayDa
 import type { AvailabilityExceptionRow, AvailabilityRuleRow, EventRow, JournalEntryRow, SyncTable, TaggedType, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { tagChanges } from '@/tags/rules'
 import { normalizeBody } from '@/journal/body'
-import { boardOrder, frontPosition, noteToTask } from '@/postits/rules'
+import { frontPosition, noteToTask } from '@/postits/rules'
 import type { PostItColor, PostItRow } from '@/sync/types'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
@@ -451,17 +451,6 @@ export const useBrainStore = defineStore('brain', () => {
     await e.remove('post_its', id)
     return task
   }
-  /** Move a note from one place on the board to another and save the new order. */
-  async function reorderPostIts(from: number, to: number) {
-    const { engine: e, local } = requireReady()
-    const order = boardOrder(await local.post_its.toArray())
-    if (from === to || from < 0 || to < 0 || from >= order.length || to >= order.length) return
-    const [moved] = order.splice(from, 1)
-    order.splice(to, 0, moved!)
-    for (const [position, note] of order.entries()) {
-      if (note.position !== position) await e.patch('post_its', note.id, () => ({ position }))
-    }
-  }
 
   // ---------- The Vault (SPEC §5 The Vault) ----------
   async function saveBucket(row: VaultBucketRow) {
@@ -607,7 +596,6 @@ export const useBrainStore = defineStore('brain', () => {
     removePostIt,
     restorePostIt,
     postItToTask,
-    reorderPostIts,
     saveVaultItem,
     deleteVaultItem,
     toggleVaultItem,
