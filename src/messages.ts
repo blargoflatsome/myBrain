@@ -3,6 +3,7 @@
 export const messages = {
   appName: 'My Brain',
   signIn: {
+    deleted: 'Your account and all of its data have been deleted.',
     heading: 'Welcome back',
     body: 'Past you left some things here for you. Sign in to see them.',
     button: 'Sign in with Google',
@@ -341,6 +342,18 @@ export const messages = {
     saved: 'Saved.',
   },
   profile: {
+    deleteHeading: 'Delete my account',
+    deleteHint: 'Permanently removes your account and everything in it, on every device.',
+    deleteButton: 'Delete My Account',
+    deleteConfirm: {
+      heading: 'Delete your account?',
+      body: 'This permanently deletes your account and everything in it: tasks, habits, routines, priority tasks, journal, The Vault, quests, inbox and settings, on all your devices. It cannot be undone.',
+      typeLabel: 'Type DELETE to confirm',
+      word: 'DELETE',
+      confirm: 'Delete everything',
+      keep: 'Keep my account',
+      failed: "Couldn't delete your account. Check your connection and try again.",
+    },
     heading: 'Account',
     displayName: 'Display name',
     save: 'Save profile',

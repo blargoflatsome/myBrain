@@ -137,7 +137,9 @@ Merged and live.
 - Capture opened from the Journal: Task chosen, tomorrow's date, source journal, returns to the Journal after saving.
 - Capture is now a window (modal) over the current page, from the Capture button and from the Journal's "Add a task for tomorrow" (stays ready for the next task; closing returns to the writing). The /capture page remains for the home-screen shortcut and sharing from other apps.
 - Checklist items on one line; toolbar scrolls sideways with Full screen pinned.
-- Toolbar buttons keep focus in the writing (phone keyboard stays open). Tests: `src/journal/body.test.ts`, more in `e2e/journal.spec.ts`. Vitest 159, Playwright 170. No database change.
+- Toolbar buttons keep focus in the writing (phone keyboard stays open).
+- Profile renamed to Account (/account; /profile redirects). Bio removed (column left unused). Settings tidied into two cards: Your profile, Reminders.
+- Delete My Account: confirmation with typed DELETE; migration `20261106110000_delete_account.sql` (`delete_my_account()`, cascades everything); clears this device's copy and push subscription; `rls_account.sql` passes on dev. Dev and prod migrated. Tests: `src/journal/body.test.ts`, more in `e2e/journal.spec.ts`. Vitest 159, Playwright 184, SQL 9 files.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

@@ -220,6 +220,45 @@ test.describe('Spec §5 Account page', () => {
     await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Profile' })).toHaveCount(0)
   })
 
+  test('Spec §9: Delete My Account confirms first, then deletes everything and signs me out', async ({ page }) => {
+    await open(page, '/account')
+    await page.getByRole('button', { name: 'Delete My Account' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Delete your account?' })
+    await expect(dialog).toContainText('It cannot be undone.')
+    const confirm = dialog.getByRole('button', { name: 'Delete everything' })
+    await expect(confirm).toBeDisabled()
+    await dialog.getByLabel('Type DELETE to confirm').fill('delete')
+    await expect(confirm).toBeEnabled()
+    await confirm.click()
+    await expect(page).toHaveURL(/\/sign-in/)
+    await expect(page.getByRole('status')).toHaveText('Your account and all of its data have been deleted.')
+    expect(server.rpcCalls).toEqual(['delete_my_account'])
+    // This device's copy is gone too.
+    const names = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name))
+    expect(names.filter((n) => n?.startsWith('my-brain-'))).toEqual([])
+  })
+
+  test('Spec §2: choosing Keep my account deletes nothing', async ({ page }) => {
+    await open(page, '/account')
+    await page.getByRole('button', { name: 'Delete My Account' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Delete your account?' })
+    await dialog.getByRole('button', { name: 'Keep my account' }).click()
+    await expect(dialog).toBeHidden()
+    await expect(page).toHaveURL(/\/account$/)
+    expect(server.rpcCalls).toEqual([])
+  })
+
+  test('Spec §9: if deletion fails, I am told and stay signed in', async ({ page }) => {
+    server.failRpc = true
+    await open(page, '/account')
+    await page.getByRole('button', { name: 'Delete My Account' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Delete your account?' })
+    await dialog.getByLabel('Type DELETE to confirm').fill('DELETE')
+    await dialog.getByRole('button', { name: 'Delete everything' }).click()
+    await expect(dialog.getByRole('alert')).toHaveText("Couldn't delete your account. Check your connection and try again.")
+    await expect(page).toHaveURL(/\/account$/)
+  })
+
   test('sign out lives on the Account page', async ({ page }) => {
     await open(page, '/account')
     await page.getByRole('button', { name: 'Sign out' }).click()

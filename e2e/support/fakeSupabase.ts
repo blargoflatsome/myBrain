@@ -113,6 +113,11 @@ export class FakeSupabase {
       this.store('profiles', { ...this.profile, ...body })
       return { status: 204, body: '' }
     }
+    if (req.method() === 'POST' && url.pathname.includes('/rpc/')) {
+      if (this.failRpc) return { status: 503, json: { message: 'unavailable' } }
+      this.rpcCalls.push(table)
+      return { status: 204, body: '' }
+    }
     if (req.method() === 'POST') {
       const body = req.postDataJSON() as Row
       const row = { user_id: TEST_USER_ID, ...body }
@@ -122,6 +127,11 @@ export class FakeSupabase {
     }
     return { status: 204, body: '' }
   }
+
+  /** Database functions the app called (for example delete_my_account). */
+  rpcCalls: string[] = []
+  /** Make database function calls fail, as if the server could not be reached. */
+  failRpc = false
 
   written(table: string) {
     return this.writes.filter((w) => w.table === table).map((w) => w.row)

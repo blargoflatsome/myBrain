@@ -3,6 +3,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
+import { supabaseRemote } from '@/sync/supabaseRemote'
 import { useAuthStore } from '@/stores/auth'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -62,6 +63,32 @@ const logs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_
 const rows = computed(() => habits.value.map((h) => ({ habit: h, ...streaks(h, logs.value, new Date(), deviceTimeZone()) })))
 const longest = computed(() => [...rows.value].sort((a, b) => b.best - a.best)[0])
 
+// ---------- Delete My Account (SPEC §9): confirm, then delete everything ----------
+const confirmDelete = ref<HTMLDialogElement | null>(null)
+const typed = ref('')
+const deleting = ref(false)
+const deleteError = ref('')
+function askDelete() {
+  typed.value = ''
+  deleteError.value = ''
+  confirmDelete.value?.showModal()
+}
+async function deleteAccount() {
+  if (typed.value.trim().toUpperCase() !== m.deleteConfirm.word) return
+  deleting.value = true
+  deleteError.value = ''
+  brain.stop()
+  const ok = await auth.deleteAccount()
+  deleting.value = false
+  if (!ok) {
+    deleteError.value = m.deleteConfirm.failed
+    if (auth.user) brain.start(auth.user.id, supabaseRemote(supabase))
+    return
+  }
+  confirmDelete.value?.close()
+  await router.push({ name: 'sign-in', query: { deleted: '1' } })
+}
+
 async function signOut() {
   await auth.signOut()
   await router.push({ name: 'sign-in' })
@@ -118,5 +145,43 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
     <NotificationSettings />
 
     <button type="button" class="min-h-12 rounded-xl border border-line px-4 text-muted" @click="signOut">{{ messages.signOut.button }}</button>
+
+    <section class="flex flex-col gap-3 rounded-2xl border border-danger/40 p-4" data-testid="delete-account">
+      <div>
+        <h2 class="text-lg font-semibold">{{ m.deleteHeading }}</h2>
+        <p class="text-sm text-muted">{{ m.deleteHint }}</p>
+      </div>
+      <button type="button" class="min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askDelete">
+        {{ m.deleteButton }}
+      </button>
+    </section>
+
+    <dialog
+      ref="confirmDelete"
+      :aria-label="m.deleteConfirm.heading"
+      class="m-auto w-[min(28rem,calc(100%-2rem))] rounded-2xl border border-line bg-bg p-5 text-ink backdrop:bg-black/60"
+    >
+      <form class="flex flex-col gap-4" @submit.prevent="deleteAccount">
+        <h2 class="text-xl font-bold">{{ m.deleteConfirm.heading }}</h2>
+        <p class="text-muted">{{ m.deleteConfirm.body }}</p>
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ m.deleteConfirm.typeLabel }}
+          <input v-model="typed" :class="field" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        </label>
+        <p v-if="deleteError" class="text-sm text-danger" role="alert">{{ deleteError }}</p>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="submit"
+            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white disabled:opacity-50"
+            :disabled="deleting || typed.trim().toUpperCase() !== m.deleteConfirm.word"
+          >
+            {{ m.deleteConfirm.confirm }}
+          </button>
+          <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDelete?.close()">
+            {{ m.deleteConfirm.keep }}
+          </button>
+        </div>
+      </form>
+    </dialog>
   </main>
 </template>
