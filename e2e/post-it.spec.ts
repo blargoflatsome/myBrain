@@ -1,0 +1,110 @@
+import { expect, test, type Page } from '@playwright/test'
+import { FakeSupabase } from './support/fakeSupabase'
+import { goTo } from './support/nav'
+
+// Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
+test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
+const NOW = new Date('2026-11-10T14:00:00Z')
+let server: FakeSupabase
+
+async function open(page: Page, path: string) {
+  await page.clock.install({ time: NOW })
+  await page.goto(path)
+}
+const lastWrite = (table: string) => server.written(table).at(-1)
+const board = (page: Page) => page.getByTestId('postit')
+
+test.beforeEach(async ({ page }) => {
+  server = new FakeSupabase()
+  await server.install(page)
+})
+
+test.describe('Spec §5 Post It', () => {
+  test('Capture has a Post It: a small formatted note and a color; it goes to the top of the Dashboard', async ({ page }) => {
+    await open(page, '/capture')
+    await page.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Post It', exact: true }).click()
+    const editor = page.getByRole('textbox', { name: 'Post It' })
+    await expect(editor).toBeFocused()
+    await page.getByRole('toolbar', { name: 'Formatting: Post It' }).getByRole('button', { name: 'Bold' }).click()
+    await page.keyboard.type('Call the vet')
+    await page.getByRole('radiogroup', { name: 'Color' }).getByRole('radio', { name: /Pink/ }).click()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByTestId('capture-notice')).toHaveText('Stuck to your Dashboard. Future you will see it first thing.')
+    await expect.poll(() => lastWrite('post_its')).toMatchObject({ body: '<p><strong>Call the vet</strong></p>', color: 'pink' })
+
+    await goTo(page, 'Dashboard')
+    await expect(board(page)).toHaveCount(1)
+    await expect(board(page).locator('strong')).toHaveText('Call the vet')
+    await expect(board(page)).toHaveClass(/note-pink/)
+    await expect(page.locator('main section').first()).toHaveAttribute('data-testid', 'dash-postits')
+  })
+
+  test('an empty Post It is not saved', async ({ page }) => {
+    await open(page, '/capture')
+    await page.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Post It', exact: true }).click()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByRole('alert')).toHaveText('Past you needs a few words to stick on the note.')
+    expect(server.written('post_its')).toHaveLength(0)
+  })
+
+  test('all Post Its show, front first; with none there is no Post It section', async ({ page }) => {
+    await open(page, '/')
+    await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
+    await expect(page.getByTestId('dash-postits')).toHaveCount(0)
+    server.seed('post_its', [
+      { id: 'p1', body: '<p>Older</p>', color: 'yellow', position: 0 },
+      { id: 'p2', body: '<p>Newer</p>', color: 'blue', position: -1 },
+    ])
+    await page.reload()
+    await expect(board(page).getByTestId('postit-body')).toHaveText(['Newer', 'Older'])
+  })
+
+  test('a Post It can be edited in place, including its color', async ({ page }) => {
+    server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
+    await open(page, '/')
+    await board(page).getByRole('button', { name: 'Edit' }).click()
+    const editor = board(page).getByRole('textbox', { name: 'Post It 1' })
+    await expect(editor).toBeFocused()
+    await page.keyboard.press('ControlOrMeta+End')
+    await page.keyboard.type(' and envelopes')
+    await board(page).getByRole('radio', { name: /Green/ }).click()
+    await board(page).getByRole('button', { name: 'Save' }).click()
+    await expect(board(page).getByTestId('postit-body')).toHaveText('Buy stamps and envelopes')
+    await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', body: '<p>Buy stamps and envelopes</p>', color: 'green' })
+    await expect(board(page).getByRole('button', { name: 'Edit' })).toBeFocused()
+  })
+
+  test('Done takes it down straight away, and Undo puts it back', async ({ page }) => {
+    server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
+    await open(page, '/')
+    await board(page).getByRole('button', { name: 'Done' }).click()
+    await expect(board(page)).toHaveCount(0)
+    await expect(page.getByTestId('postit-notice')).toContainText('Post It taken down.')
+    await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: expect.any(String) })
+    await page.getByRole('button', { name: 'Undo' }).click()
+    await expect(board(page)).toHaveCount(1)
+    await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: null })
+  })
+
+  test('Make a task: the first line is the title, the rest the notes, in Undated; the Post It goes', async ({ page }) => {
+    server.seed('post_its', [{ id: 'p1', body: '<p>Call the vet</p><p>ask about shots</p>', color: 'yellow', position: 0 }])
+    await open(page, '/')
+    await board(page).getByRole('button', { name: 'Make a task' }).click()
+    await expect(page.getByTestId('postit-notice')).toContainText('Moved to Tasks, in Undated.')
+    await expect(board(page)).toHaveCount(0)
+    await expect.poll(() => lastWrite('tasks')).toMatchObject({ title: 'Call the vet', notes: 'ask about shots', due_date: null, status: 'open' })
+    await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: expect.any(String) })
+  })
+
+  test('Post Its can be reordered without dragging: tap the handle for Move up / Move down', async ({ page }) => {
+    server.seed('post_its', [
+      { id: 'p1', body: '<p>First</p>', color: 'yellow', position: 0 },
+      { id: 'p2', body: '<p>Second</p>', color: 'pink', position: 1 },
+    ])
+    await open(page, '/')
+    await expect(board(page).getByTestId('postit-body')).toHaveText(['First', 'Second'])
+    await page.getByRole('button', { name: /^Reorder Post It 1/ }).click()
+    await page.getByRole('group', { name: 'Move Post It 1' }).getByRole('button', { name: /Move down/ }).click()
+    await expect(board(page).getByTestId('postit-body')).toHaveText(['Second', 'First'])
+  })
+})

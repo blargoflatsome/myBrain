@@ -196,10 +196,16 @@ Merged and live.
 - "Do better today than past you did yesterday" at the top of the Dashboard: yesterday's habits kept, routines finished, tasks done (x of y), and each routine's steps done; says so when nothing was scheduled (user's choices, SPEC §5 Dashboard). No database change.
 - Tests: `src/feedback-round-1.test.ts` (summary), `e2e/dashboard.spec.ts` (section first, counts, empty); Dashboard passes the axe scan. Vitest 207, Playwright 421.
 
-## Desktop time picker (branch `time-picker`)
+## Desktop time picker (done, PR #18)
 - Spec decision logged: Nuxt UI not adopted; Reka UI piece by piece if needed.
 - `TimeInput` (src/components/TimeInput.vue, src/time/parse.ts): type or pick from a 15-minute list on a computer; device picker on touch screens. Replaces all 13 time fields.
 - Tests: `src/time/parse.test.ts`; time field tests and an axe scan of the open list in `e2e/a11y.spec.ts`. Vitest 229, Playwright 427 (9 skipped: phone-only/computer-only).
+
+## Post It (branch `post-it`)
+- New Capture type and Dashboard sticky notes (user's choices: all shown newest first; edit in place, Done with Undo, Make a task, reorder; 4 colors; not in search; in Delete/Download my data). SPEC §4, §5, §8, §14.
+- Migration `20261107020000_post_its.sql` (table, RLS, Realtime; `delete_my_data` gains a Post Its part). Dev migrated; `rls_post_its.sql` passes (15 SQL files).
+- App: `post_its` sync table (Dexie v8), `src/postits/rules.ts`, store functions, Capture form (editor + color), `PostItBoard` at the top of the Dashboard; RichTextEditor gains `autofocus`.
+- Tests: `src/postits/rules.test.ts`, `e2e/post-it.spec.ts`, Delete my data and axe scans updated. Vitest 232, Playwright 445.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

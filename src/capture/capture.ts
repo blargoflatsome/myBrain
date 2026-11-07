@@ -3,7 +3,7 @@ import type { EnergyLevel, HabitRow, InboxRow, QuestRow, TaskRow, TimeBucket, Va
 import { newHabit } from '@/habits/rules'
 import { deviceTimeZone } from '@/tasks/days'
 
-export type Destination = 'task' | 'vault' | 'quest' | 'habit' | 'later'
+export type Destination = 'task' | 'vault' | 'quest' | 'habit' | 'postit' | 'later'
 
 /** Defaults for every new quest (SPEC §5 Random Quest). */
 export const DEFAULT_QUEST_ENERGY: EnergyLevel = 'ugh'
@@ -105,6 +105,9 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
     }
     case 'later':
       return { table: 'inbox', row: { ...base, body: text } }
+    case 'postit':
+      // Post Its are formatted notes, saved with brain.addPostIt (SPEC §5 Post It).
+      throw new CaptureError('post it')
   }
 }
 

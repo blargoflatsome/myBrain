@@ -5,6 +5,9 @@ import TimeInput from '@/components/TimeInput.vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HowOften from '@/components/HowOften.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
+import { DEFAULT_POST_IT_COLOR, POST_IT_COLORS } from '@/postits/rules'
+import { plainText, toEditorHtml } from '@/journal/body'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useSpeech } from '@/composables/useSpeech'
 import {
@@ -18,7 +21,7 @@ import {
 import { PRIORITIES } from '@/tasks/rules'
 import { ENERGY_LEVELS, TIME_BUCKETS } from '@/quests/picker'
 import { messages } from '@/messages'
-import type { EnergyLevel, TimeBucket, VaultBucketRow } from '@/sync/types'
+import type { EnergyLevel, PostItColor, TimeBucket, VaultBucketRow } from '@/sync/types'
 
 const props = defineProps<{
   /** Opened from the Journal: a task with this date (SPEC §5 Journal). */
@@ -32,6 +35,11 @@ const m = messages.capture
 const q = messages.quests
 const t = messages.tasks
 const h = messages.habits
+const pm = messages.postIts
+
+// Post It (SPEC §5 Quick capture): a small formatted note and a color.
+const postBody = ref('')
+const postColor = ref<PostItColor>(DEFAULT_POST_IT_COLOR)
 
 const type = ref<Destination | null>(null)
 const title = ref('')
@@ -80,7 +88,8 @@ async function choose(d: Destination) {
   notice.value = ''
   error.value = ''
   if (shared.value) {
-    if (d === 'later') title.value = shared.value
+    if (d === 'postit') postBody.value = toEditorHtml(shared.value)
+    else if (d === 'later') title.value = shared.value
     else {
       const { title: first, rest } = splitTitle(shared.value)
       title.value = first
@@ -88,7 +97,8 @@ async function choose(d: Destination) {
     }
   }
   await nextTick()
-  titleBox.value?.focus()
+  // A Post It's editor focuses itself once it's ready.
+  if (d !== 'postit') titleBox.value?.focus()
 }
 
 // Habit (SPEC §5 Quick capture: the full habit form).
@@ -105,6 +115,8 @@ function toggleHabitDay(d: number) {
 }
 
 function reset() {
+  postBody.value = ''
+  postColor.value = DEFAULT_POST_IT_COLOR
   habitDays.value = [0, 1, 2, 3, 4, 5, 6]
   habitInterval.value = 1
   habitTime.value = ''
@@ -139,12 +151,31 @@ function savedMessage(input: CaptureInput) {
       return m.saved.habit
     case 'later':
       return m.saved.later
+    case 'postit':
+      return m.saved.postit
+  }
+}
+
+async function savePostIt() {
+  if (!plainText(postBody.value)) {
+    error.value = pm.emptyError
+    return
+  }
+  saving.value = true
+  try {
+    await brain.addPostIt(postBody.value, postColor.value)
+    const message = brain.online ? m.saved.postit : m.savedOffline
+    reset()
+    notice.value = message
+  } finally {
+    saving.value = false
   }
 }
 
 async function save() {
   if (!type.value) return
   error.value = ''
+  if (type.value === 'postit') return savePostIt()
   if (!title.value.trim()) {
     error.value = m.emptyError
     titleBox.value?.focus()
@@ -191,7 +222,7 @@ const chip = (on: boolean) => [
 ]
 const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink focus:border-accent'
 const typeBtn = 'min-h-16 rounded-2xl border border-line bg-surface px-4 text-lg font-semibold text-ink active:scale-[0.98]'
-const types: Destination[] = ['task', 'vault', 'quest', 'habit', 'later']
+const types: Destination[] = ['task', 'vault', 'quest', 'habit', 'postit', 'later']
 const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' } as const
 </script>
 
@@ -218,7 +249,31 @@ const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' }
       </div>
       <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
 
-      <div class="flex flex-col gap-1">
+      <!-- Post It: a small formatted note and its color (SPEC §5 Quick capture) -->
+      <template v-if="type === 'postit'">
+        <div class="flex flex-col gap-1" data-testid="capture-postit">
+          <span class="text-sm text-muted">{{ pm.label }}</span>
+          <RichTextEditor v-model="postBody" :label="pm.label" :placeholder="pm.placeholder" min-height="8rem" autofocus @update:model-value="error = ''" />
+        </div>
+        <fieldset class="flex flex-col gap-2">
+          <legend class="mb-1 text-sm text-muted">{{ pm.color }}</legend>
+          <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="pm.color">
+            <button
+              v-for="c in POST_IT_COLORS"
+              :key="c"
+              type="button"
+              role="radio"
+              :aria-checked="postColor === c"
+              :class="['min-h-11 rounded-full border-2 px-4 text-sm font-medium', `note-${c}`, postColor === c ? 'border-ink' : 'border-transparent']"
+              @click="postColor = c"
+            >
+              <span v-if="postColor === c" aria-hidden="true">✓ </span>{{ pm.colors[c] }}
+            </button>
+          </div>
+        </fieldset>
+      </template>
+
+      <div v-if="type !== 'postit'" class="flex flex-col gap-1">
         <label for="capture-title" class="text-sm text-muted">{{ type === 'later' ? m.placeholder : m.titleLabel }}</label>
         <div class="relative">
           <textarea
@@ -266,7 +321,7 @@ const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' }
         <input v-if="addingBucket" v-model="newBucketName" :aria-label="m.newBucket" :placeholder="m.newBucket" :class="field">
       </fieldset>
 
-      <label v-if="type !== 'later' && type !== 'habit'" class="flex flex-col gap-1 text-sm text-muted">
+      <label v-if="type !== 'later' && type !== 'habit' && type !== 'postit'" class="flex flex-col gap-1 text-sm text-muted">
         {{ type === 'quest' ? m.detailsLabel : m.notesLabel }}
         <textarea v-model="notes" rows="3" :class="[field, 'py-2']" />
       </label>

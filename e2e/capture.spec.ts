@@ -27,7 +27,7 @@ test.describe('Spec §5 Quick capture: choose the type first', () => {
     await expect(dialog).toBeVisible()
     await expect(page).toHaveURL(/\/habits$/)
     await expect(dialog.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()
-    await expect(typeGroup(page).getByRole('button')).toHaveText(['Task', 'The Vault', 'Quest', 'Habit', 'Decide later'])
+    await expect(typeGroup(page).getByRole('button')).toHaveText(['Task', 'The Vault', 'Quest', 'Habit', 'Post It', 'Decide later'])
   })
 
   test('the Capture window saves without leaving the page, and closing it returns to the page', async ({ page }) => {

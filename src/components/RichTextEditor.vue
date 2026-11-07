@@ -9,12 +9,14 @@ import { Placeholder } from '@tiptap/extensions'
 import { toEditorHtml } from '@/journal/body'
 import { messages } from '@/messages'
 
-const props = defineProps<{ modelValue: string; label: string; placeholder?: string; minHeight?: string }>()
+const props = defineProps<{ modelValue: string; label: string; placeholder?: string; minHeight?: string; autofocus?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [html: string]; blur: [] }>()
 const m = messages.editor
 
 const editor = useEditor({
   content: toEditorHtml(props.modelValue),
+  // Opened to write straight away (a new Post It, or editing one): focus at the end once the editor is ready.
+  autofocus: props.autofocus ? 'end' : false,
   extensions: [
     StarterKit.configure({
       heading: { levels: [2, 3] },

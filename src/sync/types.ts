@@ -22,6 +22,7 @@ export const SYNC_TABLES = [
   'event_invites',
   'availability_rules',
   'availability_exceptions',
+  'post_its',
 ] as const
 
 /** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
@@ -45,6 +46,17 @@ export interface TaskRow extends BaseRow {
   status: 'open' | 'done' | 'cancelled'
   completed_at?: string | null
   source: 'manual' | 'capture' | 'journal'
+}
+
+export type PostItColor = 'yellow' | 'pink' | 'blue' | 'green'
+
+/** A sticky note at the top of the Dashboard (SPEC §5 Post It). */
+export interface PostItRow extends BaseRow {
+  /** Formatted HTML, like the journal. */
+  body: string
+  color: PostItColor
+  /** Lowest first; a new note goes in front. */
+  position: number
 }
 
 export interface VaultBucketRow extends BaseRow {
@@ -261,6 +273,7 @@ export interface JournalEntryRow extends BaseRow {
 }
 
 export interface RowTypes {
+  post_its: PostItRow
   tasks: TaskRow
   vault_buckets: VaultBucketRow
   vault_items: VaultItemRow
