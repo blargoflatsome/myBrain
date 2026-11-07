@@ -35,6 +35,9 @@ export class LocalDb extends Dexie {
   events!: Table<RowTypes['events'], string>
   tags!: Table<RowTypes['tags'], string>
   item_tags!: Table<RowTypes['item_tags'], string>
+  event_invites!: Table<RowTypes['event_invites'], string>
+  availability_rules!: Table<RowTypes['availability_rules'], string>
+  availability_exceptions!: Table<RowTypes['availability_exceptions'], string>
   outbox!: Table<OutboxEntry, number>
   meta!: Table<MetaEntry, string>
 
@@ -76,6 +79,12 @@ export class LocalDb extends Dexie {
       events: 'id, updated_at, start_date',
       tags: 'id, updated_at',
       item_tags: 'id, updated_at, item_id, tag_id',
+    })
+    // Step 11: invitations (read-only here) and my availability.
+    this.version(7).stores({
+      event_invites: 'id, updated_at, event_id',
+      availability_rules: 'id, updated_at',
+      availability_exceptions: 'id, updated_at, date',
     })
   }
 

@@ -116,6 +116,24 @@ describe('Spec §5 Dashboard: events', () => {
   })
 })
 
+describe('Spec §5 Dashboard: events with invitations', () => {
+  const base = { notes: null, start_time: '10:00', end_time: '11:00', repeat: 'never' as const, reminder_minutes: null, deleted_at: null }
+  it('attended counts invited events I said Yes to; cancelled counts events I cancelled and ones I dropped out of', () => {
+    const events: EventRow[] = [
+      { ...base, id: 'mine', user_id: 'me', title: 'a', start_date: '2026-11-02', end_date: '2026-11-02', created_at: '2026-11-01T12:00:00Z' },
+      { ...base, id: 'theirs-yes', user_id: 'host', title: 'b', start_date: '2026-11-03', end_date: '2026-11-03', created_at: '2026-11-01T12:00:00Z' },
+      { ...base, id: 'theirs-maybe', user_id: 'host', title: 'c', start_date: '2026-11-04', end_date: '2026-11-04', created_at: '2026-11-01T12:00:00Z' },
+      { ...base, id: 'mine-cancelled', user_id: 'me', title: 'd', start_date: '2026-11-05', end_date: '2026-11-05', created_at: '2026-11-01T12:00:00Z', cancelled_at: '2026-11-04T12:00:00Z' },
+    ]
+    const invites = [
+      { id: 'i1', event_id: 'theirs-yes', response: 'yes' as const, deleted_at: null },
+      { id: 'i2', event_id: 'theirs-maybe', response: 'maybe' as const, deleted_at: null },
+      { id: 'i3', event_id: 'gone', response: 'dropped' as const, responded_at: '2026-11-06T12:00:00Z', deleted_at: null },
+    ]
+    expect(eventStats(events, '2026-01-01', NOW, TZ, invites, 'me')).toEqual({ created: 2, attended: 2, cancelled: 2 })
+  })
+})
+
 describe('Spec §5 Dashboard: tasks, routines, quests', () => {
   it('tasks done and quests finished in the period', () => {
     const tasks = [

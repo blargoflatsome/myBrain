@@ -11,7 +11,7 @@ import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMis
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
-import type { EventRow, JournalEntryRow, TaggedType, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import type { AvailabilityExceptionRow, AvailabilityRuleRow, EventRow, JournalEntryRow, SyncTable, TaggedType, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { tagChanges } from '@/tags/rules'
 import { normalizeBody } from '@/journal/body'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
@@ -408,6 +408,29 @@ export const useBrainStore = defineStore('brain', () => {
     await requireReady().engine.remove('events', id)
   }
 
+  // ---------- Availability (SPEC §5 Availability schedule) ----------
+  async function saveAvailabilityRule(row: AvailabilityRuleRow) {
+    const { engine: e, uid } = requireReady()
+    return e.save('availability_rules', { ...row, user_id: uid })
+  }
+  async function deleteAvailabilityRule(id: string) {
+    await requireReady().engine.remove('availability_rules', id)
+  }
+  async function saveAvailabilityException(row: AvailabilityExceptionRow) {
+    const { engine: e, uid } = requireReady()
+    return e.save('availability_exceptions', { ...row, user_id: uid })
+  }
+  async function deleteAvailabilityException(id: string) {
+    await requireReady().engine.remove('availability_exceptions', id)
+  }
+
+  /** Fetch the latest from the server for some tables (after a server function changed them). */
+  async function refresh(tables: SyncTable[]) {
+    const { engine: e } = requireReady()
+    await e.flush()
+    await e.pull(tables)
+  }
+
   // ---------- Tags (SPEC §5 Global search and tags) ----------
   /** Set an item's tags by name: new tags are created, dropped ones are taken off the item (the tag itself stays). */
   async function saveTags(type: TaggedType, itemId: string, names: string[]) {
@@ -460,6 +483,11 @@ export const useBrainStore = defineStore('brain', () => {
 
   return {
     db,
+    saveAvailabilityRule,
+    deleteAvailabilityRule,
+    saveAvailabilityException,
+    deleteAvailabilityException,
+    refresh,
     saveBucket,
     deleteBucket,
     addVaultItem,

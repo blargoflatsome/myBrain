@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 Account page: display name, avatar, streak visibility, and streaks (private habits never shown), then settings.
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { supabaseRemote } from '@/sync/supabaseRemote'
 import { useAuthStore } from '@/stores/auth'
@@ -9,6 +9,9 @@ import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { messages } from '@/messages'
 import NotificationSettings from '@/components/NotificationSettings.vue'
+import EventSettings from '@/components/EventSettings.vue'
+import AvailabilityCard from '@/components/AvailabilityCard.vue'
+import { downloadMyData } from '@/account/export'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
 import { streaks } from '@/habits/rules'
 import { deviceTimeZone } from '@/tasks/days'
@@ -89,6 +92,21 @@ async function deleteAccount() {
   await router.push({ name: 'sign-in', query: { deleted: '1' } })
 }
 
+// ---------- Download my data (SPEC §8) ----------
+const exporting = ref(false)
+const exportError = ref('')
+async function exportData() {
+  exportError.value = ''
+  exporting.value = true
+  try {
+    await downloadMyData(auth.user?.id ?? '')
+  } catch {
+    exportError.value = messages.dataExport.failed
+  } finally {
+    exporting.value = false
+  }
+}
+
 async function signOut() {
   await auth.signOut()
   await router.push({ name: 'sign-in' })
@@ -143,6 +161,25 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
     </section>
 
     <NotificationSettings />
+
+    <EventSettings />
+
+    <AvailabilityCard />
+
+    <section class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4" data-testid="data-export">
+      <div>
+        <h2 class="text-lg font-semibold">{{ messages.dataExport.heading }}</h2>
+        <p class="text-sm text-muted">{{ messages.dataExport.body }}</p>
+      </div>
+      <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" :disabled="exporting" @click="exportData">
+        {{ exporting ? messages.dataExport.working : messages.dataExport.button }}
+      </button>
+      <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
+      <p class="flex gap-4 text-sm">
+        <RouterLink to="/privacy" class="text-muted underline">{{ messages.legal.privacy }}</RouterLink>
+        <RouterLink to="/terms" class="text-muted underline">{{ messages.legal.terms }}</RouterLink>
+      </p>
+    </section>
 
     <button type="button" class="min-h-12 rounded-xl border border-line px-4 text-muted" @click="signOut">{{ messages.signOut.button }}</button>
 

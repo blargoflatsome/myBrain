@@ -50,7 +50,7 @@ const stats = useLiveQuery(
     const db = brain.db
     if (!db) return null
     const from = periodStart(period.value, today.value)
-    const [habits, habitLogs, journal, events, tasks, quests, routines, steps, runs, logs] = await Promise.all([
+    const [habits, habitLogs, journal, events, tasks, quests, routines, steps, runs, logs, invites] = await Promise.all([
       db.habits.toArray(),
       db.habit_logs.toArray(),
       db.journal_entries.toArray(),
@@ -61,11 +61,12 @@ const stats = useLiveQuery(
       db.routine_steps.toArray(),
       db.routine_runs.toArray(),
       db.routine_step_logs.toArray(),
+      db.event_invites.toArray(),
     ])
     return {
       habits: habitStats(habits, habitLogs, now.value, timeZone.value, from),
       journal: journalStreaks(journal, today.value),
-      events: eventStats(events, from, now.value, timeZone.value),
+      events: eventStats(events, from, now.value, timeZone.value, invites, brain.userId),
       tasks: tasksDone(tasks, from, now.value, timeZone.value),
       quests: questsFinished(quests, from, now.value, timeZone.value),
       routines: routineSummaries(routines, steps, runs, logs, habits, from, now.value, timeZone.value),

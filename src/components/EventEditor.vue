@@ -3,13 +3,15 @@
 // reminder, notes, tags. Delete asks first; deleting a repeating event deletes the whole series.
 import { computed, ref, watch } from 'vue'
 import TagInput from '@/components/TagInput.vue'
+import EventPeople from '@/components/EventPeople.vue'
+import type { PersonToInvite } from '@/events/sharing'
 import { useItemTags } from '@/composables/useItemTags'
 import { eventProblem, REMINDERS, REPEATS } from '@/events/rules'
 import { messages } from '@/messages'
 import type { EventRepeat, EventRow } from '@/sync/types'
 
 const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
-const emit = defineEmits<{ save: [EventRow]; delete: [EventRow]; close: [] }>()
+const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow]; close: []; cancel: [EventRow] }>()
 const m = messages.calendar
 
 const dialog = ref<HTMLDialogElement | null>(null)
@@ -25,6 +27,15 @@ const reminder = ref<number | null>(null)
 const notes = ref('')
 const error = ref('')
 const tags = useItemTags('event', computed(() => props.event?.id))
+// People to invite when saving (SPEC §5 Shared events).
+const people = ref<PersonToInvite[]>([])
+function useSuggestion(s: { date: string; start: string; end: string }) {
+  allDay.value = false
+  startDate.value = s.date
+  endDate.value = s.date
+  startTime.value = s.start
+  endTime.value = s.end
+}
 
 watch(
   () => props.event,
@@ -40,6 +51,7 @@ watch(
     reminder.value = e.reminder_minutes
     notes.value = e.notes ?? ''
     error.value = ''
+    people.value = []
     dialog.value?.showModal()
   },
 )
@@ -74,7 +86,7 @@ async function save() {
     return
   }
   await tags.save(row.id)
-  emit('save', row)
+  emit('save', row, people.value)
 }
 function confirmDelete() {
   if (props.event) emit('delete', props.event)
@@ -140,11 +152,31 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-bas
         <textarea v-model="notes" rows="2" :class="[field, 'py-2']" />
       </label>
       <TagInput v-model="tags.names.value" />
+      <EventPeople
+        v-if="event && !event.cancelled_at"
+        v-model="people"
+        :event-id="event.id"
+        :is-new="isNew"
+        :start-date="startDate"
+        :start-time="allDay ? null : startTime"
+        :end-date="endDate || startDate"
+        :end-time="allDay ? null : endTime"
+        @suggest="useSuggestion"
+      />
+      <p v-if="event?.cancelled_at" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ messages.invites.cancelledNote }}</p>
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
       </div>
+      <button
+        v-if="!isNew && event && !event.cancelled_at"
+        type="button"
+        class="min-h-11 self-start rounded-xl border border-danger px-4 text-sm font-semibold text-danger"
+        @click="emit('cancel', event)"
+      >
+        {{ messages.cancelEvent.button }}
+      </button>
       <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.showModal()">
         {{ m.editor.delete }}
       </button>

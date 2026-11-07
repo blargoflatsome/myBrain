@@ -19,7 +19,13 @@ export const SYNC_TABLES = [
   'events',
   'tags',
   'item_tags',
+  'event_invites',
+  'availability_rules',
+  'availability_exceptions',
 ] as const
+
+/** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
+export const READ_ONLY_TABLES: readonly SyncTable[] = ['event_invites']
 export type SyncTable = (typeof SYNC_TABLES)[number]
 
 /** Columns every synced row has (SPEC §4). Timestamps are set by the server. */
@@ -73,6 +79,37 @@ export interface EventRow extends BaseRow {
   repeat: EventRepeat
   /** Minutes before the start (all-day events count from 9:00 am); null = no reminder. */
   reminder_minutes: number | null
+  /** Set when the creator cancelled it for everyone (SPEC §5 Cancelling). */
+  cancelled_at?: string | null
+}
+
+export type InviteResponse = 'pending' | 'yes' | 'maybe' | 'no' | 'dropped'
+
+/** One person invited to an event. Read-only in the app; changed through server functions. */
+export interface EventInviteRow extends BaseRow {
+  event_id: string
+  host_name?: string | null
+  name?: string | null
+  email?: string | null
+  phone?: string | null
+  response: InviteResponse
+  responded_at?: string | null
+}
+
+/** A weekly time I'm unavailable (SPEC §5 Availability schedule). */
+export interface AvailabilityRuleRow extends BaseRow {
+  weekday: number
+  start_time: string
+  end_time: string
+}
+
+/** A one-off change for a date: unavailable (or available) all day or for a time range. */
+export interface AvailabilityExceptionRow extends BaseRow {
+  date: string
+  start_time: string | null
+  end_time: string | null
+  kind: 'unavailable' | 'available'
+  note?: string | null
 }
 
 export interface TagRow extends BaseRow {
@@ -230,6 +267,9 @@ export interface RowTypes {
   events: EventRow
   tags: TagRow
   item_tags: ItemTagRow
+  event_invites: EventInviteRow
+  availability_rules: AvailabilityRuleRow
+  availability_exceptions: AvailabilityExceptionRow
 }
 
 /** Thrown when the server can't be reached. The change stays queued and is retried later. */

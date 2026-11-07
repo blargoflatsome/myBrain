@@ -1,5 +1,5 @@
 // Event rules (SPEC §5 Calendar and reminders): repeats, occurrences in a date range, and what the calendar shows.
-import type { EventRepeat, EventRow, PriorityTaskRow, TaskRow } from '@/sync/types'
+import type { EventInviteRow, EventRepeat, EventRow, PriorityTaskRow, TaskRow } from '@/sync/types'
 import { weekdayOf } from '@/habits/rules'
 import { isTaskScheduled } from '@/reminders/priority'
 import { addDays, daysBetween } from '@/tasks/days'
@@ -55,7 +55,7 @@ const hhmm = (time: string) => time.slice(0, 5)
 
 /** Everything the calendar shows between two dates: dated tasks, priority tasks, and my events (SPEC §5 Calendar). */
 export function calendarItems(
-  data: { tasks: TaskRow[]; priorityTasks: PriorityTaskRow[]; events: EventRow[] },
+  data: { tasks: TaskRow[]; priorityTasks: PriorityTaskRow[]; events: EventRow[]; invites?: EventInviteRow[]; me?: string | null },
   from: string,
   to: string,
 ): CalendarItem[] {
@@ -88,6 +88,16 @@ export function calendarItems(
   }
   for (const e of data.events) {
     if (e.deleted_at) continue
+    // Invited events (SPEC §5): dashed until answered, faded for Maybe, gone after No or dropping out.
+    const invited = !!data.me && !!e.user_id && e.user_id !== data.me
+    const mine = invited ? data.invites?.find((i) => i.event_id === e.id && !i.deleted_at) : undefined
+    if (invited && (!mine || mine.response === 'no' || mine.response === 'dropped')) continue
+    const style = [
+      'cal-event',
+      ...(e.cancelled_at ? ['cal-cancelled'] : []),
+      ...(mine?.response === 'pending' ? ['cal-pending'] : []),
+      ...(mine?.response === 'maybe' ? ['cal-maybe'] : []),
+    ].join(' ')
     const length = daysBetween(e.start_date, e.end_date)
     for (const d of occurrences(e, from, to)) {
       const endDate = addDays(d, length)
@@ -99,7 +109,7 @@ export function calendarItems(
               start: `${d}T${hhmm(e.start_time)}`,
               end: `${endDate}T${hhmm(e.end_time)}`,
               allDay: false,
-              className: 'cal-event',
+              className: style,
               extendedProps: { kind: 'event', itemId: e.id, date: d },
             }
           : {
@@ -108,7 +118,7 @@ export function calendarItems(
               start: d,
               end: addDays(endDate, 1),
               allDay: true,
-              className: 'cal-event',
+              className: style,
               extendedProps: { kind: 'event', itemId: e.id, date: d },
             },
       )
