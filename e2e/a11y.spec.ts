@@ -211,9 +211,98 @@ test.describe('Spec §2 WCAG 2.2 AA: by hand checks made automatic', () => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
     await page.goto('/journal')
+    await expect(page.getByRole('heading', { name: 'Journal', level: 1 })).toBeVisible()
     const menu = page.getByRole('button', { name: 'Menu' })
     if (await menu.isVisible()) await menu.click()
     await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Habits' }).click()
     await expect(page.getByTestId('page-announcement')).toHaveText('Habits')
+  })
+})
+
+test.describe('Spec §2 Windows keep focus inside while open and give it back when they close', () => {
+  test.beforeEach(async ({ page }) => {
+    server = new FakeSupabase()
+    await server.install(page)
+    seedData()
+    await page.clock.install({ time: NOW })
+  })
+
+  async function tabsStayInside(page: Page, modal: ReturnType<Page['getByRole']>, presses = 25) {
+    for (let i = 0; i < presses; i++) {
+      await page.keyboard.press('Tab')
+      expect(await modal.evaluate((el) => el.contains(document.activeElement)), `Tab ${i + 1} left the window`).toBe(true)
+    }
+    for (let i = 0; i < 5; i++) {
+      await page.keyboard.press('Shift+Tab')
+      expect(await modal.evaluate((el) => el.contains(document.activeElement)), `Shift+Tab ${i + 1} left the window`).toBe(true)
+    }
+  }
+
+  test('the Capture window traps Tab, and Escape returns focus to the Capture button', async ({ page }) => {
+    await page.goto('/habits')
+    const open = page.getByRole('button', { name: '+ Capture' })
+    await open.focus()
+    await page.keyboard.press('Enter')
+    const dialog = page.getByRole('dialog', { name: 'Capture' })
+    await expect(dialog).toBeVisible()
+    await tabsStayInside(page, dialog)
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await expect(open).toBeFocused()
+  })
+
+  test('a confirmation over an editor traps Tab; closing each returns focus to what opened it', async ({ page }) => {
+    await page.goto('/vault?bucket=b1')
+    const openItem = page.getByRole('button', { name: 'Open Dune' })
+    await openItem.focus()
+    await page.keyboard.press('Enter')
+    const editor = page.getByRole('dialog', { name: 'Edit item' })
+    await expect(editor).toBeVisible()
+    const del = editor.getByRole('button', { name: /Delete/ })
+    await del.focus()
+    await page.keyboard.press('Enter')
+    const confirm = page.getByRole('alertdialog')
+    await expect(confirm).toBeVisible()
+    await tabsStayInside(page, confirm, 6)
+    await confirm.getByRole('button', { name: /Keep/ }).click()
+    await expect(del).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(editor).toBeHidden()
+    await expect(openItem).toBeFocused()
+  })
+
+  test('the Search window traps Tab and gives focus back when closed', async ({ page }) => {
+    await page.goto('/tasks')
+    const open = page.getByRole('button', { name: /Search/ }).first()
+    await open.focus()
+    await page.keyboard.press('Enter')
+    const dialog = page.getByRole('dialog').filter({ has: page.getByRole('searchbox') })
+    await expect(dialog).toBeVisible()
+    await page.getByRole('searchbox').fill('a')
+    await tabsStayInside(page, dialog)
+    await page.keyboard.press('Escape')
+    await expect(open).toBeFocused()
+  })
+
+  test('full screen writing traps Tab', async ({ page }) => {
+    await page.goto('/journal')
+    await page.getByRole('toolbar', { name: 'Formatting: How the day went' }).getByRole('button', { name: 'Full screen' }).click()
+    const dialog = page.getByRole('dialog', { name: 'How the day went' })
+    await expect(dialog).toBeVisible()
+    await tabsStayInside(page, dialog, 15)
+  })
+
+  test('on a phone the open menu traps Tab, and Escape closes it and returns focus to Menu', async ({ page }, info) => {
+    test.skip(info.project.name !== 'android-phone', 'the menu is a window only on a phone')
+    await page.goto('/tasks')
+    const menu = page.getByRole('button', { name: 'Menu' })
+    await menu.click()
+    const nav = page.getByRole('dialog', { name: 'Menu' })
+    await expect(nav).toBeVisible()
+    await expect(nav.getByRole('link').first()).toBeFocused()
+    await tabsStayInside(page, nav)
+    await page.keyboard.press('Escape')
+    await expect(nav).toBeHidden()
+    await expect(menu).toBeFocused()
   })
 })

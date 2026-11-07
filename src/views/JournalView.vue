@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// SPEC §5 Journal: end-of-day check-in with the day's stats, formatted writing (full screen if wanted), tasks for
-// tomorrow in the Capture window (without leaving the page), and every past entry, always editable.
+// SPEC §5 Journal: end-of-day check-in with the day's stats, formatted writing (full screen if wanted), and every
+// past entry, always editable. Tasks for tomorrow are added with Capture, like anywhere else.
 import { computed, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import JournalStatsCard from '@/components/JournalStatsCard.vue'
@@ -11,17 +11,14 @@ import JournalTomorrow from '@/components/JournalTomorrow.vue'
 import { onPageHide } from '@/composables/usePageHide'
 import { tagsOf } from '@/tags/rules'
 import { useBrainStore } from '@/stores/brain'
-import { useCaptureStore } from '@/stores/capture'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { entryIdFor, hadActivity, hasStats } from '@/journal/stats'
 import { cleanHtml } from '@/journal/body'
-import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import type { ItemTagRow, JournalEntryRow, JournalStats, TagRow } from '@/sync/types'
 
 const brain = useBrainStore()
-const capture = useCaptureStore()
 const m = messages.journal
 const { today, timeZone } = useToday()
 
@@ -115,10 +112,6 @@ async function finishEditing(date: string) {
   editingDate.value = null
 }
 
-// ---------- Tasks for tomorrow: the Capture window, with Task chosen and tomorrow's date; I stay on the Journal ----------
-function addTask() {
-  capture.open({ due: addDays(today.value, 1), source: 'journal' })
-}
 
 function dayLabel(date: string) {
   const [y, mo, d] = date.split('-').map(Number)
@@ -151,11 +144,6 @@ function dayLabel(date: string) {
       <EntryTags v-if="brain.userId" type="journal_entry" :item-id="entryIdFor(brain.userId, today)" />
     </section>
 
-    <section class="rounded-2xl border border-line p-4" data-testid="journal-add-task">
-      <button type="button" class="min-h-12 w-full rounded-xl border border-line bg-surface px-4 font-medium" @click="addTask">
-        {{ m.addTask }}
-      </button>
-    </section>
 
     <section class="flex flex-col gap-3">
       <h2 class="text-lg font-semibold">{{ m.olderHeading }}</h2>

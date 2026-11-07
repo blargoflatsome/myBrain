@@ -188,7 +188,8 @@ Merged and live.
 - Part 2 (user, same PR): journal asks better-than-yesterday before the writing; tomorrow box is the formatted editor; Earlier entries show tags at the top; Vault items have a delete button in the list (confirm).
 - Sync fix (phone edits only reached the desktop after reopening the phone): sync when the app comes back into view, save waiting writing and upload when it's hidden, retry queued changes every 30 s (SPEC §7).
 - WCAG 2.2 AA (SPEC §2, CLAUDE.md): `e2e/a11y.spec.ts` runs axe on every page and main window in light and dark, plus reflow at 320 px, titles, skip link, focus ring, tap-to-move and page announcements. Fixed everything it and a manual review found (see SPEC §14 2026-11-07).
-- Tests: Vitest 205, Playwright 412 (incl. 100 accessibility checks).
+- Part 3 (user): removed the Journal's Add a task for tomorrow button; focus trapped in every window and returned on close (`src/a11y/focus.ts`, phone menu included); tests prove focus escapes without it.
+- Tests: Vitest 205, Playwright 417 (3 skipped, phone-only/desktop-only).
 - Next: Google Calendar sync (check Google's sensitive-scope/verification rules first, then plan and ask).
 
 ## Rules without a test yet

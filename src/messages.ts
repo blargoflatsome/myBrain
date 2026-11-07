@@ -288,7 +288,6 @@ export const messages = {
     saved: 'Saved.',
     autoNote: "Past you was busy this day, so here's what happened. Want to add a few words?",
     empty: 'Past you let you down',
-    addTask: '+ Add a task for tomorrow',
     edit: 'Edit',
     done: 'Done',
     statsLabel: 'The day at a glance',
