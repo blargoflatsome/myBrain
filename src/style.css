@@ -92,11 +92,55 @@ textarea:focus {
 .note-pink { background: #fce7f3; color: #500724; }
 .note-blue { background: #dbeafe; color: #172554; }
 .note-green { background: #dcfce7; color: #052e16; }
+/* In dark mode the notes stay bright like real paper, a little deeper than in light mode so they don't glare. */
 @media (prefers-color-scheme: dark) {
-  .note-yellow { background: #422006; color: #fef3c7; }
-  .note-pink { background: #500724; color: #fce7f3; }
-  .note-blue { background: #172554; color: #dbeafe; }
-  .note-green { background: #052e16; color: #dcfce7; }
+  .note-yellow { background: #fde047; color: #422006; }
+  .note-pink { background: #f9a8d4; color: #500724; }
+  .note-blue { background: #93c5fd; color: #172554; }
+  .note-green { background: #86efac; color: #052e16; }
+}
+/* Post Its look taped to the page (SPEC §5 Dashboard): a strip of tape, a slight tilt, a soft shadow, and the notes
+   underneath peeking out of the stack. */
+.postit-card {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15), 0 12px 20px -10px rgb(0 0 0 / 0.45);
+}
+.postit-tilt {
+  transform: rotate(-1.2deg);
+}
+.postit-under {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+  filter: brightness(0.96);
+}
+.postit-under-1 {
+  transform: translate(8px, 6px) rotate(2.5deg);
+}
+.postit-under-2 {
+  transform: translate(-6px, 10px) rotate(-3.5deg);
+}
+.postit-tape {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 6.5rem;
+  height: 1.75rem;
+  transform: translateX(-50%) rotate(-2deg);
+  background: rgb(255 255 255 / 0.55);
+  border: 1px solid rgb(0 0 0 / 0.06);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
+}
+@media (prefers-color-scheme: dark) {
+  .postit-card {
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 12px 24px -10px rgb(0 0 0 / 0.8);
+  }
+}
+.postit-flip-enter-active,
+.postit-flip-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.postit-flip-enter-from,
+.postit-flip-leave-to {
+  opacity: 0;
+  transform: translateY(6px) rotate(-1.2deg);
 }
 .note-yellow .rich a, .note-pink .rich a, .note-blue .rich a, .note-green .rich a { color: inherit; }
 

@@ -47,7 +47,7 @@ test.describe('Spec §5 Post It', () => {
     expect(server.written('post_its')).toHaveLength(0)
   })
 
-  test('all Post Its show, front first; with none there is no Post It section', async ({ page }) => {
+  test('several Post Its are a stack showing one at a time, newest on top; with none there is no Post It section', async ({ page }) => {
     await open(page, '/')
     await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
     await expect(page.getByTestId('dash-postits')).toHaveCount(0)
@@ -56,13 +56,60 @@ test.describe('Spec §5 Post It', () => {
       { id: 'p2', body: '<p>Newer</p>', color: 'blue', position: -1 },
     ])
     await page.reload()
-    await expect(board(page).getByTestId('postit-body')).toHaveText(['Newer', 'Older'])
+    const carousel = page.getByRole('region', { name: 'Post Its' })
+    await expect(carousel).toHaveAttribute('aria-roledescription', 'carousel')
+    await expect(board(page)).toHaveCount(1)
+    await expect(board(page).getByTestId('postit-body')).toHaveText('Newer')
+    await expect(page.getByTestId('postit-count')).toHaveText('1 of 2')
+    await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect(board(page).getByTestId('postit-body')).toHaveText('Older')
+    await expect(page.getByTestId('postit-count')).toHaveText('2 of 2')
+    await expect(page.getByTestId('postit-announcement')).toHaveText('2 of 2')
+    await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+    // The left and right arrow keys flip through the stack too.
+    await page.getByRole('button', { name: 'Previous' }).focus()
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.press('ArrowLeft')
+    await expect(board(page).getByTestId('postit-body')).toHaveText('Newer')
+  })
+
+  test('on a touch screen, swiping left and right flips through the stack', async ({ page }) => {
+    server.seed('post_its', [
+      { id: 'p1', body: '<p>Top</p>', color: 'yellow', position: 0 },
+      { id: 'p2', body: '<p>Next one</p>', color: 'pink', position: 1 },
+    ])
+    await open(page, '/')
+    const stack = page.locator('.postit-stack')
+    const swipe = async (fromX: number, toX: number) => {
+      await stack.dispatchEvent('pointerdown', { pointerType: 'touch', clientX: fromX, clientY: 100, bubbles: true })
+      await stack.dispatchEvent('pointerup', { pointerType: 'touch', clientX: toX, clientY: 100, bubbles: true })
+    }
+    await swipe(300, 150)
+    await expect(board(page).getByTestId('postit-body')).toHaveText('Next one')
+    await swipe(150, 300)
+    await expect(board(page).getByTestId('postit-body')).toHaveText('Top')
+  })
+
+  test('it looks taped to the page: a strip of tape, a tilt, and the notes underneath peeking out', async ({ page }) => {
+    server.seed('post_its', [
+      { id: 'p1', body: '<p>Top</p>', color: 'yellow', position: 0 },
+      { id: 'p2', body: '<p>Under</p>', color: 'pink', position: 1 },
+      { id: 'p3', body: '<p>Bottom</p>', color: 'blue', position: 2 },
+    ])
+    await open(page, '/')
+    await expect(board(page).locator('.postit-tape')).toHaveCount(1)
+    await expect(board(page)).toHaveClass(/postit-tilt/)
+    const under = page.locator('.postit-under')
+    await expect(under).toHaveCount(2)
+    await expect(under.nth(0)).toHaveClass(/note-pink/)
+    await expect(under.nth(1)).toHaveClass(/note-blue/)
   })
 
   test('a Post It can be edited in place, including its color', async ({ page }) => {
     server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
-    await board(page).getByRole('button', { name: 'Edit' }).click()
+    await page.getByTestId('postit-actions').getByRole('button', { name: 'Edit' }).click()
     const editor = board(page).getByRole('textbox', { name: 'Post It 1' })
     await expect(editor).toBeFocused()
     await page.keyboard.press('ControlOrMeta+End')
@@ -71,13 +118,13 @@ test.describe('Spec §5 Post It', () => {
     await board(page).getByRole('button', { name: 'Save' }).click()
     await expect(board(page).getByTestId('postit-body')).toHaveText('Buy stamps and envelopes')
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', body: '<p>Buy stamps and envelopes</p>', color: 'green' })
-    await expect(board(page).getByRole('button', { name: 'Edit' })).toBeFocused()
+    await expect(page.getByTestId('postit-actions').getByRole('button', { name: 'Edit' })).toBeFocused()
   })
 
   test('Done takes it down straight away, and Undo puts it back', async ({ page }) => {
     server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
-    await board(page).getByRole('button', { name: 'Done' }).click()
+    await page.getByTestId('postit-actions').getByRole('button', { name: 'Done' }).click()
     await expect(board(page)).toHaveCount(0)
     await expect(page.getByTestId('postit-notice')).toContainText('Post It taken down.')
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: expect.any(String) })
@@ -89,22 +136,27 @@ test.describe('Spec §5 Post It', () => {
   test('Make a task: the first line is the title, the rest the notes, in Undated; the Post It goes', async ({ page }) => {
     server.seed('post_its', [{ id: 'p1', body: '<p>Call the vet</p><p>ask about shots</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
-    await board(page).getByRole('button', { name: 'Make a task' }).click()
+    await page.getByTestId('postit-actions').getByRole('button', { name: 'Make a task' }).click()
     await expect(page.getByTestId('postit-notice')).toContainText('Moved to Tasks, in Undated.')
     await expect(board(page)).toHaveCount(0)
     await expect.poll(() => lastWrite('tasks')).toMatchObject({ title: 'Call the vet', notes: 'ask about shots', due_date: null, status: 'open' })
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: expect.any(String) })
   })
 
-  test('Post Its can be reordered without dragging: tap the handle for Move up / Move down', async ({ page }) => {
+  test('the note shown can be moved earlier or later in the stack', async ({ page }) => {
     server.seed('post_its', [
       { id: 'p1', body: '<p>First</p>', color: 'yellow', position: 0 },
       { id: 'p2', body: '<p>Second</p>', color: 'pink', position: 1 },
     ])
     await open(page, '/')
-    await expect(board(page).getByTestId('postit-body')).toHaveText(['First', 'Second'])
-    await page.getByRole('button', { name: /^Reorder Post It 1/ }).click()
-    await page.getByRole('group', { name: 'Move Post It 1' }).getByRole('button', { name: /Move down/ }).click()
-    await expect(board(page).getByTestId('postit-body')).toHaveText(['Second', 'First'])
+    await expect(board(page).getByTestId('postit-body')).toHaveText('First')
+    await expect(page.getByRole('button', { name: 'Move earlier' })).toBeDisabled()
+    await page.getByRole('button', { name: 'Move later' }).click()
+    // The same note stays in view, now second.
+    await expect(board(page).getByTestId('postit-body')).toHaveText('First')
+    await expect(page.getByTestId('postit-count')).toHaveText('2 of 2')
+    await expect(page.getByTestId('postit-announcement')).toHaveText('Moved to 2 of 2.')
+    await page.getByRole('button', { name: 'Previous' }).click()
+    await expect(board(page).getByTestId('postit-body')).toHaveText('Second')
   })
 })

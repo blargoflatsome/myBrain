@@ -112,7 +112,7 @@ const btn = (on: boolean) => [
 
 <template>
   <div
-    class="flex flex-col overflow-hidden border border-control bg-surface focus-within:border-accent"
+    class="flex flex-col overflow-hidden border border-control bg-surface text-ink focus-within:border-accent"
     :class="fullScreen ? 'fixed inset-0 z-50 rounded-none' : 'rounded-xl'"
     :role="fullScreen ? 'dialog' : undefined"
     :aria-modal="fullScreen ? 'true' : undefined"
