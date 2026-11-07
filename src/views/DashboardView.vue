@@ -248,12 +248,12 @@ const big = 'text-3xl font-bold tabular-nums'
       <!-- Favorite Vault buckets (SPEC §5 The Vault) -->
       <section v-if="stats.favorites.length" class="flex flex-col gap-3" data-testid="dash-favorites">
         <h2 class="text-lg font-semibold">{{ m.favoritesHeading }}</h2>
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <RouterLink
             v-for="f in stats.favorites"
             :key="f.bucket.id"
             :to="{ name: 'vault', query: { bucket: f.bucket.id } }"
-            :class="[card, 'hover:border-accent']"
+            :class="[card, 'min-w-0 hover:border-accent']"
             data-testid="dash-favorite"
           >
             <span class="font-semibold">★ {{ f.bucket.name }}</span>

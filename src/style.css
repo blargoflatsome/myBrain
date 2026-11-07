@@ -51,6 +51,8 @@
 body {
   background: var(--bg);
   color: var(--ink);
+  /* Long things people type (a pasted link, a long word) wrap instead of pushing the page sideways (WCAG 1.4.10). */
+  overflow-wrap: anywhere;
 }
 
 /* SPEC §2 Accessibility (WCAG 2.2 AA). Unlayered, so these win over utility classes. */

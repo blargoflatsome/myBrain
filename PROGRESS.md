@@ -219,6 +219,7 @@ Merged and live.
 - Computer: Previous/Next are arrows beside the stack, shown on mouse over or keyboard focus, none past either end (focus moves to the other arrow); "2 of 5" below. Checked in a screenshot. Tests in `e2e/post-it.spec.ts` (hover and focus reveal, position, keyboard).
 - Then (user): Done became an X in the note's top right corner (delete, with Undo); Edit became a pencil icon bottom left; Make a task removed (store, rules and tests). Checked in screenshots.
 - Then (user): the yesterday block is renamed "How past you did yesterday" and sits left of the Post Its on wide screens (xl, 1280 px+; Dashboard widens to 5xl there); stacked below on narrower screens. Checked in screenshots at 1440 and 1100 px.
+- Phone side-scroll fix (user report): favorite bucket cards and the tilted Post Its underneath pushed the Dashboard sideways. Fixed (grid columns can shrink, cards min-w-0, padding round the stack on phones, `overflow-wrap: anywhere` site-wide). New rule (user): test typed text long; `e2e/a11y.spec.ts` now seeds a long sentence, paragraph and unbroken link for every kind of typed text and names the offending element when a page scrolls sideways. Confirmed the test fails without the fix.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

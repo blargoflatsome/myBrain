@@ -152,7 +152,8 @@ const icon = 'flex size-11 items-center justify-center rounded-full opacity-70 h
     @keydown="onKeydown"
   >
     <!-- On a computer, arrows sit either side of the stack and appear when the mouse is over it (or a key reaches them). -->
-    <div v-if="current" class="group relative w-full max-w-sm" data-testid="postit-carousel">
+    <!-- px-3 on a phone leaves room for the tilted notes underneath, so they never stick out past the screen. -->
+    <div v-if="current" class="group relative w-full max-w-sm px-3 md:px-0" data-testid="postit-carousel">
       <!-- touch-pan-y: the page still scrolls up and down, but a sideways swipe comes to the stack instead of being
          taken by the browser (which would cancel the touch before it ends). -->
       <div
