@@ -24,6 +24,7 @@ const dash = (done: number, total: number) => `${total ? (done / total) * C : 0}
         <svg viewBox="0 0 64 64" class="size-16 shrink-0 -rotate-90" aria-hidden="true">
           <circle cx="32" cy="32" :r="R" fill="none" stroke="currentColor" stroke-width="7" class="text-line" />
           <circle
+            v-if="r.done > 0"
             cx="32"
             cy="32"
             :r="R"
