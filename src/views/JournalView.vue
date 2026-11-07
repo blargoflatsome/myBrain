@@ -5,7 +5,7 @@ import JournalStatsCard from '@/components/JournalStatsCard.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { hasStats } from '@/journal/stats'
+import { hadActivity, hasStats } from '@/journal/stats'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import type { JournalEntryRow, JournalStats } from '@/sync/types'
@@ -41,7 +41,12 @@ watch(
 )
 
 const todayEntry = computed(() => entries.value.find((e) => e.date === today.value))
-const earlier = computed(() => entries.value.filter((e) => e.date < today.value).sort((a, b) => b.date.localeCompare(a.date)))
+// Past entries; a day with no writing and nothing done is not shown (SPEC §5 Journal: entries only when I did something).
+const earlier = computed(() =>
+  entries.value
+    .filter((e) => e.date < today.value && (e.body.trim() || (hasStats(e.stats) && hadActivity(e.stats))))
+    .sort((a, b) => b.date.localeCompare(a.date)),
+)
 
 // ---------- Writing (saved as I type, and when I leave the box) ----------
 const drafts = ref<Record<string, string>>({})

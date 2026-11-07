@@ -127,6 +127,8 @@ Done:
 
 - PR #10; Deploy Preview 10 checked in Chrome (today entry created, writing saves; test text cleared). Fixed a stray dot on empty rings. Prod migrated and verified.
 
+- Clarified (user): an entry is only written for me on a day I did something. No starting-point entry; start date kept on the device; idle days hidden.
+
 Left in step 8: merge.
 
 ## Rules without a test yet

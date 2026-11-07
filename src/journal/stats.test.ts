@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { HabitLogRow, HabitRow, JournalEntryRow, JournalStats } from '@/sync/types'
-import { dayStats, emptyEntry, entryIdFor, missingDays, statsUpdate, type DayData } from './stats'
+import { dayStats, emptyEntry, entryIdFor, hadActivity, missingDays, statsUpdate, type DayData } from './stats'
 
 const TZ = 'America/New_York'
 const UID = '11111111-2222-4333-8444-555555555555'
@@ -167,14 +167,17 @@ describe('Spec §5 Journal: the day’s stats', () => {
 describe('Spec §5 Journal: missed days are logged for me', () => {
   const entry = (date: string, extra: Partial<JournalEntryRow> = {}): JournalEntryRow => ({ ...emptyEntry(UID, date, false), ...extra })
 
-  it('with no entries yet, today starts the journal', () => {
-    expect(missingDays([], '2026-11-10')).toEqual(['2026-11-10'])
+  it('nothing is missing on the day I start journaling, and no earlier days are invented', () => {
+    expect(missingDays([], '2026-11-10', '2026-11-10')).toEqual([])
   })
-  it('each day since my first entry that ended without one is missing; today is never missing', () => {
-    expect(missingDays([entry('2026-11-06'), entry('2026-11-08')], '2026-11-10')).toEqual(['2026-11-07', '2026-11-09'])
+  it('each day since I started that ended without an entry is missing; today is never missing', () => {
+    expect(missingDays([entry('2026-11-08')], '2026-11-10', '2026-11-06')).toEqual(['2026-11-06', '2026-11-07', '2026-11-09'])
+  })
+  it('an entry older than this device’s start date (from another device) moves the start back', () => {
+    expect(missingDays([entry('2026-11-06'), entry('2026-11-08')], '2026-11-10', '2026-11-09')).toEqual(['2026-11-07', '2026-11-09'])
   })
   it('a deleted entry does not count as written', () => {
-    expect(missingDays([entry('2026-11-08'), entry('2026-11-09', { deleted_at: 'x' })], '2026-11-10')).toEqual(['2026-11-09'])
+    expect(missingDays([entry('2026-11-08'), entry('2026-11-09', { deleted_at: 'x' })], '2026-11-10', '2026-11-08')).toEqual(['2026-11-09'])
   })
   it('a day’s entry has the same id on every device', () => {
     expect(entryIdFor(UID, '2026-11-10')).toBe('11111111-2222-4333-8444-202611100000')
@@ -194,5 +197,21 @@ describe('Spec §5 Journal: stats are live until midnight, then frozen', () => {
   })
   it('frozen stats never change', () => {
     expect(statsUpdate(entry('2026-11-09', { stats: stats(2), stats_final: true }), stats(3), '2026-11-10')).toBeNull()
+  })
+})
+
+describe('Spec §5 Journal: an entry is only written for me if I did something that day', () => {
+  const none: JournalStats = { tasks: { done: 0, due: 3 }, habits: { kept: 0, scheduled: 2 }, routines: [{ id: 'r', title: 'R', done: 0, total: 4 }], priority: [{ title: 'Meds', done: false }], streaks: [{ title: 'Stretch', kind: 'reset', days: 5 }], quests: [] }
+  it('a day with nothing completed (even with a streak reset) had no activity', () => {
+    expect(hadActivity(none)).toBe(false)
+  })
+  it.each([
+    ['a task', { tasks: { done: 1, due: 3 } }],
+    ['a habit', { habits: { kept: 1, scheduled: 2 } }],
+    ['a routine step', { routines: [{ id: 'r', title: 'R', done: 1, total: 4 }] }],
+    ['a priority item', { priority: [{ title: 'Meds', done: true }] }],
+    ['a quest', { quests: ['Paint the fence'] }],
+  ])('completing %s counts as activity', (_name, change) => {
+    expect(hadActivity({ ...none, ...change } as JournalStats)).toBe(true)
   })
 })

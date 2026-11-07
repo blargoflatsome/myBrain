@@ -106,14 +106,13 @@ export function emptyEntry(userId: string, date: string, auto: boolean): Journal
 }
 
 /**
- * Days that ended without an entry: each gets an entry written on my behalf (SPEC §5 Journal). Counted from my first
- * entry, so nothing is invented for days before I started journaling. With no entries yet, today starts the journal
- * (an empty entry for today, not marked as written by the app). Today itself is never "missed": it is still open.
+ * Days that ended without an entry: each is a candidate for an entry written on my behalf (SPEC §5 Journal), kept
+ * only if I did something that day (see hadActivity). Counted from when I started journaling (my first entry, or the
+ * day this device first opened the journal), so nothing is invented for earlier days. Today is never "missed".
  */
-export function missingDays(entries: JournalEntryRow[], today: string): string[] {
+export function missingDays(entries: JournalEntryRow[], today: string, start: string): string[] {
   const have = new Set(live(entries).map((e) => e.date))
-  if (!have.size) return [today]
-  const first = [...have].sort()[0]!
+  const first = [start, ...have].sort()[0]!
   const days: string[] = []
   for (let d = first; d < today; d = addDays(d, 1)) if (!have.has(d)) days.push(d)
   return days
@@ -129,4 +128,18 @@ export function statsUpdate(entry: JournalEntryRow, stats: JournalStats, today: 
 
 export function hasStats(stats: JournalEntryRow['stats']): stats is JournalStats {
   return 'tasks' in stats
+}
+
+/**
+ * Whether I did something that day: completed a task, habit, routine step, priority item or quest. A day that ended
+ * with no activity gets no entry written on my behalf (SPEC §5 Journal).
+ */
+export function hadActivity(stats: JournalStats): boolean {
+  return (
+    stats.tasks.done > 0 ||
+    stats.habits.kept > 0 ||
+    stats.routines.some((r) => r.done > 0) ||
+    stats.priority.some((p) => p.done) ||
+    stats.quests.length > 0
+  )
 }

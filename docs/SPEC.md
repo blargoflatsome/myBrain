@@ -168,7 +168,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 ### Journal
 - End-of-day check-in: write how the day went and create new tasks. Tasks added from the journal are due **tomorrow** by default (the date can be changed or cleared) and have source `journal`.
-- One entry per day. Each entry summarizes my activity since the previous entry, and because the app fills in missed days (below), that is the entry's own day.
+- One entry per day. Each entry summarizes that day's activity.
 - The day's stats are added to the entry automatically:
   - tasks done (x of y due that day),
   - habits kept (x of y scheduled that day),
@@ -178,7 +178,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
   - quests completed.
 - Stats are shown visually so they can be read at a glance (progress rings and bars, check marks, small chips), with as little text as possible.
 - Stats stay live while the day is open and freeze at midnight (my timezone). The writing stays editable at any time, including past days.
-- **Missed days are logged for me:** when a day ends without an entry, the app creates one on my behalf with that day's stats and no writing, marked as written by the app. I can open it later and add my own words.
+- **Missed days are logged for me, if I did something:** when a day ends without an entry, the app creates one on my behalf with that day's stats and no writing, marked as written by the app, but only if I completed something that day (a task, habit, routine step, priority item or quest). A day with no activity gets no entry. I can open an entry later and add my own words.
 - **Optional journal reminder:** on the Profile page I can set a time each day to be reminded ("Past you asked that you journal today."), or turn it off (the default). It is not sent if I already wrote something that day, and it respects quiet hours.
 
 ### The Vault
@@ -409,3 +409,4 @@ Before building, walk me through creating each account below. Ask me for the cre
 - 2026-11-06 — Tailwind CSS v4 via the `@tailwindcss/vite` plugin (no `tailwind.config` file). Pinned to 4.3.4 because the 4.3.5 package was missing from npm on this date; unpin later.
 - 2026-11-06 — Playwright runs two projects: desktop Chromium and a Pixel 7 (Android phone) viewport, against the production build.
 - 2026-11-06 — Journal (user's choices): stats cover tasks, habits, routines, priority items, streaks and completed quests, shown visually; stats are live until midnight then frozen; entries always editable; journal tasks due tomorrow; optional daily journal reminder set on Profile (off by default); a missed day gets an entry written by the app with that day's stats. Claude's calls: the app (not the server) writes missed-day entries and freezes stats when it next opens, the same way it records habit misses, so it works offline and the server needs no copy of the stats rules; quests get a `completed_at` (backfilled from `updated_at` for quests already done) so completed quests can be counted by day; the reminder is skipped if the day's entry already has writing.
+- 2026-11-06 — Journal clarification (user): only write an entry on my behalf for a day when I actually did something. Claude's call: "did something" means completing at least one task, habit, routine step, priority item or quest that day; simply opening the app is not recorded, so it does not count. Missed days are counted from my first entry or the day the device first opened the journal (kept on the device), so no entry is written just to mark the start.

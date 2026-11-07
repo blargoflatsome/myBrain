@@ -10,7 +10,7 @@ import type { PriorityTaskRow } from '@/sync/types'
 import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMisses } from '@/habits/rules'
 import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
-import { dayStats, emptyEntry, missingDays, statsUpdate, type DayData } from '@/journal/stats'
+import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
 import type { JournalEntryRow } from '@/sync/types'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
@@ -288,7 +288,7 @@ export const useBrainStore = defineStore('brain', () => {
   }
 
   /**
-   * Write an entry on my behalf for each day that ended without one, keep today's stats current, and freeze the
+   * Write an entry on my behalf for each day that ended without one (if I did something that day), keep today's stats current, and freeze the
    * stats of days that have ended. Only runs once this device has the server's habits and journal, so a fresh
    * device never writes over entries it has not downloaded yet. Safe to run often.
    */
@@ -298,9 +298,16 @@ export const useBrainStore = defineStore('brain', () => {
     const today = todayIn(timeZone, now)
     const data = await dayData()
     const entries = await local.journal_entries.toArray()
-    for (const date of missingDays(entries, today)) {
+    // When this device started journaling, so no entries are invented for days before it.
+    let start = (await local.meta.get('journal_start'))?.value
+    if (!start) {
+      start = today
+      await local.meta.put({ key: 'journal_start', value: start })
+    }
+    for (const date of missingDays(entries, today, start)) {
       const stats = dayStats(data, date, now, timeZone)
-      await e.save('journal_entries', { ...emptyEntry(uid, date, date < today), stats, stats_final: date < today })
+      if (!hadActivity(stats)) continue // a day with nothing done gets no entry
+      await e.save('journal_entries', { ...emptyEntry(uid, date, true), stats, stats_final: true })
     }
     for (const entry of entries) {
       if (entry.deleted_at || entry.stats_final) continue

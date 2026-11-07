@@ -117,6 +117,18 @@ test.describe('Spec §5 Journal', () => {
       .toMatchObject({ body: 'Remembering now: it was a good one.', auto: false, stats_final: true })
   })
 
+  test('a day that ended with nothing done gets no entry', async ({ page }) => {
+    server.seed('habits', [habit('h2', 'Stretch')])
+    server.seed('journal_entries', [
+      { id: 'e8', date: '2026-11-08', body: 'Started journaling.', stats: {}, stats_final: true, auto: false },
+    ])
+    await open(page)
+    await expect(page.getByTestId('journal-entry-2026-11-08')).toBeVisible()
+    await page.clock.runFor(5_000)
+    await expect(page.getByTestId('journal-entry-2026-11-09')).toHaveCount(0)
+    expect(server.written('journal_entries').filter((e) => e.date === '2026-11-09')).toHaveLength(0)
+  })
+
   test('the journal reminder is off by default and can be set on Profile', async ({ page }) => {
     await open(page, '/profile')
     const settings = page.getByTestId('journal-reminder')
