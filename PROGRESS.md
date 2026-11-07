@@ -163,6 +163,7 @@ Merged and live.
 - Habit steps: picked in the editor; completing completes the habit; habit already done is passed (and logged); skipping leaves the habit open; left out on days the habit isn't scheduled; deleting a habit removes its steps.
 - Run anytime: no weekdays/reminder, never missed, progress kept across days, Start again; stats show times finished; journal counts its progress on the day.
 - Tests: `src/routines/habits-anytime.test.ts`, more in `e2e/routines.spec.ts`. Vitest 179, Playwright 232, SQL 11 files.
+- PR #13; Deploy Preview 13 checked in Chrome (run-anytime routine created, run to the end, Start again shown; test routine deleted). Prod migrated and verified. Left: merge.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
