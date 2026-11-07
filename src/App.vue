@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink, RouterView, useRoute } from 'vue-router'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import SyncIndicator from '@/components/SyncIndicator.vue'
 import PriorityReminder from '@/components/PriorityReminder.vue'
 import CaptureDialog from '@/components/CaptureDialog.vue'
@@ -17,10 +17,24 @@ import { deviceTimeZone } from '@/tasks/days'
 import { useWideScreen } from '@/composables/useWideScreen'
 
 const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const brain = useBrainStore()
 const capture = useCaptureStore()
 const searchWindow = useSearchStore()
+
+// SPEC §8 Delete my data: if my data was deleted on another device, clear this device's copy and download again.
+let lastResetCheck = 0
+async function checkDataReset() {
+  const id = auth.user?.id
+  if (!id || !navigator.onLine) return
+  lastResetCheck = Date.now()
+  const { data } = await supabase.from('profiles').select('data_reset_at').eq('user_id', id).maybeSingle()
+  await brain.applyDataReset(data?.data_reset_at)
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && Date.now() - lastResetCheck > 60_000) void checkDataReset()
+})
 
 // Open the signed-in user's on-device store and start syncing; close it on sign-out.
 watch(
@@ -30,6 +44,19 @@ watch(
     brain.start(id, supabaseRemote(supabase))
     // SPEC §5 Tasks: keep the profile's timezone in step with the device, for server-side jobs.
     void supabase.from('profiles').update({ timezone: deviceTimeZone() }).eq('user_id', id).then(() => {})
+    // SPEC §5 Accounts: the phone number is asked for once, right after sign-in (skipped when offline).
+    void checkDataReset()
+    void supabase
+      .from('profiles')
+      .select('phone')
+      .eq('user_id', id)
+      .maybeSingle()
+      .then(async ({ data, error }) => {
+        if (error || !data || data.phone) return
+        await router.isReady()
+        if (route.meta.public || route.name === 'welcome') return
+        void router.replace({ name: 'welcome', query: { next: route.fullPath } })
+      })
   },
   { immediate: true },
 )

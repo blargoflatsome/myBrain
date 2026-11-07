@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 Account page: display name, avatar, streak visibility, and streaks (private habits never shown), then settings.
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { supabaseRemote } from '@/sync/supabaseRemote'
 import { useAuthStore } from '@/stores/auth'
@@ -9,6 +9,9 @@ import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { messages } from '@/messages'
 import NotificationSettings from '@/components/NotificationSettings.vue'
+import EventSettings from '@/components/EventSettings.vue'
+import AvailabilityCard from '@/components/AvailabilityCard.vue'
+import { downloadMyData } from '@/account/export'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
 import { streaks } from '@/habits/rules'
 import { deviceTimeZone } from '@/tasks/days'
@@ -89,6 +92,54 @@ async function deleteAccount() {
   await router.push({ name: 'sign-in', query: { deleted: '1' } })
 }
 
+// ---------- Download my data (SPEC §8) ----------
+const exporting = ref(false)
+const exportError = ref('')
+async function exportData() {
+  exportError.value = ''
+  exporting.value = true
+  try {
+    await downloadMyData(auth.user?.id ?? '')
+  } catch {
+    exportError.value = messages.dataExport.failed
+  } finally {
+    exporting.value = false
+  }
+}
+
+// ---------- Delete my data: start fresh, keeping the account and settings (SPEC §8) ----------
+const confirmWipe = ref<HTMLDialogElement | null>(null)
+const wipeTyped = ref('')
+const wiping = ref(false)
+const wipeError = ref('')
+const wipeDone = ref('')
+// Everything is ticked to start; I untick what I want to keep (SPEC §8).
+type WipePart = keyof typeof messages.deleteData.parts
+const wipeParts = Object.keys(messages.deleteData.parts) as WipePart[]
+const wipeChosen = ref<WipePart[]>([...wipeParts])
+const wipeKept = computed(() => wipeParts.filter((p) => !wipeChosen.value.includes(p)))
+function askWipe() {
+  wipeChosen.value = [...wipeParts]
+  wipeTyped.value = ''
+  wipeError.value = ''
+  wipeDone.value = ''
+  confirmWipe.value?.showModal()
+}
+async function wipeData() {
+  if (wipeTyped.value.trim().toUpperCase() !== messages.deleteData.word || !wipeChosen.value.length) return
+  wiping.value = true
+  wipeError.value = ''
+  const { data, error } = await supabase.rpc('delete_my_data', { parts: wipeChosen.value })
+  wiping.value = false
+  if (error) {
+    wipeError.value = messages.deleteData.failed
+    return
+  }
+  confirmWipe.value?.close()
+  await brain.applyDataReset(typeof data === 'string' ? data : new Date().toISOString())
+  wipeDone.value = messages.deleteData.done
+}
+
 async function signOut() {
   await auth.signOut()
   await router.push({ name: 'sign-in' })
@@ -144,6 +195,32 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
 
     <NotificationSettings />
 
+    <EventSettings />
+
+    <AvailabilityCard />
+
+    <section class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4" data-testid="data-export">
+      <div>
+        <h2 class="text-lg font-semibold">{{ messages.dataExport.heading }}</h2>
+        <p class="text-sm text-muted">{{ messages.dataExport.body }}</p>
+      </div>
+      <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" :disabled="exporting" @click="exportData">
+        {{ exporting ? messages.dataExport.working : messages.dataExport.button }}
+      </button>
+      <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
+      <div class="flex flex-col gap-1 border-t border-line pt-3">
+        <button type="button" class="min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askWipe">
+          {{ messages.deleteData.button }}
+        </button>
+        <p class="text-xs text-muted">{{ messages.deleteData.hint }}</p>
+        <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
+      </div>
+      <p class="flex gap-4 text-sm">
+        <RouterLink to="/privacy" class="text-muted underline">{{ messages.legal.privacy }}</RouterLink>
+        <RouterLink to="/terms" class="text-muted underline">{{ messages.legal.terms }}</RouterLink>
+      </p>
+    </section>
+
     <button type="button" class="min-h-12 rounded-xl border border-line px-4 text-muted" @click="signOut">{{ messages.signOut.button }}</button>
 
     <section class="flex flex-col gap-3 rounded-2xl border border-danger/40 p-4" data-testid="delete-account">
@@ -155,6 +232,50 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
         {{ m.deleteButton }}
       </button>
     </section>
+
+    <dialog
+      ref="confirmWipe"
+      :aria-label="messages.deleteData.heading"
+      class="m-auto max-h-[92dvh] w-[min(28rem,calc(100%-2rem))] rounded-2xl border border-line bg-bg p-5 text-ink backdrop:bg-black/60"
+    >
+      <form class="flex flex-col gap-3" @submit.prevent="wipeData">
+        <h2 class="text-xl font-bold">{{ messages.deleteData.heading }}</h2>
+        <p class="text-sm text-muted">{{ messages.deleteData.removes }}</p>
+        <fieldset class="flex flex-col gap-1" data-testid="wipe-removes">
+          <legend class="sr-only">{{ messages.deleteData.removes }}</legend>
+          <label v-for="p in wipeParts" :key="p" class="flex min-h-9 items-center gap-3 text-sm">
+            <input v-model="wipeChosen" type="checkbox" :value="p" class="size-5 shrink-0 accent-[var(--danger)]">
+            {{ messages.deleteData.parts[p] }}
+          </label>
+          <div class="flex gap-3 text-xs">
+            <button type="button" class="text-muted underline" @click="wipeChosen = [...wipeParts]">{{ messages.deleteData.selectAll }}</button>
+            <button type="button" class="text-muted underline" @click="wipeChosen = []">{{ messages.deleteData.selectNone }}</button>
+          </div>
+        </fieldset>
+        <p class="text-sm text-muted">{{ messages.deleteData.keeps }}</p>
+        <ul class="flex list-disc flex-col gap-0.5 pl-5 text-sm" data-testid="wipe-keeps">
+          <li v-for="p in wipeKept" :key="p">{{ messages.deleteData.parts[p] }}</li>
+          <li v-for="item in messages.deleteData.keepList" :key="item">{{ item }}</li>
+        </ul>
+        <p v-if="!wipeChosen.length" class="text-sm text-danger" role="alert">{{ messages.deleteData.noneTicked }}</p>
+        <p class="text-sm font-medium">{{ messages.deleteData.undo }}</p>
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ messages.deleteData.typeLabel }}
+          <input v-model="wipeTyped" :class="field" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        </label>
+        <p v-if="wipeError" class="text-sm text-danger" role="alert">{{ wipeError }}</p>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="submit"
+            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white disabled:opacity-50"
+            :disabled="wiping || !wipeChosen.length || wipeTyped.trim().toUpperCase() !== messages.deleteData.word"
+          >
+            {{ messages.deleteData.confirm }}
+          </button>
+          <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmWipe?.close()">{{ messages.deleteData.keep }}</button>
+        </div>
+      </form>
+    </dialog>
 
     <dialog
       ref="confirmDelete"

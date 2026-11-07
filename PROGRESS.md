@@ -165,10 +165,21 @@ Merged and live.
 - Tests: `src/routines/habits-anytime.test.ts`, more in `e2e/routines.spec.ts`. Vitest 179, Playwright 232, SQL 11 files.
 - PR #13; Deploy Preview 13 checked in Chrome (run-anytime routine created, run to the end, Start again shown; test routine deleted). Prod migrated and verified. Merged and live.
 
-## Step 10 — Dashboard (branch `step-10-dashboard`)
+## Step 10 — Dashboard (done, PR #14)
 - The Raspberry Pi display moved to an optional later step (user). Spec §5 Dashboard approved.
 - Dashboard is the first page (Tasks at /tasks): period dropdown (This year default, Last 12 months, All time; remembered on the device); habits (every habit's current/best streak, top 3 most missed, longest current, best ever, oldest); journal current/best streak (written entries only); events created/attended/cancelled; tasks done, quests finished, routine completion rates.
 - No database change. Tests: `src/dashboard/stats.test.ts`, `e2e/dashboard.spec.ts`; Tasks tests now open /tasks. Vitest 188, Playwright 244.
+
+## Step 11 — Shared events (in progress, branch `step-11-shared-events`)
+- Spec approved (user's choices: Resend from an own domain; one merge; calendar file for guests; phone unverified).
+- Decided 2026-11-07: buy `myadhdbrain.app` at Porkbun and set up Resend as a **Phase 2 step**. Step 11 queues and logs emails and reaches guests through the one-at-a-time sharing flow.
+- Migrations `20261107000000_shared_events.sql` (+ `..000100_invite_recipients_own.sql`): profile settings (findable, share availability, two cancellation messages), `events.cancelled_at`, `event_invites` + private `invite_recipients` (host never learns who has an account), availability rules/exceptions, `outbound_messages` log/queue + `message_optouts`, server functions (search, invite, answer, guest page, messages, cancel, drop out, free/busy, mark shared), `send_outbound` cron (push/ntfy to app users; email/text wait). Dev migrated; `rls_shared_events.sql` passes.
+- App: one-time phone step; Account: event settings, availability card, Download my data, privacy/terms links; public privacy, terms and guest answer pages (with .ics download); event editor People (name search, email/phone, contacts, free/busy + suggested times); one-at-a-time share flow (email app / messaging app); invitee view (answer, message, drop out); Cancel and notify with personal messages; calendar styles for invites; dashboard event stats use real answers.
+- Tests: `src/events/sharing.test.ts`, `e2e/shared-events.spec.ts`, dashboard stats. Vitest 197, Playwright 270, SQL 12 files.
+- Delete my data (user): `delete_my_data()` (migration `20261107000300_delete_my_data.sql`) deletes the ticked parts (checklist, all ticked to start; Vault back to 3 starters; migration `..000400_delete_my_data_parts.sql`), keeps account, settings, availability, invitations received, events with invitees, message log; `profiles.data_reset_at` makes other devices clear and re-download. `rls_delete_my_data.sql` passes. Not run on the preview (it would wipe real dev data); covered by SQL and browser tests.
+- PR #15; Deploy Preview 15 checked in Chrome on dev: phone step appears; event with a fake guest; real invite link; guest answered Yes on the public page; Cancel and notify listed the guest with the personal message; emails logged as waiting (not sent); test event deleted. Fixed "at all day" wording. Prod migrated and verified. Left: merge.
+
+- Phase 2 gains a tags management page (user).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

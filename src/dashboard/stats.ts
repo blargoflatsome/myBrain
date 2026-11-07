@@ -1,5 +1,6 @@
 // Dashboard stats (SPEC §5 Dashboard): habits, journal, events, tasks, routines and quests, over a chosen period.
 import type {
+  EventInviteRow,
   EventRow,
   HabitLogRow,
   HabitRow,
@@ -103,14 +104,24 @@ export interface EventStats {
 }
 
 /**
- * Events in the period (SPEC §5 Dashboard). Until shared events (step 11): created = events made in the period;
- * attended = my event dates in the period that have passed (a timed event once it has ended, an all-day event once
- * its day is over); cancelled = events deleted in the period.
+ * Events in the period (SPEC §5 Dashboard): created = my events made in the period; attended = dates that have
+ * passed of my own events and of invited events I said Yes to, not counting cancelled ones (a timed event once it
+ * has ended, an all-day event once its day is over); cancelled = events I cancelled for everyone, dropped out of,
+ * or deleted, in the period.
  */
-export function eventStats(events: EventRow[], from: string | null, now: Date, timeZone: string): EventStats {
+export function eventStats(
+  events: EventRow[],
+  from: string | null,
+  now: Date,
+  timeZone: string,
+  invites: EventInviteRow[] = [],
+  me: string | null = null,
+): EventStats {
   const today = todayIn(timeZone, now)
+  const isMine = (e: EventRow) => !me || !e.user_id || e.user_id === me
+  const goingTo = new Set(invites.filter((i) => !i.deleted_at && i.response === 'yes').map((i) => i.event_id))
   let attended = 0
-  for (const e of live(events)) {
+  for (const e of live(events).filter((x) => !x.cancelled_at && (isMine(x) || goingTo.has(x.id)))) {
     const length = daysBetween(e.start_date, e.end_date)
     const first = from && from > e.start_date ? from : e.start_date
     for (let d = first; d <= today; d = addDays(d, 1)) {
@@ -120,10 +131,16 @@ export function eventStats(events: EventRow[], from: string | null, now: Date, t
       if (ended) attended++
     }
   }
+  const mine = events.filter(isMine)
+  const cancelledByMe = mine.filter((e) => {
+    const when = e.cancelled_at ?? e.deleted_at
+    return !!when && inPeriod(localDay(when, timeZone), from, today)
+  }).length
+  const droppedOut = invites.filter((i) => i.response === 'dropped' && i.responded_at && inPeriod(localDay(i.responded_at, timeZone), from, today)).length
   return {
-    created: events.filter((e) => e.created_at && inPeriod(localDay(e.created_at, timeZone), from, today)).length,
+    created: mine.filter((e) => e.created_at && inPeriod(localDay(e.created_at, timeZone), from, today)).length,
     attended,
-    cancelled: events.filter((e) => e.deleted_at && inPeriod(localDay(e.deleted_at, timeZone), from, today)).length,
+    cancelled: cancelledByMe + droppedOut,
   }
 }
 

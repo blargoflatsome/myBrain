@@ -151,3 +151,18 @@ body {
   --fc-classic-event: var(--danger);
   --fc-classic-event-contrast: #ffffff;
 }
+.cal-wrap .cal-pending {
+  --fc-classic-event: transparent;
+  --fc-classic-event-contrast: var(--ink);
+  border: 2px dashed var(--accent) !important;
+}
+.cal-wrap .cal-pending * {
+  color: var(--ink);
+}
+.cal-wrap .cal-maybe {
+  opacity: 0.6;
+}
+.cal-wrap .cal-cancelled {
+  text-decoration: line-through;
+  opacity: 0.5;
+}

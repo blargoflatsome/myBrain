@@ -1,0 +1,132 @@
+// Shared events (SPEC §5 Shared events, Cancelling): calls to the server functions, answer links, and the
+// one-at-a-time sharing flow (messaging app or email app) until automatic texts and emails exist.
+import { supabase } from '@/lib/supabase'
+import type { EventRow, InviteResponse } from '@/sync/types'
+import type { FreeBusyRow } from '@/events/availability'
+
+export interface PersonToInvite {
+  /** Found by name search. */
+  user_id?: string
+  name?: string
+  email?: string
+  phone?: string
+}
+export interface NewInvite {
+  invite_id: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  token: string | null
+}
+/** Someone to reach one at a time, with the message to send them. */
+export interface ShareTarget {
+  inviteId: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  subject: string
+  body: string
+}
+export interface EventPerson {
+  invite_id: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  response: InviteResponse
+  is_me: boolean
+}
+export interface FoundPerson {
+  user_id: string
+  display_name: string | null
+  avatar_url: string | null
+}
+
+async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.rpc(fn, args)
+  if (error) throw new Error(error.message)
+  return data as T
+}
+async function list<T>(fn: string, args: Record<string, unknown>): Promise<T[]> {
+  return (await call<T[] | null>(fn, args)) ?? []
+}
+
+export const searchPeople = (q: string) => list<FoundPerson>('search_people', { q })
+export const invitePeople = (event: string, people: PersonToInvite[]) => list<NewInvite>('invite_people', { event, people })
+export const uninvite = (invite: string) => call<void>('uninvite', { invite })
+export const newInviteLink = (invite: string) => call<string>('new_invite_link', { invite })
+export const respondToInvite = (invite: string, answer: 'yes' | 'maybe' | 'no') => call<void>('respond_to_invite', { invite, answer })
+export const eventPeople = (event: string) => list<EventPerson>('event_people', { event })
+export interface Recipient {
+  invite_id: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  body: string
+}
+export const messageEvent = (event: string, audience: 'host' | 'everyone', message: string) => list<Recipient>('message_event', { event, audience, message })
+export const cancelEvent = (event: string) => list<Recipient>('cancel_event', { event })
+export const dropOut = (event: string) => call<void>('drop_out', { event })
+export const markShared = (invites: string[], kind: 'invite' | 'message' | 'cancel') => call<void>('mark_shared', { invites, msg_kind: kind })
+export const freeBusy = (people: string[]) => list<FreeBusyRow>('free_busy', { people })
+
+export interface GuestInvite {
+  host_name: string | null
+  guest_name: string | null
+  title: string
+  notes: string | null
+  start_date: string
+  start_time: string | null
+  end_date: string
+  end_time: string | null
+  repeat: EventRow['repeat']
+  timezone: string
+  response: InviteResponse
+  cancelled: boolean
+}
+export async function guestInvite(invite: string, token: string): Promise<GuestInvite | null> {
+  const rows = await list<GuestInvite>('guest_invite', { invite, token })
+  return rows[0] ?? null
+}
+export const guestRespond = (invite: string, token: string, answer: 'yes' | 'maybe' | 'no') => call<void>('guest_respond', { invite, token, answer })
+export const guestMessage = (invite: string, token: string, message: string) => call<void>('guest_message', { invite, token, message })
+export const guestOptOut = (invite: string, token: string) => call<void>('guest_opt_out', { invite, token })
+
+/** A guest's private answer link. */
+export function inviteLink(inviteId: string, token: string, origin: string = window.location.origin): string {
+  return `${origin}/rsvp/${inviteId}/${token}`
+}
+
+/** When an event is, in words, e.g. "Friday, November 20 at 7:00 pm". */
+export function whenText(e: Pick<EventRow, 'start_date' | 'start_time'>): string {
+  const [y, m, d] = e.start_date.split('-').map(Number)
+  const date = new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })
+  if (!e.start_time) return date
+  const [hh, mm] = e.start_time.split(':').map(Number)
+  const time = `${hh! % 12 || 12}:${String(mm).padStart(2, '0')} ${hh! < 12 ? 'am' : 'pm'}`
+  return `${date} at ${time}`
+}
+
+/** The invitation I send a guest myself (written from me to them, not in the "past you" voice). */
+export function inviteMessage(host: string, guest: string | null, e: Pick<EventRow, 'title' | 'start_date' | 'start_time'>, link: string): { subject: string; body: string } {
+  return {
+    subject: `${host} invited you to ${e.title}`,
+    body: `Hi ${guest?.trim() || 'there'}! ${host} invited you to ${e.title} on ${whenText(e)}. Can you make it? Answer here: ${link}`,
+  }
+}
+
+/** Open my messaging app (texts) or email app with one person's message ready. */
+export function shareHref(t: Pick<ShareTarget, 'email' | 'phone' | 'subject' | 'body'>): string | null {
+  if (t.phone) return `sms:${t.phone.replace(/[^\d+]/g, '')}?body=${encodeURIComponent(t.body)}`
+  if (t.email) return `mailto:${encodeURIComponent(t.email)}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}`
+  return null
+}
+
+/** Pick people from my phone's contacts, where the browser allows it (Chrome on Android). */
+export const canPickContacts = () => typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window
+export async function pickContacts(): Promise<PersonToInvite[]> {
+  const contacts = (navigator as unknown as { contacts: { select(p: string[], o: { multiple: boolean }): Promise<{ name?: string[]; email?: string[]; tel?: string[] }[]> } }).contacts
+  const picked = await contacts.select(['name', 'email', 'tel'], { multiple: true })
+  return picked
+    .map((c) => ({ name: c.name?.[0], email: c.email?.[0], phone: c.email?.[0] ? undefined : c.tel?.[0] }))
+    .filter((p) => p.email || p.phone)
+}

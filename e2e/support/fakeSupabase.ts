@@ -36,6 +36,9 @@ export class FakeSupabase {
     events: new Map(),
     tags: new Map(),
     item_tags: new Map(),
+    event_invites: new Map(),
+    availability_rules: new Map(),
+    availability_exceptions: new Map(),
     profiles: new Map(),
   }
   readonly writes: { table: string; row: Row }[] = []
@@ -54,6 +57,12 @@ export class FakeSupabase {
       bio: null,
       avatar_url: null,
       streak_visibility: 'private',
+      phone: '+1 555 010 0100',
+      event_notify_method: 'email',
+      findable: true,
+      share_availability: true,
+      cancel_dropout_message: "Hi {{name}}, I'm sorry, but I can't make it to {{event}} on {{date}} at {{time}}. Sorry for the short notice!",
+      cancel_event_message: "Hi {{name}}, I'm sorry, but I have to cancel {{event}} on {{date}} at {{time}}. Sorry for the short notice!",
       timezone: 'UTC',
       deleted_at: null,
     })
@@ -120,7 +129,11 @@ export class FakeSupabase {
     if (req.method() === 'POST' && url.pathname.includes('/rpc/')) {
       if (this.failRpc) return { status: 503, json: { message: 'unavailable' } }
       this.rpcCalls.push(table)
-      return { status: 204, body: '' }
+      const args = (req.postDataJSON() ?? {}) as Record<string, unknown>
+      this.rpcArgs.push({ name: table, args })
+      const result = this.rpcResults[table]
+      if (result === undefined) return { status: 204, body: '' }
+      return { json: typeof result === 'function' ? (result as (a: Record<string, unknown>) => unknown)(args) : result }
     }
     if (req.method() === 'POST') {
       const body = req.postDataJSON() as Row
@@ -136,6 +149,20 @@ export class FakeSupabase {
   rpcCalls: string[] = []
   /** Make database function calls fail, as if the server could not be reached. */
   failRpc = false
+  /** Each database function call with its arguments. */
+  rpcArgs: { name: string; args: Record<string, unknown> }[] = []
+  /** What a database function returns: a value, or a function of its arguments. Unset = no content. */
+  rpcResults: Record<string, unknown> = {}
+
+  /** Remove every row from a table, as the server would after a delete. */
+  clear(table: string) {
+    this.tables[table]?.clear()
+  }
+
+  /** Change the stored profile, as another device would. */
+  setProfile(changes: Record<string, unknown>) {
+    this.store('profiles', { ...this.profile, ...changes })
+  }
 
   written(table: string) {
     return this.writes.filter((w) => w.table === table).map((w) => w.row)

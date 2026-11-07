@@ -13,13 +13,18 @@ import '@fullcalendar/vue3/themes/classic/theme.css'
 import '@fullcalendar/vue3/themes/classic/palette.css'
 import type { CalendarOptions, DateClickInfo, DatesSetInfo, EventClickInfo } from '@fullcalendar/vue3'
 import EventEditor from '@/components/EventEditor.vue'
+import InvitedEventDialog from '@/components/InvitedEventDialog.vue'
+import CancelEventDialog from '@/components/CancelEventDialog.vue'
+import ShareFlow from '@/components/ShareFlow.vue'
+import { invitePeople, inviteLink, inviteMessage, type PersonToInvite, type ShareTarget } from '@/events/sharing'
+import { supabase } from '@/lib/supabase'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { calendarItems, newEvent, type CalendarItem } from '@/events/rules'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
-import type { EventRow } from '@/sync/types'
+import type { EventInviteRow, EventRow } from '@/sync/types'
 
 const brain = useBrainStore()
 const route = useRoute()
@@ -45,7 +50,13 @@ const items = useLiveQuery<CalendarItem[]>(
     const db = brain.db
     if (!db) return []
     return calendarItems(
-      { tasks: await db.tasks.toArray(), priorityTasks: await db.priority_tasks.toArray(), events: await db.events.toArray() },
+      {
+        tasks: await db.tasks.toArray(),
+        priorityTasks: await db.priority_tasks.toArray(),
+        events: await db.events.toArray(),
+        invites: await db.event_invites.toArray(),
+        me: brain.userId,
+      },
       range.value.from,
       range.value.to,
     )
@@ -101,15 +112,70 @@ function startNew(date: string, time: string | null) {
   isNew.value = true
   editing.value = newEvent(brain.userId ?? '', date, time)
 }
+// Invitations I received (SPEC §5): my own invite rows, read-only.
+const myInvites = useLiveQuery<EventInviteRow[]>(async () => (brain.db ? brain.db.event_invites.toArray() : []), [], [() => brain.db])
+const viewing = ref<EventRow | null>(null)
+const viewingInvite = computed(() => (viewing.value ? (myInvites.value.find((i) => i.event_id === viewing.value!.id && !i.deleted_at) ?? null) : null))
+
 function openEvent(id: string) {
   const e = events.value.find((x) => x.id === id)
   if (!e) return
+  // Someone else's event I was invited to opens read-only; my own opens the editor.
+  if (e.user_id && brain.userId && e.user_id !== brain.userId) {
+    viewing.value = e
+    return
+  }
   isNew.value = false
   editing.value = e
 }
-async function saveEvent(e: EventRow) {
+
+// ---------- Inviting, and reaching guests one at a time (SPEC §5 Shared events) ----------
+const inviteError = ref('')
+const shareTargets = ref<ShareTarget[]>([])
+const shareKind = ref<'invite' | 'cancel'>('invite')
+async function myName() {
+  const { data } = await supabase.from('profiles').select('display_name').eq('user_id', brain.userId ?? '').maybeSingle()
+  return data?.display_name || 'A friend'
+}
+async function saveEvent(e: EventRow, people: PersonToInvite[] = []) {
   await brain.saveEvent(e)
   editing.value = null
+  inviteError.value = ''
+  if (!people.length) return
+  if (!brain.online) return (inviteError.value = messages.invites.offline)
+  try {
+    await brain.refresh(['events'])
+    const created = await invitePeople(e.id, people)
+    const host = await myName()
+    shareKind.value = 'invite'
+    shareTargets.value = created
+      .filter((c) => c.token && (c.email || c.phone))
+      .map((c) => ({ inviteId: c.invite_id, name: c.name, email: c.email, phone: c.phone, ...inviteMessage(host, c.name, e, inviteLink(c.invite_id, c.token!)) }))
+    await brain.refresh(['event_invites'])
+  } catch (err) {
+    inviteError.value = messages.invites.failed(err instanceof Error ? err.message : String(err))
+  }
+}
+
+// ---------- Cancel and notify / drop out ----------
+const cancelling = ref<EventRow | null>(null)
+const cancelMode = ref<'cancel' | 'drop'>('cancel')
+function startCancel(e: EventRow) {
+  editing.value = null
+  cancelMode.value = 'cancel'
+  cancelling.value = e
+}
+function startDropOut(e: EventRow) {
+  viewing.value = null
+  cancelMode.value = 'drop'
+  cancelling.value = e
+}
+function cancelled(targets: ShareTarget[]) {
+  cancelling.value = null
+  if (targets.length) {
+    shareKind.value = 'cancel'
+    shareTargets.value = targets
+  }
 }
 async function deleteEvent(e: EventRow) {
   await brain.deleteEvent(e.id)
@@ -169,6 +235,10 @@ onMounted(() => {
     </div>
     <p v-if="emptyDay" class="text-muted" data-testid="calendar-empty">{{ m.emptyDay }}</p>
 
-    <EventEditor :event="editing" :is-new="isNew" @save="saveEvent" @delete="deleteEvent" @close="editing = null" />
+    <p v-if="inviteError" class="text-sm text-danger" role="alert">{{ inviteError }}</p>
+    <EventEditor :event="editing" :is-new="isNew" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="editing = null" />
+    <InvitedEventDialog :event="viewing" :invite="viewingInvite" @drop-out="startDropOut" @close="viewing = null" />
+    <CancelEventDialog :event="cancelling" :mode="cancelMode" @done="cancelled" @close="cancelling = null" />
+    <ShareFlow v-if="shareTargets.length" :targets="shareTargets" :kind="shareKind" @done="shareTargets = []" />
   </main>
 </template>
