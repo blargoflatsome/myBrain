@@ -80,6 +80,18 @@ test.describe('Spec §5 Journal', () => {
       .toMatchObject({ body: '<p>Long day, but I got the rent paid.</p>', auto: false, stats_final: false, stats: { tasks: { done: 0, due: 0 } } })
   })
 
+  test('clearing all the writing saves the entry as empty', async ({ page }) => {
+    await open(page)
+    const editor = page.getByRole('textbox', { name: 'How the day went' })
+    await editor.click()
+    await page.keyboard.type('Preview check')
+    await expect.poll(() => server.written('journal_entries').at(-1)?.body).toBe('<p>Preview check</p>')
+    await editor.click()
+    await page.keyboard.press('ControlOrMeta+a')
+    await page.keyboard.press('Delete')
+    await expect.poll(() => server.written('journal_entries').at(-1)?.body).toBe('')
+  })
+
   test('the writing can be formatted: bold, lists, checklists and links', async ({ page }) => {
     await open(page)
     const today = page.getByTestId('journal-today')
