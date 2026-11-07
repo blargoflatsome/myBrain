@@ -71,18 +71,18 @@ body {
   list-style: none;
   padding-left: 0.25em;
 }
-.rich li[data-type='taskItem'] {
+.rich ul[data-type='taskList'] > li {
   display: flex;
   gap: 0.5em;
   align-items: flex-start;
 }
-.rich li[data-type='taskItem'] > label {
+.rich ul[data-type='taskList'] > li > label {
   margin-top: 0.3em;
 }
-.rich li[data-type='taskItem'] > div {
+.rich ul[data-type='taskList'] > li > div {
   flex: 1;
 }
-.rich li[data-type='taskItem'][data-checked='true'] > div {
+.rich ul[data-type='taskList'] > li[data-checked='true'] > div {
   text-decoration: line-through;
   color: var(--muted);
 }

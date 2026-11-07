@@ -103,7 +103,7 @@ function onKey(event: KeyboardEvent) {
 }
 
 const btn = (on: boolean) => [
-  'flex min-h-10 min-w-10 items-center justify-center rounded-lg px-2 text-sm',
+  'flex min-h-10 min-w-9 items-center justify-center rounded-lg px-1.5 text-sm',
   on ? 'bg-accent text-accent-ink' : 'text-ink hover:bg-bg',
 ]
 </script>
@@ -120,72 +120,82 @@ const btn = (on: boolean) => [
     <!-- Toolbar buttons never take focus from the writing, so the phone keyboard stays open and typing continues. -->
     <div
       v-if="editor"
-      class="flex flex-wrap items-center gap-1 border-b border-line p-1"
+      class="flex items-center gap-1 border-b border-line p-1"
       role="toolbar"
       :aria-label="m.toolbar"
       @mousedown.prevent
     >
+      <!-- Formatting buttons scroll sideways on narrow screens; Full screen stays pinned on the right. -->
+      <div class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [&>button]:shrink-0">
+        <button
+          v-for="mk in marks"
+          :key="mk.key"
+          type="button"
+          :class="[btn(editor.isActive(mk.key)), mk.cls]"
+          :aria-label="mk.label"
+          :aria-pressed="editor.isActive(mk.key)"
+          @click="toggleMark(mk.key)"
+        >
+          {{ mk.text }}
+        </button>
+        <button
+          type="button"
+          :class="btn(editor.isActive('heading', { level: 2 }))"
+          :aria-label="m.heading"
+          :aria-pressed="editor.isActive('heading', { level: 2 })"
+          @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
+        >
+          H
+        </button>
+        <button
+          type="button"
+          :class="btn(editor.isActive('bulletList'))"
+          :aria-label="m.bullets"
+          :aria-pressed="editor.isActive('bulletList')"
+          @click="editor.chain().focus().toggleBulletList().run()"
+        >
+          •
+        </button>
+        <button
+          type="button"
+          :class="btn(editor.isActive('orderedList'))"
+          :aria-label="m.numbers"
+          :aria-pressed="editor.isActive('orderedList')"
+          @click="editor.chain().focus().toggleOrderedList().run()"
+        >
+          1.
+        </button>
+        <button
+          type="button"
+          :class="btn(editor.isActive('taskList'))"
+          :aria-label="m.checklist"
+          :aria-pressed="editor.isActive('taskList')"
+          @click="editor.chain().focus().toggleTaskList().run()"
+        >
+          ☑︎
+        </button>
+        <button
+          type="button"
+          :class="btn(editor.isActive('blockquote'))"
+          :aria-label="m.quote"
+          :aria-pressed="editor.isActive('blockquote')"
+          @click="editor.chain().focus().toggleBlockquote().run()"
+        >
+          ❝
+        </button>
+        <button type="button" :class="btn(editor.isActive('link'))" :aria-label="m.link" :aria-pressed="editor.isActive('link')" @click="openLink">
+          🔗
+        </button>
+      </div>
       <button
-        v-for="mk in marks"
-        :key="mk.key"
         type="button"
-        :class="[btn(editor.isActive(mk.key)), mk.cls]"
-        :aria-label="mk.label"
-        :aria-pressed="editor.isActive(mk.key)"
-        @click="toggleMark(mk.key)"
+        :class="[btn(false), 'shrink-0 border-l border-line', fullScreen ? 'px-3 font-semibold' : 'text-lg']"
+        :aria-label="fullScreen ? m.exitFullScreen : m.fullScreen"
+        :title="fullScreen ? m.exitFullScreen : m.fullScreen"
+        :aria-pressed="fullScreen"
+        @click="toggleFullScreen"
       >
-        {{ mk.text }}
-      </button>
-      <button
-        type="button"
-        :class="btn(editor.isActive('heading', { level: 2 }))"
-        :aria-label="m.heading"
-        :aria-pressed="editor.isActive('heading', { level: 2 })"
-        @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
-      >
-        H
-      </button>
-      <button
-        type="button"
-        :class="btn(editor.isActive('bulletList'))"
-        :aria-label="m.bullets"
-        :aria-pressed="editor.isActive('bulletList')"
-        @click="editor.chain().focus().toggleBulletList().run()"
-      >
-        •
-      </button>
-      <button
-        type="button"
-        :class="btn(editor.isActive('orderedList'))"
-        :aria-label="m.numbers"
-        :aria-pressed="editor.isActive('orderedList')"
-        @click="editor.chain().focus().toggleOrderedList().run()"
-      >
-        1.
-      </button>
-      <button
-        type="button"
-        :class="btn(editor.isActive('taskList'))"
-        :aria-label="m.checklist"
-        :aria-pressed="editor.isActive('taskList')"
-        @click="editor.chain().focus().toggleTaskList().run()"
-      >
-        ☑
-      </button>
-      <button
-        type="button"
-        :class="btn(editor.isActive('blockquote'))"
-        :aria-label="m.quote"
-        :aria-pressed="editor.isActive('blockquote')"
-        @click="editor.chain().focus().toggleBlockquote().run()"
-      >
-        ❝
-      </button>
-      <button type="button" :class="btn(editor.isActive('link'))" :aria-label="m.link" :aria-pressed="editor.isActive('link')" @click="openLink">
-        🔗
-      </button>
-      <button type="button" :class="[btn(false), 'ml-auto']" :aria-pressed="fullScreen" @click="toggleFullScreen">
-        {{ fullScreen ? m.exitFullScreen : m.fullScreen }}
+        {{ fullScreen ? m.exitFullScreen : '⤢' }}
       </button>
     </div>
 
