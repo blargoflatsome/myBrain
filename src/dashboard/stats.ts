@@ -5,6 +5,7 @@ import type {
   HabitLogRow,
   HabitRow,
   JournalEntryRow,
+  JournalStats,
   QuestRow,
   RoutineRow,
   RoutineRunRow,
@@ -217,4 +218,27 @@ export function routineSummaries(
     const stats = routineStats(counted, steps, runs, logs, today, habits)
     return { routine, anytime: false, completed: stats.completed, possible: stats.possible }
   })
+}
+
+// ---------- Yesterday ----------
+export interface YesterdaySummary {
+  habits: { kept: number; scheduled: number }
+  tasks: { done: number; due: number }
+  routines: { finished: number; total: number; list: { id: string; title: string; done: number; total: number }[] }
+  /** Nothing was scheduled or due yesterday. */
+  empty: boolean
+}
+
+/**
+ * SPEC §5 Dashboard "Do better today than past you did yesterday": yesterday's habits, tasks and routines, from the
+ * same day stats the Journal records. A routine counts as finished when every step was done.
+ */
+export function yesterdaySummary(stats: JournalStats): YesterdaySummary {
+  const list = stats.routines.filter((r) => r.total > 0)
+  return {
+    habits: { ...stats.habits },
+    tasks: { ...stats.tasks },
+    routines: { finished: list.filter((r) => r.done >= r.total).length, total: list.length, list },
+    empty: !stats.habits.scheduled && !stats.tasks.due && !list.length,
+  }
 }
