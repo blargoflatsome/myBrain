@@ -150,7 +150,9 @@ Done:
 - Fixed while testing: typing quickly in the Vault's add box could lose an item.
 - Tests: `src/step9.rules.test.ts`, `e2e/step9.spec.ts`. Vitest 172, Playwright 216, SQL 10 files.
 
-Left in step 9: preview check, prod migration, merge.
+- PR #12; Deploy Preview 12 checked in Chrome (vault add, check off, Clear checked; event created, found by search, opened and deleted; test data deleted). Prod migrated and verified.
+
+Left in step 9: merge.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
