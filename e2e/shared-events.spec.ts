@@ -292,9 +292,33 @@ test.describe('Spec §8: before anyone else uses the app', () => {
     await confirm.click()
     await expect(page.getByRole('status').filter({ hasText: 'Past you left a clean slate.' })).toBeVisible()
     expect(rpc('delete_my_data')).toHaveLength(1)
+    expect(rpc('delete_my_data')[0]!.args).toEqual({
+      parts: ['tasks', 'inbox', 'quests', 'vault', 'journal', 'habits', 'routines', 'priority_tasks', 'tags', 'events'],
+    })
     await expect(page).toHaveURL(/\/account$/)
     await page.goto('/tasks')
     await expect(page.getByRole('button', { name: /^Pay rent/ })).toHaveCount(0)
+  })
+
+  test('Delete my data is a checklist: anything unticked, like tags, is kept', async ({ page }) => {
+    server.rpcResults.delete_my_data = '2026-11-10T14:05:00.000Z'
+    await open(page, '/account')
+    await page.getByRole('button', { name: 'Delete my data' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Delete your data and start fresh?' })
+    await expect(dialog.getByRole('checkbox')).toHaveCount(10)
+    await dialog.getByRole('button', { name: 'Untick all', exact: true }).click()
+    await expect(dialog.getByRole('alert')).toHaveText('Tick at least one thing to delete.')
+    await dialog.getByLabel('Type DELETE to confirm').fill('DELETE')
+    await expect(dialog.getByRole('button', { name: 'Delete my data' })).toBeDisabled()
+    await dialog.getByRole('button', { name: 'Tick all', exact: true }).click()
+    await dialog.getByRole('checkbox', { name: 'Tags' }).uncheck()
+    await dialog.getByRole('checkbox', { name: /^Journal entries/ }).uncheck()
+    await expect(dialog.getByTestId('wipe-keeps')).toContainText('Tags')
+    await expect(dialog.getByTestId('wipe-keeps')).toContainText('Journal entries')
+    await dialog.getByRole('button', { name: 'Delete my data' }).click()
+    await expect.poll(() => rpc('delete_my_data')[0]?.args).toEqual({
+      parts: ['tasks', 'inbox', 'quests', 'vault', 'habits', 'routines', 'priority_tasks', 'events'],
+    })
   })
 
   test('Keep my data deletes nothing', async ({ page }) => {

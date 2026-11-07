@@ -113,17 +113,23 @@ const wipeTyped = ref('')
 const wiping = ref(false)
 const wipeError = ref('')
 const wipeDone = ref('')
+// Everything is ticked to start; I untick what I want to keep (SPEC §8).
+type WipePart = keyof typeof messages.deleteData.parts
+const wipeParts = Object.keys(messages.deleteData.parts) as WipePart[]
+const wipeChosen = ref<WipePart[]>([...wipeParts])
+const wipeKept = computed(() => wipeParts.filter((p) => !wipeChosen.value.includes(p)))
 function askWipe() {
+  wipeChosen.value = [...wipeParts]
   wipeTyped.value = ''
   wipeError.value = ''
   wipeDone.value = ''
   confirmWipe.value?.showModal()
 }
 async function wipeData() {
-  if (wipeTyped.value.trim().toUpperCase() !== messages.deleteData.word) return
+  if (wipeTyped.value.trim().toUpperCase() !== messages.deleteData.word || !wipeChosen.value.length) return
   wiping.value = true
   wipeError.value = ''
-  const { data, error } = await supabase.rpc('delete_my_data')
+  const { data, error } = await supabase.rpc('delete_my_data', { parts: wipeChosen.value })
   wiping.value = false
   if (error) {
     wipeError.value = messages.deleteData.failed
@@ -235,13 +241,23 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
       <form class="flex flex-col gap-3" @submit.prevent="wipeData">
         <h2 class="text-xl font-bold">{{ messages.deleteData.heading }}</h2>
         <p class="text-sm text-muted">{{ messages.deleteData.removes }}</p>
-        <ul class="flex list-disc flex-col gap-0.5 pl-5 text-sm" data-testid="wipe-removes">
-          <li v-for="item in messages.deleteData.removeList" :key="item">{{ item }}</li>
-        </ul>
+        <fieldset class="flex flex-col gap-1" data-testid="wipe-removes">
+          <legend class="sr-only">{{ messages.deleteData.removes }}</legend>
+          <label v-for="p in wipeParts" :key="p" class="flex min-h-9 items-center gap-3 text-sm">
+            <input v-model="wipeChosen" type="checkbox" :value="p" class="size-5 shrink-0 accent-[var(--danger)]">
+            {{ messages.deleteData.parts[p] }}
+          </label>
+          <div class="flex gap-3 text-xs">
+            <button type="button" class="text-muted underline" @click="wipeChosen = [...wipeParts]">{{ messages.deleteData.selectAll }}</button>
+            <button type="button" class="text-muted underline" @click="wipeChosen = []">{{ messages.deleteData.selectNone }}</button>
+          </div>
+        </fieldset>
         <p class="text-sm text-muted">{{ messages.deleteData.keeps }}</p>
         <ul class="flex list-disc flex-col gap-0.5 pl-5 text-sm" data-testid="wipe-keeps">
+          <li v-for="p in wipeKept" :key="p">{{ messages.deleteData.parts[p] }}</li>
           <li v-for="item in messages.deleteData.keepList" :key="item">{{ item }}</li>
         </ul>
+        <p v-if="!wipeChosen.length" class="text-sm text-danger" role="alert">{{ messages.deleteData.noneTicked }}</p>
         <p class="text-sm font-medium">{{ messages.deleteData.undo }}</p>
         <label class="flex flex-col gap-1 text-sm text-muted">
           {{ messages.deleteData.typeLabel }}
@@ -252,7 +268,7 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
           <button
             type="submit"
             class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white disabled:opacity-50"
-            :disabled="wiping || wipeTyped.trim().toUpperCase() !== messages.deleteData.word"
+            :disabled="wiping || !wipeChosen.length || wipeTyped.trim().toUpperCase() !== messages.deleteData.word"
           >
             {{ messages.deleteData.confirm }}
           </button>

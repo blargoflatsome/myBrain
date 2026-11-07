@@ -81,6 +81,34 @@ begin
   exception when insufficient_privilege then null;
   end;
 
+  -- A checklist: Bob deletes only his tasks and habits, and keeps his tags (minus the links to deleted tasks).
+  execute 'set local role authenticated';
+  perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
+  perform public.delete_my_data(array['tasks', 'habits']);
+  begin
+    perform public.delete_my_data(array[]::text[]);
+    raise exception 'FAIL: Spec §8 Delete my data: something must be ticked';
+  exception when invalid_parameter_value then null;
+  end;
+  begin
+    perform public.delete_my_data(array['profiles']);
+    raise exception 'FAIL: Spec §8 Delete my data: only the listed parts can be deleted';
+  exception when invalid_parameter_value then null;
+  end;
+  execute 'reset role';
+  select count(*) into n from public.tasks where user_id = bob;
+  if n <> 0 then raise exception 'FAIL: Spec §8 Delete my data: ticked parts are deleted (tasks)'; end if;
+  select count(*) into n from public.habits where user_id = bob;
+  if n <> 0 then raise exception 'FAIL: Spec §8 Delete my data: ticked parts are deleted (habits)'; end if;
+  select count(*) into n from public.reminder_state where user_id = bob and kind = 'habit';
+  if n <> 0 then raise exception 'FAIL: Spec §8 Delete my data: a deleted habit''s reminder state goes too'; end if;
+  foreach t in array array['tags', 'journal_entries', 'quests', 'inbox', 'routines', 'priority_tasks'] loop
+    execute format('select count(*) from public.%I where user_id = $1', t) into n using bob;
+    if n = 0 then raise exception 'FAIL: Spec §8 Delete my data: unticked parts are kept (% emptied)', t; end if;
+  end loop;
+  select count(*) into n from public.item_tags where user_id = bob and item_type = 'task';
+  if n <> 0 then raise exception 'FAIL: Spec §8 Delete my data: tags kept are taken off deleted items'; end if;
+
   raise exception 'PASS: all delete-my-data checks passed (test data rolled back)';
 end
 $$;
