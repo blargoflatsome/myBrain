@@ -230,7 +230,7 @@ export interface YesterdaySummary {
 }
 
 /**
- * SPEC §5 Dashboard "Do better today than past you did yesterday": yesterday's habits, tasks and routines, from the
+ * SPEC §5 Dashboard "How past you did yesterday": yesterday's habits, tasks and routines, from the
  * same day stats the Journal records. A routine counts as finished when every step was done.
  */
 export function yesterdaySummary(stats: JournalStats): YesterdaySummary {

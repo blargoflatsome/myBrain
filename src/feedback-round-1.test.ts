@@ -94,7 +94,7 @@ describe('Spec §5 The Vault: favorite buckets on the Dashboard', () => {
   })
 })
 
-describe('Spec §5 Dashboard: Do better today than past you did yesterday', () => {
+describe('Spec §5 Dashboard: How past you did yesterday', () => {
   it('counts habits, tasks and routines finished (every step done), and lists each routine', () => {
     const y = yesterdaySummary({
       tasks: { done: 2, due: 5 },

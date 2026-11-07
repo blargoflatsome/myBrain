@@ -539,7 +539,7 @@ export const messages = {
   dashboard: {
     heading: 'Dashboard',
     intro: 'Everything past you has been up to.',
-    yesterdayHeading: 'Do better today than past you did yesterday',
+    yesterdayHeading: 'How past you did yesterday',
     yesterdayHabits: 'Habits kept',
     yesterdayTasks: 'Tasks done',
     yesterdayRoutines: 'Routines finished',

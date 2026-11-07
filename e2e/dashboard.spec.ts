@@ -34,7 +34,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Dashboard', () => {
-  test('"Do better today than past you did yesterday" is the first section: habits, routines and tasks from yesterday', async ({ page }) => {
+  test('"How past you did yesterday" is the first section without Post Its: habits, routines and tasks from yesterday', async ({ page }) => {
     const Y = '2026-11-09'
     server.seed('tasks', [
       { id: 't1', title: 'Pay rent', due_date: Y, status: 'done', completed_at: `${Y}T18:00:00Z`, priority: 1, source: 'manual' },
@@ -62,12 +62,42 @@ test.describe('Spec §5 Dashboard', () => {
     ])
     await open(page)
     const section = page.getByTestId('dash-yesterday')
-    await expect(section.getByRole('heading', { name: 'Do better today than past you did yesterday' })).toBeVisible()
+    await expect(section.getByRole('heading', { name: 'How past you did yesterday' })).toBeVisible()
     await expect(page.locator('main section').first()).toHaveAttribute('data-testid', 'dash-yesterday')
     await expect(section.getByTestId('dash-yesterday-habits')).toHaveText('1 of 2')
     await expect(section.getByTestId('dash-yesterday-routines')).toHaveText('1 of 2')
     await expect(section.getByTestId('dash-yesterday-tasks')).toHaveText('1 of 2')
     await expect(section.getByTestId('dash-yesterday-routine')).toHaveText(['✓ Morning 2/2', 'Night 1/3'])
+  })
+
+  test('on a wide screen, How past you did yesterday sits to the left of the Post Its; on a narrower one, below them', async ({ page }, info) => {
+    test.skip(info.project.name === 'android-phone', 'computer widths')
+    server.seed('post_its', [{ id: 'p1', body: '<p>Call the vet</p>', color: 'yellow', position: 0 }])
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await open(page)
+    const yesterday = page.getByTestId('dash-yesterday')
+    const notes = page.getByTestId('dash-postits')
+    await expect(notes).toBeVisible()
+    let y = (await yesterday.boundingBox())!
+    let n = (await notes.boundingBox())!
+    expect(y.x + y.width).toBeLessThanOrEqual(n.x)
+    expect(Math.abs(y.y - n.y)).toBeLessThan(40)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+
+    await page.setViewportSize({ width: 1100, height: 900 })
+    await expect.poll(async () => (await yesterday.boundingBox())!.y > (await notes.boundingBox())!.y + (await notes.boundingBox())!.height - 1).toBe(true)
+    y = (await yesterday.boundingBox())!
+    n = (await notes.boundingBox())!
+    expect(y.y).toBeGreaterThanOrEqual(n.y + n.height - 1)
+  })
+
+  test('without Post Its, How past you did yesterday takes the full width on a wide screen', async ({ page }, info) => {
+    test.skip(info.project.name === 'android-phone', 'computer widths')
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await open(page)
+    const top = (await page.getByTestId('dash-top').boundingBox())!
+    const y = (await page.getByTestId('dash-yesterday').boundingBox())!
+    expect(y.width).toBeGreaterThan(top.width - 2)
   })
 
   test('with nothing scheduled yesterday, the section says so', async ({ page }) => {
