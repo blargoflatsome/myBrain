@@ -49,11 +49,30 @@ export type CaptureRecord =
 
 export class CaptureError extends Error {}
 
+export const TITLE_MAX = 500
+
+/** The first line (up to TITLE_MAX characters) as the title; the rest of the text goes in front of the notes. */
+export function fitTitle(text: string, notes?: string | null): { title: string; notes: string | null } {
+  const trimmed = text.trim()
+  const lineEnd = trimmed.search(/\r?\n/)
+  let title = lineEnd >= 0 ? trimmed.slice(0, lineEnd).trim() : trimmed
+  let rest = lineEnd >= 0 ? trimmed.slice(lineEnd).trim() : ''
+  if (title.length > TITLE_MAX) {
+    // The whole long first line is kept in the notes; the title is a shortened copy.
+    rest = [title, rest].filter(Boolean).join('\n')
+    title = `${title.slice(0, TITLE_MAX - 1).trimEnd()}…`
+  }
+  const allNotes = [rest, notes?.trim()].filter(Boolean).join('\n\n')
+  return { title, notes: allNotes || null }
+}
+
 /** Turns a capture into the row to save. Ids are made on the device so offline saves sync without duplicates. */
 export function buildCaptureRecord(input: CaptureInput, userId: string, newId: () => string = () => crypto.randomUUID()): CaptureRecord {
   const text = input.text.trim()
   if (!text) throw new CaptureError('empty')
-  const notes = input.notes?.trim() || null
+  // A title is one line of at most 500 characters (docs/SPEC.md §8 limits); anything longer moves into the notes.
+  const fitted = input.destination === 'later' ? { title: text, notes: input.notes?.trim() || null } : fitTitle(text, input.notes)
+  const notes = fitted.notes
   const base = { id: newId(), user_id: userId, deleted_at: null }
 
   switch (input.destination) {
@@ -62,7 +81,7 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
         table: 'tasks',
         row: {
           ...base,
-          title: text,
+          title: fitted.title,
           notes,
           due_date: input.dueDate || null,
           priority: input.priority ?? DEFAULT_TASK_PRIORITY,
@@ -72,13 +91,13 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
       }
     case 'vault':
       if (!input.bucketId) throw new CaptureError('bucket')
-      return { table: 'vault_items', row: { ...base, bucket_id: input.bucketId, title: text, notes } }
+      return { table: 'vault_items', row: { ...base, bucket_id: input.bucketId, title: fitted.title, notes } }
     case 'quest':
       return {
         table: 'quests',
         row: {
           ...base,
-          title: text,
+          title: fitted.title,
           details: notes,
           energy_level: input.energy ?? DEFAULT_QUEST_ENERGY,
           time_bucket: input.time ?? DEFAULT_QUEST_TIME,
@@ -88,7 +107,7 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
       }
     case 'habit': {
       const h = input.habit
-      const row = newHabit(text, userId, deviceTimeZone(), new Date(), base.id)
+      const row = newHabit(fitted.title, userId, deviceTimeZone(), new Date(), base.id)
       return {
         table: 'habits',
         row: {

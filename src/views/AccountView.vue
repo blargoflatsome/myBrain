@@ -148,7 +148,7 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
       <form v-if="loaded" class="flex flex-col gap-4" @submit.prevent="save">
         <label class="flex flex-col gap-1 text-sm text-muted">
           {{ m.displayName }}
-          <input v-model="displayName" :class="field">
+          <input v-model="displayName" maxlength="120" :class="field">
         </label>
         <label class="flex flex-col gap-1 text-sm text-muted">
           {{ m.visibility }}

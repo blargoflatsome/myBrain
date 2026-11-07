@@ -65,7 +65,7 @@ const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-
       <h2 class="text-lg font-semibold">{{ m.itemEditor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.itemEditor.title }}
-        <input v-model="title" required :class="field">
+        <input v-model="title" maxlength="500" required :class="field">
       </label>
       <fieldset class="flex flex-col gap-1">
         <legend class="mb-1 text-sm text-muted">{{ m.itemEditor.rating }}</legend>
@@ -95,7 +95,7 @@ const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-
       </label>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.itemEditor.notes }}
-        <textarea v-model="notes" rows="3" :class="[field, 'py-2']" />
+        <textarea v-model="notes" maxlength="20000" rows="3" :class="[field, 'py-2']" />
       </label>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.itemEditor.bucket }}

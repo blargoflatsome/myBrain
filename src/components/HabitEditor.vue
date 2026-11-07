@@ -86,7 +86,7 @@ const chip = (on: boolean) => [
       <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.editor.title }}
-        <input v-model="title" required :class="field">
+        <input v-model="title" maxlength="500" required :class="field">
       </label>
       <TimeInput v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
       <label class="flex flex-col gap-1 text-sm text-muted">

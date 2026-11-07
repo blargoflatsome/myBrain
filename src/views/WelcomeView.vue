@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { safeNext } from '@/security/redirect'
 // SPEC §5 Accounts and contact info: after the first sign-in, a short step for my phone number and how event news
 // reaches me. Existing accounts see it once too.
 import { ref } from 'vue'
@@ -35,7 +36,7 @@ async function save() {
     error.value = m.offline
     return
   }
-  const next = typeof route.query.next === 'string' && route.query.next.startsWith('/') ? route.query.next : '/'
+  const next = safeNext(route.query.next)
   await router.replace(next)
 }
 const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink'

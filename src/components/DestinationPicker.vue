@@ -107,7 +107,7 @@ const primary = 'min-h-12 rounded-xl bg-accent px-4 text-base font-semibold text
       </div>
       <form v-if="addingBucket" class="flex gap-2" @submit.prevent="addBucket">
         <input
-          v-model="newBucketName"
+          v-model="newBucketName" maxlength="200"
           :aria-label="m.newBucket"
           class="min-h-12 flex-1 rounded-xl border border-line bg-surface px-3 text-base text-ink"
           autofocus

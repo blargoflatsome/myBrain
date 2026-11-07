@@ -39,7 +39,9 @@ self.addEventListener('push', (event) => {
 // Tapping a notification opens My Brain straight to the right place (SPEC §5 Routines).
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = new URL((event.notification.data as { url?: string })?.url ?? '/', self.location.origin).href
+  // Only ever a page of this app, whatever the notification says (docs/SPEC.md §8).
+  const target = new URL((event.notification.data as { url?: string })?.url ?? '/', self.location.origin)
+  const url = target.origin === self.location.origin ? target.href : `${self.location.origin}/`
   event.waitUntil(
     (async () => {
       const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })

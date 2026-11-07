@@ -281,12 +281,13 @@ const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' }
             id="capture-title"
             ref="titleBox"
             v-model="title"
+            maxlength="20000"
             rows="4"
             :placeholder="m.placeholder"
             :class="[field, 'resize-none py-3 pr-28 text-lg']"
             @input="error = ''"
           />
-          <input v-else id="capture-title" ref="titleBox" v-model="title" :class="[field, 'pr-28 text-lg']" @input="error = ''">
+          <input v-else id="capture-title" ref="titleBox" v-model="title" maxlength="500" :class="[field, 'pr-28 text-lg']" @input="error = ''">
           <button
             v-if="speech.supported"
             type="button"
@@ -318,12 +319,12 @@ const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' }
             + {{ m.newBucket }}
           </button>
         </div>
-        <input v-if="addingBucket" v-model="newBucketName" :aria-label="m.newBucket" :placeholder="m.newBucket" :class="field">
+        <input v-if="addingBucket" v-model="newBucketName" maxlength="200" :aria-label="m.newBucket" :placeholder="m.newBucket" :class="field">
       </fieldset>
 
       <label v-if="type !== 'later' && type !== 'habit' && type !== 'postit'" class="flex flex-col gap-1 text-sm text-muted">
         {{ type === 'quest' ? m.detailsLabel : m.notesLabel }}
-        <textarea v-model="notes" rows="3" :class="[field, 'py-2']" />
+        <textarea v-model="notes" maxlength="20000" rows="3" :class="[field, 'py-2']" />
       </label>
 
       <!-- Task: optional date, priority -->

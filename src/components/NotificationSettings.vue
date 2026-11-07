@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isPushEndpoint } from '@/notifications/pushEndpoints'
 // SPEC §6: Web Push and/or ntfy, quiet hours, and whether priority reminders ring during them.
 import TimeInput from '@/components/TimeInput.vue'
 import { onMounted, ref } from 'vue'
@@ -68,6 +69,12 @@ async function togglePush() {
   if (permission !== 'granted') return (pushError.value = m.webPushBlocked)
   const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(VAPID) })
   const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
+  // Only real browser push services are kept (docs/SPEC.md §8); the sender refuses anything else anyway.
+  if (!isPushEndpoint(json.endpoint)) {
+    await sub.unsubscribe()
+    pushError.value = m.webPushUnsupported
+    return
+  }
   const { error } = await supabase.from('push_subscriptions').upsert(
     { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth, device_label: navigator.userAgent.slice(0, 120), last_seen: new Date().toISOString() },
     { onConflict: 'endpoint' },

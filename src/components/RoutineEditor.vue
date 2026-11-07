@@ -144,7 +144,7 @@ const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disa
       <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.editor.title }}
-        <input v-model="title" required :class="field">
+        <input v-model="title" maxlength="500" required :class="field">
       </label>
       <label class="flex items-center justify-between gap-4">
         <span>
@@ -188,7 +188,7 @@ const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disa
               <span v-if="habitById(s.habitId)?.is_priority" class="text-danger" :aria-label="messages.habits.priorityBadge">⚠</span>
               <span class="ml-auto shrink-0 text-xs text-muted">{{ m.editor.habitTag }}</span>
             </span>
-            <input v-else v-model="s.title" :aria-label="m.editor.stepLabel(i + 1)" :placeholder="m.editor.stepLabel(i + 1)" :class="[field, 'min-w-0 flex-1']">
+            <input v-else v-model="s.title" maxlength="500" :aria-label="m.editor.stepLabel(i + 1)" :placeholder="m.editor.stepLabel(i + 1)" :class="[field, 'min-w-0 flex-1']">
             <button type="button" :class="small" :aria-label="m.editor.removeStep(s.title)" @click="remove(i)">✕</button>
             <div v-if="moving === s.key" class="flex w-full gap-2 pl-12" role="group" :aria-label="m.editor.moveGroup(s.title || m.editor.stepLabel(i + 1))">
               <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="i === 0" :data-move="s.key" :data-step="-1" @click="moveByButton(i, -1)">↑ {{ messages.moveUp }}</button>

@@ -131,8 +131,8 @@ const chip = (on: boolean) => [
     >
       <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
         <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
-        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.title }}<input v-model="title" required :class="field"></label>
-        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.description }}<textarea v-model="description" rows="2" :class="[field, 'py-2']" /></label>
+        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.title }}<input v-model="title" maxlength="500" required :class="field"></label>
+        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.description }}<textarea v-model="description" maxlength="5000" rows="2" :class="[field, 'py-2']" /></label>
         <TimeInput v-model="time" :label="m.editor.time" required :input-class="field" />
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-1 text-sm text-muted">{{ m.editor.when }}</legend>
