@@ -173,6 +173,9 @@ Merged and live.
 ## Step 11 — Shared events (in progress, branch `step-11-shared-events`)
 - Spec approved (user's choices: Resend from an own domain; one merge; calendar file for guests; phone unverified).
 - Decided 2026-11-07: buy `myadhdbrain.app` at Porkbun and set up Resend as a **Phase 2 step**. Step 11 queues and logs emails and reaches guests through the one-at-a-time sharing flow.
+- Migrations `20261107000000_shared_events.sql` (+ `..000100_invite_recipients_own.sql`): profile settings (findable, share availability, two cancellation messages), `events.cancelled_at`, `event_invites` + private `invite_recipients` (host never learns who has an account), availability rules/exceptions, `outbound_messages` log/queue + `message_optouts`, server functions (search, invite, answer, guest page, messages, cancel, drop out, free/busy, mark shared), `send_outbound` cron (push/ntfy to app users; email/text wait). Dev migrated; `rls_shared_events.sql` passes.
+- App: one-time phone step; Account: event settings, availability card, Download my data, privacy/terms links; public privacy, terms and guest answer pages (with .ics download); event editor People (name search, email/phone, contacts, free/busy + suggested times); one-at-a-time share flow (email app / messaging app); invitee view (answer, message, drop out); Cancel and notify with personal messages; calendar styles for invites; dashboard event stats use real answers.
+- Tests: `src/events/sharing.test.ts`, `e2e/shared-events.spec.ts`, dashboard stats. Vitest 197, Playwright 270, SQL 12 files.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

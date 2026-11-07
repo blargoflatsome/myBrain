@@ -37,8 +37,9 @@ watch(
       .select('phone')
       .eq('user_id', id)
       .maybeSingle()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (error || !data || data.phone) return
+        await router.isReady()
         if (route.meta.public || route.name === 'welcome') return
         void router.replace({ name: 'welcome', query: { next: route.fullPath } })
       })

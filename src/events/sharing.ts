@@ -46,20 +46,28 @@ async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   if (error) throw new Error(error.message)
   return data as T
 }
+async function list<T>(fn: string, args: Record<string, unknown>): Promise<T[]> {
+  return (await call<T[] | null>(fn, args)) ?? []
+}
 
-export const searchPeople = (q: string) => call<FoundPerson[]>('search_people', { q })
-export const invitePeople = (event: string, people: PersonToInvite[]) => call<NewInvite[]>('invite_people', { event, people })
+export const searchPeople = (q: string) => list<FoundPerson>('search_people', { q })
+export const invitePeople = (event: string, people: PersonToInvite[]) => list<NewInvite>('invite_people', { event, people })
 export const uninvite = (invite: string) => call<void>('uninvite', { invite })
 export const newInviteLink = (invite: string) => call<string>('new_invite_link', { invite })
 export const respondToInvite = (invite: string, answer: 'yes' | 'maybe' | 'no') => call<void>('respond_to_invite', { invite, answer })
-export const eventPeople = (event: string) => call<EventPerson[]>('event_people', { event })
-export const messageEvent = (event: string, audience: 'host' | 'everyone', message: string) =>
-  call<{ invite_id: string; name: string | null; email: string | null; phone: string | null; body: string }[]>('message_event', { event, audience, message })
-export const cancelEvent = (event: string) =>
-  call<{ invite_id: string; name: string | null; email: string | null; phone: string | null; body: string }[]>('cancel_event', { event })
+export const eventPeople = (event: string) => list<EventPerson>('event_people', { event })
+export interface Recipient {
+  invite_id: string
+  name: string | null
+  email: string | null
+  phone: string | null
+  body: string
+}
+export const messageEvent = (event: string, audience: 'host' | 'everyone', message: string) => list<Recipient>('message_event', { event, audience, message })
+export const cancelEvent = (event: string) => list<Recipient>('cancel_event', { event })
 export const dropOut = (event: string) => call<void>('drop_out', { event })
 export const markShared = (invites: string[], kind: 'invite' | 'message' | 'cancel') => call<void>('mark_shared', { invites, msg_kind: kind })
-export const freeBusy = (people: string[]) => call<FreeBusyRow[]>('free_busy', { people })
+export const freeBusy = (people: string[]) => list<FreeBusyRow>('free_busy', { people })
 
 export interface GuestInvite {
   host_name: string | null
@@ -76,8 +84,8 @@ export interface GuestInvite {
   cancelled: boolean
 }
 export async function guestInvite(invite: string, token: string): Promise<GuestInvite | null> {
-  const rows = await call<GuestInvite[]>('guest_invite', { invite, token })
-  return rows?.[0] ?? null
+  const rows = await list<GuestInvite>('guest_invite', { invite, token })
+  return rows[0] ?? null
 }
 export const guestRespond = (invite: string, token: string, answer: 'yes' | 'maybe' | 'no') => call<void>('guest_respond', { invite, token, answer })
 export const guestMessage = (invite: string, token: string, message: string) => call<void>('guest_message', { invite, token, message })

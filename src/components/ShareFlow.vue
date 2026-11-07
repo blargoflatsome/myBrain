@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 Cancelling (Phase 1 texting): one person at a time, open my messaging app (or email app) with their
 // message ready; after I send it and come back, the next one, with "2 of 5", until everyone has been messaged.
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { markShared, shareHref, type ShareTarget } from '@/events/sharing'
 import { messages } from '@/messages'
 
@@ -22,8 +22,11 @@ watch(
     sent.value = []
     if (t.length && !dialog.value?.open) dialog.value?.showModal()
   },
-  { immediate: true, flush: 'post' },
+  { flush: 'post' },
 )
+onMounted(() => {
+  if (props.targets.length && !dialog.value?.open) dialog.value?.showModal()
+})
 
 function next(wasSent: boolean) {
   if (wasSent && current.value) sent.value.push(current.value.inviteId)

@@ -20,6 +20,12 @@ const error = ref('')
 const answer = ref(props.invite?.response ?? 'pending')
 
 watch(
+  () => props.invite?.response,
+  (r) => {
+    if (r) answer.value = r
+  },
+)
+watch(
   () => props.event,
   (e) => {
     if (!e) return dialog.value?.close()
