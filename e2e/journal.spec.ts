@@ -69,23 +69,102 @@ test.describe('Spec §5 Journal', () => {
 
   test('what I write is saved to the day’s entry, with the day’s stats', async ({ page }) => {
     await open(page)
-    const box = page.getByRole('textbox', { name: 'How the day went' })
-    await expect(box).toHaveAttribute('placeholder', 'Tell me about it')
-    await box.fill('Long day, but I got the rent paid.')
-    await box.blur()
+    const editor = page.getByRole('textbox', { name: 'How the day went' })
+    await expect(editor.locator('p').first()).toHaveAttribute('data-placeholder', 'Tell me about it')
+    await editor.click()
+    await page.keyboard.type('Long day, but I got the rent paid.')
+    await page.getByRole('heading', { name: 'Journal', level: 1 }).click()
     await expect(page.getByRole('status').filter({ hasText: 'Saved.' })).toBeVisible()
     await expect
       .poll(() => server.written('journal_entries').find((e) => e.date === '2026-11-10' && e.body))
-      .toMatchObject({ body: 'Long day, but I got the rent paid.', auto: false, stats_final: false, stats: { tasks: { done: 0, due: 0 } } })
+      .toMatchObject({ body: '<p>Long day, but I got the rent paid.</p>', auto: false, stats_final: false, stats: { tasks: { done: 0, due: 0 } } })
   })
 
-  test('a task added from the journal is due tomorrow by default', async ({ page }) => {
+  test('clearing all the writing saves the entry as empty', async ({ page }) => {
     await open(page)
-    await expect(page.getByLabel('Due')).toHaveValue('2026-11-11')
-    await page.getByRole('textbox', { name: 'Add a task for tomorrow' }).fill('Call the dentist')
-    await page.getByRole('button', { name: 'Add', exact: true }).click()
-    await expect(page.getByText('Added "Call the dentist".')).toBeVisible()
-    await expect.poll(() => server.written('tasks')[0]).toMatchObject({ title: 'Call the dentist', due_date: '2026-11-11', source: 'journal', status: 'open' })
+    const editor = page.getByRole('textbox', { name: 'How the day went' })
+    await editor.click()
+    await page.keyboard.type('Preview check')
+    await expect.poll(() => server.written('journal_entries').at(-1)?.body).toBe('<p>Preview check</p>')
+    await editor.click()
+    await page.keyboard.press('ControlOrMeta+a')
+    await page.keyboard.press('Delete')
+    await expect.poll(() => server.written('journal_entries').at(-1)?.body).toBe('')
+  })
+
+  test('the writing can be formatted: bold, lists, checklists and links', async ({ page }) => {
+    await open(page)
+    const today = page.getByTestId('journal-today')
+    const editor = today.getByRole('textbox', { name: 'How the day went' })
+    await editor.click()
+    await today.getByRole('button', { name: 'Bold' }).click()
+    await page.keyboard.type('Big win')
+    await today.getByRole('button', { name: 'Bold' }).click()
+    await page.keyboard.press('Enter')
+    await today.getByRole('button', { name: 'Bulleted list' }).click()
+    await page.keyboard.type('Rent paid')
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter')
+    await today.getByRole('button', { name: 'Checklist' }).click()
+    await page.keyboard.type('Call mum')
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter')
+    await today.getByRole('button', { name: 'Link' }).click()
+    await today.getByRole('textbox', { name: 'Link address' }).fill('example.com')
+    await today.getByRole('button', { name: 'Apply' }).click()
+    await expect(editor.locator('strong')).toHaveText('Big win')
+    await expect(editor.locator('ul:not([data-type]) li')).toHaveText('Rent paid')
+    await expect(editor.locator('ul[data-type="taskList"] li p')).toHaveText('Call mum')
+    await expect(editor.locator('a')).toHaveAttribute('href', 'https://example.com')
+    await expect
+      .poll(() => String(server.written('journal_entries').at(-1)?.body ?? ''))
+      .toMatch(/<strong>Big win<\/strong>.*<li><p>Rent paid<\/p><\/li>.*data-type="taskItem".*href="https:\/\/example.com"/)
+  })
+
+  test('the writing area can be opened full screen for easier typing', async ({ page }) => {
+    await open(page)
+    const today = page.getByTestId('journal-today')
+    await today.getByRole('button', { name: 'Full screen' }).click()
+    const dialog = page.getByRole('dialog', { name: 'How the day went' })
+    await expect(dialog).toBeVisible()
+    const box = await dialog.boundingBox()
+    const viewport = page.viewportSize()!
+    expect(box!.width).toBeGreaterThanOrEqual(viewport.width - 1)
+    expect(box!.height).toBeGreaterThanOrEqual(viewport.height - 1)
+    await page.keyboard.type('Typing with room to think.')
+    await dialog.getByRole('button', { name: 'Done' }).click()
+    await expect(dialog).toHaveCount(0)
+    await expect(today.getByRole('textbox', { name: 'How the day went' })).toContainText('Typing with room to think.')
+  })
+
+  test('Add a task for tomorrow is its own box and opens the Capture window over the Journal, keeping my writing', async ({ page }) => {
+    await open(page)
+    await page.getByRole('textbox', { name: 'How the day went' }).click()
+    await page.keyboard.type('Halfway through writing')
+    const box = page.getByTestId('journal-add-task')
+    await expect(page.getByTestId('journal-today').getByRole('button', { name: '+ Add a task for tomorrow' })).toHaveCount(0)
+    await box.getByRole('button', { name: '+ Add a task for tomorrow' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Capture' })
+    await expect(dialog.getByRole('heading', { name: 'Task', level: 1 })).toBeVisible()
+    await expect(page).toHaveURL(/\/journal$/)
+    await expect(dialog.getByLabel(/^When\?/)).toHaveValue('2026-11-11')
+    await dialog.getByLabel('Title', { exact: true }).fill('Call the dentist')
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(dialog.getByTestId('capture-notice')).toBeVisible()
+    // Ready for another task for tomorrow.
+    await expect(dialog.getByLabel(/^When\?/)).toHaveValue('2026-11-11')
+    await dialog.getByLabel('Title', { exact: true }).fill('Book the car service')
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Close' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(page.getByRole('textbox', { name: 'How the day went' })).toContainText('Halfway through writing')
+    await expect.poll(() => server.written('tasks').length).toBe(2)
+    expect(server.written('tasks')).toEqual([
+      expect.objectContaining({ title: 'Call the dentist', due_date: '2026-11-11', source: 'journal', status: 'open' }),
+      expect.objectContaining({ title: 'Book the car service', due_date: '2026-11-11', source: 'journal', status: 'open' }),
+    ])
   })
 
   test('with no past entries, the empty journal says so', async ({ page }) => {
@@ -109,12 +188,13 @@ test.describe('Spec §5 Journal', () => {
     await expect(entry.getByTestId('stat-habits').getByTestId('stat-value')).toHaveText('1 of 1')
 
     await entry.getByRole('button', { name: 'Edit' }).click()
-    await entry.getByRole('textbox', { name: 'How the day went' }).fill('Remembering now: it was a good one.')
-    await entry.getByRole('button', { name: 'Done' }).click()
-    await expect(entry).toContainText('Remembering now: it was a good one.')
+    await entry.getByRole('textbox', { name: 'How the day went' }).click()
+    await page.keyboard.type('Remembering now: it was a good one.')
+    await entry.getByRole('button', { name: 'Done', exact: true }).click()
+    await expect(entry.getByTestId('journal-body')).toHaveText('Remembering now: it was a good one.')
     await expect
       .poll(() => server.written('journal_entries').filter((e) => e.date === '2026-11-09').at(-1))
-      .toMatchObject({ body: 'Remembering now: it was a good one.', auto: false, stats_final: true })
+      .toMatchObject({ body: '<p>Remembering now: it was a good one.</p>', auto: false, stats_final: true })
   })
 
   test('a day that ended with nothing done gets no entry', async ({ page }) => {
@@ -129,8 +209,8 @@ test.describe('Spec §5 Journal', () => {
     expect(server.written('journal_entries').filter((e) => e.date === '2026-11-09')).toHaveLength(0)
   })
 
-  test('the journal reminder is off by default and can be set on Profile', async ({ page }) => {
-    await open(page, '/profile')
+  test('the journal reminder is off by default and can be set on the Account page', async ({ page }) => {
+    await open(page, '/account')
     const settings = page.getByTestId('journal-reminder')
     await expect(settings.getByRole('checkbox', { name: "Don't remind me" })).toBeChecked()
     await settings.getByRole('checkbox', { name: "Don't remind me" }).uncheck()

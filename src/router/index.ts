@@ -16,7 +16,9 @@ export const routes = [
   { path: '/routines/:id/run', name: 'routine-run', component: () => import('@/views/RoutineRunView.vue') },
   { path: '/journal', name: 'journal', component: () => import('@/views/JournalView.vue') },
   { path: '/habits', name: 'habits', component: () => import('@/views/HabitsView.vue') },
-  { path: '/profile', name: 'profile', component: () => import('@/views/ProfileView.vue') },
+  { path: '/account', name: 'account', component: () => import('@/views/AccountView.vue') },
+  // The page was called Profile before; old links still work.
+  { path: '/profile', redirect: '/account' },
   { path: '/quests', name: 'quests', component: () => import('@/views/QuestsView.vue') },
   { path: '/inbox', name: 'inbox', component: () => import('@/views/InboxView.vue') },
   { path: '/sign-in', name: 'sign-in', component: () => import('@/views/SignInView.vue'), meta: { public: true } },

@@ -3,6 +3,8 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import SyncIndicator from '@/components/SyncIndicator.vue'
 import PriorityReminder from '@/components/PriorityReminder.vue'
+import CaptureDialog from '@/components/CaptureDialog.vue'
+import { useCaptureStore } from '@/stores/capture'
 import { useAuthStore } from '@/stores/auth'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -15,6 +17,7 @@ import { useWideScreen } from '@/composables/useWideScreen'
 const route = useRoute()
 const auth = useAuthStore()
 const brain = useBrainStore()
+const capture = useCaptureStore()
 
 // Open the signed-in user's on-device store and start syncing; close it on sign-out.
 watch(
@@ -43,7 +46,7 @@ const navItems = [
   { to: '/journal', label: messages.nav.journal },
   { to: '/quests', label: messages.nav.quests },
   { to: '/inbox', label: messages.nav.inbox },
-  { to: '/profile', label: messages.nav.profile },
+  { to: '/account', label: messages.nav.account },
 ]
 
 // Phone: the menu slides out from the left. Wider screens: it is always shown on the left.
@@ -106,14 +109,16 @@ watch(() => route.fullPath, () => (menuOpen.value = false))
       <RouterView class="flex-1" />
     </div>
 
-    <!-- SPEC §5: a persistent button to capture from anywhere in the app. -->
-    <RouterLink
+    <!-- SPEC §5: a persistent button to capture from anywhere in the app. It opens over the current page. -->
+    <button
       v-if="showChrome && route.name !== 'capture'"
-      to="/capture"
+      type="button"
       class="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-20 flex min-h-14 items-center rounded-full bg-accent px-6 text-lg font-semibold text-accent-ink shadow-lg"
+      @click="capture.open()"
     >
       + {{ messages.capture.openButton }}
-    </RouterLink>
+    </button>
+    <CaptureDialog v-if="showChrome" />
 
     <!-- SPEC §5: full-screen reminder for due priority habits and tasks, on every screen. -->
     <PriorityReminder v-if="showChrome" />

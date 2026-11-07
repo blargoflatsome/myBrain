@@ -8,10 +8,11 @@ import { activeSteps, recordStep, runFor } from '@/routines/rules'
 import { cancelState, snoozeState, type DuePriority } from '@/reminders/priority'
 import type { PriorityTaskRow } from '@/sync/types'
 import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMisses } from '@/habits/rules'
-import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
 import type { JournalEntryRow } from '@/sync/types'
+import { normalizeBody } from '@/journal/body'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
@@ -317,38 +318,18 @@ export const useBrainStore = defineStore('brain', () => {
   }
 
   /** Save what I wrote for a day. Writing in an entry the app made makes it mine. Always editable (SPEC §5 Journal). */
-  async function saveJournalBody(date: string, body: string, now = new Date(), timeZone = deviceTimeZone()) {
+  async function saveJournalBody(date: string, html: string, now = new Date(), timeZone = deviceTimeZone()) {
     const { engine: e, uid, local } = requireReady()
+    const body = normalizeBody(html)
     const today = todayIn(timeZone, now)
     const existing = (await local.journal_entries.where('date').equals(date).toArray()).find((x) => !x.deleted_at)
-    const auto = (row: JournalEntryRow) => row.auto && !body.trim()
+    const auto = (row: JournalEntryRow) => row.auto && !body
     if (existing) {
       await e.patch('journal_entries', existing.id, (fresh) => (fresh.body === body ? null : { body, auto: auto(fresh) }))
       return
     }
     const stats = dayStats(await dayData(), date, now, timeZone)
     await e.save('journal_entries', { ...emptyEntry(uid, date, false), body, stats, stats_final: date < today })
-  }
-
-  /** A task added from the journal: due tomorrow unless I pick another date or none (SPEC §5 Journal). */
-  async function addJournalTask(title: string, dueDate: string | null) {
-    const { engine: e, uid } = requireReady()
-    const trimmed = title.trim()
-    if (!trimmed) return null
-    return e.save('tasks', {
-      id: crypto.randomUUID(),
-      user_id: uid,
-      title: trimmed,
-      due_date: dueDate,
-      priority: DEFAULT_PRIORITY,
-      status: 'open',
-      source: 'journal',
-      deleted_at: null,
-    })
-  }
-
-  function tomorrow(now = new Date(), timeZone = deviceTimeZone()) {
-    return addDays(todayIn(timeZone, now), 1)
   }
 
   // ---------- Priority reminders (SPEC §5) ----------
@@ -396,8 +377,6 @@ export const useBrainStore = defineStore('brain', () => {
     journalStats,
     refreshJournal,
     saveJournalBody,
-    addJournalTask,
-    tomorrow,
     savePriorityTask,
     deletePriorityTask,
     completePriority,

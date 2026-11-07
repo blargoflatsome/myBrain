@@ -117,7 +117,7 @@ Done:
 
 Next: user tries a real reminder on the phone (turn on device notifications on each device; optional ntfy topic).
 
-## Step 8 — Journal (in progress, branch `step-8-journal`)
+## Step 8 — Journal (done, PR #10)
 
 Done:
 - Spec §5 Journal and §14 decision (user's answers; wording approved with two changes: "Tell me about it", "Past you let you down").
@@ -129,7 +129,17 @@ Done:
 
 - Clarified (user): an entry is only written for me on a day I did something. No starting-point entry; start date kept on the device; idle days hidden.
 
-Left in step 8: merge.
+Merged and live.
+
+## Journal editing (branch `journal-editor`)
+- User asked: bigger writing area with full screen, formatted text (bold, lists, links...), and "Add a task for tomorrow" in its own box opening the Capture screen.
+- Tiptap editor (pinned 3.32.0) with toolbar: bold, italic, underline, strikethrough, heading, bullets, numbers, checklist, quote, link, full screen. Writing stored as cleaned HTML (DOMPurify); old plain-text entries open as paragraphs.
+- Capture opened from the Journal: Task chosen, tomorrow's date, source journal, returns to the Journal after saving.
+- Capture is now a window (modal) over the current page, from the Capture button and from the Journal's "Add a task for tomorrow" (stays ready for the next task; closing returns to the writing). The /capture page remains for the home-screen shortcut and sharing from other apps.
+- Checklist items on one line; toolbar scrolls sideways with Full screen pinned.
+- Toolbar buttons keep focus in the writing (phone keyboard stays open).
+- Profile renamed to Account (/account; /profile redirects). Bio removed (column left unused). Settings tidied into two cards: Your profile, Reminders.
+- Delete My Account: confirmation with typed DELETE; migration `20261106110000_delete_account.sql` (`delete_my_account()`, cascades everything); clears this device's copy and push subscription; `rls_account.sql` passes on dev. Dev and prod migrated. Tests: `src/journal/body.test.ts`, more in `e2e/journal.spec.ts`. Vitest 159, Playwright 184, SQL 9 files.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
