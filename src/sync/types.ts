@@ -15,6 +15,7 @@ export const SYNC_TABLES = [
   'priority_tasks',
   'priority_task_logs',
   'reminder_state',
+  'journal_entries',
 ] as const
 export type SyncTable = (typeof SYNC_TABLES)[number]
 
@@ -58,6 +59,8 @@ export interface QuestRow extends BaseRow {
   time_bucket?: TimeBucket | null
   status: 'open' | 'accepted' | 'done'
   last_picked_at?: string | null
+  /** When it was marked done (SPEC §5 Journal counts completed quests by day). */
+  completed_at?: string | null
   times_picked?: number
 }
 
@@ -138,12 +141,33 @@ export interface PriorityTaskLogRow extends BaseRow {
 }
 
 export interface ReminderStateRow extends BaseRow {
-  kind: 'habit' | 'routine' | 'priority_task'
+  kind: 'habit' | 'routine' | 'priority_task' | 'journal'
   item_id: string
   date: string
   snoozed_until?: string | null
   cancelled_at?: string | null
   last_sent_at?: string | null
+}
+
+/** The stats added to a journal entry (SPEC §5 Journal). */
+export interface JournalStats {
+  tasks: { done: number; due: number }
+  habits: { kept: number; scheduled: number }
+  routines: { id: string; title: string; done: number; total: number }[]
+  priority: { title: string; done: boolean }[]
+  streaks: { title: string; kind: 'reached' | 'reset'; days: number }[]
+  quests: string[]
+}
+
+export interface JournalEntryRow extends BaseRow {
+  /** 'YYYY-MM-DD', one entry per day. */
+  date: string
+  body: string
+  stats: JournalStats | Record<string, never>
+  /** True once the day ended and the stats are frozen. */
+  stats_final: boolean
+  /** True when the app wrote the entry on my behalf for a missed day. */
+  auto: boolean
 }
 
 export interface RowTypes {
@@ -161,6 +185,7 @@ export interface RowTypes {
   priority_tasks: PriorityTaskRow
   priority_task_logs: PriorityTaskLogRow
   reminder_state: ReminderStateRow
+  journal_entries: JournalEntryRow
 }
 
 /** Thrown when the server can't be reached. The change stays queued and is retried later. */

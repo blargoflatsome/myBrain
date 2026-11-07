@@ -54,4 +54,5 @@ export function markPicked(quest: QuestRow, now: Date = new Date()): QuestRow {
 }
 
 export const acceptQuest = (q: QuestRow): QuestRow => ({ ...q, status: 'accepted' })
-export const finishQuest = (q: QuestRow): QuestRow => ({ ...q, status: 'done' })
+/** Marking a quest done records when, so the journal can count completed quests by day (SPEC §5 Journal). */
+export const finishQuest = (q: QuestRow, now: Date = new Date()): QuestRow => ({ ...q, status: 'done', completed_at: now.toISOString() })

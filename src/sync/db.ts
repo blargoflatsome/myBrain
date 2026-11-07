@@ -31,6 +31,7 @@ export class LocalDb extends Dexie {
   priority_tasks!: Table<RowTypes['priority_tasks'], string>
   priority_task_logs!: Table<RowTypes['priority_task_logs'], string>
   reminder_state!: Table<RowTypes['reminder_state'], string>
+  journal_entries!: Table<RowTypes['journal_entries'], string>
   outbox!: Table<OutboxEntry, number>
   meta!: Table<MetaEntry, string>
 
@@ -62,6 +63,10 @@ export class LocalDb extends Dexie {
       priority_tasks: 'id, updated_at',
       priority_task_logs: 'id, updated_at, task_id, date',
       reminder_state: 'id, updated_at, item_id, date',
+    })
+    // Step 8: journal entries, one per day.
+    this.version(5).stores({
+      journal_entries: 'id, updated_at, date',
     })
   }
 

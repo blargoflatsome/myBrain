@@ -70,7 +70,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **routine_steps:** routine id, position, title.
 - **routine_runs / routine_step_logs:** per day, which steps were completed or skipped, for completion stats. Routines and steps also store weekdays and a start date.
 - **priority_tasks:** title, description, reminder time, a date (one-off) or weekdays (repeating), status. Priority habits are habits with a priority flag.
-- **journal_entries:** date, body text, auto-generated stats snapshot for that day.
+- **journal_entries:** date (one entry per day), body text, auto-generated stats snapshot for that day (`stats`, JSON), whether the stats are final (`stats_final`), and whether the app wrote the entry on my behalf (`auto`).
 - **vault_buckets / vault_items:** user-defined buckets (restaurant reviews, places to go, books, shows, ideas to research, shopping list) and the items inside them.
 - **quests:** title, details, time bucket (estimated time), energy level, status (open, accepted, done), last_picked_at, times_picked.
 - **reminders / events:** title, start, end, recurrence, notify offset (calendar items).
@@ -167,8 +167,19 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Quiet hours never silence priority tasks or priority habits unless I choose that.
 
 ### Journal
-- End-of-day check-in: write how the day went and create new tasks.
-- The day's stats (tasks done, habits kept, routine completion) are added to the entry automatically.
+- End-of-day check-in: write how the day went and create new tasks. Tasks added from the journal are due **tomorrow** by default (the date can be changed or cleared) and have source `journal`.
+- One entry per day. Each entry summarizes my activity since the previous entry, and because the app fills in missed days (below), that is the entry's own day.
+- The day's stats are added to the entry automatically:
+  - tasks done (x of y due that day),
+  - habits kept (x of y scheduled that day),
+  - routines (how far I got in each scheduled routine, as a percentage of steps),
+  - priority habits and priority tasks completed,
+  - streaks reached or broken that day,
+  - quests completed.
+- Stats are shown visually so they can be read at a glance (progress rings and bars, check marks, small chips), with as little text as possible.
+- Stats stay live while the day is open and freeze at midnight (my timezone). The writing stays editable at any time, including past days.
+- **Missed days are logged for me:** when a day ends without an entry, the app creates one on my behalf with that day's stats and no writing, marked as written by the app. I can open it later and add my own words.
+- **Optional journal reminder:** on the Profile page I can set a time each day to be reminded ("Past you asked that you journal today."), or turn it off (the default). It is not sent if I already wrote something that day, and it respects quiet hours.
 
 ### The Vault
 - User-defined buckets of things to remember that are not tasks (restaurant reviews, places to go, books, shows, ideas to research, shopping list).
@@ -397,3 +408,4 @@ Before building, walk me through creating each account below. Ask me for the cre
 - 2026-11-06 — Scaffolded the local project (step 1 code that needs no accounts) before the §13 account walkthrough, so the walkthrough can end in a working deploy. The walkthrough happens next.
 - 2026-11-06 — Tailwind CSS v4 via the `@tailwindcss/vite` plugin (no `tailwind.config` file). Pinned to 4.3.4 because the 4.3.5 package was missing from npm on this date; unpin later.
 - 2026-11-06 — Playwright runs two projects: desktop Chromium and a Pixel 7 (Android phone) viewport, against the production build.
+- 2026-11-06 — Journal (user's choices): stats cover tasks, habits, routines, priority items, streaks and completed quests, shown visually; stats are live until midnight then frozen; entries always editable; journal tasks due tomorrow; optional daily journal reminder set on Profile (off by default); a missed day gets an entry written by the app with that day's stats. Claude's calls: the app (not the server) writes missed-day entries and freezes stats when it next opens, the same way it records habit misses, so it works offline and the server needs no copy of the stats rules; quests get a `completed_at` (backfilled from `updated_at` for quests already done) so completed quests can be counted by day; the reminder is skipped if the day's entry already has writing.

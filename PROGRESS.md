@@ -117,6 +117,16 @@ Done:
 
 Next: user tries a real reminder on the phone (turn on device notifications on each device; optional ntfy topic).
 
+## Step 8 — Journal (in progress, branch `step-8-journal`)
+
+Done:
+- Spec §5 Journal and §14 decision (user's answers; wording approved with two changes: "Tell me about it", "Past you let you down").
+- Migration `20261106100000_journal.sql`: `journal_entries` (one per day, stats JSON, stats_final, auto), `quests.completed_at` (backfilled), `profiles.journal_reminder_time`, journal reminder in `due_reminders()`. Dev migrated; `rls_journal.sql` passes.
+- App: Journal page (menu), today's stats as rings/bars/chips, writing saved as you type, tasks for tomorrow (source journal), earlier entries editable; missed days written by the app and frozen; journal reminder setting on Profile.
+- Tests: `src/journal/stats.test.ts`, `e2e/journal.spec.ts`. Vitest 146, Playwright 164, SQL 8 files.
+
+Left in step 8: PR, Chrome test on the preview, prod migration, merge.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).
