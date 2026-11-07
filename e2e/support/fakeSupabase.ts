@@ -154,6 +154,16 @@ export class FakeSupabase {
   /** What a database function returns: a value, or a function of its arguments. Unset = no content. */
   rpcResults: Record<string, unknown> = {}
 
+  /** Remove every row from a table, as the server would after a delete. */
+  clear(table: string) {
+    this.tables[table]?.clear()
+  }
+
+  /** Change the stored profile, as another device would. */
+  setProfile(changes: Record<string, unknown>) {
+    this.store('profiles', { ...this.profile, ...changes })
+  }
+
   written(table: string) {
     return this.writes.filter((w) => w.table === table).map((w) => w.row)
   }

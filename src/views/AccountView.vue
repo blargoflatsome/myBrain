@@ -107,6 +107,33 @@ async function exportData() {
   }
 }
 
+// ---------- Delete my data: start fresh, keeping the account and settings (SPEC §8) ----------
+const confirmWipe = ref<HTMLDialogElement | null>(null)
+const wipeTyped = ref('')
+const wiping = ref(false)
+const wipeError = ref('')
+const wipeDone = ref('')
+function askWipe() {
+  wipeTyped.value = ''
+  wipeError.value = ''
+  wipeDone.value = ''
+  confirmWipe.value?.showModal()
+}
+async function wipeData() {
+  if (wipeTyped.value.trim().toUpperCase() !== messages.deleteData.word) return
+  wiping.value = true
+  wipeError.value = ''
+  const { data, error } = await supabase.rpc('delete_my_data')
+  wiping.value = false
+  if (error) {
+    wipeError.value = messages.deleteData.failed
+    return
+  }
+  confirmWipe.value?.close()
+  await brain.applyDataReset(typeof data === 'string' ? data : new Date().toISOString())
+  wipeDone.value = messages.deleteData.done
+}
+
 async function signOut() {
   await auth.signOut()
   await router.push({ name: 'sign-in' })
@@ -175,6 +202,13 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
         {{ exporting ? messages.dataExport.working : messages.dataExport.button }}
       </button>
       <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
+      <div class="flex flex-col gap-1 border-t border-line pt-3">
+        <button type="button" class="min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askWipe">
+          {{ messages.deleteData.button }}
+        </button>
+        <p class="text-xs text-muted">{{ messages.deleteData.hint }}</p>
+        <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
+      </div>
       <p class="flex gap-4 text-sm">
         <RouterLink to="/privacy" class="text-muted underline">{{ messages.legal.privacy }}</RouterLink>
         <RouterLink to="/terms" class="text-muted underline">{{ messages.legal.terms }}</RouterLink>
@@ -192,6 +226,40 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
         {{ m.deleteButton }}
       </button>
     </section>
+
+    <dialog
+      ref="confirmWipe"
+      :aria-label="messages.deleteData.heading"
+      class="m-auto max-h-[92dvh] w-[min(28rem,calc(100%-2rem))] rounded-2xl border border-line bg-bg p-5 text-ink backdrop:bg-black/60"
+    >
+      <form class="flex flex-col gap-3" @submit.prevent="wipeData">
+        <h2 class="text-xl font-bold">{{ messages.deleteData.heading }}</h2>
+        <p class="text-sm text-muted">{{ messages.deleteData.removes }}</p>
+        <ul class="flex list-disc flex-col gap-0.5 pl-5 text-sm" data-testid="wipe-removes">
+          <li v-for="item in messages.deleteData.removeList" :key="item">{{ item }}</li>
+        </ul>
+        <p class="text-sm text-muted">{{ messages.deleteData.keeps }}</p>
+        <ul class="flex list-disc flex-col gap-0.5 pl-5 text-sm" data-testid="wipe-keeps">
+          <li v-for="item in messages.deleteData.keepList" :key="item">{{ item }}</li>
+        </ul>
+        <p class="text-sm font-medium">{{ messages.deleteData.undo }}</p>
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ messages.deleteData.typeLabel }}
+          <input v-model="wipeTyped" :class="field" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        </label>
+        <p v-if="wipeError" class="text-sm text-danger" role="alert">{{ wipeError }}</p>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="submit"
+            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white disabled:opacity-50"
+            :disabled="wiping || wipeTyped.trim().toUpperCase() !== messages.deleteData.word"
+          >
+            {{ messages.deleteData.confirm }}
+          </button>
+          <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmWipe?.close()">{{ messages.deleteData.keep }}</button>
+        </div>
+      </form>
+    </dialog>
 
     <dialog
       ref="confirmDelete"

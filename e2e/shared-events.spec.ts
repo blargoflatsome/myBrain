@@ -272,6 +272,50 @@ test.describe('Spec §8: before anyone else uses the app', () => {
     expect(Object.keys(data.tables)).toEqual(expect.arrayContaining(['tasks', 'habits', 'journal_entries', 'events', 'event_invites', 'outbound_messages']))
   })
 
+  test('Delete my data: the confirmation says what goes and what stays, then everything I added is cleared', async ({ page }) => {
+    server.seed('tasks', [{ id: 't1', title: 'Pay rent', due_date: '2026-11-10', priority: 1, status: 'open', source: 'manual' }])
+    server.rpcResults.delete_my_data = () => {
+      server.clear('tasks')
+      server.setProfile({ data_reset_at: '2026-11-10T14:05:00.000Z' })
+      return '2026-11-10T14:05:00.000Z'
+    }
+    await open(page, '/tasks')
+    await expect(page.getByRole('button', { name: /^Pay rent/ })).toBeVisible()
+    await page.goto('/account')
+    await page.getByRole('button', { name: 'Delete my data' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Delete your data and start fresh?' })
+    await expect(dialog.getByTestId('wipe-removes')).toContainText('The Vault (it goes back to the 3 starter buckets)')
+    await expect(dialog.getByTestId('wipe-keeps')).toContainText('Your account, profile and all settings')
+    const confirm = dialog.getByRole('button', { name: 'Delete my data' })
+    await expect(confirm).toBeDisabled()
+    await dialog.getByLabel('Type DELETE to confirm').fill('delete')
+    await confirm.click()
+    await expect(page.getByRole('status').filter({ hasText: 'Past you left a clean slate.' })).toBeVisible()
+    expect(rpc('delete_my_data')).toHaveLength(1)
+    await expect(page).toHaveURL(/\/account$/)
+    await page.goto('/tasks')
+    await expect(page.getByRole('button', { name: /^Pay rent/ })).toHaveCount(0)
+  })
+
+  test('Keep my data deletes nothing', async ({ page }) => {
+    await open(page, '/account')
+    await page.getByRole('button', { name: 'Delete my data' }).click()
+    await page.getByRole('dialog', { name: 'Delete your data and start fresh?' }).getByRole('button', { name: 'Keep my data' }).click()
+    expect(rpc('delete_my_data')).toHaveLength(0)
+  })
+
+  test('after my data is deleted on another device, this device clears its copy when it opens', async ({ page }) => {
+    server.seed('tasks', [{ id: 't1', title: 'Pay rent', due_date: '2026-11-10', priority: 1, status: 'open', source: 'manual' }])
+    await open(page, '/tasks')
+    await expect(page.getByRole('button', { name: /^Pay rent/ })).toBeVisible()
+    // Another device deleted my data: the server has no tasks now, and a newer reset time.
+    server.clear('tasks')
+    server.setProfile({ data_reset_at: '2026-11-10T14:30:00.000Z' })
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^Pay rent/ })).toHaveCount(0)
+  })
+
   test('privacy policy and terms pages are public and linked', async ({ page }) => {
     await open(page, '/account')
     await page.getByRole('link', { name: 'Privacy policy' }).click()

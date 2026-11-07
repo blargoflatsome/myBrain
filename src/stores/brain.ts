@@ -1,5 +1,6 @@
 // The signed-in user's data: on-device store, sync engine, and the actions screens use (SPEC §5, §7).
 import { defineStore } from 'pinia'
+import Dexie from 'dexie'
 import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
@@ -36,11 +37,13 @@ export const useBrainStore = defineStore('brain', () => {
    */
   const habitsReady = ref(false)
   let cleanup: (() => void) | null = null
+  let lastRemote: Remote | null = null
 
   /** Open this user's on-device store and start syncing. One store per user, so accounts never mix. */
   function start(uid: string, remote: Remote) {
     if (userId.value === uid) return
     stop()
+    lastRemote = remote
     userId.value = uid
     db.value = new LocalDb(`my-brain-${uid}`)
     engine.value = new SyncEngine(db.value, remote, (s) => (status.value = s), () => online.value)
@@ -79,6 +82,24 @@ export const useBrainStore = defineStore('brain', () => {
     db.value = null
     engine.value = null
     userId.value = null
+  }
+
+  /**
+   * SPEC §8 Delete my data: when the server's reset time is newer than this device's, throw away the stored copy
+   * (and anything waiting to upload) and download again. Returns true if this device was cleared.
+   */
+  async function applyDataReset(serverResetAt: string | null | undefined): Promise<boolean> {
+    const uid = userId.value
+    const local = db.value
+    if (!serverResetAt || !uid || !local || !lastRemote) return false
+    const seen = (await local.meta.get('data_reset_at'))?.value
+    if (seen && seen >= serverResetAt) return false
+    const remote = lastRemote
+    stop()
+    await Dexie.delete(`my-brain-${uid}`).catch(() => {})
+    start(uid, remote)
+    await db.value?.meta.put({ key: 'data_reset_at', value: serverResetAt })
+    return true
   }
 
   function requireReady() {
@@ -483,6 +504,7 @@ export const useBrainStore = defineStore('brain', () => {
 
   return {
     db,
+    applyDataReset,
     saveAvailabilityRule,
     deleteAvailabilityRule,
     saveAvailabilityException,
