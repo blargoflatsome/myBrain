@@ -107,3 +107,47 @@ body {
   height: 0;
   pointer-events: none;
 }
+
+/* Calendar (SPEC §5 Calendar): FullCalendar's classic theme, in the app's colours. */
+.cal-wrap,
+.cal-wrap [data-color-scheme] {
+  --fc-classic-primary: var(--accent);
+  --fc-classic-primary-foreground: var(--accent-ink);
+  --fc-classic-event: var(--accent);
+  --fc-classic-event-contrast: var(--accent-ink);
+  --fc-classic-background: var(--surface);
+  --fc-classic-foreground: var(--ink);
+  --fc-classic-muted-foreground: var(--muted);
+  --fc-classic-border: var(--line);
+  --fc-classic-today: color-mix(in srgb, var(--accent) 12%, transparent);
+  --fc-classic-button: var(--surface);
+  --fc-classic-button-border: var(--line);
+  --fc-classic-button-foreground: var(--ink);
+  --fc-classic-faint: transparent;
+  --fc-classic-highlight: color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.cal-wrap .cal-task {
+  --fc-classic-event: color-mix(in srgb, var(--ink) 8%, transparent);
+  --fc-classic-event-contrast: var(--ink);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  border: 0;
+  border-left: 4px solid #22c55e;
+}
+.cal-wrap .cal-task,
+.cal-wrap .cal-task * {
+  color: var(--ink);
+}
+.cal-wrap .cal-medium {
+  border-left-color: #facc15;
+}
+.cal-wrap .cal-high {
+  border-left-color: #ef4444;
+}
+.cal-wrap .cal-done {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.cal-wrap .cal-priority {
+  --fc-classic-event: var(--danger);
+  --fc-classic-event-contrast: #ffffff;
+}

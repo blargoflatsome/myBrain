@@ -16,6 +16,9 @@ export const SYNC_TABLES = [
   'priority_task_logs',
   'reminder_state',
   'journal_entries',
+  'events',
+  'tags',
+  'item_tags',
 ] as const
 export type SyncTable = (typeof SYNC_TABLES)[number]
 
@@ -41,12 +44,47 @@ export interface TaskRow extends BaseRow {
 export interface VaultBucketRow extends BaseRow {
   name: string
   position: number
+  /** Items can be checked off (SPEC §5 The Vault; on for the Shopping list). */
+  checkable?: boolean
 }
 
 export interface VaultItemRow extends BaseRow {
   bucket_id: string
   title: string
   notes?: string | null
+  /** 1-5 stars, optional. */
+  rating?: number | null
+  /** A web link or a place address, optional. */
+  link?: string | null
+  /** Checked off, in a checklist bucket. */
+  checked?: boolean
+}
+
+export type EventRepeat = 'never' | 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly'
+
+/** A personal calendar event (SPEC §5 Calendar and reminders). Local dates and times; no start time = all day. */
+export interface EventRow extends BaseRow {
+  title: string
+  notes?: string | null
+  start_date: string
+  start_time: string | null
+  end_date: string
+  end_time: string | null
+  repeat: EventRepeat
+  /** Minutes before the start (all-day events count from 9:00 am); null = no reminder. */
+  reminder_minutes: number | null
+}
+
+export interface TagRow extends BaseRow {
+  name: string
+}
+
+export type TaggedType = 'task' | 'vault_item' | 'journal_entry' | 'quest' | 'event'
+
+export interface ItemTagRow extends BaseRow {
+  tag_id: string
+  item_type: TaggedType
+  item_id: string
 }
 
 export type EnergyLevel = 'ugh' | 'fun' | 'needs_setup' | 'medicated'
@@ -141,7 +179,7 @@ export interface PriorityTaskLogRow extends BaseRow {
 }
 
 export interface ReminderStateRow extends BaseRow {
-  kind: 'habit' | 'routine' | 'priority_task' | 'journal'
+  kind: 'habit' | 'routine' | 'priority_task' | 'journal' | 'event'
   item_id: string
   date: string
   snoozed_until?: string | null
@@ -186,6 +224,9 @@ export interface RowTypes {
   priority_task_logs: PriorityTaskLogRow
   reminder_state: ReminderStateRow
   journal_entries: JournalEntryRow
+  events: EventRow
+  tags: TagRow
+  item_tags: ItemTagRow
 }
 
 /** Thrown when the server can't be reached. The change stays queued and is retried later. */

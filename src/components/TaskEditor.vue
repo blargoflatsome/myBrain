@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // Edit a task: title, notes, date (blank = Undated), priority; Delete asks first (SPEC §2 Confirm before impact).
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import TagInput from '@/components/TagInput.vue'
+import { useItemTags } from '@/composables/useItemTags'
 import type { TaskRow } from '@/sync/types'
 import { PRIORITIES, DEFAULT_PRIORITY } from '@/tasks/rules'
 import { messages } from '@/messages'
@@ -10,6 +12,7 @@ const emit = defineEmits<{ save: [TaskRow]; delete: [TaskRow]; close: [] }>()
 const m = messages.tasks
 
 const dialog = ref<HTMLDialogElement | null>(null)
+const tags = useItemTags('task', computed(() => props.task?.id))
 const confirmDialog = ref<HTMLDialogElement | null>(null)
 const title = ref('')
 const notes = ref('')
@@ -31,8 +34,9 @@ watch(
   },
 )
 
-function save() {
+async function save() {
   if (!props.task || !title.value.trim()) return
+  await tags.save(props.task.id)
   emit('save', {
     ...props.task,
     title: title.value.trim(),
@@ -91,6 +95,7 @@ const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-
           </label>
         </div>
       </fieldset>
+      <TagInput v-model="tags.names.value" />
       <div class="flex flex-wrap gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>

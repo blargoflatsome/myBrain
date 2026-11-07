@@ -29,6 +29,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 1. **Simple and documented.** Prefer simple, mainstream choices. Make small commits, keep a README that explains setup and key decisions, and explain notable trade-offs as you go.
 
 1. **Confirm before impact.** Any button that affects other users (cancelling or declining an event, sending messages to others) or removes data (deleting tasks, habits, entries, or an account) first shows a confirmation that says what will happen and who is affected. Routine actions like checking off a task or a quick capture do not need one.
+1. **Sort by dragging.** Anywhere I put things in order (Vault buckets, routine steps, and any list added later), I drag them by a handle (⠿) with mouse or touch. The arrow keys on the handle move an item too, for keyboard use.
 
 ### Voice and tone: "past you"
 - The whole app speaks to the user in one consistent voice: it reminds them of what **past them** established. Nothing is ever the current user's fault. Past you made the plan, and present you gets to decide what to do about it. The tone is friendly and light, never scolding or guilt-inducing.
@@ -71,9 +72,9 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **routine_runs / routine_step_logs:** per day, which steps were completed or skipped, for completion stats. Routines and steps also store weekdays and a start date.
 - **priority_tasks:** title, description, reminder time, a date (one-off) or weekdays (repeating), status. Priority habits are habits with a priority flag.
 - **journal_entries:** date (one entry per day), body text, auto-generated stats snapshot for that day (`stats`, JSON), whether the stats are final (`stats_final`), and whether the app wrote the entry on my behalf (`auto`).
-- **vault_buckets / vault_items:** user-defined buckets (restaurant reviews, places to go, books, shows, ideas to research, shopping list) and the items inside them.
+- **vault_buckets / vault_items:** user-defined buckets (restaurant reviews, places to go, books, shows, ideas to research, shopping list) and the items inside them. A bucket has a name, position, and whether its items can be checked off. An item has a title, notes, an optional star rating (1–5), an optional link or address, and, in checklist buckets, whether it is checked.
 - **quests:** title, details, time bucket (estimated time), energy level, status (open, accepted, done), last_picked_at, times_picked.
-- **reminders / events:** title, start, end, recurrence, notify offset (calendar items).
+- **events:** title, notes, start, end (or all day), repeat (never, daily, weekdays, weekly, monthly, yearly), and reminder (none, or minutes before the start). Personal calendar items; shared events and invitations come in step 11.
 - **dashboard_config:** which blocks are shown and their positions, per device or layout name.
 - **inbox (capture queue):** raw captured text that hasn't been filed yet, used when I choose Decide later, or when a capture is saved before its destination is chosen.
 
@@ -87,8 +88,8 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 - **push_subscriptions:** user id, device label, push endpoint and keys, last_seen. One per device (phone, laptop, Pi); remove subscriptions that the push service reports as invalid.
 - **device_pairings:** user id, device name, limited device token (stored hashed), permissions, created_at, revoked_at. Used for the Pi display (see section 9).
-- **tags / item_tags:** user-defined tags that can be attached to tasks, vault items, journal entries, and quests.
-- **Search index:** a Postgres full-text search index covering tasks, journal entries, vault items, quests, and events (see Global search and tags).
+- **tags / item_tags:** user-defined tags (a name, unique per user ignoring case) attached to tasks, vault items, journal entries, quests, and events.
+- **Search:** runs on the device's own copy of my data (see Global search and tags).
 
 ## 5. Phase 1 features and rules
 
@@ -140,7 +141,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Phase 1 builds the Account page for myself, with the visibility setting in place: it defaults to **only me**, can be changed now, and sharing takes effect only when Phase 2 adds other users. Display name and avatar come from Google sign-in; the display name is editable. Settings on the Account page are grouped into two cards, Your profile and Reminders, each with its own Save. Following other users, comparing streaks, and leaderboards are Phase 2 (see section 10).
 
 ### Routines (chained tasks)
-- A routine is an ordered series of steps with a notify time.
+- A routine is an ordered series of steps with a notify time. In the routine editor, steps are put in order by drag and drop.
 - Completing a step shows the next step.
 - Track how often I complete the routine overall, and how often I complete each step versus how many times it was possible.
 
@@ -186,10 +187,14 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 ### The Vault
 - User-defined buckets of things to remember that are not tasks (restaurant reviews, places to go, books, shows, ideas to research, shopping list).
 - New accounts start with three buckets: Shopping list, Restaurant reviews, and Places to go. They can be renamed or deleted like any other bucket.
+- The Vault page (in the menu) lists my buckets; opening one shows its items, with a quick box to add an item (title only needed). Buckets can be added, renamed, reordered by drag and drop (a drag handle that works with mouse and touch, and with the arrow keys), and deleted. Deleting a bucket that has items deletes its items too, after a confirmation that says how many will be deleted.
+- Each item has a title and optional notes, an optional **star rating** (1–5), an optional **link or address** (a web link opens in a new tab; anything else opens in maps), and tags. Items can be edited and deleted (after confirming).
+- A bucket can be set so its items can be **checked off** (the Shopping list starts that way). Checked items move to the bottom, and "Clear checked" deletes them after confirming.
 
 ### Global search and tags
-- A search box reachable from every screen searches tasks, journal entries, vault items, quests, and events. Results show what type each item is, and tapping one opens it. Use Postgres full-text search, and make search work on the locally stored copy too, so it works offline if that is practical.
-- Tags can be added to tasks, vault items, journal entries, and quests, and results can be filtered by tag.
+- Search opens as a window over the current page (like Capture), from a Search item in the menu and a search button in the phone header. It searches tasks, journal entries, vault items, quests, and events by title, notes and writing. Results are grouped by type, show what type each item is, and tapping one opens it where it lives (the task editor, the vault item, the quest, the journal day, or the event).
+- Search runs on the copy of my data stored on the device, so it is instant and works offline. It ignores case and accents and matches every word I type, anywhere in the text.
+- Tags can be added to tasks, vault items, journal entries, quests, and events, by typing a tag name (existing tags are suggested). Results can be filtered by one or more tags; choosing a tag with no search words lists everything with that tag.
 - Search only ever covers my own data.
 
 ### Random Quest (boredom buster)
@@ -204,7 +209,11 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Accepting moves a quest to In progress, where it can be marked done; accepted and done quests are not offered by the picker. Every pick counts toward `times_picked` and sets `last_picked_at`.
 
 ### Calendar and reminders
-- Standard calendar view (month, week, day) similar to Outlook, with reminders and notifications.
+- Standard calendar view (month, week, day) similar to Outlook, with reminders and notifications. The basic calendar (step 9) is a Calendar page in the menu showing:
+  - tasks with a due date, as all-day items with their priority colour (tapping one opens the task editor),
+  - priority tasks on their days at their reminder time (tapping opens the priority task editor),
+  - my own events.
+- Events: tap a day or time, or "+ New event", to add one with a title, start and end (or all day), optional notes, repeat (never, daily, weekdays, weekly, monthly, yearly), and an optional reminder (at the start, or 5, 10, 15 or 30 minutes, 1 hour, or 1 day before). Events can be edited and deleted (after confirming; deleting a repeating event deletes the whole series). Event reminders are sent like other reminders (Web Push and ntfy, respecting quiet hours) and open the calendar on that day.
 
 - Everything below from Accounts and contact info through Google Calendar sync is built after the Dashboard and Pi display (see the build order). Only the basic calendar view is built earlier.
 
@@ -417,3 +426,6 @@ Before building, walk me through creating each account below. Ask me for the cre
 - 2026-11-06 — Account page (user): the short bio is removed (not needed) and the settings are tidied. Claude's calls: settings grouped into two cards (Your profile; Reminders with this device, ntfy, quiet hours and journal reminder separated by lines), each with one Save; the `bio` column is left in the database unused, so nothing is deleted.
 - 2026-11-06 — Renamed the Profile page to Account (user: more accurate). It lives at /account; the old /profile address redirects there. The "Your profile" settings card keeps its name, since it holds the profile details others may see (name, streak visibility).
 - 2026-11-06 — Delete My Account (user), part of the §9 "account deletion that removes everything" rule. Claude's calls: a database function `delete_my_account()` deletes the signed-in user, and every table cascades from the user, so all data goes in one step with no service key in the browser (the one deliberate hard delete in the app); typing DELETE is required because it cannot be undone; other devices lose access because the account no longer exists, and their local copies are unreadable without signing in again.
+- 2026-11-06 — Step 9 (user's choices): the calendar shows dated tasks, priority tasks and my own events (not habits or routines); vault items get check-off, star rating, and link or address; deleting a bucket deletes its items after a confirmation; search opens as a window from the menu and phone header. Claude's calls (approved with the spec): check-off is a per-bucket setting (on for the Shopping list); events repeat never/daily/weekdays/weekly/monthly/yearly with simple reminder choices, and a repeating event is edited or deleted as a whole series; tags are free text, unique per user ignoring case; search runs on the device copy instead of Postgres full-text search, because every item is already stored on the device, which makes it instant and offline (a server index can be added later if the dashboard or Pi needs it); calendar is FullCalendar (MIT licence).
+- 2026-11-06 — The Vault buckets are sorted by drag and drop (user), replacing up/down buttons. Claude's calls: SortableJS (MIT) with a drag handle, so scrolling and tapping a bucket still work on a phone; the handle also moves a bucket with the arrow keys for keyboard users.
+- 2026-11-06 — Anywhere I sort is drag and drop (user, e.g. routines): Vault buckets and routine steps now use a shared drag handle (SortableJS), replacing up/down buttons; this is a general rule for new lists too.

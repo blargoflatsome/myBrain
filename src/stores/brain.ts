@@ -11,7 +11,8 @@ import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMis
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
-import type { JournalEntryRow } from '@/sync/types'
+import type { EventRow, JournalEntryRow, TaggedType, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import { tagChanges } from '@/tags/rules'
 import { normalizeBody } from '@/journal/body'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
@@ -332,6 +333,70 @@ export const useBrainStore = defineStore('brain', () => {
     await e.save('journal_entries', { ...emptyEntry(uid, date, false), body, stats, stats_final: date < today })
   }
 
+  // ---------- The Vault (SPEC §5 The Vault) ----------
+  async function saveBucket(row: VaultBucketRow) {
+    const { engine: e, uid } = requireReady()
+    return e.save('vault_buckets', { ...row, user_id: uid })
+  }
+
+  /** Delete a bucket and the items in it (the caller has already confirmed). */
+  async function deleteBucket(id: string) {
+    const { engine: e, local } = requireReady()
+    for (const item of (await local.vault_items.where('bucket_id').equals(id).toArray()).filter((i) => !i.deleted_at)) {
+      await e.remove('vault_items', item.id)
+    }
+    await e.remove('vault_buckets', id)
+  }
+
+  async function addVaultItem(bucketId: string, title: string) {
+    const { engine: e, uid } = requireReady()
+    const trimmed = title.trim()
+    if (!trimmed) return null
+    // created_at is set here too, so items keep the order they were added in before they reach the server.
+    return e.save('vault_items', { id: crypto.randomUUID(), user_id: uid, bucket_id: bucketId, title: trimmed, notes: null, rating: null, link: null, checked: false, created_at: new Date().toISOString(), deleted_at: null })
+  }
+
+  async function saveVaultItem(row: VaultItemRow) {
+    const { engine: e, uid } = requireReady()
+    return e.save('vault_items', { ...row, user_id: uid })
+  }
+
+  async function deleteVaultItem(id: string) {
+    await requireReady().engine.remove('vault_items', id)
+  }
+
+  async function toggleVaultItem(id: string) {
+    await requireReady().engine.patch('vault_items', id, (fresh) => ({ checked: !fresh.checked }))
+  }
+
+  /** "Clear checked": delete the checked items in a checklist bucket (the caller has already confirmed). */
+  async function clearChecked(bucketId: string) {
+    const { engine: e, local } = requireReady()
+    for (const item of (await local.vault_items.where('bucket_id').equals(bucketId).toArray()).filter((i) => !i.deleted_at && i.checked)) {
+      await e.remove('vault_items', item.id)
+    }
+  }
+
+  // ---------- Events (SPEC §5 Calendar and reminders) ----------
+  async function saveEvent(row: EventRow) {
+    const { engine: e, uid } = requireReady()
+    return e.save('events', { ...row, title: row.title.trim(), user_id: uid })
+  }
+
+  async function deleteEvent(id: string) {
+    await requireReady().engine.remove('events', id)
+  }
+
+  // ---------- Tags (SPEC §5 Global search and tags) ----------
+  /** Set an item's tags by name: new tags are created, dropped ones are taken off the item (the tag itself stays). */
+  async function saveTags(type: TaggedType, itemId: string, names: string[]) {
+    const { engine: e, uid, local } = requireReady()
+    const changes = tagChanges(uid, type, itemId, names, await local.tags.toArray(), await local.item_tags.where('item_id').equals(itemId).toArray())
+    for (const tag of changes.newTags) await e.save('tags', tag)
+    for (const link of changes.add) await e.save('item_tags', link)
+    for (const link of changes.remove) await e.remove('item_tags', link.id)
+  }
+
   // ---------- Priority reminders (SPEC §5) ----------
   async function savePriorityTask(row: PriorityTaskRow) {
     const { engine: e, uid } = requireReady()
@@ -374,6 +439,16 @@ export const useBrainStore = defineStore('brain', () => {
 
   return {
     db,
+    saveBucket,
+    deleteBucket,
+    addVaultItem,
+    saveVaultItem,
+    deleteVaultItem,
+    toggleVaultItem,
+    clearChecked,
+    saveEvent,
+    deleteEvent,
+    saveTags,
     journalStats,
     refreshJournal,
     saveJournalBody,

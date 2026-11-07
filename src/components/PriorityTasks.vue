@@ -7,6 +7,8 @@ import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { messages } from '@/messages'
 import type { PriorityTaskRow } from '@/sync/types'
 
+const props = defineProps<{ openId?: string | null }>()
+const emit = defineEmits<{ opened: [] }>()
 const brain = useBrainStore()
 const m = messages.priority
 const dayNames = messages.habits.weekdayNames
@@ -50,6 +52,18 @@ function open(t: PriorityTaskRow | null) {
     deleted_at: null,
   }
 }
+
+// Opened from the calendar with a priority task's id: open its editor.
+watch(
+  [() => props.openId, tasks],
+  ([id]) => {
+    const t = id ? tasks.value.find((x) => x.id === id) : undefined
+    if (!t) return
+    open(t)
+    emit('opened')
+  },
+  { immediate: true },
+)
 watch(editing, (t) => {
   if (!t) return dialog.value?.close()
   title.value = t.title

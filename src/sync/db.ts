@@ -32,6 +32,9 @@ export class LocalDb extends Dexie {
   priority_task_logs!: Table<RowTypes['priority_task_logs'], string>
   reminder_state!: Table<RowTypes['reminder_state'], string>
   journal_entries!: Table<RowTypes['journal_entries'], string>
+  events!: Table<RowTypes['events'], string>
+  tags!: Table<RowTypes['tags'], string>
+  item_tags!: Table<RowTypes['item_tags'], string>
   outbox!: Table<OutboxEntry, number>
   meta!: Table<MetaEntry, string>
 
@@ -67,6 +70,12 @@ export class LocalDb extends Dexie {
     // Step 8: journal entries, one per day.
     this.version(5).stores({
       journal_entries: 'id, updated_at, date',
+    })
+    // Step 9: personal events, tags, and which items carry which tags.
+    this.version(6).stores({
+      events: 'id, updated_at, start_date',
+      tags: 'id, updated_at',
+      item_tags: 'id, updated_at, item_id, tag_id',
     })
   }
 

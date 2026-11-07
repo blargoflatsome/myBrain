@@ -24,6 +24,9 @@ export class FakeRemote implements Remote {
     priority_task_logs: new Map(),
     reminder_state: new Map(),
     journal_entries: new Map(),
+    events: new Map(),
+    tags: new Map(),
+    item_tags: new Map(),
   }
 
   private now() {

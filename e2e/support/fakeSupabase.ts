@@ -33,6 +33,9 @@ export class FakeSupabase {
     priority_task_logs: new Map(),
     reminder_state: new Map(),
     journal_entries: new Map(),
+    events: new Map(),
+    tags: new Map(),
+    item_tags: new Map(),
     profiles: new Map(),
   }
   readonly writes: { table: string; row: Row }[] = []
@@ -41,7 +44,7 @@ export class FakeSupabase {
   constructor() {
     // Starter buckets, as the database creates them on sign-up (SPEC §5 The Vault).
     ;['Shopping list', 'Restaurant reviews', 'Places to go'].forEach((name, position) =>
-      this.store('vault_buckets', { id: `bucket-${position}`, user_id: TEST_USER_ID, name, position, deleted_at: null }),
+      this.store('vault_buckets', { id: `bucket-${position}`, user_id: TEST_USER_ID, name, position, checkable: position === 0, deleted_at: null }),
     )
     // The profile the database creates on first sign-in (SPEC §4), private by default.
     this.store('profiles', {
