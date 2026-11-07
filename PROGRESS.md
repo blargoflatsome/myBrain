@@ -165,10 +165,14 @@ Merged and live.
 - Tests: `src/routines/habits-anytime.test.ts`, more in `e2e/routines.spec.ts`. Vitest 179, Playwright 232, SQL 11 files.
 - PR #13; Deploy Preview 13 checked in Chrome (run-anytime routine created, run to the end, Start again shown; test routine deleted). Prod migrated and verified. Merged and live.
 
-## Step 10 — Dashboard (branch `step-10-dashboard`)
+## Step 10 — Dashboard (done, PR #14)
 - The Raspberry Pi display moved to an optional later step (user). Spec §5 Dashboard approved.
 - Dashboard is the first page (Tasks at /tasks): period dropdown (This year default, Last 12 months, All time; remembered on the device); habits (every habit's current/best streak, top 3 most missed, longest current, best ever, oldest); journal current/best streak (written entries only); events created/attended/cancelled; tasks done, quests finished, routine completion rates.
 - No database change. Tests: `src/dashboard/stats.test.ts`, `e2e/dashboard.spec.ts`; Tasks tests now open /tasks. Vitest 188, Playwright 244.
+
+## Step 11 — Shared events (in progress, branch `step-11-shared-events`)
+- Spec approved (user's choices: Resend from an own domain; one merge; calendar file for guests; phone unverified).
+- Decided 2026-11-07: buy `myadhdbrain.app` at Porkbun and set up Resend as a **Phase 2 step**. Step 11 queues and logs emails and reaches guests through the one-at-a-time sharing flow.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
