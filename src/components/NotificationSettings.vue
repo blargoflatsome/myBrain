@@ -17,6 +17,9 @@ const topic = ref('')
 const quietStart = ref('')
 const quietEnd = ref('')
 const priorityRings = ref(true)
+// SPEC §5 Journal: optional daily journal reminder, off by default.
+const journalOff = ref(true)
+const journalTime = ref('21:00')
 const loaded = ref(false)
 const notice = ref('')
 
@@ -29,7 +32,7 @@ function base64UrlToBytes(b64: string) {
 onMounted(async () => {
   const { data } = await supabase
     .from('profiles')
-    .select('notify_ntfy, ntfy_topic, quiet_hours_start, quiet_hours_end, quiet_hours_silence_priority')
+    .select('notify_ntfy, ntfy_topic, quiet_hours_start, quiet_hours_end, quiet_hours_silence_priority, journal_reminder_time')
     .eq('user_id', auth.user?.id ?? '')
     .maybeSingle()
   if (data) {
@@ -38,6 +41,8 @@ onMounted(async () => {
     quietStart.value = data.quiet_hours_start?.slice(0, 5) ?? ''
     quietEnd.value = data.quiet_hours_end?.slice(0, 5) ?? ''
     priorityRings.value = !data.quiet_hours_silence_priority
+    journalOff.value = !data.journal_reminder_time
+    if (data.journal_reminder_time) journalTime.value = data.journal_reminder_time.slice(0, 5)
     loaded.value = true
   }
   if (supported) {
@@ -90,6 +95,7 @@ async function save() {
       quiet_hours_start: quietStart.value || null,
       quiet_hours_end: quietEnd.value || null,
       quiet_hours_silence_priority: !priorityRings.value,
+      journal_reminder_time: journalOff.value || !journalTime.value ? null : journalTime.value,
     })
     .eq('user_id', auth.user?.id ?? '')
   notice.value = error ? messages.profile.offline : m.saved
@@ -152,6 +158,13 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
           <label class="flex flex-col gap-1 text-sm text-muted">{{ m.quietEnd }}<input v-model="quietEnd" type="time" :class="field"></label>
         </div>
         <label class="flex items-center gap-3 text-sm"><input v-model="priorityRings" type="checkbox" class="size-5">{{ m.priorityQuiet }}</label>
+      </fieldset>
+
+      <fieldset class="flex flex-col gap-2" data-testid="journal-reminder">
+        <legend class="mb-1 font-medium">{{ m.journalReminder }}</legend>
+        <p class="text-xs text-muted">{{ m.journalReminderHint }}</p>
+        <label class="flex items-center gap-3 text-sm"><input v-model="journalOff" type="checkbox" class="size-5">{{ m.journalOff }}</label>
+        <label v-if="!journalOff" class="flex flex-col gap-1 text-sm text-muted">{{ m.journalTime }}<input v-model="journalTime" type="time" :class="field"></label>
       </fieldset>
 
       <div class="flex flex-wrap gap-2">

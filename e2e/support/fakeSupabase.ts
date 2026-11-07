@@ -32,6 +32,7 @@ export class FakeSupabase {
     priority_tasks: new Map(),
     priority_task_logs: new Map(),
     reminder_state: new Map(),
+    journal_entries: new Map(),
     profiles: new Map(),
   }
   readonly writes: { table: string; row: Row }[] = []

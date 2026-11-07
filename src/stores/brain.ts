@@ -8,8 +8,10 @@ import { activeSteps, recordStep, runFor } from '@/routines/rules'
 import { cancelState, snoozeState, type DuePriority } from '@/reminders/priority'
 import type { PriorityTaskRow } from '@/sync/types'
 import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMisses } from '@/habits/rules'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
+import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
+import type { JournalEntryRow } from '@/sync/types'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
@@ -61,6 +63,7 @@ export const useBrainStore = defineStore('brain', () => {
     const local = db.value
     const markReady = async () => {
       if (await local.meta.get('downloaded:habit_logs')) habitsReady.value = true
+      if (habitsReady.value && (await local.meta.get('downloaded:journal_entries'))) await refreshJournal()
     }
     background(markReady())
     background(engine.value.sync().then(markReady))
@@ -262,6 +265,92 @@ export const useBrainStore = defineStore('brain', () => {
     return action
   }
 
+  // ---------- Journal (SPEC §5 Journal) ----------
+  async function dayData(): Promise<DayData> {
+    const { local } = requireReady()
+    return {
+      tasks: await local.tasks.toArray(),
+      habits: await local.habits.toArray(),
+      habitLogs: await local.habit_logs.toArray(),
+      routines: await local.routines.toArray(),
+      routineSteps: await local.routine_steps.toArray(),
+      routineRuns: await local.routine_runs.toArray(),
+      routineStepLogs: await local.routine_step_logs.toArray(),
+      priorityTasks: await local.priority_tasks.toArray(),
+      priorityTaskLogs: await local.priority_task_logs.toArray(),
+      quests: await local.quests.toArray(),
+    }
+  }
+
+  /** The stats for a day, worked out from the on-device history (shown live for today). */
+  async function journalStats(date: string, now = new Date(), timeZone = deviceTimeZone()) {
+    return dayStats(await dayData(), date, now, timeZone)
+  }
+
+  /**
+   * Write an entry on my behalf for each day that ended without one (if I did something that day), keep today's stats current, and freeze the
+   * stats of days that have ended. Only runs once this device has the server's habits and journal, so a fresh
+   * device never writes over entries it has not downloaded yet. Safe to run often.
+   */
+  async function refreshJournal(now = new Date(), timeZone = deviceTimeZone()) {
+    const { engine: e, uid, local } = requireReady()
+    if (!habitsReady.value || !(await local.meta.get('downloaded:journal_entries'))) return
+    const today = todayIn(timeZone, now)
+    const data = await dayData()
+    const entries = await local.journal_entries.toArray()
+    // When this device started journaling, so no entries are invented for days before it.
+    let start = (await local.meta.get('journal_start'))?.value
+    if (!start) {
+      start = today
+      await local.meta.put({ key: 'journal_start', value: start })
+    }
+    for (const date of missingDays(entries, today, start)) {
+      const stats = dayStats(data, date, now, timeZone)
+      if (!hadActivity(stats)) continue // a day with nothing done gets no entry
+      await e.save('journal_entries', { ...emptyEntry(uid, date, true), stats, stats_final: true })
+    }
+    for (const entry of entries) {
+      if (entry.deleted_at || entry.stats_final) continue
+      const stats = dayStats(data, entry.date, now, timeZone)
+      await e.patch('journal_entries', entry.id, (fresh) => statsUpdate(fresh, stats, today))
+    }
+  }
+
+  /** Save what I wrote for a day. Writing in an entry the app made makes it mine. Always editable (SPEC §5 Journal). */
+  async function saveJournalBody(date: string, body: string, now = new Date(), timeZone = deviceTimeZone()) {
+    const { engine: e, uid, local } = requireReady()
+    const today = todayIn(timeZone, now)
+    const existing = (await local.journal_entries.where('date').equals(date).toArray()).find((x) => !x.deleted_at)
+    const auto = (row: JournalEntryRow) => row.auto && !body.trim()
+    if (existing) {
+      await e.patch('journal_entries', existing.id, (fresh) => (fresh.body === body ? null : { body, auto: auto(fresh) }))
+      return
+    }
+    const stats = dayStats(await dayData(), date, now, timeZone)
+    await e.save('journal_entries', { ...emptyEntry(uid, date, false), body, stats, stats_final: date < today })
+  }
+
+  /** A task added from the journal: due tomorrow unless I pick another date or none (SPEC §5 Journal). */
+  async function addJournalTask(title: string, dueDate: string | null) {
+    const { engine: e, uid } = requireReady()
+    const trimmed = title.trim()
+    if (!trimmed) return null
+    return e.save('tasks', {
+      id: crypto.randomUUID(),
+      user_id: uid,
+      title: trimmed,
+      due_date: dueDate,
+      priority: DEFAULT_PRIORITY,
+      status: 'open',
+      source: 'journal',
+      deleted_at: null,
+    })
+  }
+
+  function tomorrow(now = new Date(), timeZone = deviceTimeZone()) {
+    return addDays(todayIn(timeZone, now), 1)
+  }
+
   // ---------- Priority reminders (SPEC §5) ----------
   async function savePriorityTask(row: PriorityTaskRow) {
     const { engine: e, uid } = requireReady()
@@ -304,6 +393,11 @@ export const useBrainStore = defineStore('brain', () => {
 
   return {
     db,
+    journalStats,
+    refreshJournal,
+    saveJournalBody,
+    addJournalTask,
+    tomorrow,
     savePriorityTask,
     deletePriorityTask,
     completePriority,

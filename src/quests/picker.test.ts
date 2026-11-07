@@ -93,4 +93,7 @@ describe('Spec §5 Random Quest: accept, mark done, and pick history', () => {
     expect(acceptQuest(quest('a')).status).toBe('accepted')
     expect(finishQuest(quest('a')).status).toBe('done')
   })
+  it('Spec §5 Journal: marking a quest done records when it was completed', () => {
+    expect(finishQuest(quest('a'), new Date('2026-11-10T15:00:00Z')).completed_at).toBe('2026-11-10T15:00:00.000Z')
+  })
 })
