@@ -254,7 +254,7 @@ export interface JournalEntryRow extends BaseRow {
   stats_final: boolean
   /** True when the app wrote the entry on my behalf for a missed day. */
   auto: boolean
-  /** "How to make tomorrow better?" (plain text). */
+  /** "How to make tomorrow better?" (formatted HTML like the body; older answers may be plain text). */
   tomorrow?: string
   /** "Was today better than yesterday?" (null = not answered). */
   better_than_yesterday?: boolean | null

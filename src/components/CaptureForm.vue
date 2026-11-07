@@ -188,7 +188,7 @@ const chip = (on: boolean) => [
   'min-h-11 rounded-full border px-3 text-sm',
   on ? 'border-accent bg-accent font-semibold text-accent-ink' : 'border-line bg-surface text-ink',
 ]
-const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink outline-none focus:border-accent'
+const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink focus:border-accent'
 const typeBtn = 'min-h-16 rounded-2xl border border-line bg-surface px-4 text-lg font-semibold text-ink active:scale-[0.98]'
 const types: Destination[] = ['task', 'vault', 'quest', 'habit', 'later']
 const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' } as const

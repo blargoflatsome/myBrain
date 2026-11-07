@@ -83,6 +83,14 @@ watch(
   },
   { flush: 'post' },
 )
+// Tapping a handle shows Move up / Move down, so buckets can be sorted without dragging (WCAG 2.5.7).
+const movingId = ref<string | null>(null)
+async function moveByButton(id: string, step: -1 | 1) {
+  await moveOne(id, step)
+  const at = buckets.value.findIndex((x) => x.id === id)
+  const target = (at + step < 0 || at + step >= buckets.value.length) ? -step : step
+  list.value?.querySelector<HTMLButtonElement>(`[data-move="${id}"][data-step="${target}"]`)?.focus()
+}
 function onHandleBlur(event: FocusEvent) {
   // Focus moved somewhere else on purpose (not lost to a redraw): stop following.
   if (event.relatedTarget) keyboardId.value = null
@@ -129,6 +137,18 @@ async function deleteItem(i: VaultItemRow) {
   await closeEditor()
 }
 
+// Delete straight from the list, after confirming (SPEC §5 The Vault).
+const confirmDelete = ref<HTMLDialogElement | null>(null)
+const deleting = ref<VaultItemRow | null>(null)
+function askDelete(i: VaultItemRow) {
+  deleting.value = i
+  confirmDelete.value?.showModal()
+}
+async function confirmDeleteItem() {
+  if (deleting.value) await brain.deleteVaultItem(deleting.value.id)
+  confirmDelete.value?.close()
+}
+
 const confirmClear = ref<HTMLDialogElement | null>(null)
 async function clearChecked() {
   if (bucket.value) await brain.clearChecked(bucket.value.id)
@@ -149,21 +169,27 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
       <p v-if="!buckets.length" class="text-muted">{{ m.noBuckets }}</p>
       <p v-if="buckets.length > 1" class="-mt-3 text-xs text-muted">{{ m.dragHint }}</p>
       <ul ref="list" class="flex flex-col gap-2" :aria-label="m.bucketsHeading">
-        <li v-for="b in buckets" :key="b.id" class="flex items-center gap-1 rounded-2xl border border-line bg-surface pl-1" data-testid="vault-bucket">
+        <li v-for="(b, bi) in buckets" :key="b.id" class="flex flex-wrap items-center gap-1 rounded-2xl border border-line bg-surface pl-1" data-testid="vault-bucket">
           <button
             type="button"
             class="drag-handle flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-xl text-muted active:cursor-grabbing"
             :aria-label="m.drag(b.name)"
             :data-handle="b.id"
+            :aria-expanded="movingId === b.id"
             @keydown="moveByKey($event, b)"
             @blur="onHandleBlur"
+            @click="movingId = movingId === b.id ? null : b.id"
           >
-            ⠿
+            <span aria-hidden="true">⠿</span>
           </button>
           <button type="button" class="flex min-h-14 flex-1 items-center justify-between gap-3 pr-4 pl-1 text-left" @click="openBucket(b)">
-            <span class="font-medium"><span v-if="b.starred" class="text-yellow-400" aria-hidden="true">★ </span>{{ b.name }}</span>
+            <span class="font-medium"><span v-if="b.starred" class="text-star" aria-hidden="true">★ </span>{{ b.name }}</span>
             <span class="text-sm text-muted">{{ m.itemCount(countIn(b)) }}</span>
           </button>
+          <div v-if="movingId === b.id" class="flex w-full gap-2 px-2 pb-2" role="group" :aria-label="m.moveGroup(b.name)">
+            <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="bi === 0" :data-move="b.id" :data-step="-1" @click="moveByButton(b.id, -1)">↑ {{ messages.moveUp }}</button>
+            <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="bi === buckets.length - 1" :data-move="b.id" :data-step="1" @click="moveByButton(b.id, 1)">↓ {{ messages.moveDown }}</button>
+          </div>
         </li>
       </ul>
       <form v-if="addingBucket" class="flex gap-2" @submit.prevent="createBucket">
@@ -185,7 +211,7 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
             <button
               type="button"
               class="flex size-11 items-center justify-center rounded-xl border text-xl"
-              :class="bucket.starred ? 'border-accent text-yellow-400' : 'border-line text-muted'"
+              :class="bucket.starred ? 'border-accent text-star' : 'border-line text-muted'"
               :aria-pressed="!!bucket.starred"
               :aria-label="bucket.starred ? m.unstar(bucket.name) : m.star(bucket.name)"
               :title="m.starHint"
@@ -217,7 +243,7 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
             type="button"
             role="checkbox"
             class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm"
-            :class="i.checked ? 'border-accent bg-accent text-accent-ink' : 'border-line'"
+            :class="i.checked ? 'border-accent bg-accent text-accent-ink' : 'border-control'"
             :aria-checked="!!i.checked"
             :aria-label="i.checked ? m.uncheck(i.title) : m.check(i.title)"
             @click="brain.toggleVaultItem(i.id)"
@@ -228,7 +254,7 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
             <button type="button" class="text-left font-medium" :class="i.checked ? 'line-through' : ''" :aria-label="m.open(i.title)" @click="editing = i">
               {{ i.title }}
             </button>
-            <span v-if="i.rating" class="text-sm text-yellow-400" :aria-label="m.stars(i.rating)" role="img">{{ '★'.repeat(i.rating) }}<span class="text-line">{{ '★'.repeat(5 - i.rating) }}</span></span>
+            <span v-if="i.rating" class="text-sm text-star" :aria-label="m.stars(i.rating)" role="img">{{ '★'.repeat(i.rating) }}<span class="text-muted">{{ '☆'.repeat(5 - i.rating) }}</span></span>
             <p v-if="i.notes" class="line-clamp-2 text-sm whitespace-pre-wrap text-muted">{{ i.notes }}</p>
             <a
               v-if="i.link"
@@ -239,6 +265,14 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
               :aria-label="`${linkTarget(i.link).kind === 'map' ? m.openMap : m.openLink}: ${linkLabel(i.link)}`"
             >{{ linkTarget(i.link).kind === 'map' ? '📍' : '🔗' }} {{ linkLabel(i.link) }}</a>
           </div>
+          <button
+            type="button"
+            class="-my-1 -mr-1 flex size-11 shrink-0 items-center justify-center rounded-xl text-muted hover:text-danger"
+            :aria-label="m.deleteItem(i.title)"
+            @click="askDelete(i)"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" /></svg>
+          </button>
         </li>
       </ul>
       <button v-if="checked.length" type="button" class="min-h-11 self-start rounded-xl border border-line px-4 text-sm" @click="confirmClear?.showModal()">
@@ -256,6 +290,21 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
     />
 
     <dialog
+      ref="confirmDelete"
+      class="m-auto w-[min(100%-2rem,24rem)] rounded-2xl border border-line bg-surface p-5 text-ink backdrop:bg-black/50"
+      role="alertdialog"
+      :aria-label="m.confirmDeleteItem.heading"
+      @close="deleting = null"
+    >
+      <h2 class="text-lg font-semibold">{{ m.confirmDeleteItem.heading }}</h2>
+      <p class="mt-2 text-muted">{{ m.confirmDeleteItem.body(deleting?.title ?? '', bucket?.name ?? '') }}</p>
+      <div class="mt-4 flex gap-2">
+        <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink" @click="confirmDeleteItem">{{ m.confirmDeleteItem.confirm }}</button>
+        <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDelete?.close()">{{ m.confirmDeleteItem.keep }}</button>
+      </div>
+    </dialog>
+
+    <dialog
       ref="confirmClear"
       class="m-auto w-[min(100%-2rem,24rem)] rounded-2xl border border-line bg-surface p-5 text-ink backdrop:bg-black/50"
       role="alertdialog"
@@ -264,7 +313,7 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
       <h2 class="text-lg font-semibold">{{ m.confirmClear.heading }}</h2>
       <p class="mt-2 text-muted">{{ m.confirmClear.body(checked.length, bucket?.name ?? '') }}</p>
       <div class="mt-4 flex gap-2">
-        <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white" @click="clearChecked">{{ m.confirmClear.confirm }}</button>
+        <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink" @click="clearChecked">{{ m.confirmClear.confirm }}</button>
         <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmClear?.close()">{{ m.confirmClear.keep }}</button>
       </div>
     </dialog>

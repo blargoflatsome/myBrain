@@ -67,7 +67,8 @@ export function calendarItems(
     const priority = ['low', 'low', 'medium', 'high'][t.priority ?? 1] ?? 'low'
     items.push({
       id: `task:${t.id}`,
-      title: t.title,
+      // Priority shows as a mark as well as a colour: ‼ High, ! Medium.
+      title: `${priority === 'high' ? '‼ ' : priority === 'medium' ? '! ' : ''}${t.title}`,
       start: t.due_date,
       allDay: true,
       className: ['cal-task', `cal-${priority}`, ...(t.status === 'done' ? ['cal-done'] : [])].join(' '),
@@ -107,7 +108,7 @@ export function calendarItems(
         e.start_time && e.end_time
           ? {
               id: `event:${e.id}:${d}`,
-              title: e.title,
+              title: mine?.response === 'maybe' ? `? ${e.title}` : e.title,
               start: `${d}T${hhmm(e.start_time)}`,
               end: `${endDate}T${hhmm(e.end_time)}`,
               allDay: false,
@@ -116,7 +117,7 @@ export function calendarItems(
             }
           : {
               id: `event:${e.id}:${d}`,
-              title: e.title,
+              title: mine?.response === 'maybe' ? `? ${e.title}` : e.title,
               start: d,
               end: addDays(endDate, 1),
               allDay: true,

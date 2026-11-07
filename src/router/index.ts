@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { messages } from '@/messages'
 import DashboardView from '@/views/DashboardView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { authRedirect } from './guard'
@@ -38,6 +39,11 @@ export const routes = [
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+})
+
+// Each page has its own title (WCAG 2.4.2).
+router.afterEach((to) => {
+  document.title = messages.pageTitle(messages.pageTitles[String(to.name)])
 })
 
 router.beforeEach(async (to) => {

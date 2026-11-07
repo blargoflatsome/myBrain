@@ -86,11 +86,43 @@ test.describe('Spec §5 Orphans', () => {
 test.describe('Spec §5 Journal: tomorrow and better than yesterday', () => {
   test('"How to make tomorrow better?" is its own box, saved to the day', async ({ page }) => {
     await open(page, '/journal')
-    await page.getByLabel('How to make tomorrow better?').fill('Lay out clothes tonight')
+    const box = page.getByRole('textbox', { name: 'How to make tomorrow better?' })
+    await box.click()
+    await page.getByRole('toolbar', { name: 'Formatting: How to make tomorrow better?' }).getByRole('button', { name: 'Bold' }).click()
+    await page.keyboard.type('Lay out clothes tonight')
     await page.getByRole('heading', { name: 'Journal', level: 1 }).click()
     await expect
       .poll(() => server.written('journal_entries').find((e) => e.date === '2026-11-10' && e.tomorrow))
-      .toMatchObject({ tomorrow: 'Lay out clothes tonight' })
+      .toMatchObject({ tomorrow: '<p><strong>Lay out clothes tonight</strong></p>' })
+  })
+
+  test('the better-than-yesterday question comes before the writing, and tomorrow comes after it', async ({ page }) => {
+    await open(page, '/journal')
+    const today = page.getByTestId('journal-today')
+    const top = async (loc: ReturnType<Page['getByRole']>) => (await loc.boundingBox())!.y
+    const better = await top(today.getByRole('radiogroup', { name: 'Was today better than yesterday?' }))
+    const writing = await top(today.getByRole('textbox', { name: 'How the day went' }))
+    const tomorrow = await top(today.getByRole('textbox', { name: 'How to make tomorrow better?' }))
+    expect(better).toBeLessThan(writing)
+    expect(writing).toBeLessThan(tomorrow)
+  })
+
+  test('Earlier entries show their tags across the top, and formatted tomorrow answers', async ({ page }) => {
+    server.seed('journal_entries', [
+      { id: 'j-9', date: '2026-11-09', body: '<p>Fine day</p>', tomorrow: '<p><strong>Sleep early</strong></p>', better_than_yesterday: true, stats: {}, auto: false, stats_final: true },
+    ])
+    server.seed('tags', [{ id: 't1', name: 'work' }, { id: 't2', name: 'family' }])
+    server.seed('item_tags', [
+      { id: 'it1', item_type: 'journal_entry', item_id: 'j-9', tag_id: 't1' },
+      { id: 'it2', item_type: 'journal_entry', item_id: 'j-9', tag_id: 't2' },
+    ])
+    await open(page, '/journal')
+    const entry = page.getByTestId('journal-entry-2026-11-09')
+    await expect(entry.getByTestId('journal-entry-tag')).toHaveText(['#family', '#work'])
+    await expect(entry.getByTestId('journal-tomorrow').locator('strong')).toHaveText('Sleep early')
+    const tagsTop = (await entry.getByTestId('journal-entry-tags').boundingBox())!.y
+    const bodyTop = (await entry.getByTestId('journal-body').boundingBox())!.y
+    expect(tagsTop).toBeLessThan(bodyTop)
   })
 
   test('"Was today better than yesterday?" is answered Yes or No, and tapping again clears it', async ({ page }) => {
@@ -137,9 +169,53 @@ test.describe('Spec §5 Dashboard: worst day and favorite buckets', () => {
     await expect(page.getByRole('textbox', { name: 'Add to Shopping list' })).toBeVisible()
   })
 
+  test('an item can be deleted from the bucket list, after confirming', async ({ page }) => {
+    server.seed('vault_buckets', [{ id: 'b-groc', name: 'Groceries', position: 9, checkable: false, starred: false }])
+    server.seed('vault_items', [{ id: 'v1', bucket_id: 'b-groc', title: 'Milk', notes: null, created_at: '2026-11-01T00:00:00Z' }])
+    await open(page, '/vault?bucket=b-groc')
+    await expect(page.getByTestId('vault-item')).toHaveText(['Milk'])
+    await page.getByRole('button', { name: 'Delete Milk' }).click()
+    const confirm = page.getByRole('alertdialog', { name: 'Delete this item?' })
+    await expect(confirm).toContainText('"Milk" will be deleted from Groceries on all your devices.')
+    await confirm.getByRole('button', { name: 'Keep it' }).click()
+    await expect(page.getByTestId('vault-item')).toHaveCount(1)
+    await page.getByRole('button', { name: 'Delete Milk' }).click()
+    await confirm.getByRole('button', { name: 'Delete' }).click()
+    await expect(page.getByTestId('vault-item')).toHaveCount(0)
+    await expect.poll(() => lastWrite('vault_items')).toMatchObject({ id: 'v1', deleted_at: expect.any(String) })
+  })
+
   test('with nothing starred there is no favorites section', async ({ page }) => {
     await open(page, '/')
     await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
     await expect(page.getByTestId('dash-favorites')).toHaveCount(0)
+  })
+})
+
+test.describe('Spec §7 Catching up and not leaving changes behind', () => {
+  async function setVisibility(page: Page, state: 'hidden' | 'visible') {
+    await page.evaluate((s) => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => s })
+      document.dispatchEvent(new Event('visibilitychange'))
+    }, state)
+  }
+
+  test('switching away saves writing still waiting on its timer, straight away', async ({ page }) => {
+    await open(page, '/journal')
+    const editor = page.getByRole('textbox', { name: 'How the day went' })
+    await editor.click()
+    await page.keyboard.type('Written on the bus')
+    // The clock is paused, so the save timer never runs by itself: only leaving the app can save it.
+    await setVisibility(page, 'hidden')
+    await expect.poll(() => server.written('journal_entries').at(-1)?.body).toBe('<p>Written on the bus</p>')
+  })
+
+  test('coming back to the app pulls what changed on other devices', async ({ page }) => {
+    await open(page, '/journal')
+    await expect(page.getByText("Past you let you down")).toBeVisible()
+    server.seed('journal_entries', [{ id: 'j-9', date: '2026-11-09', body: '<p>From my phone</p>', stats: {}, auto: false, stats_final: true, updated_at: '2026-11-11T00:59:00Z' }])
+    await setVisibility(page, 'hidden')
+    await setVisibility(page, 'visible')
+    await expect(page.getByTestId('journal-entry-2026-11-09')).toContainText('From my phone')
   })
 })

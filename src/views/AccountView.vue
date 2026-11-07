@@ -239,7 +239,7 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
         <div class="flex flex-col gap-2 sm:flex-row">
           <button
             type="submit"
-            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white disabled:opacity-50"
+            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink disabled:opacity-50"
             :disabled="wiping || !wipeChosen.length || wipeTyped.trim().toUpperCase() !== messages.deleteData.word"
           >
             {{ messages.deleteData.confirm }}
@@ -265,7 +265,7 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
         <div class="flex flex-col gap-2 sm:flex-row">
           <button
             type="submit"
-            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white disabled:opacity-50"
+            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink disabled:opacity-50"
             :disabled="deleting || typed.trim().toUpperCase() !== m.deleteConfirm.word"
           >
             {{ m.deleteConfirm.confirm }}

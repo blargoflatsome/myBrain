@@ -76,7 +76,7 @@ const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-
             type="button"
             role="radio"
             class="flex size-11 items-center justify-center rounded-lg text-2xl"
-            :class="rating && n <= rating ? 'text-yellow-400' : 'text-line'"
+            :class="rating && n <= rating ? 'text-star' : 'text-muted'"
             :aria-checked="rating === n"
             :aria-label="m.itemEditor.ratingStar(n)"
             @click="rating = rating === n ? null : n"
@@ -123,7 +123,7 @@ const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-
     <h2 class="text-lg font-semibold">{{ m.confirmItemDelete.heading }}</h2>
     <p class="mt-2 text-muted">{{ m.confirmItemDelete.body(item?.title ?? '') }}</p>
     <div class="mt-4 flex gap-2">
-      <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white" @click="confirmDelete">
+      <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink" @click="confirmDelete">
         {{ m.confirmItemDelete.confirm }}
       </button>
       <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDialog?.close()">

@@ -96,7 +96,7 @@ async function confirm() {
       <p v-else-if="!error" class="text-sm text-muted">{{ m.nobody }}</p>
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
       <div class="flex gap-2">
-        <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white disabled:opacity-50" :disabled="busy || !brain.online" @click="confirm">
+        <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink disabled:opacity-50" :disabled="busy || !brain.online" @click="confirm">
           {{ mode === 'cancel' ? m.confirmCancel : m.confirmDrop }}
         </button>
         <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.keep }}</button>

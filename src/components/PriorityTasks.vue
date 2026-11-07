@@ -162,7 +162,7 @@ const chip = (on: boolean) => [
       <h2 class="text-lg font-semibold">{{ m.confirmDelete.heading }}</h2>
       <p class="mt-2 text-muted">{{ m.confirmDelete.body(editing?.title ?? '') }}</p>
       <div class="mt-4 flex gap-2">
-        <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white" @click="remove">{{ m.confirmDelete.confirm }}</button>
+        <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink" @click="remove">{{ m.confirmDelete.confirm }}</button>
         <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDialog?.close()">{{ m.confirmDelete.keep }}</button>
       </div>
     </dialog>

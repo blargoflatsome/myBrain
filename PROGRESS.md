@@ -185,6 +185,10 @@ Merged and live.
 - User feedback, spec approved 2026-11-07: every week / every 2 weeks for habits, routines, repeating priority tasks and events (2-week weeks count from the start date's Sun–Sat week); Capture can add a habit (full form); Inbox renamed Orphans (`/inbox` redirects); streaks removed from the Account page; Journal gets "How to make tomorrow better?" and "Was today better than yesterday?" Yes/No; Dashboard "Days since your worst day" (days in a row answered Yes); star several Vault buckets, each shows on the Dashboard with its 3 newest items.
 - Migration `20261107010000_feedback_round_1.sql` (`week_interval`, `on_week()`, events `biweekly`, journal `tomorrow`/`better_than_yesterday`, buckets `starred`, reminders respect every 2 weeks). Dev migrated; `rls_every_two_weeks.sql` passes (14 SQL files).
 - Tests: `src/feedback-round-1.test.ts`, `e2e/feedback-round-1.spec.ts`. Vitest 205, Playwright 298.
+- Part 2 (user, same PR): journal asks better-than-yesterday before the writing; tomorrow box is the formatted editor; Earlier entries show tags at the top; Vault items have a delete button in the list (confirm).
+- Sync fix (phone edits only reached the desktop after reopening the phone): sync when the app comes back into view, save waiting writing and upload when it's hidden, retry queued changes every 30 s (SPEC §7).
+- WCAG 2.2 AA (SPEC §2, CLAUDE.md): `e2e/a11y.spec.ts` runs axe on every page and main window in light and dark, plus reflow at 320 px, titles, skip link, focus ring, tap-to-move and page announcements. Fixed everything it and a manual review found (see SPEC §14 2026-11-07).
+- Tests: Vitest 205, Playwright 412 (incl. 100 accessibility checks).
 - Next: Google Calendar sync (check Google's sensitive-scope/verification rules first, then plan and ask).
 
 ## Rules without a test yet

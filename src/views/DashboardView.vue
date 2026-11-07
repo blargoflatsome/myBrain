@@ -214,7 +214,6 @@ const big = 'text-3xl font-bold tabular-nums'
             :key="f.bucket.id"
             :to="{ name: 'vault', query: { bucket: f.bucket.id } }"
             :class="[card, 'hover:border-accent']"
-            :aria-label="m.openBucket(f.bucket.name)"
             data-testid="dash-favorite"
           >
             <span class="font-semibold">★ {{ f.bucket.name }}</span>

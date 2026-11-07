@@ -25,6 +25,9 @@ function background(work: Promise<unknown> | undefined) {
   })
 }
 
+/** How often queued changes are retried while the app is open (SPEC §7). */
+export const RETRY_MS = 30_000
+
 export const useBrainStore = defineStore('brain', () => {
   const db = shallowRef<LocalDb | null>(null)
   const engine = shallowRef<SyncEngine | null>(null)
@@ -56,12 +59,29 @@ export const useBrainStore = defineStore('brain', () => {
       online.value = false
       background(engine.value?.flush())
     }
+    // SPEC §7: coming back to the app catches up (Realtime misses changes while a device sleeps), and leaving it
+    // uploads anything queued, because a phone may stop a hidden app before it gets another chance.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') background(engine.value?.sync())
+      else background(engine.value?.flush())
+    }
+    const onPageHide = () => background(engine.value?.flush())
+    // A dropped request (weak signal) does not fire the browser's "online" event, so queued changes are retried
+    // every 30 seconds while the app is open, instead of waiting for the next app start.
+    const retry = setInterval(() => {
+      if (status.value.pending > 0 && document.visibilityState === 'visible') background(engine.value?.sync())
+    }, RETRY_MS)
     window.addEventListener('online', goOnline)
     window.addEventListener('offline', goOffline)
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onPageHide)
     const unsubscribe = remote.subscribe((table) => background(engine.value?.pull([table])))
     cleanup = () => {
       window.removeEventListener('online', goOnline)
       window.removeEventListener('offline', goOffline)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onPageHide)
+      clearInterval(retry)
       unsubscribe()
     }
     habitsReady.value = false
@@ -388,6 +408,7 @@ export const useBrainStore = defineStore('brain', () => {
     const { engine: e, uid, local } = requireReady()
     const today = todayIn(timeZone, now)
     const existing = (await local.journal_entries.where('date').equals(date).toArray()).find((x) => !x.deleted_at)
+    if (fields.tomorrow !== undefined) fields = { ...fields, tomorrow: normalizeBody(fields.tomorrow) }
     if (existing) {
       await e.patch('journal_entries', existing.id, () => ({ ...fields, auto: false }))
       return

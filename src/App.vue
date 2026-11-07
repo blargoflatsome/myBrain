@@ -86,10 +86,33 @@ const navItems = [
 const wide = useWideScreen()
 const menuOpen = ref(false)
 watch(() => route.fullPath, () => (menuOpen.value = false))
+
+// Screen readers hear the new page's name after moving to another page (WCAG 4.1.3), without moving focus.
+const pageAnnouncement = ref('')
+watch(
+  () => route.name,
+  (name, old) => {
+    if (old !== undefined) pageAnnouncement.value = messages.pageTitles[String(name)] ?? ''
+  },
+)
+function skipToContent() {
+  const target = document.querySelector<HTMLElement>('#content h1') ?? document.getElementById('content')
+  if (!target) return
+  if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1')
+  target.focus()
+}
 </script>
 
 <template>
   <div class="min-h-dvh bg-bg text-ink md:flex">
+    <!-- Keyboard users can jump past the menu (WCAG 2.4.1). -->
+    <a
+      v-if="showChrome"
+      href="#content"
+      class="sr-only z-[60] rounded-xl bg-accent px-4 py-3 font-semibold text-accent-ink focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+      @click.prevent="skipToContent"
+    >{{ messages.skipToContent }}</a>
+    <p class="sr-only" aria-live="polite" data-testid="page-announcement">{{ pageAnnouncement }}</p>
     <!-- Left navigation, text only. Always visible from tablet width up; a slide-out menu on phones. -->
     <template v-if="showChrome">
       <div v-if="menuOpen" class="fixed inset-0 z-30 bg-black/40 md:hidden" aria-hidden="true" @click="menuOpen = false" />
@@ -151,7 +174,9 @@ watch(() => route.fullPath, () => (menuOpen.value = false))
         </div>
       </header>
 
-      <RouterView class="flex-1" />
+      <div id="content" class="flex flex-1 flex-col">
+        <RouterView class="flex-1" />
+      </div>
     </div>
 
     <!-- SPEC §5: a persistent button to capture from anywhere in the app. It opens over the current page. -->

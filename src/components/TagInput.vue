@@ -44,17 +44,17 @@ function onKey(event: KeyboardEvent) {
 <template>
   <div class="flex flex-col gap-1" data-testid="tag-input">
     <span class="text-sm text-muted">{{ m.label }}</span>
-    <div class="flex min-h-12 flex-wrap items-center gap-1.5 rounded-xl border border-line bg-bg px-2 py-1.5">
+    <div class="flex min-h-12 flex-wrap items-center gap-1.5 rounded-xl border border-control bg-bg px-2 py-1.5 focus-within:border-accent">
       <span v-for="name in modelValue" :key="name" class="flex items-center gap-1 rounded-full bg-surface px-2.5 py-1 text-sm" data-testid="tag-chip">
         #{{ name }}
-        <button type="button" class="flex size-5 items-center justify-center rounded-full text-muted hover:text-ink" :aria-label="m.remove(name)" @click="remove(name)">
+        <button type="button" class="flex size-6 items-center justify-center rounded-full text-muted hover:text-ink" :aria-label="m.remove(name)" @click="remove(name)">
           ×
         </button>
       </span>
       <input
         v-model="typed"
         :list="listId"
-        class="min-h-9 min-w-24 flex-1 bg-transparent px-1 text-base text-ink outline-none"
+        class="bare min-h-9 min-w-24 flex-1 bg-transparent px-1 text-base text-ink focus-visible:outline-none"
         :aria-label="m.add"
         :placeholder="modelValue.length ? '' : m.placeholder"
         autocomplete="off"

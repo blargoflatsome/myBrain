@@ -73,7 +73,7 @@ const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-
     <h2 class="text-lg font-semibold">{{ m.confirmBucketDelete.heading }}</h2>
     <p class="mt-2 text-muted">{{ m.confirmBucketDelete.body(bucket?.name ?? '', itemCount) }}</p>
     <div class="mt-4 flex gap-2">
-      <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white" @click="confirmDelete">
+      <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink" @click="confirmDelete">
         {{ m.confirmBucketDelete.confirm }}
       </button>
       <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDialog?.close()">
