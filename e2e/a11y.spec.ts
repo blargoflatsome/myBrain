@@ -309,3 +309,91 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
     await expect(menu).toBeFocused()
   })
 })
+
+test.describe('Spec §5 Time fields: type or pick (computer); the device picker on a phone', () => {
+  test.beforeEach(async ({ page }) => {
+    server = new FakeSupabase()
+    await server.install(page)
+    await page.clock.install({ time: NOW })
+  })
+
+  test('on a phone the device time picker is used', async ({ page }, info) => {
+    test.skip(info.project.name !== 'android-phone', 'phone only')
+    await page.goto('/habits')
+    await page.getByRole('button', { name: '+ New habit' }).click()
+    await expect(page.getByLabel('Reminder time (optional)')).toHaveAttribute('type', 'time')
+  })
+
+  test.describe('on a computer', () => {
+    test.beforeEach(({}, info) => {
+      test.skip(info.project.name === 'android-phone', 'computer only')
+    })
+    const openEditor = async (page: Page) => {
+      await page.goto('/habits')
+      await page.getByRole('button', { name: '+ New habit' }).click()
+      const dialog = page.getByRole('dialog', { name: 'New habit' })
+      await dialog.getByLabel('Title').fill('Stretch')
+      return dialog
+    }
+
+    test('typing "830p" saves 20:30 and shows "8:30 pm"', async ({ page }) => {
+      const dialog = await openEditor(page)
+      const box = dialog.getByRole('combobox', { name: 'Reminder time (optional)' })
+      await box.fill('830p')
+      await box.press('Tab')
+      await expect(box).toHaveValue('8:30 pm')
+      await dialog.getByRole('button', { name: 'Save' }).click()
+      await expect.poll(() => server.written('habits').at(-1)).toMatchObject({ title: 'Stretch', notify_time: '20:30' })
+    })
+
+    test('clicking opens a list every 15 minutes; a time is picked with the mouse', async ({ page }) => {
+      const dialog = await openEditor(page)
+      const box = dialog.getByRole('combobox', { name: 'Reminder time (optional)' })
+      await box.click()
+      await expect(box).toHaveAttribute('aria-expanded', 'true')
+      const list = dialog.getByRole('listbox', { name: 'Suggested times' })
+      await expect(list.getByRole('option')).toHaveCount(96)
+      await list.getByRole('option', { name: '7:15 am' }).click()
+      await expect(box).toHaveValue('7:15 am')
+      await expect(list).toBeHidden()
+      await dialog.getByRole('button', { name: 'Save' }).click()
+      await expect.poll(() => server.written('habits').at(-1)).toMatchObject({ notify_time: '07:15' })
+    })
+
+    test('the keyboard works: Down opens and moves, Enter picks, Escape closes only the list', async ({ page }) => {
+      const dialog = await openEditor(page)
+      const box = dialog.getByRole('combobox', { name: 'Reminder time (optional)' })
+      await box.focus()
+      await page.keyboard.press('ArrowDown')
+      await expect(box).toHaveAttribute('aria-activedescendant', /opt-0800$/)
+      await page.keyboard.press('ArrowDown')
+      await page.keyboard.press('ArrowDown')
+      await page.keyboard.press('Enter')
+      await expect(box).toHaveValue('8:30 am')
+      await page.keyboard.press('ArrowDown')
+      await page.keyboard.press('Escape')
+      await expect(box).toHaveAttribute('aria-expanded', 'false')
+      await expect(dialog).toBeVisible()
+    })
+
+    test('something that is not a time goes back to the saved time; clearing it leaves no time', async ({ page }) => {
+      const dialog = await openEditor(page)
+      const box = dialog.getByRole('combobox', { name: 'Reminder time (optional)' })
+      await box.fill('9am')
+      await box.press('Tab')
+      await box.fill('banana')
+      await box.press('Tab')
+      await expect(box).toHaveValue('9:00 am')
+      await box.fill('')
+      await box.press('Tab')
+      await dialog.getByRole('button', { name: 'Save' }).click()
+      await expect.poll(() => server.written('habits').at(-1)).toMatchObject({ notify_time: null })
+    })
+
+    test('the open list passes the accessibility checks', async ({ page }) => {
+      const dialog = await openEditor(page)
+      await dialog.getByRole('combobox', { name: 'Reminder time (optional)' }).click()
+      await scan(page, 'Time list open')
+    })
+  })
+})

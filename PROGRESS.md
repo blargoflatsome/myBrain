@@ -192,9 +192,14 @@ Merged and live.
 - Tests: Vitest 205, Playwright 417 (3 skipped, phone-only/desktop-only).
 - Next: Google Calendar sync (check Google's sensitive-scope/verification rules first, then plan and ask).
 
-## Dashboard: yesterday (branch `dashboard-yesterday`)
+## Dashboard: yesterday (done, PR #17)
 - "Do better today than past you did yesterday" at the top of the Dashboard: yesterday's habits kept, routines finished, tasks done (x of y), and each routine's steps done; says so when nothing was scheduled (user's choices, SPEC §5 Dashboard). No database change.
 - Tests: `src/feedback-round-1.test.ts` (summary), `e2e/dashboard.spec.ts` (section first, counts, empty); Dashboard passes the axe scan. Vitest 207, Playwright 421.
+
+## Desktop time picker (branch `time-picker`)
+- Spec decision logged: Nuxt UI not adopted; Reka UI piece by piece if needed.
+- `TimeInput` (src/components/TimeInput.vue, src/time/parse.ts): type or pick from a 15-minute list on a computer; device picker on touch screens. Replaces all 13 time fields.
+- Tests: `src/time/parse.test.ts`; time field tests and an axe scan of the open list in `e2e/a11y.spec.ts`. Vitest 229, Playwright 427 (9 skipped: phone-only/computer-only).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

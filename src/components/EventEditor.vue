@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 Calendar and reminders: add or edit a personal event: title, start and end (or all day), repeat,
 // reminder, notes, tags. Delete asks first; deleting a repeating event deletes the whole series.
+import TimeInput from '@/components/TimeInput.vue'
 import { computed, ref, watch } from 'vue'
 import TagInput from '@/components/TagInput.vue'
 import EventPeople from '@/components/EventPeople.vue'
@@ -118,10 +119,7 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-bas
           {{ m.editor.date }}
           <input v-model="startDate" type="date" :class="field" :aria-label="`${m.editor.start} ${m.editor.date}`">
         </label>
-        <label v-if="!allDay" class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.editor.time }}
-          <input v-model="startTime" type="time" :class="field" :aria-label="`${m.editor.start} ${m.editor.time}`">
-        </label>
+        <TimeInput v-if="!allDay" v-model="startTime" :label="m.editor.time" :aria-label="`${m.editor.start} ${m.editor.time}`" :input-class="field" />
       </fieldset>
       <fieldset class="grid grid-cols-2 gap-3">
         <legend class="mb-1 text-sm font-medium">{{ m.editor.end }}</legend>
@@ -129,10 +127,7 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-bas
           {{ m.editor.date }}
           <input v-model="endDate" type="date" :class="field" :aria-label="`${m.editor.end} ${m.editor.date}`">
         </label>
-        <label v-if="!allDay" class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.editor.time }}
-          <input v-model="endTime" type="time" :class="field" :aria-label="`${m.editor.end} ${m.editor.time}`">
-        </label>
+        <TimeInput v-if="!allDay" v-model="endTime" :label="m.editor.time" :aria-label="`${m.editor.end} ${m.editor.time}`" :input-class="field" />
       </fieldset>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.editor.repeat }}

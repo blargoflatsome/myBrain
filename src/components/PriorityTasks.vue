@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // SPEC §5: priority tasks — one-off (a date) or repeating on chosen weekdays — with a reminder time.
+import TimeInput from '@/components/TimeInput.vue'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HowOften from '@/components/HowOften.vue'
@@ -132,7 +133,7 @@ const chip = (on: boolean) => [
         <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
         <label class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.title }}<input v-model="title" required :class="field"></label>
         <label class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.description }}<textarea v-model="description" rows="2" :class="[field, 'py-2']" /></label>
-        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.time }}<input v-model="time" type="time" required :class="field"></label>
+        <TimeInput v-model="time" :label="m.editor.time" required :input-class="field" />
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-1 text-sm text-muted">{{ m.editor.when }}</legend>
           <div class="flex gap-2" role="group" :aria-label="m.editor.when">

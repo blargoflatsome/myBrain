@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 Quick capture: choose the type first, then a form made for it. Only the title is required. Works offline.
 // Shown in the Capture window over any page (CaptureDialog), and on the /capture page used for sharing from other apps.
+import TimeInput from '@/components/TimeInput.vue'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HowOften from '@/components/HowOften.vue'
@@ -313,7 +314,7 @@ const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' }
         </fieldset>
         <HowOften v-model="habitInterval" />
         <div class="grid grid-cols-2 gap-3">
-          <label class="flex flex-col gap-1 text-sm text-muted">{{ h.editor.notifyTime }}<input v-model="habitTime" type="time" :class="field"></label>
+          <TimeInput v-model="habitTime" :label="h.editor.notifyTime" :input-class="field" />
           <label class="flex flex-col gap-1 text-sm text-muted">
             {{ h.editor.timer }}
             <select v-model="habitTimer" :class="field" :disabled="!habitTime">
