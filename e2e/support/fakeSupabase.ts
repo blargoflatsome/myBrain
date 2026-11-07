@@ -72,7 +72,8 @@ export class FakeSupabase {
     this.clock += 1
     const now = new Date(Date.UTC(2026, 10, 6, 12, 0, this.clock)).toISOString()
     const existing = this.tables[table]!.get(row.id)
-    const stored = { ...row, created_at: existing?.created_at ?? now, updated_at: now }
+    // Like the database: created_at is set once (a seeded row may bring its own), updated_at on every write.
+    const stored = { ...row, created_at: existing?.created_at ?? (row.created_at as string | undefined) ?? now, updated_at: now }
     this.tables[table]!.set(row.id, stored)
     return stored
   }

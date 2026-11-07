@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import TasksView from '@/views/TasksView.vue'
+import DashboardView from '@/views/DashboardView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { authRedirect } from './guard'
 
@@ -10,7 +10,8 @@ declare module 'vue-router' {
 }
 
 export const routes = [
-  { path: '/', name: 'home', component: TasksView },
+  { path: '/', name: 'dashboard', component: DashboardView },
+  { path: '/tasks', name: 'home', component: () => import('@/views/TasksView.vue') },
   { path: '/capture', name: 'capture', component: () => import('@/views/CaptureView.vue') },
   { path: '/routines', name: 'routines', component: () => import('@/views/RoutinesView.vue') },
   { path: '/routines/:id/run', name: 'routine-run', component: () => import('@/views/RoutineRunView.vue') },
