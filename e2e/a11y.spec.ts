@@ -134,7 +134,7 @@ for (const scheme of ['light', 'dark'] as const) {
 
     test('Post It being edited on the Dashboard', async ({ page }) => {
       await page.goto('/')
-      await page.getByTestId('postit-actions').getByRole('button', { name: 'Edit' }).click()
+      await page.getByTestId('postit').getByRole('button', { name: 'Edit Post It' }).click()
       await scan(page, 'Post It editing')
     })
 

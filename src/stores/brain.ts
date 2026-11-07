@@ -15,7 +15,7 @@ import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayDa
 import type { AvailabilityExceptionRow, AvailabilityRuleRow, EventRow, JournalEntryRow, SyncTable, TaggedType, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { tagChanges } from '@/tags/rules'
 import { normalizeBody } from '@/journal/body'
-import { frontPosition, noteToTask } from '@/postits/rules'
+import { frontPosition } from '@/postits/rules'
 import type { PostItColor, PostItRow } from '@/sync/types'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
@@ -440,17 +440,6 @@ export const useBrainStore = defineStore('brain', () => {
   async function restorePostIt(id: string) {
     await requireReady().engine.patch('post_its', id, () => ({ deleted_at: null }))
   }
-  /** Make a task: first line the title, the rest notes, in Undated; the Post It is removed. */
-  async function postItToTask(id: string) {
-    const { engine: e, uid, local } = requireReady()
-    const note = await local.post_its.get(id)
-    const parts = note ? noteToTask(note.body) : null
-    if (!note || !parts) return null
-    const task: TaskRow = { id: crypto.randomUUID(), user_id: uid, title: parts.title, notes: parts.notes, due_date: null, priority: DEFAULT_PRIORITY, status: 'open', source: 'capture', deleted_at: null }
-    await e.save('tasks', task)
-    await e.remove('post_its', id)
-    return task
-  }
 
   // ---------- The Vault (SPEC §5 The Vault) ----------
   async function saveBucket(row: VaultBucketRow) {
@@ -595,7 +584,6 @@ export const useBrainStore = defineStore('brain', () => {
     savePostIt,
     removePostIt,
     restorePostIt,
-    postItToTask,
     saveVaultItem,
     deleteVaultItem,
     toggleVaultItem,

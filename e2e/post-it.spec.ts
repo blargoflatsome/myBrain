@@ -165,7 +165,7 @@ test.describe('Spec §5 Post It', () => {
   test('a Post It can be edited in place, including its color', async ({ page }) => {
     server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
-    await page.getByTestId('postit-actions').getByRole('button', { name: 'Edit' }).click()
+    await board(page).getByRole('button', { name: 'Edit Post It' }).click()
     const editor = board(page).getByRole('textbox', { name: 'Post It 1' })
     await expect(editor).toBeFocused()
     await page.keyboard.press('ControlOrMeta+End')
@@ -174,28 +174,33 @@ test.describe('Spec §5 Post It', () => {
     await board(page).getByRole('button', { name: 'Save' }).click()
     await expect(board(page).getByTestId('postit-body')).toHaveText('Buy stamps and envelopes')
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', body: '<p>Buy stamps and envelopes</p>', color: 'green' })
-    await expect(page.getByTestId('postit-actions').getByRole('button', { name: 'Edit' })).toBeFocused()
+    await expect(board(page).getByRole('button', { name: 'Edit Post It' })).toBeFocused()
   })
 
-  test('Done takes it down straight away, and Undo puts it back', async ({ page }) => {
+  test('the X in the top right corner deletes it straight away, and Undo puts it back', async ({ page }) => {
     server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
-    await page.getByTestId('postit-actions').getByRole('button', { name: 'Done' }).click()
+    await board(page).getByRole('button', { name: 'Delete Post It' }).click()
     await expect(board(page)).toHaveCount(0)
-    await expect(page.getByTestId('postit-notice')).toContainText('Post It taken down.')
+    await expect(page.getByTestId('postit-notice')).toContainText('Post It deleted.')
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: expect.any(String) })
     await page.getByRole('button', { name: 'Undo' }).click()
     await expect(board(page)).toHaveCount(1)
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: null })
   })
 
-  test('Make a task: the first line is the title, the rest the notes, in Undated; the Post It goes', async ({ page }) => {
-    server.seed('post_its', [{ id: 'p1', body: '<p>Call the vet</p><p>ask about shots</p>', color: 'yellow', position: 0 }])
+  test('on the note: an X in the top right corner and an edit icon in the bottom left; no Make a task', async ({ page }) => {
+    server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
-    await page.getByTestId('postit-actions').getByRole('button', { name: 'Make a task' }).click()
-    await expect(page.getByTestId('postit-notice')).toContainText('Moved to Tasks, in Undated.')
-    await expect(board(page)).toHaveCount(0)
-    await expect.poll(() => lastWrite('tasks')).toMatchObject({ title: 'Call the vet', notes: 'ask about shots', due_date: null, status: 'open' })
-    await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: expect.any(String) })
+    const note = (await board(page).boundingBox())!
+    const x = (await board(page).getByRole('button', { name: 'Delete Post It' }).boundingBox())!
+    const pencil = (await board(page).getByRole('button', { name: 'Edit Post It' }).boundingBox())!
+    expect(x.x + x.width).toBeGreaterThan(note.x + note.width - 30)
+    expect(x.y).toBeLessThan(note.y + 30)
+    expect(pencil.x).toBeLessThan(note.x + 30)
+    expect(pencil.y + pencil.height).toBeGreaterThan(note.y + note.height - 40)
+    for (const box of [x, pencil]) expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44)
+    await expect(page.getByRole('button', { name: /Make a task|^Done$/ })).toHaveCount(0)
   })
+
 })

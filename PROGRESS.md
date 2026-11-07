@@ -217,6 +217,7 @@ Merged and live.
 
 ## Post It arrows (branch `post-it-arrows`)
 - Computer: Previous/Next are arrows beside the stack, shown on mouse over or keyboard focus, none past either end (focus moves to the other arrow); "2 of 5" below. Checked in a screenshot. Tests in `e2e/post-it.spec.ts` (hover and focus reveal, position, keyboard).
+- Then (user): Done became an X in the note's top right corner (delete, with Undo); Edit became a pencil icon bottom left; Make a task removed (store, rules and tests). Checked in screenshots.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

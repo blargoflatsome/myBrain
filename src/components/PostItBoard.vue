@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 Dashboard: Post Its at the top, like sticky notes taped to the page. Several sit in a stack, newest on top,
 // shown one at a time (never automatic): Previous / Next on a computer; swipe or tap a dot on a phone; arrow keys.
-// On the note shown: Edit in place, Make a task, Done (with Undo).
+// On the note shown: an edit icon (bottom left) to edit in place, and an X (top right) that deletes it, with Undo.
 import { computed, nextTick, onScopeDispose, ref, watch } from 'vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 import { useBrainStore } from '@/stores/brain'
@@ -104,7 +104,7 @@ async function focusAction(action: string) {
   document.querySelector<HTMLElement>(`[data-testid="dash-postits"] [data-action="${action}"]`)?.focus()
 }
 
-// ---------- Done (with Undo) and Make a task ----------
+// ---------- Delete (with Undo) ----------
 const notice = ref('')
 const undoId = ref<string | null>(null)
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
@@ -118,7 +118,7 @@ function show(text: string, undo: string | null) {
   }, 10_000)
 }
 onScopeDispose(() => clearTimeout(noticeTimer))
-async function done(n: PostItRow) {
+async function deleteNote(n: PostItRow) {
   followId.value = null
   await brain.removePostIt(n.id)
   show(m.removed, n.id)
@@ -131,19 +131,15 @@ async function undo() {
   await brain.restorePostIt(undoId.value)
   notice.value = ''
   undoId.value = null
-  await focusAction('done')
-}
-async function toTask(n: PostItRow) {
-  followId.value = null
-  await brain.postItToTask(n.id)
-  show(m.madeTask, null)
+  await focusAction('delete')
 }
 
 const btn = 'min-h-11 rounded-xl border border-current/30 px-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-40'
 // Hidden until the mouse is over the stack or the keyboard reaches an arrow (so keyboard users always find them).
 const arrow =
   'absolute top-1/2 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-3xl leading-none text-ink shadow-md opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 md:flex'
-const navBtn = 'flex min-h-11 items-center gap-1 rounded-xl border border-line bg-surface px-3 text-sm font-medium disabled:opacity-40'
+// Small round icon buttons on the paper (44 px to tap), in the note's own ink colour.
+const icon = 'flex size-11 items-center justify-center rounded-full opacity-70 hover:bg-black/10 hover:opacity-100 focus-visible:opacity-100'
 </script>
 
 <template>
@@ -181,6 +177,17 @@ const navBtn = 'flex min-h-11 items-center gap-1 rounded-xl border border-line b
             data-testid="postit"
           >
             <span class="postit-tape" aria-hidden="true" />
+            <button
+              v-if="editingId !== current.id"
+              type="button"
+              :class="[icon, 'absolute top-1 right-1']"
+              :aria-label="m.delete"
+              :title="m.delete"
+              data-action="delete"
+              @click="deleteNote(current)"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
             <template v-if="editingId === current.id">
               <RichTextEditor v-model="draft" :label="m.note(index + 1)" min-height="6rem" autofocus @update:model-value="editError = ''" />
               <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="m.color">
@@ -204,7 +211,10 @@ const navBtn = 'flex min-h-11 items-center gap-1 rounded-xl border border-line b
             </template>
             <template v-else>
               <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
-              <div class="rich flex-1 text-lg" data-testid="postit-body" v-html="cleanHtml(current.body)" />
+              <div class="rich flex-1 pr-6 text-lg" data-testid="postit-body" v-html="cleanHtml(current.body)" />
+              <button type="button" :class="[icon, '-mb-2 -ml-3 self-start']" :aria-label="m.edit" :title="m.edit" data-action="edit" @click="startEdit(current)">
+                <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16v4z" /><path d="M13.5 6.5l4 4" /></svg>
+              </button>
             </template>
           </article>
         </Transition>
@@ -231,12 +241,6 @@ const navBtn = 'flex min-h-11 items-center gap-1 rounded-xl border border-line b
       </button>
     </div>
 
-    <!-- What I can do with the note shown, kept off the paper so it reads like a real note. -->
-    <div v-if="current && editingId !== current.id" class="flex w-full max-w-sm flex-wrap justify-center gap-2" data-testid="postit-actions">
-      <button type="button" :class="navBtn" data-action="edit" @click="startEdit(current)">{{ m.edit }}</button>
-      <button type="button" :class="navBtn" data-action="task" @click="toTask(current)">{{ m.toTask }}</button>
-      <button type="button" :class="navBtn" data-action="done" @click="done(current)">{{ m.done }}</button>
-    </div>
 
     <!-- Computer: where I am in the stack. -->
     <p v-if="notes.length > 1" class="hidden text-sm text-muted tabular-nums md:block" data-testid="postit-count">{{ m.position(index + 1, notes.length) }}</p>
