@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // New or edit routine: title, reminder time and weekdays (or run anytime), ordered steps that can be my own text or
 // one of my habits (SPEC §5 Routines). Delete asks first (SPEC §2).
+import TimeInput from '@/components/TimeInput.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HowOften from '@/components/HowOften.vue'
@@ -152,10 +153,7 @@ const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disa
         </span>
         <input v-model="anytime" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
       </label>
-      <label v-if="!anytime" class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.notifyTime }}
-        <input v-model="notifyTime" type="time" :class="field">
-      </label>
+      <TimeInput v-if="!anytime" v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
       <fieldset v-if="!anytime" class="flex flex-col gap-2">
         <legend class="mb-1 text-sm text-muted">{{ m.editor.weekdays }}</legend>
         <div class="flex flex-wrap gap-1.5" role="group" :aria-label="m.editor.weekdays">

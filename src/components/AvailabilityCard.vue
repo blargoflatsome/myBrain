@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // SPEC §5 Availability schedule: weekly times I'm never free, and one-off days (unavailable, or available after all).
+import TimeInput from '@/components/TimeInput.vue'
 import { computed, ref } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
@@ -100,8 +101,8 @@ const field = 'min-h-11 w-full rounded-xl border border-line bg-bg px-3 text-bas
             <option v-for="(d, i) in dayNames" :key="i" :value="i">{{ d }}</option>
           </select>
         </label>
-        <label class="flex flex-col gap-1 text-xs text-muted">{{ m.from }}<input v-model="ruleFrom" type="time" :class="field"></label>
-        <label class="flex flex-col gap-1 text-xs text-muted">{{ m.until }}<input v-model="ruleUntil" type="time" :class="field"></label>
+        <TimeInput v-model="ruleFrom" :label="m.from" label-class="text-xs text-muted" :input-class="field" />
+        <TimeInput v-model="ruleUntil" :label="m.until" label-class="text-xs text-muted" :input-class="field" />
         <p v-if="ruleError" class="col-span-3 text-sm text-danger" role="alert">{{ ruleError }}</p>
         <button type="submit" class="col-span-3 min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.add }}</button>
       </form>
@@ -133,8 +134,8 @@ const field = 'min-h-11 w-full rounded-xl border border-line bg-bg px-3 text-bas
         </div>
         <label class="flex items-center gap-2 text-sm"><input v-model="exAllDay" type="checkbox" class="size-5 accent-[var(--accent)]">{{ m.allDay }}</label>
         <div v-if="!exAllDay" class="grid grid-cols-2 gap-2">
-          <label class="flex flex-col gap-1 text-xs text-muted">{{ m.from }}<input v-model="exFrom" type="time" :class="field"></label>
-          <label class="flex flex-col gap-1 text-xs text-muted">{{ m.until }}<input v-model="exUntil" type="time" :class="field"></label>
+          <TimeInput v-model="exFrom" :label="m.from" label-class="text-xs text-muted" :input-class="field" />
+          <TimeInput v-model="exUntil" :label="m.until" label-class="text-xs text-muted" :input-class="field" />
         </div>
         <label class="flex flex-col gap-1 text-xs text-muted">{{ m.note }}<input v-model="exNote" :class="field"></label>
         <p v-if="exError" class="text-sm text-danger" role="alert">{{ exError }}</p>

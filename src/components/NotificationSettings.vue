@@ -1,5 +1,6 @@
 <script setup lang="ts">
 // SPEC §6: Web Push and/or ntfy, quiet hours, and whether priority reminders ring during them.
+import TimeInput from '@/components/TimeInput.vue'
 import { onMounted, ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
@@ -168,8 +169,8 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-bas
           </legend>
           <p class="-mt-2 text-xs text-muted">{{ m.quietHint }}</p>
           <div class="grid grid-cols-2 gap-3">
-            <label class="flex flex-col gap-1 text-sm text-muted">{{ m.quietStart }}<input v-model="quietStart" type="time" :class="field"></label>
-            <label class="flex flex-col gap-1 text-sm text-muted">{{ m.quietEnd }}<input v-model="quietEnd" type="time" :class="field"></label>
+            <TimeInput v-model="quietStart" :label="m.quietStart" :input-class="field" />
+            <TimeInput v-model="quietEnd" :label="m.quietEnd" :input-class="field" />
           </div>
           <label class="flex items-center justify-between gap-4 text-sm">
             {{ m.priorityQuiet }}
@@ -187,7 +188,7 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-bas
             {{ m.journalOff }}
             <input v-model="journalOff" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
           </label>
-          <label v-if="!journalOff" class="flex flex-col gap-1 text-sm text-muted">{{ m.journalTime }}<input v-model="journalTime" type="time" :class="field"></label>
+          <TimeInput v-if="!journalOff" v-model="journalTime" :label="m.journalTime" :input-class="field" />
         </fieldset>
       </template>
     </div>

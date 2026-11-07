@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TimeInput from '@/components/TimeInput.vue'
 import HowOften from '@/components/HowOften.vue'
 // New or edit habit: title, reminder time, timer, weekdays, private (SPEC §5 Habits). Delete asks first (SPEC §2).
 import { computed, ref, watch } from 'vue'
@@ -87,10 +88,7 @@ const chip = (on: boolean) => [
         {{ m.editor.title }}
         <input v-model="title" required :class="field">
       </label>
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.notifyTime }}
-        <input v-model="notifyTime" type="time" :class="field">
-      </label>
+      <TimeInput v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.editor.timer }}
         <select v-model="timer" :disabled="timerDisabled" :class="[field, 'disabled:opacity-50']">

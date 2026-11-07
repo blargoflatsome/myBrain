@@ -800,6 +800,7 @@ export const messages = {
   } as Record<string, string>,
   pageTitle: (page: string | undefined) => (page ? `${page} · My Brain` : 'My Brain'),
   skipToContent: 'Skip to content',
+  timeInput: { placeholder: 'Type a time, like 8:30 am', listLabel: 'Suggested times' },
   moveUp: 'Move up',
   moveDown: 'Move down',
   inbox: {
