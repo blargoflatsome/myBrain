@@ -55,11 +55,8 @@ begin
   exception when foreign_key_violation then null;
   end;
 
-  begin
-    insert into public.routine_runs (routine_id, date, started_at) values (my_routine, current_date, now());
-    raise exception 'FAIL: Spec §4: one run per routine per day';
-  exception when unique_violation then null;
-  end;
+  -- One run per scheduled routine per day comes from its fixed run id (the same id for a routine and day on every
+  -- device, SPEC §7), tested in src/routines/rules.test.ts; run-anytime routines may start again the same day.
 
   insert into public.routine_step_logs (run_id, step_id, status, logged_at) values (my_run, my_step, 'skipped', now());
   begin

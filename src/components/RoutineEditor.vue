@@ -1,13 +1,16 @@
 <script setup lang="ts">
-// New or edit routine: title, reminder time, weekdays, ordered steps (SPEC §5 Routines). Delete asks first (SPEC §2).
-import { nextTick, ref, watch } from 'vue'
+// New or edit routine: title, reminder time and weekdays (or run anytime), ordered steps that can be my own text or
+// one of my habits (SPEC §5 Routines). Delete asks first (SPEC §2).
+import { computed, nextTick, ref, watch } from 'vue'
+import { useBrainStore } from '@/stores/brain'
+import { useLiveQuery } from '@/composables/useLiveQuery'
 import { arrowStep, useDragSort } from '@/composables/useDragSort'
-import type { RoutineRow, RoutineStepRow } from '@/sync/types'
+import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
 import { ALL_WEEKDAYS } from '@/routines/rules'
 import { messages } from '@/messages'
 
 const props = defineProps<{ routine: RoutineRow | null; steps: RoutineStepRow[]; isNew?: boolean }>()
-const emit = defineEmits<{ save: [RoutineRow, { id?: string; title: string }[]]; delete: [RoutineRow]; close: [] }>()
+const emit = defineEmits<{ save: [RoutineRow, { id?: string; title: string; habitId?: string | null }[]]; delete: [RoutineRow]; close: [] }>()
 const m = messages.routines
 const dayNames = messages.habits.weekdayNames
 
@@ -16,7 +19,30 @@ const confirmDialog = ref<HTMLDialogElement | null>(null)
 const title = ref('')
 const notifyTime = ref('')
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
-const stepRows = ref<{ key: string; id?: string; title: string }[]>([])
+const anytime = ref(false)
+const stepRows = ref<{ key: string; id?: string; title: string; habitId?: string | null }[]>([])
+
+// My habits, for habit steps.
+const brain = useBrainStore()
+const habits = useLiveQuery<HabitRow[]>(
+  async () => (brain.db ? (await brain.db.habits.toArray()).filter((h) => !h.deleted_at).sort((a, b) => a.title.localeCompare(b.title)) : []),
+  [],
+  [() => brain.db],
+)
+const habitById = (id: string | null | undefined) => habits.value.find((h) => h.id === id)
+const habitChoices = computed(() => habits.value.filter((h) => !stepRows.value.some((r) => r.habitId === h.id)))
+const choosingHabit = ref(false)
+function addHabitStep(event: Event) {
+  const select = event.target as HTMLSelectElement
+  const habit = habitById(select.value)
+  select.value = ''
+  choosingHabit.value = false
+  if (!habit) return
+  // Replace an empty text step instead of leaving it behind.
+  const last = stepRows.value[stepRows.value.length - 1]
+  if (last && !last.habitId && !last.title.trim()) stepRows.value.pop()
+  stepRows.value.push({ key: crypto.randomUUID(), title: habit.title, habitId: habit.id })
+}
 
 watch(
   () => props.routine,
@@ -24,8 +50,10 @@ watch(
     if (!r) return dialog.value?.close()
     title.value = r.title
     notifyTime.value = r.notify_time?.slice(0, 5) ?? ''
-    weekdays.value = [...r.weekdays]
-    stepRows.value = props.steps.map((s) => ({ key: s.id, id: s.id, title: s.title }))
+    anytime.value = !r.weekdays
+    weekdays.value = r.weekdays ? [...r.weekdays] : [...ALL_WEEKDAYS]
+    stepRows.value = props.steps.map((s) => ({ key: s.id, id: s.id, title: s.title, habitId: s.habit_id ?? null }))
+    choosingHabit.value = false
     if (!stepRows.value.length) addStep()
     dialog.value?.showModal()
   },
@@ -67,8 +95,14 @@ function save() {
   if (!props.routine || !title.value.trim()) return
   emit(
     'save',
-    { ...props.routine, title: title.value.trim(), notify_time: notifyTime.value || null, weekdays: weekdays.value },
-    stepRows.value.map((s) => ({ id: s.id, title: s.title })),
+    {
+      ...props.routine,
+      title: title.value.trim(),
+      // A run-anytime routine has no weekdays and no reminder (SPEC §5 Routines).
+      notify_time: anytime.value ? null : notifyTime.value || null,
+      weekdays: anytime.value ? null : weekdays.value,
+    },
+    stepRows.value.map((s) => ({ id: s.id, title: s.habitId ? (habitById(s.habitId)?.title ?? s.title) : s.title, habitId: s.habitId ?? null })),
   )
 }
 function confirmDelete() {
@@ -97,11 +131,18 @@ const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disa
         {{ m.editor.title }}
         <input v-model="title" required :class="field">
       </label>
-      <label class="flex flex-col gap-1 text-sm text-muted">
+      <label class="flex items-center justify-between gap-4">
+        <span>
+          <span class="font-medium">{{ m.editor.anytime }}</span>
+          <span class="block text-xs text-muted">{{ m.editor.anytimeHint }}</span>
+        </span>
+        <input v-model="anytime" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+      </label>
+      <label v-if="!anytime" class="flex flex-col gap-1 text-sm text-muted">
         {{ m.editor.notifyTime }}
         <input v-model="notifyTime" type="time" :class="field">
       </label>
-      <fieldset class="flex flex-col gap-2">
+      <fieldset v-if="!anytime" class="flex flex-col gap-2">
         <legend class="mb-1 text-sm text-muted">{{ m.editor.weekdays }}</legend>
         <div class="flex flex-wrap gap-1.5" role="group" :aria-label="m.editor.weekdays">
           <button v-for="d in ALL_WEEKDAYS" :key="d" type="button" :class="chip(weekdays.includes(d))" :aria-pressed="weekdays.includes(d)" @click="toggleDay(d)">
@@ -123,11 +164,35 @@ const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disa
             >
               ⠿
             </button>
-            <input v-model="s.title" :aria-label="m.editor.stepLabel(i + 1)" :placeholder="m.editor.stepLabel(i + 1)" :class="[field, 'min-w-0 flex-1']">
+            <span
+              v-if="s.habitId"
+              class="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-xl border border-accent/50 bg-bg px-3 text-base"
+              data-testid="habit-step"
+            >
+              <span class="truncate">{{ habitById(s.habitId)?.title ?? s.title }}</span>
+              <span v-if="habitById(s.habitId)?.is_priority" class="text-danger" :aria-label="messages.habits.priorityBadge">⚠</span>
+              <span class="ml-auto shrink-0 text-xs text-muted">{{ m.editor.habitTag }}</span>
+            </span>
+            <input v-else v-model="s.title" :aria-label="m.editor.stepLabel(i + 1)" :placeholder="m.editor.stepLabel(i + 1)" :class="[field, 'min-w-0 flex-1']">
             <button type="button" :class="small" :aria-label="m.editor.removeStep(s.title)" @click="remove(i)">✕</button>
           </li>
         </ol>
-        <button type="button" class="min-h-11 self-start rounded-xl border border-dashed border-line px-3 text-sm" @click="addStep">{{ m.editor.addStep }}</button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="min-h-11 rounded-xl border border-dashed border-line px-3 text-sm" @click="addStep">{{ m.editor.addStep }}</button>
+          <button
+            v-if="habitChoices.length && !choosingHabit"
+            type="button"
+            class="min-h-11 rounded-xl border border-dashed border-line px-3 text-sm"
+            @click="choosingHabit = true"
+          >
+            {{ m.editor.addHabit }}
+          </button>
+          <select v-if="choosingHabit" :class="[field, 'min-h-11']" :aria-label="m.editor.chooseHabit" @change="addHabitStep">
+            <option value="">{{ m.editor.chooseHabit }}</option>
+            <option v-for="h in habitChoices" :key="h.id" :value="h.id">{{ h.is_priority ? `⚠ ${h.title}` : h.title }}</option>
+          </select>
+        </div>
+        <p v-if="stepRows.some((r) => r.habitId)" class="text-xs text-muted">{{ m.editor.habitHint }}</p>
       </fieldset>
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>

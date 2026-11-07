@@ -173,3 +173,114 @@ test.describe('Spec §5 Routines: list and stats', () => {
     await expect.poll(() => server.written('routines').at(-1)?.deleted_at).toBeTruthy()
   })
 })
+
+test.describe('Spec §5 Routines: habits as steps', () => {
+  const MEDS = 'mmmmmmmm-0000-4000-8000-000000000001'
+  function seedMedsRoutine() {
+    server.seed('habits', [
+      { id: MEDS, title: 'Take medication', notify_time: '08:00', timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: true, is_priority: true },
+    ])
+    server.seed('routines', [{ id: RID, title: 'Morning', notify_time: '07:00', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-10' }])
+    server.seed('routine_steps', [
+      { id: stepId(1), routine_id: RID, position: 0, title: 'Wake up', start_date: '2026-11-10' },
+      { id: stepId(2), routine_id: RID, position: 1, title: 'Take medication', habit_id: MEDS, start_date: '2026-11-10' },
+      { id: stepId(3), routine_id: RID, position: 2, title: 'Shower', start_date: '2026-11-10' },
+    ])
+  }
+
+  test('a habit can be added as a step in the routine editor', async ({ page }) => {
+    server.seed('habits', [{ id: MEDS, title: 'Take medication', notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false }])
+    await open(page, '/routines')
+    await page.getByRole('button', { name: '+ New routine' }).click()
+    const dialog = page.getByRole('dialog', { name: 'New routine' })
+    await dialog.getByLabel('Title').fill('Morning')
+    await dialog.getByLabel('Step 1', { exact: true }).fill('Wake up')
+    await dialog.getByRole('button', { name: '+ Add a habit' }).click()
+    await dialog.getByRole('combobox', { name: 'Choose a habit' }).selectOption({ label: 'Take medication' })
+    await expect(dialog.getByTestId('habit-step')).toContainText('Take medication')
+    await expect(dialog.getByText('Completing a habit step also completes the habit for the day.')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    await expect
+      .poll(() => server.written('routine_steps').sort((a, b) => Number(a.position) - Number(b.position)).map((s) => [s.title, s.habit_id ?? null]))
+      .toEqual([
+        ['Wake up', null],
+        ['Take medication', MEDS],
+      ])
+  })
+
+  test('completing a habit step in the routine also completes the habit for today', async ({ page }) => {
+    seedMedsRoutine()
+    await open(page, `/routines/${RID}/run`, new Date('2026-11-10T12:30:00Z'))
+    await page.getByRole('button', { name: 'Completed' }).click()
+    await expect(current(page)).toHaveText('Take medication')
+    await expect(page.getByTestId('habit-step-note')).toContainText('completing it here completes it for today')
+    await page.getByRole('button', { name: 'Completed' }).click()
+    await expect(current(page)).toHaveText('Shower')
+    await expect.poll(() => server.written('habit_logs').find((l) => l.habit_id === MEDS)).toMatchObject({ date: '2026-11-10', status: 'completed' })
+  })
+
+  test('skipping a habit step leaves the habit open', async ({ page }) => {
+    seedMedsRoutine()
+    await open(page, `/routines/${RID}/run`, new Date('2026-11-10T12:30:00Z'))
+    await page.getByRole('button', { name: 'Completed' }).click()
+    await page.getByRole('button', { name: 'Skip' }).click()
+    await expect(current(page)).toHaveText('Shower')
+    expect(server.written('habit_logs')).toHaveLength(0)
+  })
+
+  test('a habit already done today is passed over in the routine', async ({ page }) => {
+    seedMedsRoutine()
+    server.seed('habit_logs', [{ id: 'h1', habit_id: MEDS, date: '2026-11-10', status: 'completed', completed_at: '2026-11-10T12:05:00Z' }])
+    await open(page, `/routines/${RID}/run`, new Date('2026-11-10T12:30:00Z'))
+    await expect(page.getByTestId('step-of')).toHaveText('Step 1 of 3')
+    await page.getByRole('button', { name: 'Completed' }).click()
+    await expect(current(page)).toHaveText('Shower')
+    await expect(page.getByTestId('step-of')).toHaveText('Step 3 of 3')
+  })
+})
+
+test.describe('Spec §5 Routines: run anytime', () => {
+  function seedGarage() {
+    server.seed('routines', [{ id: RID, title: 'Clean the garage', notify_time: null, weekdays: null, start_date: '2026-11-01' }])
+    server.seed(
+      'routine_steps',
+      ['Sort tools', 'Sweep'].map((title, i) => ({ id: stepId(i + 1), routine_id: RID, position: i, title, start_date: '2026-11-01' })),
+    )
+  }
+
+  test('a routine can be set to run anytime: no reminder or weekdays', async ({ page }) => {
+    await open(page, '/routines')
+    await page.getByRole('button', { name: '+ New routine' }).click()
+    const dialog = page.getByRole('dialog', { name: 'New routine' })
+    await dialog.getByLabel('Title').fill('Clean the garage')
+    await dialog.getByRole('checkbox', { name: /Run anytime/ }).check()
+    await expect(dialog.getByLabel('Reminder time (optional)')).toHaveCount(0)
+    await expect(dialog.getByRole('group', { name: 'Repeats on' })).toHaveCount(0)
+    await dialog.getByLabel('Step 1', { exact: true }).fill('Sort tools')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    await expect.poll(() => server.written('routines')[0]).toMatchObject({ title: 'Clean the garage', weekdays: null, notify_time: null })
+  })
+
+  test('it can be started any day, keeps its progress across days, and can be started again when finished', async ({ page }) => {
+    seedGarage()
+    await open(page, '/routines', new Date('2026-11-14T15:00:00Z')) // a Saturday
+    await expect(page.getByTestId('routine-status')).toHaveText('Run anytime')
+    await expect(page.getByTestId('routine-stats')).toHaveText('Not finished yet')
+    await page.getByRole('link', { name: 'Start' }).click()
+    await page.getByRole('button', { name: 'Completed' }).click()
+    await expect(current(page)).toHaveText('Sweep')
+
+    // The next day it carries on where it left off.
+    await page.clock.setSystemTime(new Date('2026-11-15T15:00:00Z'))
+    await page.goto('/routines')
+    await expect(page.getByTestId('routine-status')).toHaveText(/1 of 2/)
+    await page.getByRole('link', { name: 'Continue' }).click()
+    await expect(current(page)).toHaveText('Sweep')
+    await page.getByRole('button', { name: 'Completed' }).click()
+    await expect(page.getByTestId('routine-finished')).toBeVisible()
+    await page.getByRole('button', { name: 'Start again' }).click()
+    await expect(current(page)).toHaveText('Sort tools')
+    await page.getByRole('link', { name: 'Back to routines' }).click()
+    await expect(page.getByTestId('routine-stats')).toHaveText('Finished once')
+  })
+})

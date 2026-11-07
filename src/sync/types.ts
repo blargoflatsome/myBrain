@@ -134,15 +134,18 @@ export interface HabitLogRow extends BaseRow {
 export interface RoutineRow extends BaseRow {
   title: string
   notify_time?: string | null
-  /** 0 = Sunday ... 6 = Saturday. */
-  weekdays: number[]
+  /** 0 = Sunday ... 6 = Saturday; null = run anytime (no schedule, no reminder). */
+  weekdays: number[] | null
   start_date: string
 }
 
 export interface RoutineStepRow extends BaseRow {
   routine_id: string
   position: number
+  /** The step's text; for a habit step, the habit's name when it was added (the habit's current name is shown). */
   title: string
+  /** A habit step: completing it completes this habit for the day (SPEC §5 Routines). */
+  habit_id?: string | null
   /** The day the step was added; its stats start here. */
   start_date: string
 }

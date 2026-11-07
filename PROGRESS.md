@@ -141,7 +141,7 @@ Merged and live.
 - Profile renamed to Account (/account; /profile redirects). Bio removed (column left unused). Settings tidied into two cards: Your profile, Reminders.
 - Delete My Account: confirmation with typed DELETE; migration `20261106110000_delete_account.sql` (`delete_my_account()`, cascades everything); clears this device's copy and push subscription; `rls_account.sql` passes on dev. Dev and prod migrated. Tests: `src/journal/body.test.ts`, more in `e2e/journal.spec.ts`. Vitest 159, Playwright 184, SQL 9 files.
 
-## Step 9 — The Vault, search and tags, calendar (in progress, branch `step-9-vault-search-calendar`)
+## Step 9 — The Vault, search and tags, calendar (done, PR #12)
 
 Done:
 - Spec §4/§5/§14 (user's choices; approved). Search runs on the device instead of Postgres full-text (approved).
@@ -156,7 +156,13 @@ Done:
 
 - Anywhere we sort is drag and drop (user): shared `useDragSort` helper; routine steps now drag too. New spec principle "Sort by dragging".
 
-Left in step 9: merge.
+Merged and live.
+
+## Routines: habit steps and run anytime (branch `routine-habits`)
+- User's idea; spec approved. Migration `20261106130000_routine_habits_anytime.sql` (weekdays nullable, no reminder for run-anytime, habit_id on steps, one-run-per-day index dropped in favour of fixed ids). Dev migrated; `rls_routine_habits.sql` passes.
+- Habit steps: picked in the editor; completing completes the habit; habit already done is passed (and logged); skipping leaves the habit open; left out on days the habit isn't scheduled; deleting a habit removes its steps.
+- Run anytime: no weekdays/reminder, never missed, progress kept across days, Start again; stats show times finished; journal counts its progress on the day.
+- Tests: `src/routines/habits-anytime.test.ts`, more in `e2e/routines.spec.ts`. Vitest 179, Playwright 232, SQL 11 files.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
