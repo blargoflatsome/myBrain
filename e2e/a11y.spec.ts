@@ -273,8 +273,11 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
 
   test('the Search window traps Tab and gives focus back when closed', async ({ page }) => {
     await page.goto('/tasks')
+    await expect(page.getByText('pay rent')).toBeVisible()
     const open = page.getByRole('button', { name: /Search/ }).first()
+    await expect(open).toBeVisible()
     await open.focus()
+    await expect(open).toBeFocused()
     await page.keyboard.press('Enter')
     const dialog = page.getByRole('dialog').filter({ has: page.getByRole('searchbox') })
     await expect(dialog).toBeVisible()

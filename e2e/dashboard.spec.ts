@@ -34,6 +34,47 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Dashboard', () => {
+  test('"Do better today than past you did yesterday" is the first section: habits, routines and tasks from yesterday', async ({ page }) => {
+    const Y = '2026-11-09'
+    server.seed('tasks', [
+      { id: 't1', title: 'Pay rent', due_date: Y, status: 'done', completed_at: `${Y}T18:00:00Z`, priority: 1, source: 'manual' },
+      { id: 't2', title: 'Email Sam', due_date: Y, status: 'open', priority: 1, source: 'manual' },
+      { id: 't3', title: 'Today only', due_date: '2026-11-10', status: 'open', priority: 1, source: 'manual' },
+    ])
+    server.seed('habits', [habit('h1', 'Meds', '2026-11-01'), habit('h2', 'Stretch', '2026-11-01')])
+    server.seed('habit_logs', [{ id: 'h1-y', habit_id: 'h1', date: Y, status: 'completed', completed_at: `${Y}T15:00:00Z` }])
+    server.seed('routines', [
+      { id: 'r1', title: 'Morning', notify_time: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' },
+      { id: 'r2', title: 'Night', notify_time: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' },
+    ])
+    server.seed('routine_steps', [
+      ...['Wake', 'Teeth'].map((title, i) => ({ id: `m${i}`, routine_id: 'r1', position: i, title, start_date: '2026-11-01' })),
+      ...['Floss', 'Read', 'Lights out'].map((title, i) => ({ id: `n${i}`, routine_id: 'r2', position: i, title, start_date: '2026-11-01' })),
+    ])
+    server.seed('routine_runs', [
+      { id: 'run1', routine_id: 'r1', date: Y, started_at: `${Y}T12:00:00Z`, finished_at: `${Y}T12:10:00Z` },
+      { id: 'run2', routine_id: 'r2', date: Y, started_at: `${Y}T23:00:00Z`, finished_at: null },
+    ])
+    server.seed('routine_step_logs', [
+      { id: 'l1', run_id: 'run1', step_id: 'm0', status: 'completed', logged_at: `${Y}T12:00:00Z` },
+      { id: 'l2', run_id: 'run1', step_id: 'm1', status: 'completed', logged_at: `${Y}T12:05:00Z` },
+      { id: 'l3', run_id: 'run2', step_id: 'n0', status: 'completed', logged_at: `${Y}T23:00:00Z` },
+    ])
+    await open(page)
+    const section = page.getByTestId('dash-yesterday')
+    await expect(section.getByRole('heading', { name: 'Do better today than past you did yesterday' })).toBeVisible()
+    await expect(page.locator('main section').first()).toHaveAttribute('data-testid', 'dash-yesterday')
+    await expect(section.getByTestId('dash-yesterday-habits')).toHaveText('1 of 2')
+    await expect(section.getByTestId('dash-yesterday-routines')).toHaveText('1 of 2')
+    await expect(section.getByTestId('dash-yesterday-tasks')).toHaveText('1 of 2')
+    await expect(section.getByTestId('dash-yesterday-routine')).toHaveText(['✓ Morning 2/2', 'Night 1/3'])
+  })
+
+  test('with nothing scheduled yesterday, the section says so', async ({ page }) => {
+    await open(page)
+    await expect(page.getByTestId('dash-yesterday')).toContainText('Past you had nothing scheduled yesterday. Today is a clean slate.')
+  })
+
   test('the app opens on the Dashboard, the first item in the menu', async ({ page }) => {
     await open(page)
     await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()

@@ -16,8 +16,10 @@ import {
   questsFinished,
   routineSummaries,
   tasksDone,
+  yesterdaySummary,
   type Period,
 } from '@/dashboard/stats'
+import { addDays } from '@/tasks/days'
 import { percent } from '@/routines/rules'
 import { messages } from '@/messages'
 
@@ -69,6 +71,7 @@ const stats = useLiveQuery(
       db.vault_items.toArray(),
     ])
     return {
+      yesterday: yesterdaySummary(await brain.journalStats(addDays(today.value, -1), now.value, timeZone.value)),
       habits: habitStats(habits, habitLogs, now.value, timeZone.value, from),
       journal: journalStreaks(journal, today.value),
       worstDay: daysSinceWorstDay(journal, today.value),
@@ -114,6 +117,38 @@ const big = 'text-3xl font-bold tabular-nums'
     </div>
 
     <template v-if="stats">
+      <!-- Yesterday, at the top (SPEC §5 Dashboard). Not affected by the period. -->
+      <section :class="card" data-testid="dash-yesterday" aria-labelledby="dash-yesterday-heading">
+        <h2 id="dash-yesterday-heading" class="text-lg font-semibold">{{ m.yesterdayHeading }}</h2>
+        <p v-if="stats.yesterday.empty" class="text-muted">{{ m.yesterdayEmpty }}</p>
+        <template v-else>
+          <dl class="grid grid-cols-3 gap-3">
+            <div class="flex flex-col">
+              <dt class="text-sm text-muted">{{ m.yesterdayHabits }}</dt>
+              <dd :class="big" data-testid="dash-yesterday-habits">{{ m.ofTotal(stats.yesterday.habits.kept, stats.yesterday.habits.scheduled) }}</dd>
+            </div>
+            <div class="flex flex-col">
+              <dt class="text-sm text-muted">{{ m.yesterdayRoutines }}</dt>
+              <dd :class="big" data-testid="dash-yesterday-routines">{{ m.ofTotal(stats.yesterday.routines.finished, stats.yesterday.routines.total) }}</dd>
+            </div>
+            <div class="flex flex-col">
+              <dt class="text-sm text-muted">{{ m.yesterdayTasks }}</dt>
+              <dd :class="big" data-testid="dash-yesterday-tasks">{{ m.ofTotal(stats.yesterday.tasks.done, stats.yesterday.tasks.due) }}</dd>
+            </div>
+          </dl>
+          <ul v-if="stats.yesterday.routines.list.length" class="flex flex-wrap gap-2 text-sm" :aria-label="m.yesterdayRoutines">
+            <li
+              v-for="r in stats.yesterday.routines.list"
+              :key="r.id"
+              class="rounded-full border border-line px-3 py-1"
+              data-testid="dash-yesterday-routine"
+            >
+              {{ r.done >= r.total ? '✓ ' : '' }}{{ r.title }} {{ r.done }}/{{ r.total }}
+            </li>
+          </ul>
+        </template>
+      </section>
+
       <!-- Habits -->
       <section class="flex flex-col gap-3" data-testid="dash-habits">
         <h2 class="text-lg font-semibold">{{ m.habitsHeading }}</h2>

@@ -517,6 +517,12 @@ export const messages = {
   dashboard: {
     heading: 'Dashboard',
     intro: 'Everything past you has been up to.',
+    yesterdayHeading: 'Do better today than past you did yesterday',
+    yesterdayHabits: 'Habits kept',
+    yesterdayTasks: 'Tasks done',
+    yesterdayRoutines: 'Routines finished',
+    ofTotal: (done: number, total: number) => `${done} of ${total}`,
+    yesterdayEmpty: 'Past you had nothing scheduled yesterday. Today is a clean slate.',
     period: 'Period',
     periods: { year: 'This year', '12months': 'Last 12 months', all: 'All time' },
     habitsHeading: 'Habits',

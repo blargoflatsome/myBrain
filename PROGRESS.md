@@ -181,7 +181,7 @@ Merged and live.
 
 - Phase 2 gains a tags management page (user).
 
-## Feedback round 1 (branch `feedback-round-1`)
+## Feedback round 1 (done, PR #16)
 - User feedback, spec approved 2026-11-07: every week / every 2 weeks for habits, routines, repeating priority tasks and events (2-week weeks count from the start date's Sun–Sat week); Capture can add a habit (full form); Inbox renamed Orphans (`/inbox` redirects); streaks removed from the Account page; Journal gets "How to make tomorrow better?" and "Was today better than yesterday?" Yes/No; Dashboard "Days since your worst day" (days in a row answered Yes); star several Vault buckets, each shows on the Dashboard with its 3 newest items.
 - Migration `20261107010000_feedback_round_1.sql` (`week_interval`, `on_week()`, events `biweekly`, journal `tomorrow`/`better_than_yesterday`, buckets `starred`, reminders respect every 2 weeks). Dev migrated; `rls_every_two_weeks.sql` passes (14 SQL files).
 - Tests: `src/feedback-round-1.test.ts`, `e2e/feedback-round-1.spec.ts`. Vitest 205, Playwright 298.
@@ -191,6 +191,10 @@ Merged and live.
 - Part 3 (user): removed the Journal's Add a task for tomorrow button; focus trapped in every window and returned on close (`src/a11y/focus.ts`, phone menu included); tests prove focus escapes without it.
 - Tests: Vitest 205, Playwright 417 (3 skipped, phone-only/desktop-only).
 - Next: Google Calendar sync (check Google's sensitive-scope/verification rules first, then plan and ask).
+
+## Dashboard: yesterday (branch `dashboard-yesterday`)
+- "Do better today than past you did yesterday" at the top of the Dashboard: yesterday's habits kept, routines finished, tasks done (x of y), and each routine's steps done; says so when nothing was scheduled (user's choices, SPEC §5 Dashboard). No database change.
+- Tests: `src/feedback-round-1.test.ts` (summary), `e2e/dashboard.spec.ts` (section first, counts, empty); Dashboard passes the axe scan. Vitest 207, Playwright 421.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
