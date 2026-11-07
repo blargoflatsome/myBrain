@@ -99,7 +99,7 @@ const big = 'text-3xl font-bold tabular-nums'
 </script>
 
 <template>
-  <main class="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-3xl flex-col gap-5 px-4 pt-6 pb-28 xl:max-w-5xl">
     <div class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
@@ -117,12 +117,11 @@ const big = 'text-3xl font-bold tabular-nums'
       </label>
     </div>
 
-    <!-- Post Its first (SPEC §5 Dashboard). -->
-    <PostItBoard />
-
-    <template v-if="stats">
-      <!-- Yesterday, at the top (SPEC §5 Dashboard). Not affected by the period. -->
-      <section :class="card" data-testid="dash-yesterday" aria-labelledby="dash-yesterday-heading">
+    <!-- The top row (SPEC §5 Dashboard): Post Its first; on a wide screen, how yesterday went sits to their left. -->
+    <div class="flex flex-col gap-5 xl:has-[[data-testid=dash-postits]]:grid xl:has-[[data-testid=dash-postits]]:grid-cols-[minmax(0,1fr)_32rem] xl:has-[[data-testid=dash-postits]]:items-start" data-testid="dash-top">
+      <PostItBoard />
+      <!-- Yesterday (SPEC §5 Dashboard). Not affected by the period. -->
+      <section v-if="stats" :class="[card, 'xl:order-first']" data-testid="dash-yesterday" aria-labelledby="dash-yesterday-heading">
         <h2 id="dash-yesterday-heading" class="text-lg font-semibold">{{ m.yesterdayHeading }}</h2>
         <p v-if="stats.yesterday.empty" class="text-muted">{{ m.yesterdayEmpty }}</p>
         <template v-else>
@@ -152,7 +151,9 @@ const big = 'text-3xl font-bold tabular-nums'
           </ul>
         </template>
       </section>
+    </div>
 
+    <template v-if="stats">
       <!-- Habits -->
       <section class="flex flex-col gap-3" data-testid="dash-habits">
         <h2 class="text-lg font-semibold">{{ m.habitsHeading }}</h2>
@@ -247,12 +248,12 @@ const big = 'text-3xl font-bold tabular-nums'
       <!-- Favorite Vault buckets (SPEC §5 The Vault) -->
       <section v-if="stats.favorites.length" class="flex flex-col gap-3" data-testid="dash-favorites">
         <h2 class="text-lg font-semibold">{{ m.favoritesHeading }}</h2>
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <RouterLink
             v-for="f in stats.favorites"
             :key="f.bucket.id"
             :to="{ name: 'vault', query: { bucket: f.bucket.id } }"
-            :class="[card, 'hover:border-accent']"
+            :class="[card, 'min-w-0 hover:border-accent']"
             data-testid="dash-favorite"
           >
             <span class="font-semibold">★ {{ f.bucket.name }}</span>

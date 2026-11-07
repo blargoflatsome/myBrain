@@ -10,7 +10,35 @@ const RID = 'aaaaaaaa-0000-4000-8000-000000000001'
 const WCAG_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 let server: FakeSupabase
 
+// Text people type is tested long, too (user rule): a long sentence, a paragraph, and an unbroken string (a pasted
+// link) that can't wrap at spaces. Each kind of thing I can type gets one long example.
+const LONG_LINE = 'Remember to call the insurance company about the claim from the car accident last spring before Friday'
+const PARAGRAPH =
+  'Past me wrote a whole paragraph here because some days need it. It goes on for a while, with several sentences, so the page has to wrap it nicely. Then it keeps going a little more, just to be sure nothing gets cut off or pushes the page sideways on a small phone.'
+const LONG_WORD = 'https://example.com/a/really/long/link/that/someone/pasted/without/any/spaces/in/it/at/all?with=query&and=more'
+
+function seedLong() {
+  const day = '2026-11-10'
+  server.seed('tasks', [{ id: 't-long', title: LONG_LINE, notes: `${PARAGRAPH}
+${LONG_WORD}`, due_date: day, priority: 2, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:03Z' }])
+  server.seed('habits', [{ id: 'h-long', title: LONG_LINE, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false, current_streak: 12, best_streak: 40 }])
+  server.seed('routines', [{ id: 'aaaaaaaa-0000-4000-8000-0000000000ff', title: LONG_LINE, notify_time: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' }])
+  server.seed('routine_steps', [{ id: '00000003-0000-4000-8000-000000000003', routine_id: RID, position: 2, title: LONG_WORD, start_date: '2026-11-01' }])
+  server.seed('quests', [{ id: 'q-long', title: LONG_LINE, details: `${PARAGRAPH} ${LONG_WORD}`, energy: 'meh', minutes: 60, completed_at: null }])
+  server.seed('inbox', [{ id: 'i-long', body: `${PARAGRAPH} ${LONG_WORD}`, created_at: '2026-11-09T13:00:00Z' }])
+  server.seed('journal_entries', [
+    { id: 'j8', date: '2026-11-08', body: `<p>${PARAGRAPH}</p><p>${LONG_WORD}</p>`, tomorrow: `<p>${LONG_WORD}</p>`, better_than_yesterday: false, stats: {}, auto: false, stats_final: true },
+  ])
+  server.seed('post_its', [{ id: 'p-long', body: `<p>${LONG_WORD}</p><p>${PARAGRAPH}</p>`, color: 'yellow', position: -1 }])
+  server.seed('vault_buckets', [{ id: 'b-long', name: LONG_LINE, position: 6, checkable: false, starred: true }])
+  server.seed('vault_items', [{ id: 'v-long', bucket_id: 'b-long', title: LONG_WORD, notes: PARAGRAPH, rating: 3, link: LONG_WORD, checked: false, created_at: '2026-11-09T12:30:00Z' }])
+  server.seed('events', [{ id: 'e-long', title: LONG_LINE, notes: PARAGRAPH, start_date: day, start_time: null, end_date: day, end_time: null, repeat: 'never', reminder_minutes: null }])
+  server.seed('tags', [{ id: 'tag-long', name: LONG_WORD.slice(0, 60) }])
+  server.seed('item_tags', [{ id: 'it-long', item_type: 'journal_entry', item_id: 'j8', tag_id: 'tag-long' }])
+}
+
 function seedData() {
+  seedLong()
   const day = '2026-11-10'
   server.seed('tasks', [
     { id: 't1', title: 'pay rent', notes: 'before 5', due_date: day, priority: 3, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:01Z' },
@@ -40,6 +68,7 @@ function seedData() {
   server.seed('vault_items', [
     { id: 'v1', bucket_id: 'b1', title: 'Dune', notes: 'Recommended by Sam', rating: 4, link: 'example.com', checked: false },
     { id: 'v2', bucket_id: 'b1', title: 'Emma', notes: null, rating: null, link: null, checked: true },
+    { id: 'v3', bucket_id: 'b1', title: '"Do you want a haircut? You have gorgeous hair" - a friend of Rae, who said it at the market on Saturday', notes: null, rating: null, link: null, checked: false, created_at: '2026-11-09T12:00:00Z' },
   ])
   server.seed('events', [
     { id: 'e1', title: 'Dentist', notes: null, start_date: day, start_time: '15:00:00', end_date: day, end_time: '16:00:00', repeat: 'never', reminder_minutes: 30 },
@@ -58,7 +87,7 @@ async function scan(page: Page, what: string) {
 }
 
 const PAGES: [string, string, (page: Page) => Promise<void>][] = [
-  ['Dashboard', '/', (p) => expect(p.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()],
+  ['Dashboard', '/', (p) => expect(p.getByTestId('dash-favorite').first()).toBeVisible()],
   ['Tasks', '/tasks', (p) => expect(p.getByText('pay rent')).toBeVisible()],
   ['Habits', '/habits', (p) => expect(p.getByText('Take meds').first()).toBeVisible()],
   ['Routines', '/routines', (p) => expect(p.getByText('Morning').first()).toBeVisible()],
@@ -68,7 +97,7 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Journal', '/journal', (p) => expect(p.getByTestId('journal-entry-2026-11-09')).toBeVisible()],
   ['Vault', '/vault', (p) => expect(p.getByText('Books').first()).toBeVisible()],
   ['Vault bucket', '/vault?bucket=b1', (p) => expect(p.getByText('Dune')).toBeVisible()],
-  ['Calendar', '/calendar', (p) => expect(p.locator('.cal-wrap').getByText('Dentist').first()).toBeVisible()],
+  ['Calendar', '/calendar', (p) => expect(p.locator('.cal-wrap').getByText('pay rent').first()).toBeVisible()],
   ['Account', '/account', (p) => expect(p.getByRole('heading', { name: 'Your profile', level: 2 })).toBeVisible()],
   ['Capture page', '/capture', (p) => expect(p.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()],
   ['Privacy', '/privacy', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
@@ -134,7 +163,7 @@ for (const scheme of ['light', 'dark'] as const) {
 
     test('Post It being edited on the Dashboard', async ({ page }) => {
       await page.goto('/')
-      await page.getByTestId('postit-actions').getByRole('button', { name: 'Edit' }).click()
+      await page.getByTestId('postit').getByRole('button', { name: 'Edit Post It' }).click()
       await scan(page, 'Post It editing')
     })
 
@@ -177,8 +206,18 @@ test.describe('Spec §2 WCAG 2.2 AA: by hand checks made automatic', () => {
     for (const [name, path, ready] of PAGES) {
       await page.goto(path)
       await ready(page)
-      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
-      expect(overflow, `${name} scrolls sideways`).toBeLessThanOrEqual(0)
+      // Wait for every list to fill in from the device's data before measuring.
+      await page.waitForLoadState('networkidle')
+      await page.waitForTimeout(300)
+      const { overflow, culprits } = await page.evaluate(() => {
+        const vw = document.documentElement.clientWidth
+        const culprits = [...document.querySelectorAll('main *')]
+          .filter((el) => el.getBoundingClientRect().right > vw + 1)
+          .slice(-4)
+          .map((el) => `<${el.tagName.toLowerCase()} class="${String(el.className).slice(0, 80)}"> ${(el.textContent ?? '').slice(0, 40)}`)
+        return { overflow: document.documentElement.scrollWidth - vw, culprits }
+      })
+      expect(overflow, `${name} scrolls sideways because of: ${culprits.join(' | ')}`).toBeLessThanOrEqual(0)
     }
   })
 

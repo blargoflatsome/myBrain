@@ -75,20 +75,21 @@ test.describe('Spec §5 Post It', () => {
       await expect(dots.nth(1)).toHaveAttribute('aria-current', 'true')
       await expect(page.getByTestId('postit-announcement')).toHaveText('2 of 2')
     } else {
-      // Computer: Previous / Next with "1 of 2"; no dots.
+      // Computer: arrows either side of the stack (none past either end), "1 of 2" below; no dots.
       await expect(page.getByTestId('postit-dots')).toBeHidden()
       await expect(page.getByTestId('postit-count')).toHaveText('1 of 2')
-      await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled()
+      await expect(page.getByRole('button', { name: 'Previous' })).toHaveCount(0)
       await page.getByRole('button', { name: 'Next' }).click()
       await expect(board(page).getByTestId('postit-body')).toHaveText('Older')
       await expect(page.getByTestId('postit-count')).toHaveText('2 of 2')
       await expect(page.getByTestId('postit-announcement')).toHaveText('2 of 2')
-      await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+      await expect(page.getByRole('button', { name: 'Next' })).toHaveCount(0)
+      // The arrow that went away hands focus to the other one, so the keyboard isn't lost.
+      await expect(page.getByRole('button', { name: 'Previous' })).toBeFocused()
       // The left and right arrow keys flip through the stack too.
-      await page.getByRole('button', { name: 'Previous' }).focus()
       await page.keyboard.press('ArrowLeft')
       await expect(board(page).getByTestId('postit-body')).toHaveText('Newer')
-      await page.getByRole('button', { name: 'Next' }).focus()
+      await expect(page.getByRole('button', { name: 'Next' })).toBeFocused()
       await page.keyboard.press('ArrowRight')
       await expect(board(page).getByTestId('postit-body')).toHaveText('Older')
     }
@@ -121,6 +122,31 @@ test.describe('Spec §5 Post It', () => {
   })
 
 
+  test('on a computer the arrows sit beside the stack and appear on mouse over or keyboard focus', async ({ page }, info) => {
+    test.skip(info.project.name === 'android-phone', 'computer only')
+    server.seed('post_its', [
+      { id: 'p1', body: '<p>Top</p>', color: 'yellow', position: 0 },
+      { id: 'p2', body: '<p>Next one</p>', color: 'pink', position: 1 },
+    ])
+    await open(page, '/')
+    const next = page.getByRole('button', { name: 'Next' })
+    const opacity = () => next.evaluate((el) => getComputedStyle(el).opacity)
+    await page.mouse.move(5, 5)
+    await expect.poll(opacity).toBe('0')
+    // Beside the stack, level with it.
+    const stack = (await page.locator('.postit-stack').boundingBox())!
+    const arrow = (await next.boundingBox())!
+    expect(arrow.x).toBeGreaterThan(stack.x + stack.width)
+    expect(arrow.y).toBeGreaterThan(stack.y)
+    expect(arrow.y + arrow.height).toBeLessThan(stack.y + stack.height)
+    await page.locator('.postit-stack').hover()
+    await expect.poll(opacity).toBe('1')
+    await page.mouse.move(5, 5)
+    await expect.poll(opacity).toBe('0')
+    await next.focus()
+    await expect.poll(opacity).toBe('1')
+  })
+
   test('it looks taped to the page: a strip of tape, a tilt, and the notes underneath peeking out', async ({ page }) => {
     server.seed('post_its', [
       { id: 'p1', body: '<p>Top</p>', color: 'yellow', position: 0 },
@@ -139,7 +165,7 @@ test.describe('Spec §5 Post It', () => {
   test('a Post It can be edited in place, including its color', async ({ page }) => {
     server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
-    await page.getByTestId('postit-actions').getByRole('button', { name: 'Edit' }).click()
+    await board(page).getByRole('button', { name: 'Edit Post It' }).click()
     const editor = board(page).getByRole('textbox', { name: 'Post It 1' })
     await expect(editor).toBeFocused()
     await page.keyboard.press('ControlOrMeta+End')
@@ -148,28 +174,33 @@ test.describe('Spec §5 Post It', () => {
     await board(page).getByRole('button', { name: 'Save' }).click()
     await expect(board(page).getByTestId('postit-body')).toHaveText('Buy stamps and envelopes')
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', body: '<p>Buy stamps and envelopes</p>', color: 'green' })
-    await expect(page.getByTestId('postit-actions').getByRole('button', { name: 'Edit' })).toBeFocused()
+    await expect(board(page).getByRole('button', { name: 'Edit Post It' })).toBeFocused()
   })
 
-  test('Done takes it down straight away, and Undo puts it back', async ({ page }) => {
+  test('the X in the top right corner deletes it straight away, and Undo puts it back', async ({ page }) => {
     server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
-    await page.getByTestId('postit-actions').getByRole('button', { name: 'Done' }).click()
+    await board(page).getByRole('button', { name: 'Delete Post It' }).click()
     await expect(board(page)).toHaveCount(0)
-    await expect(page.getByTestId('postit-notice')).toContainText('Post It taken down.')
+    await expect(page.getByTestId('postit-notice')).toContainText('Post It deleted.')
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: expect.any(String) })
     await page.getByRole('button', { name: 'Undo' }).click()
     await expect(board(page)).toHaveCount(1)
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: null })
   })
 
-  test('Make a task: the first line is the title, the rest the notes, in Undated; the Post It goes', async ({ page }) => {
-    server.seed('post_its', [{ id: 'p1', body: '<p>Call the vet</p><p>ask about shots</p>', color: 'yellow', position: 0 }])
+  test('on the note: an X in the top right corner and an edit icon in the bottom left; no Make a task', async ({ page }) => {
+    server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
-    await page.getByTestId('postit-actions').getByRole('button', { name: 'Make a task' }).click()
-    await expect(page.getByTestId('postit-notice')).toContainText('Moved to Tasks, in Undated.')
-    await expect(board(page)).toHaveCount(0)
-    await expect.poll(() => lastWrite('tasks')).toMatchObject({ title: 'Call the vet', notes: 'ask about shots', due_date: null, status: 'open' })
-    await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: expect.any(String) })
+    const note = (await board(page).boundingBox())!
+    const x = (await board(page).getByRole('button', { name: 'Delete Post It' }).boundingBox())!
+    const pencil = (await board(page).getByRole('button', { name: 'Edit Post It' }).boundingBox())!
+    expect(x.x + x.width).toBeGreaterThan(note.x + note.width - 30)
+    expect(x.y).toBeLessThan(note.y + 30)
+    expect(pencil.x).toBeLessThan(note.x + 30)
+    expect(pencil.y + pencil.height).toBeGreaterThan(note.y + note.height - 40)
+    for (const box of [x, pencil]) expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44)
+    await expect(page.getByRole('button', { name: /Make a task|^Done$/ })).toHaveCount(0)
   })
+
 })

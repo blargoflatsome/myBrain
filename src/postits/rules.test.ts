@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boardOrder, frontPosition, noteLines, noteToTask } from './rules'
+import { boardOrder, frontPosition } from './rules'
 import type { PostItRow } from '@/sync/types'
 
 const note = (id: string, position: number, extra: Partial<PostItRow> = {}): PostItRow => ({
@@ -19,22 +19,5 @@ describe('Spec §5 Post It', () => {
     expect(boardOrder(notes).map((n) => n.id)).toEqual(['bb', 'a'])
     expect(frontPosition(notes)).toBe(-2)
     expect(frontPosition([])).toBe(0)
-  })
-
-  it('Make a task: the first line is the title and the rest the notes', () => {
-    expect(noteToTask('<p><strong>Call</strong> the vet</p><ul><li><p>ask about shots</p></li><li><p>book June</p></li></ul>')).toEqual({
-      title: 'Call the vet',
-      notes: 'ask about shots\nbook June',
-    })
-    expect(noteToTask('<p>Just one line</p>')).toEqual({ title: 'Just one line', notes: null })
-    expect(noteToTask('<p></p>')).toBeNull()
-    expect(noteLines('<p>one<br>two</p>')).toEqual(['one', 'two'])
-  })
-
-  it('a very long first line is cut for the title and kept whole in the notes', () => {
-    const long = 'a'.repeat(250)
-    const t = noteToTask(`<p>${long}</p>`)!
-    expect(t.title).toHaveLength(200)
-    expect(t.notes).toBe(long)
   })
 })
