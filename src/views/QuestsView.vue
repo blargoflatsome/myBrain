@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 Random Quest: pick a project from the bucket list when bored, filtered by time and energy.
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import QuestEditor from '@/components/QuestEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -47,6 +48,20 @@ async function finish(q: QuestRow) {
 }
 
 const editing = ref<QuestRow | null>(null)
+// Opened with ?quest=<id> (from search): open that quest's editor.
+const route = useRoute()
+const router = useRouter()
+watch(
+  [() => route.query.quest, all],
+  ([id]) => {
+    if (typeof id !== 'string') return
+    const quest = all.value.find((q) => q.id === id && !q.deleted_at)
+    if (!quest) return
+    editing.value = quest
+    void router.replace({ query: {} })
+  },
+  { immediate: true },
+)
 async function saveEdit(q: QuestRow) {
   await brain.saveQuest(q)
   editing.value = null

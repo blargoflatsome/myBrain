@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 Tasks: daily list (with carry-over), scheduling for other days, and the Undated list.
 import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import TaskItem from '@/components/TaskItem.vue'
 import TaskEditor from '@/components/TaskEditor.vue'
 import PriorityTasks from '@/components/PriorityTasks.vue'
@@ -55,6 +56,35 @@ async function add() {
 }
 
 const editing = ref<TaskRow | null>(null)
+const route = useRoute()
+const router = useRouter()
+// Opened with ?priority=<id> (from the calendar): show the Priority tab and open that priority task.
+const openPriority = ref<string | null>(null)
+watch(
+  () => route.query.priority,
+  (id) => {
+    if (typeof id !== 'string') return
+    view.value = 'priority'
+    openPriority.value = id
+  },
+  { immediate: true },
+)
+// Opened with ?task=<id> (from search or the calendar): show its day and open its editor.
+watch(
+  [() => route.query.task, all],
+  ([id]) => {
+    if (typeof id !== 'string') return
+    const task = all.value.find((t) => t.id === id && !t.deleted_at)
+    if (!task) return
+    if (task.due_date) {
+      view.value = 'day'
+      day.value = task.due_date < today.value && task.status === 'open' ? today.value : task.due_date
+    } else view.value = 'undated'
+    editing.value = task
+    void router.replace({ query: {} })
+  },
+  { immediate: true },
+)
 async function saveEdit(t: TaskRow) {
   await brain.saveTask(t)
   editing.value = null
@@ -103,7 +133,7 @@ const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
       </button>
     </div>
 
-    <PriorityTasks v-if="view === 'priority'" />
+    <PriorityTasks v-if="view === 'priority'" :open-id="openPriority" @opened="(openPriority = null), router.replace({ query: {} })" />
     <template v-else>
       <div v-if="view === 'day'" class="flex items-center justify-between">
         <button type="button" class="min-h-11 min-w-11 rounded-xl text-xl" :aria-label="m.day.previous" @click="day = addDays(day, -1)">‹</button>

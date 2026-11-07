@@ -141,6 +141,17 @@ Merged and live.
 - Profile renamed to Account (/account; /profile redirects). Bio removed (column left unused). Settings tidied into two cards: Your profile, Reminders.
 - Delete My Account: confirmation with typed DELETE; migration `20261106110000_delete_account.sql` (`delete_my_account()`, cascades everything); clears this device's copy and push subscription; `rls_account.sql` passes on dev. Dev and prod migrated. Tests: `src/journal/body.test.ts`, more in `e2e/journal.spec.ts`. Vitest 159, Playwright 184, SQL 9 files.
 
+## Step 9 — The Vault, search and tags, calendar (in progress, branch `step-9-vault-search-calendar`)
+
+Done:
+- Spec §4/§5/§14 (user's choices; approved). Search runs on the device instead of Postgres full-text (approved).
+- Migration `20261106120000_vault_events_tags.sql`: bucket check-off, item rating/link/checked, `events` with `event_occurs_on()`, `tags` (unique name per user ignoring case) and `item_tags`, event reminders in `due_reminders()` (now with a `detail` column) and wording. Dev migrated; `rls_vault_events_tags.sql` passes; reminder job still succeeding.
+- App: The Vault page (buckets, items, check-off, Clear checked, ratings, links/maps, bucket settings, reorder, delete with items); tags on tasks, quests, vault items, journal entries, events (same tag id on every device); Search window from the menu and phone header, grouped results, tag filters, opens items where they live; Calendar page (FullCalendar 7, month/week/day) with dated tasks, priority tasks and events; event editor with repeat and reminder.
+- Fixed while testing: typing quickly in the Vault's add box could lose an item.
+- Tests: `src/step9.rules.test.ts`, `e2e/step9.spec.ts`. Vitest 172, Playwright 216, SQL 10 files.
+
+Left in step 9: preview check, prod migration, merge.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).

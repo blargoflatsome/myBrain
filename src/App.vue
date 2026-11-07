@@ -4,6 +4,8 @@ import { RouterLink, RouterView, useRoute } from 'vue-router'
 import SyncIndicator from '@/components/SyncIndicator.vue'
 import PriorityReminder from '@/components/PriorityReminder.vue'
 import CaptureDialog from '@/components/CaptureDialog.vue'
+import SearchDialog from '@/components/SearchDialog.vue'
+import { useSearchStore } from '@/stores/search'
 import { useCaptureStore } from '@/stores/capture'
 import { useAuthStore } from '@/stores/auth'
 import { useBrainStore } from '@/stores/brain'
@@ -18,6 +20,7 @@ const route = useRoute()
 const auth = useAuthStore()
 const brain = useBrainStore()
 const capture = useCaptureStore()
+const searchWindow = useSearchStore()
 
 // Open the signed-in user's on-device store and start syncing; close it on sign-out.
 watch(
@@ -44,6 +47,8 @@ const navItems = [
   { to: '/habits', label: messages.nav.habits },
   { to: '/routines', label: messages.nav.routines },
   { to: '/journal', label: messages.nav.journal },
+  { to: '/calendar', label: messages.nav.calendar },
+  { to: '/vault', label: messages.nav.vault },
   { to: '/quests', label: messages.nav.quests },
   { to: '/inbox', label: messages.nav.inbox },
   { to: '/account', label: messages.nav.account },
@@ -67,6 +72,13 @@ watch(() => route.fullPath, () => (menuOpen.value = false))
         :class="menuOpen ? 'flex' : 'hidden'"
       >
         <RouterLink to="/" class="mb-4 px-3 text-lg font-bold">{{ messages.appName }}</RouterLink>
+        <button
+          type="button"
+          class="mb-2 flex min-h-12 items-center gap-2 rounded-xl border border-line px-3 text-base text-muted hover:bg-surface"
+          @click="searchWindow.open()"
+        >
+          <span aria-hidden="true">⌕</span>{{ messages.nav.search }}
+        </button>
         <ul class="flex flex-col gap-1">
           <li v-for="item in navItems" :key="item.to">
             <RouterLink
@@ -102,7 +114,12 @@ watch(() => route.fullPath, () => (menuOpen.value = false))
             {{ messages.nav.menu }}
           </button>
           <RouterLink to="/" class="font-bold">{{ messages.appName }}</RouterLink>
-          <SyncIndicator v-if="!wide" />
+          <div class="flex items-center gap-2">
+            <SyncIndicator v-if="!wide" />
+            <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line text-lg" :aria-label="messages.search.open" @click="searchWindow.open()">
+              <span aria-hidden="true">⌕</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -119,6 +136,7 @@ watch(() => route.fullPath, () => (menuOpen.value = false))
       + {{ messages.capture.openButton }}
     </button>
     <CaptureDialog v-if="showChrome" />
+    <SearchDialog v-if="showChrome" />
 
     <!-- SPEC §5: full-screen reminder for due priority habits and tasks, on every screen. -->
     <PriorityReminder v-if="showChrome" />

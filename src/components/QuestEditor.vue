@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // Edit a quest: title, details, energy and time needed; Delete asks first (SPEC §2 Confirm before impact).
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+import TagInput from '@/components/TagInput.vue'
+import { useItemTags } from '@/composables/useItemTags'
 import type { EnergyLevel, QuestRow, TimeBucket } from '@/sync/types'
 import { ENERGY_LEVELS, TIME_BUCKETS } from '@/quests/picker'
 import { messages } from '@/messages'
@@ -10,6 +12,7 @@ const emit = defineEmits<{ save: [QuestRow]; delete: [QuestRow]; close: [] }>()
 const m = messages.quests
 
 const dialog = ref<HTMLDialogElement | null>(null)
+const tags = useItemTags('quest', computed(() => props.quest?.id))
 const confirmDialog = ref<HTMLDialogElement | null>(null)
 const title = ref('')
 const details = ref('')
@@ -28,8 +31,9 @@ watch(
   },
 )
 
-function save() {
+async function save() {
   if (!props.quest || !title.value.trim()) return
+  await tags.save(props.quest.id)
   emit('save', {
     ...props.quest,
     title: title.value.trim(),
@@ -78,6 +82,7 @@ const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-
           <option v-for="t in TIME_BUCKETS" :key="t" :value="t">{{ m.time[t] }}</option>
         </select>
       </label>
+      <TagInput v-model="tags.names.value" />
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>

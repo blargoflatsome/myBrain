@@ -287,6 +287,8 @@ test.describe('Navigation', () => {
       'Habits',
       'Routines',
       'Journal',
+      'Calendar',
+      'The Vault',
       'Quests',
       'Inbox',
       'Account',

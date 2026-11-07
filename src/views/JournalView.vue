@@ -1,14 +1,16 @@
 <script setup lang="ts">
 // SPEC §5 Journal: end-of-day check-in with the day's stats, formatted writing (full screen if wanted), tasks for
 // tomorrow in the Capture window (without leaving the page), and every past entry, always editable.
-import { computed, onScopeDispose, ref, watch } from 'vue'
+import { computed, nextTick, onScopeDispose, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import JournalStatsCard from '@/components/JournalStatsCard.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
+import EntryTags from '@/components/EntryTags.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useCaptureStore } from '@/stores/capture'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { hadActivity, hasStats } from '@/journal/stats'
+import { entryIdFor, hadActivity, hasStats } from '@/journal/stats'
 import { cleanHtml } from '@/journal/body'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
@@ -78,6 +80,21 @@ onScopeDispose(() => {
 })
 
 const editingDate = ref<string | null>(null)
+
+// Opened with ?date=<day> (from search): scroll to that day's entry and highlight it.
+const route = useRoute()
+const highlight = ref<string | null>(null)
+watch(
+  [() => route.query.date, entries],
+  async ([date]) => {
+    if (typeof date !== 'string' || highlight.value === date || !entries.value.some((e) => e.date === date)) return
+    highlight.value = date
+    await nextTick()
+    const el = document.querySelector(date === today.value ? '[data-testid="journal-today"]' : `[data-testid="journal-entry-${date}"]`)
+    el?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  },
+  { immediate: true },
+)
 async function finishEditing(date: string) {
   await save(date)
   editingDate.value = null
@@ -114,6 +131,7 @@ function dayLabel(date: string) {
         @blur="save(today)"
       />
       <p v-if="savedDate === today" class="text-sm text-muted" role="status">{{ m.saved }}</p>
+      <EntryTags v-if="brain.userId" type="journal_entry" :item-id="entryIdFor(brain.userId, today)" />
     </section>
 
     <section class="rounded-2xl border border-line p-4" data-testid="journal-add-task">
@@ -128,7 +146,8 @@ function dayLabel(date: string) {
       <article
         v-for="e in earlier"
         :key="e.id"
-        class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4"
+        class="flex flex-col gap-3 rounded-2xl border bg-surface p-4"
+        :class="highlight === e.date ? 'border-accent' : 'border-line'"
         :data-testid="`journal-entry-${e.date}`"
       >
         <div class="flex items-center justify-between gap-2">
@@ -151,6 +170,7 @@ function dayLabel(date: string) {
             min-height="12rem"
             @update:model-value="onInput(e.date, $event)"
           />
+          <EntryTags type="journal_entry" :item-id="e.id" />
           <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="finishEditing(e.date)">
             {{ m.done }}
           </button>

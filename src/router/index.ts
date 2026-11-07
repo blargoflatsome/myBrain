@@ -15,6 +15,8 @@ export const routes = [
   { path: '/routines', name: 'routines', component: () => import('@/views/RoutinesView.vue') },
   { path: '/routines/:id/run', name: 'routine-run', component: () => import('@/views/RoutineRunView.vue') },
   { path: '/journal', name: 'journal', component: () => import('@/views/JournalView.vue') },
+  { path: '/vault', name: 'vault', component: () => import('@/views/VaultView.vue') },
+  { path: '/calendar', name: 'calendar', component: () => import('@/views/CalendarView.vue') },
   { path: '/habits', name: 'habits', component: () => import('@/views/HabitsView.vue') },
   { path: '/account', name: 'account', component: () => import('@/views/AccountView.vue') },
   // The page was called Profile before; old links still work.
