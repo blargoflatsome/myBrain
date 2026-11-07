@@ -52,6 +52,8 @@ export interface VaultBucketRow extends BaseRow {
   position: number
   /** Items can be checked off (SPEC §5 The Vault; on for the Shopping list). */
   checkable?: boolean
+  /** Starred: shown as a card on the Dashboard with its newest items. */
+  starred?: boolean
 }
 
 export interface VaultItemRow extends BaseRow {
@@ -66,7 +68,7 @@ export interface VaultItemRow extends BaseRow {
   checked?: boolean
 }
 
-export type EventRepeat = 'never' | 'daily' | 'weekdays' | 'weekly' | 'monthly' | 'yearly'
+export type EventRepeat = 'never' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'
 
 /** A personal calendar event (SPEC §5 Calendar and reminders). Local dates and times; no start time = all day. */
 export interface EventRow extends BaseRow {
@@ -144,6 +146,8 @@ export interface InboxRow extends BaseRow {
 }
 
 export interface HabitRow extends BaseRow {
+  /** 1 = every week, 2 = every 2 weeks (counted from the week it started). */
+  week_interval?: number
   title: string
   /** 'HH:MM' or 'HH:MM:SS' local time; null = no reminder. */
   notify_time?: string | null
@@ -169,6 +173,8 @@ export interface HabitLogRow extends BaseRow {
 }
 
 export interface RoutineRow extends BaseRow {
+  /** 1 = every week, 2 = every 2 weeks (counted from the week it started). */
+  week_interval?: number
   title: string
   notify_time?: string | null
   /** 0 = Sunday ... 6 = Saturday; null = run anytime (no schedule, no reminder). */
@@ -202,6 +208,8 @@ export interface RoutineStepLogRow extends BaseRow {
 }
 
 export interface PriorityTaskRow extends BaseRow {
+  /** 1 = every week, 2 = every 2 weeks (counted from the week it started). */
+  week_interval?: number
   title: string
   description?: string | null
   /** 'HH:MM' local time. */
@@ -246,6 +254,10 @@ export interface JournalEntryRow extends BaseRow {
   stats_final: boolean
   /** True when the app wrote the entry on my behalf for a missed day. */
   auto: boolean
+  /** "How to make tomorrow better?" (formatted HTML like the body; older answers may be plain text). */
+  tomorrow?: string
+  /** "Was today better than yesterday?" (null = not answered). */
+  better_than_yesterday?: boolean | null
 }
 
 export interface RowTypes {

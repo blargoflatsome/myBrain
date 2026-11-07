@@ -1,7 +1,7 @@
 // Habit rules (SPEC §5 Habits): weekdays, timer deadlines, misses, and streaks.
 // habit_logs is the source of truth; the cached streak numbers on a habit are recalculated from it.
 import type { HabitLogRow, HabitRow } from '@/sync/types'
-import { addDays, todayIn } from '@/tasks/days'
+import { addDays, onWeek, todayIn } from '@/tasks/days'
 
 export type DayStatus = 'not_scheduled' | 'completed' | 'missed' | 'open'
 export const ALL_WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]
@@ -13,7 +13,7 @@ export function weekdayOf(date: string): number {
 }
 
 export function isScheduled(habit: HabitRow, date: string): boolean {
-  return date >= habit.start_date && habit.weekdays.includes(weekdayOf(date))
+  return date >= habit.start_date && habit.weekdays.includes(weekdayOf(date)) && onWeek(habit.start_date, habit.week_interval, date)
 }
 
 /** Offset of a timezone from UTC at a moment, in milliseconds. */

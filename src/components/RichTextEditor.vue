@@ -103,14 +103,14 @@ function onKey(event: KeyboardEvent) {
 }
 
 const btn = (on: boolean) => [
-  'flex min-h-10 min-w-9 items-center justify-center rounded-lg px-1.5 text-sm',
+  'flex min-h-11 min-w-11 items-center justify-center rounded-lg px-1.5 text-sm',
   on ? 'bg-accent text-accent-ink' : 'text-ink hover:bg-bg',
 ]
 </script>
 
 <template>
   <div
-    class="flex flex-col overflow-hidden border border-line bg-surface"
+    class="flex flex-col overflow-hidden border border-control bg-surface focus-within:border-accent"
     :class="fullScreen ? 'fixed inset-0 z-50 rounded-none' : 'rounded-xl'"
     :role="fullScreen ? 'dialog' : undefined"
     :aria-modal="fullScreen ? 'true' : undefined"
@@ -122,7 +122,7 @@ const btn = (on: boolean) => [
       v-if="editor"
       class="flex items-center gap-1 border-b border-line p-1"
       role="toolbar"
-      :aria-label="m.toolbar"
+      :aria-label="`${m.toolbar}: ${label}`"
       @mousedown.prevent
     >
       <!-- Formatting buttons scroll sideways on narrow screens; Full screen stays pinned on the right. -->
@@ -136,7 +136,7 @@ const btn = (on: boolean) => [
           :aria-pressed="editor.isActive(mk.key)"
           @click="toggleMark(mk.key)"
         >
-          {{ mk.text }}
+          <span aria-hidden="true">{{ mk.text }}</span>
         </button>
         <button
           type="button"
@@ -145,7 +145,7 @@ const btn = (on: boolean) => [
           :aria-pressed="editor.isActive('heading', { level: 2 })"
           @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
         >
-          H
+          <span aria-hidden="true">H</span>
         </button>
         <button
           type="button"
@@ -154,7 +154,7 @@ const btn = (on: boolean) => [
           :aria-pressed="editor.isActive('bulletList')"
           @click="editor.chain().focus().toggleBulletList().run()"
         >
-          •
+          <span aria-hidden="true">•</span>
         </button>
         <button
           type="button"
@@ -163,7 +163,7 @@ const btn = (on: boolean) => [
           :aria-pressed="editor.isActive('orderedList')"
           @click="editor.chain().focus().toggleOrderedList().run()"
         >
-          1.
+          <span aria-hidden="true" class="before:content-['1.']" />
         </button>
         <button
           type="button"
@@ -172,7 +172,7 @@ const btn = (on: boolean) => [
           :aria-pressed="editor.isActive('taskList')"
           @click="editor.chain().focus().toggleTaskList().run()"
         >
-          ☑︎
+          <span aria-hidden="true">☑︎</span>
         </button>
         <button
           type="button"
@@ -181,7 +181,7 @@ const btn = (on: boolean) => [
           :aria-pressed="editor.isActive('blockquote')"
           @click="editor.chain().focus().toggleBlockquote().run()"
         >
-          ❝
+          <span aria-hidden="true">❝</span>
         </button>
         <button type="button" :class="btn(editor.isActive('link'))" :aria-label="m.link" :aria-pressed="editor.isActive('link')" @click="openLink">
           🔗
@@ -195,7 +195,7 @@ const btn = (on: boolean) => [
         :aria-pressed="fullScreen"
         @click="toggleFullScreen"
       >
-        {{ fullScreen ? m.exitFullScreen : '⤢' }}
+        <span v-if="fullScreen">{{ m.exitFullScreen }}</span><span v-else aria-hidden="true">⤢</span>
       </button>
     </div>
 

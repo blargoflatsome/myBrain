@@ -1,20 +1,16 @@
 <script setup lang="ts">
-// SPEC §5 Account page: display name, avatar, streak visibility, and streaks (private habits never shown), then settings.
+// SPEC §5 Account page: display name, avatar and streak visibility, then settings. Streaks are on the Dashboard.
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { supabaseRemote } from '@/sync/supabaseRemote'
 import { useAuthStore } from '@/stores/auth'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { messages } from '@/messages'
 import NotificationSettings from '@/components/NotificationSettings.vue'
 import EventSettings from '@/components/EventSettings.vue'
 import AvailabilityCard from '@/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
-import type { HabitLogRow, HabitRow } from '@/sync/types'
-import { streaks } from '@/habits/rules'
-import { deviceTimeZone } from '@/tasks/days'
 
 type Visibility = 'private' | 'approved' | 'everyone'
 
@@ -55,16 +51,6 @@ async function save() {
   notice.value = error ? m.offline : m.saved
 }
 
-// Private habits never appear on the Account page (SPEC §5 Habits).
-const habits = useLiveQuery<HabitRow[]>(
-  async () => (brain.db ? (await brain.db.habits.toArray()).filter((h) => !h.deleted_at && !h.is_private) : []),
-  [],
-  [() => brain.db],
-)
-const logs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
-// Streaks come straight from the habit logs, the source of truth (SPEC §4).
-const rows = computed(() => habits.value.map((h) => ({ habit: h, ...streaks(h, logs.value, new Date(), deviceTimeZone()) })))
-const longest = computed(() => [...rows.value].sort((a, b) => b.best - a.best)[0])
 
 // ---------- Delete My Account (SPEC §9): confirm, then delete everything ----------
 const confirmDelete = ref<HTMLDialogElement | null>(null)
@@ -156,20 +142,6 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
       <div v-else class="flex size-16 items-center justify-center rounded-full bg-surface text-2xl" aria-hidden="true">🙂</div>
       <h1 class="text-2xl font-bold">{{ displayName || m.heading }}</h1>
     </div>
-
-    <section class="flex flex-col gap-2">
-      <h2 class="text-lg font-semibold">{{ m.streaksHeading }}</h2>
-      <p v-if="longest && longest.best > 0" class="rounded-xl bg-surface p-3 font-medium" data-testid="longest-streak">
-        🏆 {{ m.longest(longest.best, longest.habit.title) }}
-      </p>
-      <p v-if="!habits.length" class="text-muted">{{ m.noStreaks }}</p>
-      <ul class="flex flex-col gap-2">
-        <li v-for="r in rows" :key="r.habit.id" class="flex items-center justify-between rounded-2xl border border-line bg-surface p-3" data-testid="profile-streak">
-          <span>{{ r.habit.title }}</span>
-          <span class="text-sm text-muted">{{ messages.habits.streak(r.current) }} · {{ messages.habits.best(r.best) }}</span>
-        </li>
-      </ul>
-    </section>
 
     <section class="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4" data-testid="profile-settings">
       <h2 class="text-lg font-semibold">{{ m.settingsHeading }}</h2>
@@ -267,7 +239,7 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
         <div class="flex flex-col gap-2 sm:flex-row">
           <button
             type="submit"
-            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white disabled:opacity-50"
+            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink disabled:opacity-50"
             :disabled="wiping || !wipeChosen.length || wipeTyped.trim().toUpperCase() !== messages.deleteData.word"
           >
             {{ messages.deleteData.confirm }}
@@ -293,7 +265,7 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
         <div class="flex flex-col gap-2 sm:flex-row">
           <button
             type="submit"
-            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white disabled:opacity-50"
+            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink disabled:opacity-50"
             :disabled="deleting || typed.trim().toUpperCase() !== m.deleteConfirm.word"
           >
             {{ m.deleteConfirm.confirm }}

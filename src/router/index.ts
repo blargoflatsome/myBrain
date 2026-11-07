@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { messages } from '@/messages'
 import DashboardView from '@/views/DashboardView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { authRedirect } from './guard'
@@ -25,7 +26,9 @@ export const routes = [
   // The page was called Profile before; old links still work.
   { path: '/profile', redirect: '/account' },
   { path: '/quests', name: 'quests', component: () => import('@/views/QuestsView.vue') },
-  { path: '/inbox', name: 'inbox', component: () => import('@/views/InboxView.vue') },
+  { path: '/orphans', name: 'inbox', component: () => import('@/views/InboxView.vue') },
+  // Orphans was called Inbox before; old links still work.
+  { path: '/inbox', redirect: '/orphans' },
   { path: '/welcome', name: 'welcome', component: () => import('@/views/WelcomeView.vue') },
   { path: '/rsvp/:invite/:token', name: 'rsvp', component: () => import('@/views/GuestRsvpView.vue'), meta: { public: true, guest: true } },
   { path: '/privacy', name: 'privacy', component: () => import('@/views/PrivacyView.vue'), meta: { public: true, guest: true } },
@@ -36,6 +39,11 @@ export const routes = [
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+})
+
+// Each page has its own title (WCAG 2.4.2).
+router.afterEach((to) => {
+  document.title = messages.pageTitle(messages.pageTitles[String(to.name)])
 })
 
 router.beforeEach(async (to) => {

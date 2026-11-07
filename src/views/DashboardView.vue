@@ -1,10 +1,13 @@
 <script setup lang="ts">
 // SPEC §5 Dashboard: all my stats at a glance, for This year (default), Last 12 months or All time. Updates live.
 import { computed, onScopeDispose, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import {
+  daysSinceWorstDay,
+  favoriteBuckets,
   eventStats,
   habitStats,
   journalStreaks,
@@ -50,7 +53,7 @@ const stats = useLiveQuery(
     const db = brain.db
     if (!db) return null
     const from = periodStart(period.value, today.value)
-    const [habits, habitLogs, journal, events, tasks, quests, routines, steps, runs, logs, invites] = await Promise.all([
+    const [habits, habitLogs, journal, events, tasks, quests, routines, steps, runs, logs, invites, buckets, vaultItems] = await Promise.all([
       db.habits.toArray(),
       db.habit_logs.toArray(),
       db.journal_entries.toArray(),
@@ -62,10 +65,14 @@ const stats = useLiveQuery(
       db.routine_runs.toArray(),
       db.routine_step_logs.toArray(),
       db.event_invites.toArray(),
+      db.vault_buckets.toArray(),
+      db.vault_items.toArray(),
     ])
     return {
       habits: habitStats(habits, habitLogs, now.value, timeZone.value, from),
       journal: journalStreaks(journal, today.value),
+      worstDay: daysSinceWorstDay(journal, today.value),
+      favorites: favoriteBuckets(buckets, vaultItems),
       events: eventStats(events, from, now.value, timeZone.value, invites, brain.userId),
       tasks: tasksDone(tasks, from, now.value, timeZone.value),
       quests: questsFinished(quests, from, now.value, timeZone.value),
@@ -162,7 +169,7 @@ const big = 'text-3xl font-bold tabular-nums'
         <!-- Journal -->
         <section :class="card" data-testid="dash-journal">
           <h2 class="text-lg font-semibold">{{ m.journalHeading }}</h2>
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-3 gap-3">
             <div class="flex flex-col">
               <span class="text-sm text-muted">{{ m.journalCurrent }}</span>
               <span :class="big" data-testid="dash-journal-current">{{ stats.journal.current }}</span>
@@ -170,6 +177,10 @@ const big = 'text-3xl font-bold tabular-nums'
             <div class="flex flex-col">
               <span class="text-sm text-muted">{{ m.journalBest }}</span>
               <span :class="big" data-testid="dash-journal-best">{{ stats.journal.best }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-sm text-muted">{{ m.worstDay }}</span>
+              <span :class="big" data-testid="dash-worst-day">{{ stats.worstDay }}</span>
             </div>
           </div>
         </section>
@@ -193,6 +204,26 @@ const big = 'text-3xl font-bold tabular-nums'
           </div>
         </section>
       </div>
+
+      <!-- Favorite Vault buckets (SPEC §5 The Vault) -->
+      <section v-if="stats.favorites.length" class="flex flex-col gap-3" data-testid="dash-favorites">
+        <h2 class="text-lg font-semibold">{{ m.favoritesHeading }}</h2>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <RouterLink
+            v-for="f in stats.favorites"
+            :key="f.bucket.id"
+            :to="{ name: 'vault', query: { bucket: f.bucket.id } }"
+            :class="[card, 'hover:border-accent']"
+            data-testid="dash-favorite"
+          >
+            <span class="font-semibold">★ {{ f.bucket.name }}</span>
+            <ul v-if="f.newest.length" class="flex flex-col gap-1 text-sm">
+              <li v-for="i in f.newest" :key="i.id" class="truncate">{{ i.title }}</li>
+            </ul>
+            <p v-else class="text-sm text-muted">{{ messages.vault.empty }}</p>
+          </RouterLink>
+        </div>
+      </section>
 
       <!-- Tasks, quests, routines -->
       <section :class="card" data-testid="dash-doing">

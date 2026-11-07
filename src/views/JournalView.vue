@@ -1,23 +1,24 @@
 <script setup lang="ts">
-// SPEC §5 Journal: end-of-day check-in with the day's stats, formatted writing (full screen if wanted), tasks for
-// tomorrow in the Capture window (without leaving the page), and every past entry, always editable.
+// SPEC §5 Journal: end-of-day check-in with the day's stats, formatted writing (full screen if wanted), and every
+// past entry, always editable. Tasks for tomorrow are added with Capture, like anywhere else.
 import { computed, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import JournalStatsCard from '@/components/JournalStatsCard.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 import EntryTags from '@/components/EntryTags.vue'
+import JournalBetter from '@/components/JournalBetter.vue'
+import JournalTomorrow from '@/components/JournalTomorrow.vue'
+import { onPageHide } from '@/composables/usePageHide'
+import { tagsOf } from '@/tags/rules'
 import { useBrainStore } from '@/stores/brain'
-import { useCaptureStore } from '@/stores/capture'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { entryIdFor, hadActivity, hasStats } from '@/journal/stats'
 import { cleanHtml } from '@/journal/body'
-import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
-import type { JournalEntryRow, JournalStats } from '@/sync/types'
+import type { ItemTagRow, JournalEntryRow, JournalStats, TagRow } from '@/sync/types'
 
 const brain = useBrainStore()
-const capture = useCaptureStore()
 const m = messages.journal
 const { today, timeZone } = useToday()
 
@@ -51,7 +52,7 @@ const todayEntry = computed(() => entries.value.find((e) => e.date === today.val
 // Past entries; a day with no writing and nothing done is not shown (SPEC §5 Journal: entries only when I did something).
 const earlier = computed(() =>
   entries.value
-    .filter((e) => e.date < today.value && (e.body.trim() || (hasStats(e.stats) && hadActivity(e.stats))))
+    .filter((e) => e.date < today.value && (e.body.trim() || e.tomorrow?.trim() || e.better_than_yesterday != null || (hasStats(e.stats) && hadActivity(e.stats))))
     .sort((a, b) => b.date.localeCompare(a.date)),
 )
 
@@ -75,9 +76,20 @@ async function save(date: string) {
   await brain.saveJournalBody(date, body, new Date(), timeZone.value)
   savedDate.value = date
 }
-onScopeDispose(() => {
+function saveAll() {
   for (const date of Object.keys(drafts.value)) void save(date)
-})
+}
+onScopeDispose(saveAll)
+// Phones may stop a hidden app, so writing waiting on the timer is stored as soon as I switch away (SPEC §7).
+onPageHide(saveAll)
+
+// Tags on each past entry, shown across its top.
+const tagData = useLiveQuery<{ links: ItemTagRow[]; tags: TagRow[] }>(
+  async () => (brain.db ? { links: await brain.db.item_tags.toArray(), tags: await brain.db.tags.toArray() } : { links: [], tags: [] }),
+  { links: [], tags: [] },
+  [() => brain.db],
+)
+const tagsFor = (id: string) => tagsOf(tagData.value.links, tagData.value.tags, 'journal_entry', id)
 
 const editingDate = ref<string | null>(null)
 
@@ -91,7 +103,7 @@ watch(
     highlight.value = date
     await nextTick()
     const el = document.querySelector(date === today.value ? '[data-testid="journal-today"]' : `[data-testid="journal-entry-${date}"]`)
-    el?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    el?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
   },
   { immediate: true },
 )
@@ -100,10 +112,6 @@ async function finishEditing(date: string) {
   editingDate.value = null
 }
 
-// ---------- Tasks for tomorrow: the Capture window, with Task chosen and tomorrow's date; I stay on the Journal ----------
-function addTask() {
-  capture.open({ due: addDays(today.value, 1), source: 'journal' })
-}
 
 function dayLabel(date: string) {
   const [y, mo, d] = date.split('-').map(Number)
@@ -121,6 +129,7 @@ function dayLabel(date: string) {
     <section class="flex flex-col gap-4 rounded-2xl border border-line p-4" data-testid="journal-today">
       <h2 class="text-lg font-semibold">{{ m.today }} · {{ dayLabel(today) }}</h2>
       <JournalStatsCard v-if="todayStats" :stats="todayStats" />
+      <JournalBetter :key="today" :date="today" :entry="todayEntry" />
 
       <RichTextEditor
         :model-value="draftOf(today, todayEntry)"
@@ -131,14 +140,10 @@ function dayLabel(date: string) {
         @blur="save(today)"
       />
       <p v-if="savedDate === today" class="text-sm text-muted" role="status">{{ m.saved }}</p>
+      <JournalTomorrow :key="today" :date="today" :entry="todayEntry" />
       <EntryTags v-if="brain.userId" type="journal_entry" :item-id="entryIdFor(brain.userId, today)" />
     </section>
 
-    <section class="rounded-2xl border border-line p-4" data-testid="journal-add-task">
-      <button type="button" class="min-h-12 w-full rounded-xl border border-line bg-surface px-4 font-medium" @click="addTask">
-        {{ m.addTask }}
-      </button>
-    </section>
 
     <section class="flex flex-col gap-3">
       <h2 class="text-lg font-semibold">{{ m.olderHeading }}</h2>
@@ -161,8 +166,15 @@ function dayLabel(date: string) {
             {{ m.edit }}
           </button>
         </div>
+        <ul v-if="tagsFor(e.id).length" class="flex flex-wrap gap-1.5" :aria-label="m.tagsLabel" data-testid="journal-entry-tags">
+          <li v-for="t in tagsFor(e.id)" :key="t.id" class="rounded-full bg-bg px-2.5 py-1 text-sm" data-testid="journal-entry-tag">#{{ t.name }}</li>
+        </ul>
         <JournalStatsCard v-if="hasStats(e.stats)" :stats="e.stats" />
+        <p v-if="editingDate !== e.date && e.better_than_yesterday != null" class="text-sm text-muted" data-testid="journal-better">
+          {{ e.better_than_yesterday ? `✓ ${m.betterYes}` : m.betterNo }}
+        </p>
         <template v-if="editingDate === e.date">
+          <JournalBetter :date="e.date" :entry="e" />
           <RichTextEditor
             :model-value="draftOf(e.date, e)"
             :label="m.writeLabel"
@@ -170,6 +182,7 @@ function dayLabel(date: string) {
             min-height="12rem"
             @update:model-value="onInput(e.date, $event)"
           />
+          <JournalTomorrow :date="e.date" :entry="e" />
           <EntryTags type="journal_entry" :item-id="e.id" />
           <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="finishEditing(e.date)">
             {{ m.done }}
@@ -178,6 +191,11 @@ function dayLabel(date: string) {
         <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
         <div v-else-if="e.body.trim()" class="rich" data-testid="journal-body" v-html="cleanHtml(e.body)" />
         <p v-else-if="e.auto" class="text-sm text-muted italic">{{ m.autoNote }}</p>
+        <div v-if="editingDate !== e.date && e.tomorrow?.trim()" class="flex flex-col gap-1 text-sm" data-testid="journal-tomorrow">
+          <span class="font-medium">{{ m.tomorrowLabel }}</span>
+          <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
+          <div class="rich" v-html="cleanHtml(e.tomorrow)" />
+        </div>
       </article>
     </section>
   </main>

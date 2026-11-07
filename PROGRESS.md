@@ -170,16 +170,27 @@ Merged and live.
 - Dashboard is the first page (Tasks at /tasks): period dropdown (This year default, Last 12 months, All time; remembered on the device); habits (every habit's current/best streak, top 3 most missed, longest current, best ever, oldest); journal current/best streak (written entries only); events created/attended/cancelled; tasks done, quests finished, routine completion rates.
 - No database change. Tests: `src/dashboard/stats.test.ts`, `e2e/dashboard.spec.ts`; Tasks tests now open /tasks. Vitest 188, Playwright 244.
 
-## Step 11 — Shared events (in progress, branch `step-11-shared-events`)
+## Step 11 — Shared events (done, PR #15)
 - Spec approved (user's choices: Resend from an own domain; one merge; calendar file for guests; phone unverified).
 - Decided 2026-11-07: buy `myadhdbrain.app` at Porkbun and set up Resend as a **Phase 2 step**. Step 11 queues and logs emails and reaches guests through the one-at-a-time sharing flow.
 - Migrations `20261107000000_shared_events.sql` (+ `..000100_invite_recipients_own.sql`): profile settings (findable, share availability, two cancellation messages), `events.cancelled_at`, `event_invites` + private `invite_recipients` (host never learns who has an account), availability rules/exceptions, `outbound_messages` log/queue + `message_optouts`, server functions (search, invite, answer, guest page, messages, cancel, drop out, free/busy, mark shared), `send_outbound` cron (push/ntfy to app users; email/text wait). Dev migrated; `rls_shared_events.sql` passes.
 - App: one-time phone step; Account: event settings, availability card, Download my data, privacy/terms links; public privacy, terms and guest answer pages (with .ics download); event editor People (name search, email/phone, contacts, free/busy + suggested times); one-at-a-time share flow (email app / messaging app); invitee view (answer, message, drop out); Cancel and notify with personal messages; calendar styles for invites; dashboard event stats use real answers.
 - Tests: `src/events/sharing.test.ts`, `e2e/shared-events.spec.ts`, dashboard stats. Vitest 197, Playwright 270, SQL 12 files.
 - Delete my data (user): `delete_my_data()` (migration `20261107000300_delete_my_data.sql`) deletes the ticked parts (checklist, all ticked to start; Vault back to 3 starters; migration `..000400_delete_my_data_parts.sql`), keeps account, settings, availability, invitations received, events with invitees, message log; `profiles.data_reset_at` makes other devices clear and re-download. `rls_delete_my_data.sql` passes. Not run on the preview (it would wipe real dev data); covered by SQL and browser tests.
-- PR #15; Deploy Preview 15 checked in Chrome on dev: phone step appears; event with a fake guest; real invite link; guest answered Yes on the public page; Cancel and notify listed the guest with the personal message; emails logged as waiting (not sent); test event deleted. Fixed "at all day" wording. Prod migrated and verified. Left: merge.
+- PR #15; Deploy Preview 15 checked in Chrome on dev: phone step appears; event with a fake guest; real invite link; guest answered Yes on the public page; Cancel and notify listed the guest with the personal message; emails logged as waiting (not sent); test event deleted. Fixed "at all day" wording. Prod migrated and verified. Merged.
 
 - Phase 2 gains a tags management page (user).
+
+## Feedback round 1 (branch `feedback-round-1`)
+- User feedback, spec approved 2026-11-07: every week / every 2 weeks for habits, routines, repeating priority tasks and events (2-week weeks count from the start date's Sun–Sat week); Capture can add a habit (full form); Inbox renamed Orphans (`/inbox` redirects); streaks removed from the Account page; Journal gets "How to make tomorrow better?" and "Was today better than yesterday?" Yes/No; Dashboard "Days since your worst day" (days in a row answered Yes); star several Vault buckets, each shows on the Dashboard with its 3 newest items.
+- Migration `20261107010000_feedback_round_1.sql` (`week_interval`, `on_week()`, events `biweekly`, journal `tomorrow`/`better_than_yesterday`, buckets `starred`, reminders respect every 2 weeks). Dev migrated; `rls_every_two_weeks.sql` passes (14 SQL files).
+- Tests: `src/feedback-round-1.test.ts`, `e2e/feedback-round-1.spec.ts`. Vitest 205, Playwright 298.
+- Part 2 (user, same PR): journal asks better-than-yesterday before the writing; tomorrow box is the formatted editor; Earlier entries show tags at the top; Vault items have a delete button in the list (confirm).
+- Sync fix (phone edits only reached the desktop after reopening the phone): sync when the app comes back into view, save waiting writing and upload when it's hidden, retry queued changes every 30 s (SPEC §7).
+- WCAG 2.2 AA (SPEC §2, CLAUDE.md): `e2e/a11y.spec.ts` runs axe on every page and main window in light and dark, plus reflow at 320 px, titles, skip link, focus ring, tap-to-move and page announcements. Fixed everything it and a manual review found (see SPEC §14 2026-11-07).
+- Part 3 (user): removed the Journal's Add a task for tomorrow button; focus trapped in every window and returned on close (`src/a11y/focus.ts`, phone menu included); tests prove focus escapes without it.
+- Tests: Vitest 205, Playwright 417 (3 skipped, phone-only/desktop-only).
+- Next: Google Calendar sync (check Google's sensitive-scope/verification rules first, then plan and ask).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

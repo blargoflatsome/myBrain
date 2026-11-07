@@ -27,7 +27,7 @@ test.describe('Spec §5 Quick capture: choose the type first', () => {
     await expect(dialog).toBeVisible()
     await expect(page).toHaveURL(/\/habits$/)
     await expect(dialog.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()
-    await expect(typeGroup(page).getByRole('button')).toHaveText(['Task', 'The Vault', 'Quest', 'Decide later'])
+    await expect(typeGroup(page).getByRole('button')).toHaveText(['Task', 'The Vault', 'Quest', 'Habit', 'Decide later'])
   })
 
   test('the Capture window saves without leaving the page, and closing it returns to the page', async ({ page }) => {
@@ -164,16 +164,16 @@ test.describe('Spec §5 Quick capture: Quest form', () => {
 })
 
 test.describe('Spec §5: Decide later, then sort it when I have time', () => {
-  test('Decide later saves the text to the inbox, and filing it as a Quest gives Ugh / 30 min', async ({ page }) => {
+  test('Decide later saves the text to Orphans, and filing it as a Quest gives Ugh / 30 min', async ({ page }) => {
     await startCapture(page, 'Decide later')
     await page.getByLabel("What's on your mind?").fill('maybe learn Portuguese')
     await save(page).click()
-    await expect(page.getByTestId('capture-notice')).toHaveText("Saved to your inbox. Future you can sort it when there's time.")
+    await expect(page.getByTestId('capture-notice')).toHaveText("Saved to Orphans. Future you can sort it when there's time.")
 
-    await goTo(page, /Inbox/)
+    await goTo(page, /Orphans/)
     await expect(page.getByText('Past you jotted this down. Where should it go?')).toBeVisible()
     await page.getByRole('button', { name: 'Quest' }).click()
-    await expect(page.getByText("Past you hasn't left anything to sort.")).toBeVisible()
+    await expect(page.getByText("Past you hasn't left any orphans.")).toBeVisible()
     await expect.poll(() => server.written('quests')[0]).toMatchObject({
       title: 'maybe learn Portuguese',
       energy_level: 'ugh',

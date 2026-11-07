@@ -1,7 +1,9 @@
-// Quick capture (SPEC §5): one thought, filed as a task, vault item, quest, or saved to the inbox to decide later.
-import type { EnergyLevel, InboxRow, QuestRow, TaskRow, TimeBucket, VaultBucketRow, VaultItemRow } from '@/sync/types'
+// Quick capture (SPEC §5): one thought, filed as a task, vault item, quest, habit, or saved to Orphans to decide later.
+import type { EnergyLevel, HabitRow, InboxRow, QuestRow, TaskRow, TimeBucket, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import { newHabit } from '@/habits/rules'
+import { deviceTimeZone } from '@/tasks/days'
 
-export type Destination = 'task' | 'vault' | 'quest' | 'later'
+export type Destination = 'task' | 'vault' | 'quest' | 'habit' | 'later'
 
 /** Defaults for every new quest (SPEC §5 Random Quest). */
 export const DEFAULT_QUEST_ENERGY: EnergyLevel = 'ugh'
@@ -25,6 +27,15 @@ export interface CaptureInput {
   energy?: EnergyLevel
   /** Quest only. Default 30 min. */
   time?: TimeBucket
+  /** Habit only (SPEC §5 Quick capture: the full habit form). */
+  habit?: {
+    weekdays: number[]
+    weekInterval: number
+    notifyTime: string | null
+    timerMinutes: number | null
+    isPrivate: boolean
+    isPriority: boolean
+  }
   /** Task only: where it was added from. Capture by default; 'journal' when opened from the Journal (SPEC §5 Journal). */
   source?: 'capture' | 'journal'
 }
@@ -34,6 +45,7 @@ export type CaptureRecord =
   | { table: 'vault_items'; row: VaultItemRow }
   | { table: 'quests'; row: QuestRow }
   | { table: 'inbox'; row: InboxRow }
+  | { table: 'habits'; row: HabitRow }
 
 export class CaptureError extends Error {}
 
@@ -74,6 +86,23 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
           times_picked: 0,
         },
       }
+    case 'habit': {
+      const h = input.habit
+      const row = newHabit(text, userId, deviceTimeZone(), new Date(), base.id)
+      return {
+        table: 'habits',
+        row: {
+          ...row,
+          weekdays: h?.weekdays.length ? [...h.weekdays].sort() : row.weekdays,
+          week_interval: h?.weekInterval ?? 1,
+          notify_time: h?.notifyTime || null,
+          // A timer needs a reminder time (SPEC §5 Habits).
+          timer_minutes: h?.notifyTime && h.timerMinutes ? h.timerMinutes : null,
+          is_private: !!h?.isPrivate,
+          is_priority: !!h?.isPriority,
+        },
+      }
+    }
     case 'later':
       return { table: 'inbox', row: { ...base, body: text } }
   }
@@ -99,6 +128,7 @@ export function textOf(record: CaptureRecord): string {
     case 'tasks':
     case 'vault_items':
     case 'quests':
+    case 'habits':
       return record.row.title
     case 'inbox':
       return record.row.body

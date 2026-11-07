@@ -4,7 +4,7 @@ import { weekdayOf } from '@/habits/rules'
 import { isTaskScheduled } from '@/reminders/priority'
 import { addDays, daysBetween } from '@/tasks/days'
 
-export const REPEATS: EventRepeat[] = ['never', 'daily', 'weekdays', 'weekly', 'monthly', 'yearly']
+export const REPEATS: EventRepeat[] = ['never', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'yearly']
 /** Reminder choices, in minutes before the start (null = none). All-day events count from 9:00 am. */
 export const REMINDERS: (number | null)[] = [null, 0, 5, 10, 15, 30, 60, 1440]
 
@@ -25,6 +25,8 @@ export function occursOn(event: Pick<EventRow, 'start_date' | 'repeat'>, date: s
     }
     case 'weekly':
       return weekdayOf(date) === weekdayOf(event.start_date)
+    case 'biweekly':
+      return weekdayOf(date) === weekdayOf(event.start_date) && daysBetween(event.start_date, date) % 14 === 0
     case 'monthly':
       return day(date) === day(event.start_date)
     case 'yearly':
@@ -65,7 +67,8 @@ export function calendarItems(
     const priority = ['low', 'low', 'medium', 'high'][t.priority ?? 1] ?? 'low'
     items.push({
       id: `task:${t.id}`,
-      title: t.title,
+      // Priority shows as a mark as well as a colour: ‼ High, ! Medium.
+      title: `${priority === 'high' ? '‼ ' : priority === 'medium' ? '! ' : ''}${t.title}`,
       start: t.due_date,
       allDay: true,
       className: ['cal-task', `cal-${priority}`, ...(t.status === 'done' ? ['cal-done'] : [])].join(' '),
@@ -105,7 +108,7 @@ export function calendarItems(
         e.start_time && e.end_time
           ? {
               id: `event:${e.id}:${d}`,
-              title: e.title,
+              title: mine?.response === 'maybe' ? `? ${e.title}` : e.title,
               start: `${d}T${hhmm(e.start_time)}`,
               end: `${endDate}T${hhmm(e.end_time)}`,
               allDay: false,
@@ -114,7 +117,7 @@ export function calendarItems(
             }
           : {
               id: `event:${e.id}:${d}`,
-              title: e.title,
+              title: mine?.response === 'maybe' ? `? ${e.title}` : e.title,
               start: d,
               end: addDays(endDate, 1),
               allDay: true,

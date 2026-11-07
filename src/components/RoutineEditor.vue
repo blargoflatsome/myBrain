@@ -3,6 +3,7 @@
 // one of my habits (SPEC §5 Routines). Delete asks first (SPEC §2).
 import { computed, nextTick, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
+import HowOften from '@/components/HowOften.vue'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { arrowStep, useDragSort } from '@/composables/useDragSort'
 import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
@@ -20,6 +21,7 @@ const title = ref('')
 const notifyTime = ref('')
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
 const anytime = ref(false)
+const weekInterval = ref(1)
 const stepRows = ref<{ key: string; id?: string; title: string; habitId?: string | null }[]>([])
 
 // My habits, for habit steps.
@@ -51,6 +53,7 @@ watch(
     title.value = r.title
     notifyTime.value = r.notify_time?.slice(0, 5) ?? ''
     anytime.value = !r.weekdays
+    weekInterval.value = r.week_interval ?? 1
     weekdays.value = r.weekdays ? [...r.weekdays] : [...ALL_WEEKDAYS]
     stepRows.value = props.steps.map((s) => ({ key: s.id, id: s.id, title: s.title, habitId: s.habit_id ?? null }))
     choosingHabit.value = false
@@ -73,6 +76,16 @@ function reorder(from: number, to: number) {
 // Steps are sorted by dragging the handle; the arrow keys on the handle move a step too.
 const stepList = ref<HTMLOListElement | null>(null)
 useDragSort(stepList, reorder)
+// Tapping a handle shows Move up / Move down, so steps can be sorted without dragging (WCAG 2.5.7).
+const moving = ref<string | null>(null)
+async function moveByButton(i: number, step: -1 | 1) {
+  const key = stepRows.value[i]?.key
+  reorder(i, i + step)
+  await nextTick()
+  const next = stepList.value?.querySelector<HTMLButtonElement>(`[data-move="${key}"][data-step="${step}"]`)
+  if (next && !next.disabled) next.focus()
+  else stepList.value?.querySelector<HTMLButtonElement>(`[data-move="${key}"][data-step="${-step}"]`)?.focus()
+}
 async function moveByKey(event: KeyboardEvent, i: number) {
   const step = arrowStep(event)
   if (!step) return
@@ -101,6 +114,7 @@ function save() {
       // A run-anytime routine has no weekdays and no reminder (SPEC §5 Routines).
       notify_time: anytime.value ? null : notifyTime.value || null,
       weekdays: anytime.value ? null : weekdays.value,
+      week_interval: weekInterval.value,
     },
     stepRows.value.map((s) => ({ id: s.id, title: s.habitId ? (habitById(s.habitId)?.title ?? s.title) : s.title, habitId: s.habitId ?? null })),
   )
@@ -150,19 +164,22 @@ const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disa
           </button>
         </div>
       </fieldset>
+      <HowOften v-if="!anytime" v-model="weekInterval" />
       <fieldset class="flex flex-col gap-2">
         <legend class="mb-1 text-sm text-muted">{{ m.editor.steps }}</legend>
         <p v-if="stepRows.length > 1" class="-mt-1 text-xs text-muted">{{ m.editor.dragHint }}</p>
         <ol ref="stepList" class="flex flex-col gap-2">
-          <li v-for="(s, i) in stepRows" :key="s.key" class="flex items-center gap-1.5" data-testid="routine-step-row">
+          <li v-for="(s, i) in stepRows" :key="s.key" class="flex flex-wrap items-center gap-1.5" data-testid="routine-step-row">
             <button
               type="button"
               class="drag-handle flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-xl text-xl text-muted active:cursor-grabbing"
               :aria-label="m.editor.drag(s.title || m.editor.stepLabel(i + 1))"
               :data-handle="s.key"
+              :aria-expanded="moving === s.key"
               @keydown="moveByKey($event, i)"
+              @click="moving = moving === s.key ? null : s.key"
             >
-              ⠿
+              <span aria-hidden="true">⠿</span>
             </button>
             <span
               v-if="s.habitId"
@@ -175,6 +192,10 @@ const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disa
             </span>
             <input v-else v-model="s.title" :aria-label="m.editor.stepLabel(i + 1)" :placeholder="m.editor.stepLabel(i + 1)" :class="[field, 'min-w-0 flex-1']">
             <button type="button" :class="small" :aria-label="m.editor.removeStep(s.title)" @click="remove(i)">✕</button>
+            <div v-if="moving === s.key" class="flex w-full gap-2 pl-12" role="group" :aria-label="m.editor.moveGroup(s.title || m.editor.stepLabel(i + 1))">
+              <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="i === 0" :data-move="s.key" :data-step="-1" @click="moveByButton(i, -1)">↑ {{ messages.moveUp }}</button>
+              <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="i === stepRows.length - 1" :data-move="s.key" :data-step="1" @click="moveByButton(i, 1)">↓ {{ messages.moveDown }}</button>
+            </div>
           </li>
         </ol>
         <div class="flex flex-wrap items-center gap-2">
@@ -211,7 +232,7 @@ const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disa
     <h2 class="text-lg font-semibold">{{ m.confirmDelete.heading }}</h2>
     <p class="mt-2 text-muted">{{ m.confirmDelete.body(routine?.title ?? '') }}</p>
     <div class="mt-4 flex gap-2">
-      <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-white" @click="confirmDelete">{{ m.confirmDelete.confirm }}</button>
+      <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink" @click="confirmDelete">{{ m.confirmDelete.confirm }}</button>
       <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDialog?.close()">{{ m.confirmDelete.keep }}</button>
     </div>
   </dialog>

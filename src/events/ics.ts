@@ -27,6 +27,7 @@ const RULES: Record<EventRepeat, string | null> = {
   daily: 'FREQ=DAILY',
   weekdays: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR',
   weekly: 'FREQ=WEEKLY',
+  biweekly: 'FREQ=WEEKLY;INTERVAL=2',
   monthly: 'FREQ=MONTHLY',
   yearly: 'FREQ=YEARLY',
 }

@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test'
 
 test.describe('Spec §3: mobile-first app shell', () => {
-  test('page title is the app name My Brain', async ({ page }) => {
+  test('each page has its own title, ending with the app name My Brain', async ({ page }) => {
     await page.goto('/')
-    await expect(page).toHaveTitle('My Brain')
+    await expect(page).toHaveTitle('Sign in · My Brain')
   })
 
   test('page never scrolls sideways at the current screen width', async ({ page }) => {

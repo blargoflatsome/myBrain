@@ -10,6 +10,9 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
+  --color-danger-ink: var(--danger-ink);
+  --color-control: var(--control);
+  --color-star: var(--star);
 }
 
 :root {
@@ -21,6 +24,10 @@
   --accent: #0f766e;
   --accent-ink: #ffffff;
   --danger: #b91c1c;
+  --danger-ink: #ffffff;
+  /* Borders that show where a form field is: at least 3:1 against the page (WCAG 1.4.11). */
+  --control: #848fa3;
+  --star: #b45309;
   color-scheme: light;
 }
 
@@ -34,6 +41,9 @@
     --accent: #2dd4bf;
     --accent-ink: #042f2e;
     --danger: #f87171;
+    --danger-ink: #450a0a;
+    --control: #64748b;
+    --star: #facc15;
     color-scheme: dark;
   }
 }
@@ -41,6 +51,40 @@
 body {
   background: var(--bg);
   color: var(--ink);
+}
+
+/* SPEC §2 Accessibility (WCAG 2.2 AA). Unlayered, so these win over utility classes. */
+/* Focused items are never hidden under the sticky phone header or the floating Capture button (2.4.11). */
+html {
+  scroll-padding-top: 5rem;
+  scroll-padding-bottom: 6rem;
+}
+/* A clear focus ring for keyboard users on everything that can be focused (2.4.7, 2.4.13). */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Form fields show their edges clearly (1.4.11); the focused field takes the accent colour. */
+input:not([type='checkbox'], [type='radio'], [type='range']):not(.bare),
+select,
+textarea {
+  border-color: var(--control);
+}
+input:not([type='checkbox'], [type='radio'], [type='range']):not(.bare):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent);
+}
+/* Respect the device's reduce-motion setting (2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Formatted journal writing (SPEC §5 Journal), in the editor and when shown read-only. */
@@ -145,11 +189,26 @@ body {
 }
 .cal-wrap .cal-done {
   text-decoration: line-through;
-  opacity: 0.6;
 }
 .cal-wrap .cal-priority {
   --fc-classic-event: var(--danger);
-  --fc-classic-event-contrast: #ffffff;
+  --fc-classic-event-contrast: var(--danger-ink);
+}
+/* Days from the next or previous month stay readable (1.4.3). */
+.cal-wrap [data-color-scheme] {
+  --fc-classic-faint-foreground: var(--muted);
+}
+.cal-wrap .fc-classic-other,
+.cal-wrap [class*='disabled'] {
+  color: var(--muted);
+}
+/* Events are big enough to tap (2.5.8). */
+.cal-wrap a[href],
+.cal-wrap [role='button'],
+.cal-wrap .cal-event,
+.cal-wrap .cal-task,
+.cal-wrap .cal-priority {
+  min-height: 24px;
 }
 .cal-wrap .cal-pending {
   --fc-classic-event: transparent;

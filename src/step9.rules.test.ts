@@ -86,7 +86,7 @@ describe('Spec §5 Calendar: events repeat', () => {
       '2026-11-15',
     )
     expect(items.map((i) => [i.title, i.start, i.allDay])).toEqual([
-      ['Pay rent', '2026-11-10', true],
+      ['‼ Pay rent', '2026-11-10', true],
       ['⚠ Insulin', '2026-11-10T12:00', false],
       ['Standup', '2026-11-10T15:00', false],
     ])
