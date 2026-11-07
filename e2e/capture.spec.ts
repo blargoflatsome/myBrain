@@ -20,12 +20,37 @@ async function startCapture(page: Page, type: 'Task' | 'The Vault' | 'Quest' | '
 }
 
 test.describe('Spec §5 Quick capture: choose the type first', () => {
-  test('a persistent Capture button opens capture, which asks for the type first', async ({ page }) => {
-    await page.goto('/')
-    await page.getByRole('link', { name: '+ Capture' }).click()
-    await expect(page).toHaveURL(/\/capture$/)
-    await expect(page.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()
+  test('a persistent Capture button opens capture over the current page, which asks for the type first', async ({ page }) => {
+    await page.goto('/habits')
+    await page.getByRole('button', { name: '+ Capture' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Capture' })
+    await expect(dialog).toBeVisible()
+    await expect(page).toHaveURL(/\/habits$/)
+    await expect(dialog.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()
     await expect(typeGroup(page).getByRole('button')).toHaveText(['Task', 'The Vault', 'Quest', 'Decide later'])
+  })
+
+  test('the Capture window saves without leaving the page, and closing it returns to the page', async ({ page }) => {
+    await page.goto('/habits')
+    await page.getByRole('button', { name: '+ Capture' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Capture' })
+    await typeGroup(page).getByRole('button', { name: 'Task', exact: true }).click()
+    await dialog.getByLabel('Title', { exact: true }).fill('buy stamps')
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(dialog.getByTestId('capture-notice')).toHaveText('Saved. Future you will find it in Undated.')
+    await expect(page).toHaveURL(/\/habits$/)
+    await dialog.getByRole('button', { name: 'Close' }).click()
+    await expect(dialog).toBeHidden()
+    await expect(page.getByRole('heading', { name: 'Habits', level: 1 })).toBeVisible()
+    expect(server.written('tasks')[0]).toMatchObject({ title: 'buy stamps', source: 'capture' })
+  })
+
+  test('Escape closes the Capture window', async ({ page }) => {
+    await page.goto('/habits')
+    await page.getByRole('button', { name: '+ Capture' }).click()
+    await expect(page.getByRole('dialog', { name: 'Capture' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog', { name: 'Capture' })).toBeHidden()
   })
 
   test('Back returns to the type choice without saving', async ({ page }) => {

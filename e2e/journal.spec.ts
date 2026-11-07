@@ -125,19 +125,34 @@ test.describe('Spec §5 Journal', () => {
     await expect(today.getByRole('textbox', { name: 'How the day went' })).toContainText('Typing with room to think.')
   })
 
-  test('Add a task for tomorrow is its own box and opens Capture with Task and tomorrow chosen', async ({ page }) => {
+  test('Add a task for tomorrow is its own box and opens the Capture window over the Journal, keeping my writing', async ({ page }) => {
     await open(page)
+    await page.getByRole('textbox', { name: 'How the day went' }).click()
+    await page.keyboard.type('Halfway through writing')
     const box = page.getByTestId('journal-add-task')
-    await expect(box).toBeVisible()
     await expect(page.getByTestId('journal-today').getByRole('button', { name: '+ Add a task for tomorrow' })).toHaveCount(0)
     await box.getByRole('button', { name: '+ Add a task for tomorrow' }).click()
-    await expect(page).toHaveURL(/\/capture$/)
-    await expect(page.getByRole('heading', { name: 'Task', level: 1 })).toBeVisible()
-    await expect(page.getByLabel(/^When\?/)).toHaveValue('2026-11-11')
-    await page.getByLabel('Title').fill('Call the dentist')
-    await page.getByRole('button', { name: 'Save' }).click()
+
+    const dialog = page.getByRole('dialog', { name: 'Capture' })
+    await expect(dialog.getByRole('heading', { name: 'Task', level: 1 })).toBeVisible()
     await expect(page).toHaveURL(/\/journal$/)
-    await expect.poll(() => server.written('tasks')[0]).toMatchObject({ title: 'Call the dentist', due_date: '2026-11-11', source: 'journal', status: 'open' })
+    await expect(dialog.getByLabel(/^When\?/)).toHaveValue('2026-11-11')
+    await dialog.getByLabel('Title', { exact: true }).fill('Call the dentist')
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(dialog.getByTestId('capture-notice')).toBeVisible()
+    // Ready for another task for tomorrow.
+    await expect(dialog.getByLabel(/^When\?/)).toHaveValue('2026-11-11')
+    await dialog.getByLabel('Title', { exact: true }).fill('Book the car service')
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Close' }).click()
+
+    await expect(dialog).toBeHidden()
+    await expect(page.getByRole('textbox', { name: 'How the day went' })).toContainText('Halfway through writing')
+    await expect.poll(() => server.written('tasks').length).toBe(2)
+    expect(server.written('tasks')).toEqual([
+      expect.objectContaining({ title: 'Call the dentist', due_date: '2026-11-11', source: 'journal', status: 'open' }),
+      expect.objectContaining({ title: 'Book the car service', due_date: '2026-11-11', source: 'journal', status: 'open' }),
+    ])
   })
 
   test('with no past entries, the empty journal says so', async ({ page }) => {

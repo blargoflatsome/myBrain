@@ -93,7 +93,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 ## 5. Phase 1 features and rules
 
 ### Quick capture
-- One-tap access from the home screen shortcut and a persistent button in the app.
+- One-tap access from the home screen shortcut and a persistent button in the app. In the app, Capture opens as a window over the page I'm on, so it never takes me away (for example, I can add tasks while writing in my journal); closing it returns me exactly where I was. The home screen shortcut and text shared from other apps open the Capture page.
 - **Choose the type first**, then fill in a form that fits it. Only the title is required; everything else is optional or has a default:
    - **Task:** Title, Notes, Date (blank = the Undated list), Priority (default Low).
    - **The Vault:** Bucket (pick one, or make a new one; the first bucket is preselected), Title, Notes.
@@ -167,7 +167,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Quiet hours never silence priority tasks or priority habits unless I choose that.
 
 ### Journal
-- End-of-day check-in: write how the day went and create new tasks. "Add a task for tomorrow" sits in its own box below the writing and opens the same Capture screen, with Task chosen and tomorrow's date filled in (it can be changed or cleared); the task has source `journal`, and saving returns to the Journal.
+- End-of-day check-in: write how the day went and create new tasks. "Add a task for tomorrow" sits in its own box below the writing and opens the Capture window over the Journal, with Task chosen and tomorrow's date filled in (it can be changed or cleared). The task has source `journal`; after saving, the window is ready for another task, and closing it returns to my writing.
 - The writing is formatted text: bold, italic, underline, strikethrough, headings, bulleted and numbered lists, checklists, quotes and links. The writing area is large, and can be opened full screen for easier typing.
 - One entry per day. Each entry summarizes that day's activity.
 - The day's stats are added to the entry automatically:
@@ -412,3 +412,5 @@ Before building, walk me through creating each account below. Ask me for the cre
 - 2026-11-06 — Journal (user's choices): stats cover tasks, habits, routines, priority items, streaks and completed quests, shown visually; stats are live until midnight then frozen; entries always editable; journal tasks due tomorrow; optional daily journal reminder set on Profile (off by default); a missed day gets an entry written by the app with that day's stats. Claude's calls: the app (not the server) writes missed-day entries and freezes stats when it next opens, the same way it records habit misses, so it works offline and the server needs no copy of the stats rules; quests get a `completed_at` (backfilled from `updated_at` for quests already done) so completed quests can be counted by day; the reminder is skipped if the day's entry already has writing.
 - 2026-11-06 — Journal clarification (user): only write an entry on my behalf for a day when I actually did something. Claude's call: "did something" means completing at least one task, habit, routine step, priority item or quest that day; simply opening the app is not recorded, so it does not count. Missed days are counted from my first entry or the day the device first opened the journal (kept on the device), so no entry is written just to mark the start.
 - 2026-11-06 — Journal editing (user): a bigger writing area with a full-screen option, formatted text (bold, lists, links and other basic formatting), and "Add a task for tomorrow" in its own box that opens the Capture screen rather than a separate form. Claude's calls: the Tiptap editor (open source, made for Vue); writing is stored as HTML limited to the editor's own formatting and cleaned with DOMPurify before it is shown; links open in a new tab; entries written earlier as plain text open as paragraphs.
+- 2026-11-06 — Capture window (user): Capture opens as a window (modal) over the current page instead of a separate page, so capturing never takes me away; "Add a task for tomorrow" in the Journal opens that window with Task and tomorrow's date, and it stays ready for the next task. Claude's call: the /capture page stays for the home screen shortcut and sharing from other apps, which arrive from outside the app.
+

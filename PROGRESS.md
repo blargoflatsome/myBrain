@@ -135,6 +135,8 @@ Merged and live.
 - User asked: bigger writing area with full screen, formatted text (bold, lists, links...), and "Add a task for tomorrow" in its own box opening the Capture screen.
 - Tiptap editor (pinned 3.32.0) with toolbar: bold, italic, underline, strikethrough, heading, bullets, numbers, checklist, quote, link, full screen. Writing stored as cleaned HTML (DOMPurify); old plain-text entries open as paragraphs.
 - Capture opened from the Journal: Task chosen, tomorrow's date, source journal, returns to the Journal after saving.
+- Capture is now a window (modal) over the current page, from the Capture button and from the Journal's "Add a task for tomorrow" (stays ready for the next task; closing returns to the writing). The /capture page remains for the home-screen shortcut and sharing from other apps.
+- Checklist items on one line; toolbar scrolls sideways with Full screen pinned.
 - Toolbar buttons keep focus in the writing (phone keyboard stays open). Tests: `src/journal/body.test.ts`, more in `e2e/journal.spec.ts`. Vitest 159, Playwright 170. No database change.
 
 ## Rules without a test yet

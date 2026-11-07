@@ -1,6 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
-import { goTo } from './support/nav'
 
 let server: FakeSupabase
 
@@ -103,11 +102,12 @@ test.describe('Spec §5 Random Quest', () => {
     await expect(page.getByText("Past you hasn't added any quests yet. Tap Capture and choose Quest")).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'Add a quest' })).toHaveCount(0)
 
-    await page.getByRole('link', { name: '+ Capture' }).click()
-    await page.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Quest' }).click()
-    await page.getByLabel('Title', { exact: true }).fill('Visit the planetarium')
-    await page.getByRole('button', { name: 'Save', exact: true }).click()
-    await goTo(page, 'Quests')
+    await page.getByRole('button', { name: '+ Capture' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Capture' })
+    await dialog.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Quest' }).click()
+    await dialog.getByLabel('Title', { exact: true }).fill('Visit the planetarium')
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Close' }).click()
     await expect(page.getByRole('button', { name: /Visit the planetarium/ })).toContainText('30 min')
     await expect(page.getByRole('button', { name: /Visit the planetarium/ })).toContainText('Ugh')
   })

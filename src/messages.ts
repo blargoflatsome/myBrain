@@ -12,6 +12,8 @@ export const messages = {
     button: 'Sign out',
   },
   capture: {
+    windowLabel: 'Capture',
+    close: 'Close',
     openButton: 'Capture',
     placeholder: "What's on your mind?",
     micStart: 'Speak it',

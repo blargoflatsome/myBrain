@@ -1,11 +1,11 @@
 <script setup lang="ts">
 // SPEC §5 Journal: end-of-day check-in with the day's stats, formatted writing (full screen if wanted), tasks for
-// tomorrow through Capture, and every past entry, always editable.
+// tomorrow in the Capture window (without leaving the page), and every past entry, always editable.
 import { computed, onScopeDispose, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import JournalStatsCard from '@/components/JournalStatsCard.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 import { useBrainStore } from '@/stores/brain'
+import { useCaptureStore } from '@/stores/capture'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { hadActivity, hasStats } from '@/journal/stats'
@@ -15,7 +15,7 @@ import { messages } from '@/messages'
 import type { JournalEntryRow, JournalStats } from '@/sync/types'
 
 const brain = useBrainStore()
-const router = useRouter()
+const capture = useCaptureStore()
 const m = messages.journal
 const { today, timeZone } = useToday()
 
@@ -83,10 +83,9 @@ async function finishEditing(date: string) {
   editingDate.value = null
 }
 
-// ---------- Tasks for tomorrow: the same Capture screen, with Task chosen and tomorrow's date ----------
-async function addTask() {
-  for (const date of Object.keys(drafts.value)) await save(date)
-  await router.push({ name: 'capture', query: { from: 'journal', due: addDays(today.value, 1) } })
+// ---------- Tasks for tomorrow: the Capture window, with Task chosen and tomorrow's date; I stay on the Journal ----------
+function addTask() {
+  capture.open({ due: addDays(today.value, 1), source: 'journal' })
 }
 
 function dayLabel(date: string) {
