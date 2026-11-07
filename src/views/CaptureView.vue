@@ -57,7 +57,17 @@ const speech = useSpeech((heard) => {
   title.value = title.value ? `${title.value} ${heard}` : heard
 })
 
+/** Opened from the Journal: a task due tomorrow, and back to the Journal once saved (SPEC §5 Journal). */
+const fromJournal = ref(false)
+
 onMounted(async () => {
+  if (route.query.from === 'journal') {
+    fromJournal.value = true
+    await choose('task')
+    if (typeof route.query.due === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(route.query.due)) dueDate.value = route.query.due
+    await router.replace({ query: {} })
+    return
+  }
   // SPEC §3: text shared from another app arrives in the query (Web Share Target) and waits while I pick the type.
   const text = sharedText(route.query)
   if (text) {
@@ -134,8 +144,13 @@ async function save() {
       bucketId: bucketId.value ?? undefined,
       energy: energy.value,
       time: time.value,
+      source: fromJournal.value && type.value === 'task' ? 'journal' : 'capture',
     }
     await brain.capture(input)
+    if (fromJournal.value && type.value === 'task') {
+      await router.push({ name: 'journal' })
+      return
+    }
     const message = savedMessage(input)
     reset()
     notice.value = message

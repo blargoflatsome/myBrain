@@ -1,16 +1,21 @@
 <script setup lang="ts">
-// SPEC §5 Journal: end-of-day check-in with the day's stats, tasks for tomorrow, and every past entry, always editable.
+// SPEC §5 Journal: end-of-day check-in with the day's stats, formatted writing (full screen if wanted), tasks for
+// tomorrow through Capture, and every past entry, always editable.
 import { computed, onScopeDispose, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import JournalStatsCard from '@/components/JournalStatsCard.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { hadActivity, hasStats } from '@/journal/stats'
+import { cleanHtml } from '@/journal/body'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import type { JournalEntryRow, JournalStats } from '@/sync/types'
 
 const brain = useBrainStore()
+const router = useRouter()
 const m = messages.journal
 const { today, timeZone } = useToday()
 
@@ -31,7 +36,7 @@ const todayStats = useLiveQuery<JournalStats | null>(
   [() => brain.db, today, now],
 )
 
-// Write missed days, keep today's stats current, and freeze ended days.
+// Write missed days (if I did something), keep today's stats current, and freeze ended days.
 watch(
   [today, () => brain.habitsReady, () => brain.db],
   () => {
@@ -48,7 +53,7 @@ const earlier = computed(() =>
     .sort((a, b) => b.date.localeCompare(a.date)),
 )
 
-// ---------- Writing (saved as I type, and when I leave the box) ----------
+// ---------- Writing (saved as I type, and when I leave the editor) ----------
 const drafts = ref<Record<string, string>>({})
 const savedDate = ref<string | null>(null)
 const timers = new Map<string, ReturnType<typeof setTimeout>>()
@@ -78,24 +83,16 @@ async function finishEditing(date: string) {
   editingDate.value = null
 }
 
-// ---------- Tasks for tomorrow ----------
-const taskTitle = ref('')
-const taskDate = ref<string>(addDays(today.value, 1))
-watch(today, (t) => (taskDate.value = addDays(t, 1)))
-const added = ref('')
+// ---------- Tasks for tomorrow: the same Capture screen, with Task chosen and tomorrow's date ----------
 async function addTask() {
-  const title = taskTitle.value.trim()
-  if (!title) return
-  await brain.addJournalTask(title, taskDate.value || null)
-  added.value = m.taskAdded(title)
-  taskTitle.value = ''
+  for (const date of Object.keys(drafts.value)) await save(date)
+  await router.push({ name: 'capture', query: { from: 'journal', due: addDays(today.value, 1) } })
 }
 
 function dayLabel(date: string) {
   const [y, mo, d] = date.split('-').map(Number)
   return new Date(Date.UTC(y!, mo! - 1, d!)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
-const field = 'w-full rounded-xl border border-line bg-surface px-3 text-base text-ink'
 </script>
 
 <template>
@@ -109,31 +106,21 @@ const field = 'w-full rounded-xl border border-line bg-surface px-3 text-base te
       <h2 class="text-lg font-semibold">{{ m.today }} · {{ dayLabel(today) }}</h2>
       <JournalStatsCard v-if="todayStats" :stats="todayStats" />
 
-      <label class="flex flex-col gap-1">
-        <span class="sr-only">{{ m.writeLabel }}</span>
-        <textarea
-          :value="draftOf(today, todayEntry)"
-          :class="[field, 'min-h-36 py-2']"
-          :placeholder="m.writePlaceholder"
-          :aria-label="m.writeLabel"
-          @input="onInput(today, ($event.target as HTMLTextAreaElement).value)"
-          @blur="save(today)"
-        />
-      </label>
+      <RichTextEditor
+        :model-value="draftOf(today, todayEntry)"
+        :label="m.writeLabel"
+        :placeholder="m.writePlaceholder"
+        min-height="18rem"
+        @update:model-value="onInput(today, $event)"
+        @blur="save(today)"
+      />
       <p v-if="savedDate === today" class="text-sm text-muted" role="status">{{ m.saved }}</p>
+    </section>
 
-      <form class="flex flex-col gap-2" @submit.prevent="addTask">
-        <label class="sr-only" for="journal-task">{{ m.addTaskLabel }}</label>
-        <div class="flex gap-2">
-          <input id="journal-task" v-model="taskTitle" :class="[field, 'min-h-12']" :placeholder="m.addTaskPlaceholder">
-          <button type="submit" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.addTask }}</button>
-        </div>
-        <label class="flex items-center gap-2 text-sm text-muted">
-          {{ m.addTaskDate }}
-          <input v-model="taskDate" type="date" :class="[field, 'min-h-11 w-auto']" :aria-label="m.addTaskDate">
-        </label>
-        <p v-if="added" class="text-sm text-muted" role="status">{{ added }}</p>
-      </form>
+    <section class="rounded-2xl border border-line p-4" data-testid="journal-add-task">
+      <button type="button" class="min-h-12 w-full rounded-xl border border-line bg-surface px-4 font-medium" @click="addTask">
+        {{ m.addTask }}
+      </button>
     </section>
 
     <section class="flex flex-col gap-3">
@@ -158,18 +145,19 @@ const field = 'w-full rounded-xl border border-line bg-surface px-3 text-base te
         </div>
         <JournalStatsCard v-if="hasStats(e.stats)" :stats="e.stats" />
         <template v-if="editingDate === e.date">
-          <textarea
-            :value="draftOf(e.date, e)"
-            :class="[field, 'min-h-28 py-2']"
+          <RichTextEditor
+            :model-value="draftOf(e.date, e)"
+            :label="m.writeLabel"
             :placeholder="m.writePlaceholder"
-            :aria-label="m.writeLabel"
-            @input="onInput(e.date, ($event.target as HTMLTextAreaElement).value)"
+            min-height="12rem"
+            @update:model-value="onInput(e.date, $event)"
           />
           <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="finishEditing(e.date)">
             {{ m.done }}
           </button>
         </template>
-        <p v-else-if="e.body.trim()" class="whitespace-pre-wrap">{{ e.body }}</p>
+        <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
+        <div v-else-if="e.body.trim()" class="rich" data-testid="journal-body" v-html="cleanHtml(e.body)" />
         <p v-else-if="e.auto" class="text-sm text-muted italic">{{ m.autoNote }}</p>
       </article>
     </section>

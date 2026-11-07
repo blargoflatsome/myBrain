@@ -42,3 +42,68 @@ body {
   background: var(--bg);
   color: var(--ink);
 }
+
+/* Formatted journal writing (SPEC §5 Journal), in the editor and when shown read-only. */
+.rich {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.rich > * + * {
+  margin-top: 0.5em;
+}
+.rich h2 {
+  font-size: 1.25em;
+  font-weight: 700;
+}
+.rich h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+}
+.rich ul {
+  list-style: disc;
+  padding-left: 1.5em;
+}
+.rich ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+}
+.rich ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0.25em;
+}
+.rich li[data-type='taskItem'] {
+  display: flex;
+  gap: 0.5em;
+  align-items: flex-start;
+}
+.rich li[data-type='taskItem'] > label {
+  margin-top: 0.3em;
+}
+.rich li[data-type='taskItem'] > div {
+  flex: 1;
+}
+.rich li[data-type='taskItem'][data-checked='true'] > div {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+.rich input[type='checkbox'] {
+  width: 1.1em;
+  height: 1.1em;
+  accent-color: var(--accent);
+}
+.rich blockquote {
+  border-left: 3px solid var(--line);
+  padding-left: 0.75em;
+  color: var(--muted);
+}
+.rich a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.rich p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
