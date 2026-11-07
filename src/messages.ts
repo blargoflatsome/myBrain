@@ -320,8 +320,8 @@ export const messages = {
     open: (title: string) => `Open ${title}`,
     stars: (n: number) => `${n} of 5 stars`,
     settings: 'Bucket settings',
-    moveUp: (name: string) => `Move ${name} up`,
-    moveDown: (name: string) => `Move ${name} down`,
+    drag: (name: string) => `Reorder ${name}: drag, or use the up and down arrow keys`,
+    dragHint: 'Drag ⠿ to change the order.',
     bucketEditor: {
       heading: 'Bucket settings',
       name: 'Name',

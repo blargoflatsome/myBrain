@@ -152,6 +152,8 @@ Done:
 
 - PR #12; Deploy Preview 12 checked in Chrome (vault add, check off, Clear checked; event created, found by search, opened and deleted; test data deleted). Prod migrated and verified.
 
+- The Vault buckets now sort by drag and drop (SortableJS, drag handle; arrow keys on the handle too), replacing the up/down buttons.
+
 Left in step 9: merge.
 
 ## Rules without a test yet

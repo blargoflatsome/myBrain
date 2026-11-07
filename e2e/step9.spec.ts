@@ -79,7 +79,8 @@ test.describe('Spec §5 The Vault', () => {
     await page.getByRole('textbox', { name: 'Bucket name' }).fill('Books')
     await page.getByRole('button', { name: 'Add bucket' }).click()
     await expect(page.getByTestId('vault-bucket')).toHaveCount(4)
-    await page.getByRole('button', { name: 'Move Books up' }).click()
+    await page.getByRole('button', { name: /^Reorder Books/ }).focus()
+    await page.keyboard.press('ArrowUp')
     await expect(page.getByTestId('vault-bucket').nth(2)).toContainText('Books')
 
     await page.getByRole('button', { name: /^Books/ }).click()
@@ -90,6 +91,32 @@ test.describe('Spec §5 The Vault', () => {
     await dialog.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByRole('heading', { name: 'Books to read', level: 1 })).toBeVisible()
     await expect.poll(() => lastWrite('vault_buckets')).toMatchObject({ name: 'Books to read', checkable: true })
+  })
+
+  test('buckets are sorted by drag and drop', async ({ page }) => {
+    await open(page, '/vault')
+    const handle = (name: string) => page.getByRole('button', { name: new RegExp(`^Reorder ${name}`) })
+    const from = (await handle('Places to go').boundingBox())!
+    const to = (await handle('Shopping list').boundingBox())!
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+    await page.mouse.down()
+    // Move like a person would: in small steps, ending just above the first bucket.
+    const startY = from.y + from.height / 2
+    const endY = to.y - 6
+    for (let step = 1; step <= 15; step++) {
+      await page.mouse.move(from.x + from.width / 2, startY + ((endY - startY) * step) / 15)
+      await page.waitForTimeout(20)
+    }
+    await page.waitForTimeout(200)
+    await page.mouse.up()
+    await expect(page.getByTestId('vault-bucket')).toHaveText([/Places to go/, /Shopping list/, /Restaurant reviews/])
+    await expect.poll(() => server.written('vault_buckets').map((b) => [b.name, b.position])).toEqual(
+      expect.arrayContaining([
+        ['Places to go', 0],
+        ['Shopping list', 1],
+        ['Restaurant reviews', 2],
+      ]),
+    )
   })
 
   test('deleting a bucket says how many items go with it, then deletes them', async ({ page }) => {

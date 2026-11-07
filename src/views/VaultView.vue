@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 The Vault: my buckets; inside one, its items with a quick add box, check-off, ratings and links.
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import Sortable from 'sortablejs'
 import { useRoute, useRouter } from 'vue-router'
 import VaultItemEditor from '@/components/VaultItemEditor.vue'
 import BucketEditor from '@/components/BucketEditor.vue'
@@ -38,19 +39,54 @@ async function createBucket() {
   newBucketName.value = ''
   addingBucket.value = false
 }
-async function move(b: VaultBucketRow, step: -1 | 1) {
-  const list = buckets.value
-  const i = list.indexOf(b)
-  const other = list[i + step]
-  if (!other) return
-  // Renumber so positions are distinct, then swap the two.
-  const order = list.map((x) => x.id)
-  order.splice(i, 1)
-  order.splice(i + step, 0, b.id)
-  for (const [position, id] of order.entries()) {
-    const row = list.find((x) => x.id === id)!
+/** Move a bucket from one place in the list to another and save the new order. */
+async function reorder(from: number, to: number) {
+  const order = buckets.value.map((x) => x.id)
+  if (from === to || from < 0 || to < 0 || to >= order.length) return
+  const [id] = order.splice(from, 1)
+  order.splice(to, 0, id!)
+  for (const [position, bid] of order.entries()) {
+    const row = buckets.value.find((x) => x.id === bid)!
     if (row.position !== position) await brain.saveBucket({ ...row, position })
   }
+}
+
+// Drag and drop by the handle (mouse or touch). The arrow keys on the handle move a bucket too.
+const list = ref<HTMLUListElement | null>(null)
+let sortable: Sortable | null = null
+watch(
+  list,
+  (el) => {
+    sortable?.destroy()
+    sortable = null
+    if (!el) return
+    sortable = Sortable.create(el, {
+      handle: '.drag-handle',
+      animation: 150,
+      forceFallback: true,
+      fallbackTolerance: 3,
+      ghostClass: 'opacity-40',
+      onEnd: (evt) => {
+        const { oldIndex, newIndex, item, from } = evt
+        if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return
+        // Put the element back where Vue rendered it; the new order is saved and Vue redraws the list.
+        from.removeChild(item)
+        from.insertBefore(item, from.children[oldIndex] ?? null)
+        void reorder(oldIndex, newIndex)
+      },
+    })
+  },
+  { flush: 'post' },
+)
+onBeforeUnmount(() => sortable?.destroy())
+
+async function moveByKey(event: KeyboardEvent, index: number) {
+  const step = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0
+  if (!step) return
+  event.preventDefault()
+  await reorder(index, index + step)
+  await nextTick()
+  list.value?.querySelectorAll<HTMLButtonElement>('.drag-handle')[index + step]?.focus()
 }
 
 const editingBucket = ref<VaultBucketRow | null>(null)
@@ -112,14 +148,21 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
         <p class="text-muted italic">{{ m.intro }}</p>
       </div>
       <p v-if="!buckets.length" class="text-muted">{{ m.noBuckets }}</p>
-      <ul class="flex flex-col gap-2" :aria-label="m.bucketsHeading">
-        <li v-for="(b, i) in buckets" :key="b.id" class="flex items-center gap-1 rounded-2xl border border-line bg-surface pr-1" data-testid="vault-bucket">
-          <button type="button" class="flex min-h-14 flex-1 items-center justify-between gap-3 px-4 text-left" @click="openBucket(b)">
+      <p v-if="buckets.length > 1" class="-mt-3 text-xs text-muted">{{ m.dragHint }}</p>
+      <ul ref="list" class="flex flex-col gap-2" :aria-label="m.bucketsHeading">
+        <li v-for="(b, i) in buckets" :key="b.id" class="flex items-center gap-1 rounded-2xl border border-line bg-surface pl-1" data-testid="vault-bucket">
+          <button
+            type="button"
+            class="drag-handle flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-xl text-muted active:cursor-grabbing"
+            :aria-label="m.drag(b.name)"
+            @keydown="moveByKey($event, i)"
+          >
+            ⠿
+          </button>
+          <button type="button" class="flex min-h-14 flex-1 items-center justify-between gap-3 pr-4 pl-1 text-left" @click="openBucket(b)">
             <span class="font-medium">{{ b.name }}</span>
             <span class="text-sm text-muted">{{ m.itemCount(countIn(b)) }}</span>
           </button>
-          <button type="button" class="size-10 rounded-lg text-muted disabled:opacity-30" :disabled="i === 0" :aria-label="m.moveUp(b.name)" @click="move(b, -1)">↑</button>
-          <button type="button" class="size-10 rounded-lg text-muted disabled:opacity-30" :disabled="i === buckets.length - 1" :aria-label="m.moveDown(b.name)" @click="move(b, 1)">↓</button>
         </li>
       </ul>
       <form v-if="addingBucket" class="flex gap-2" @submit.prevent="createBucket">
