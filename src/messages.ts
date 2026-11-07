@@ -536,9 +536,7 @@ export const messages = {
     position: (n: number, total: number) => `${n} of ${total}`,
     previous: 'Previous',
     next: 'Next',
-    moveEarlier: 'Move earlier',
-    moveLater: 'Move later',
-    moved: (n: number, total: number) => `Moved to ${n} of ${total}.`,
+    showNote: (n: number, total: number) => `Show Post It ${n} of ${total}`,
   },
   dashboard: {
     heading: 'Dashboard',

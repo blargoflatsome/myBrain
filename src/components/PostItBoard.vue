@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // SPEC §5 Dashboard: Post Its at the top, like sticky notes taped to the page. Several sit in a stack, newest on top,
-// shown one at a time (Previous / Next, swipe, arrow keys; never automatic). On the note shown: Edit in place,
-// Make a task, Done (with Undo), Move earlier / Move later.
+// shown one at a time (never automatic): Previous / Next on a computer; swipe or tap a dot on a phone; arrow keys.
+// On the note shown: Edit in place, Make a task, Done (with Undo).
 import { computed, nextTick, onScopeDispose, ref, watch } from 'vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 import { useBrainStore } from '@/stores/brain'
@@ -32,8 +32,11 @@ watch(notes, (list) => {
 })
 const announcement = ref('')
 function go(step: -1 | 1) {
-  const to = index.value + step
-  if (to < 0 || to >= notes.value.length) return
+  show_(index.value + step)
+}
+/** Show the note at this place in the stack (the dots on a phone jump straight to one). */
+function show_(to: number) {
+  if (to < 0 || to >= notes.value.length || to === index.value) return
   editingId.value = null
   index.value = to
   followId.value = notes.value[to]!.id
@@ -92,7 +95,7 @@ async function focusAction(action: string) {
   document.querySelector<HTMLElement>(`[data-testid="dash-postits"] [data-action="${action}"]`)?.focus()
 }
 
-// ---------- Done (with Undo), Make a task, Move earlier / later ----------
+// ---------- Done (with Undo) and Make a task ----------
 const notice = ref('')
 const undoId = ref<string | null>(null)
 let noticeTimer: ReturnType<typeof setTimeout> | undefined
@@ -125,13 +128,6 @@ async function toTask(n: PostItRow) {
   followId.value = null
   await brain.postItToTask(n.id)
   show(m.madeTask, null)
-}
-async function move(n: PostItRow, step: -1 | 1) {
-  const from = notes.value.findIndex((x) => x.id === n.id)
-  followId.value = n.id
-  await brain.reorderPostIts(from, from + step)
-  announcement.value = m.moved(from + step + 1, notes.value.length)
-  await focusAction(step < 0 ? 'earlier' : 'later')
 }
 
 const btn = 'min-h-11 rounded-xl border border-current/30 px-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-40'
@@ -208,7 +204,8 @@ const navBtn = 'flex min-h-11 items-center gap-1 rounded-xl border border-line b
       <button type="button" :class="navBtn" data-action="done" @click="done(current)">{{ m.done }}</button>
     </div>
 
-    <div v-if="notes.length > 1" class="flex w-full max-w-sm items-center justify-between gap-3">
+    <!-- Computer: Previous / Next. -->
+    <div v-if="notes.length > 1" class="hidden w-full max-w-sm items-center justify-between gap-3 md:flex" data-testid="postit-nav">
       <button type="button" :class="navBtn" :disabled="index === 0" data-testid="postit-prev" @click="go(-1)">
         <span aria-hidden="true">‹</span> {{ m.previous }}
       </button>
@@ -217,9 +214,19 @@ const navBtn = 'flex min-h-11 items-center gap-1 rounded-xl border border-line b
         {{ m.next }} <span aria-hidden="true">›</span>
       </button>
     </div>
-    <div v-if="notes.length > 1 && current && editingId !== current.id" class="flex w-full max-w-sm justify-center gap-4 text-sm">
-      <button type="button" class="min-h-11 px-2 text-muted underline-offset-4 hover:underline disabled:opacity-40" data-action="earlier" :disabled="index === 0" @click="move(current, -1)">{{ m.moveEarlier }}</button>
-      <button type="button" class="min-h-11 px-2 text-muted underline-offset-4 hover:underline disabled:opacity-40" data-action="later" :disabled="index === notes.length - 1" @click="move(current, 1)">{{ m.moveLater }}</button>
+    <!-- Phone: swipe, or tap a dot (a tap is needed as well as the swipe, WCAG 2.5.1). -->
+    <div v-if="notes.length > 1" class="flex flex-wrap justify-center gap-1 md:hidden" data-testid="postit-dots">
+      <button
+        v-for="(n, i) in notes"
+        :key="n.id"
+        type="button"
+        class="flex size-8 items-center justify-center rounded-full"
+        :aria-label="m.showNote(i + 1, notes.length)"
+        :aria-current="i === index ? 'true' : undefined"
+        @click="show_(i)"
+      >
+        <span class="block rounded-full transition-all" :class="i === index ? 'h-2.5 w-5 bg-ink' : 'size-2.5 border border-control bg-transparent'" aria-hidden="true" />
+      </button>
     </div>
     <p class="sr-only" aria-live="polite" data-testid="postit-announcement">{{ announcement }}</p>
 

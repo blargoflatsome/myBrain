@@ -47,7 +47,7 @@ test.describe('Spec §5 Post It', () => {
     expect(server.written('post_its')).toHaveLength(0)
   })
 
-  test('several Post Its are a stack showing one at a time, newest on top; with none there is no Post It section', async ({ page }) => {
+  test('several Post Its are a stack showing one at a time, newest on top; with none there is no Post It section', async ({ page }, info) => {
     await open(page, '/')
     await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
     await expect(page.getByTestId('dash-postits')).toHaveCount(0)
@@ -60,19 +60,40 @@ test.describe('Spec §5 Post It', () => {
     await expect(carousel).toHaveAttribute('aria-roledescription', 'carousel')
     await expect(board(page)).toHaveCount(1)
     await expect(board(page).getByTestId('postit-body')).toHaveText('Newer')
-    await expect(page.getByTestId('postit-count')).toHaveText('1 of 2')
-    await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled()
-    await page.getByRole('button', { name: 'Next' }).click()
-    await expect(board(page).getByTestId('postit-body')).toHaveText('Older')
-    await expect(page.getByTestId('postit-count')).toHaveText('2 of 2')
-    await expect(page.getByTestId('postit-announcement')).toHaveText('2 of 2')
-    await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
-    // The left and right arrow keys flip through the stack too.
-    await page.getByRole('button', { name: 'Previous' }).focus()
-    await page.keyboard.press('ArrowRight')
-    await page.keyboard.press('ArrowLeft')
-    await expect(board(page).getByTestId('postit-body')).toHaveText('Newer')
+    // Notes stay newest first: there is no reordering.
+    await expect(page.getByRole('button', { name: /Move (earlier|later)/ })).toHaveCount(0)
+
+    if (info.project.name === 'android-phone') {
+      // Phone: no Previous / Next; a dot per note, tap one to show it.
+      await expect(page.getByRole('button', { name: 'Previous' })).toBeHidden()
+      await expect(page.getByRole('button', { name: 'Next' })).toBeHidden()
+      const dots = page.getByTestId('postit-dots').getByRole('button')
+      await expect(dots).toHaveCount(2)
+      await expect(dots.nth(0)).toHaveAttribute('aria-current', 'true')
+      await page.getByRole('button', { name: 'Show Post It 2 of 2' }).click()
+      await expect(board(page).getByTestId('postit-body')).toHaveText('Older')
+      await expect(dots.nth(1)).toHaveAttribute('aria-current', 'true')
+      await expect(page.getByTestId('postit-announcement')).toHaveText('2 of 2')
+    } else {
+      // Computer: Previous / Next with "1 of 2"; no dots.
+      await expect(page.getByTestId('postit-dots')).toBeHidden()
+      await expect(page.getByTestId('postit-count')).toHaveText('1 of 2')
+      await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled()
+      await page.getByRole('button', { name: 'Next' }).click()
+      await expect(board(page).getByTestId('postit-body')).toHaveText('Older')
+      await expect(page.getByTestId('postit-count')).toHaveText('2 of 2')
+      await expect(page.getByTestId('postit-announcement')).toHaveText('2 of 2')
+      await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+      // The left and right arrow keys flip through the stack too.
+      await page.getByRole('button', { name: 'Previous' }).focus()
+      await page.keyboard.press('ArrowLeft')
+      await expect(board(page).getByTestId('postit-body')).toHaveText('Newer')
+      await page.getByRole('button', { name: 'Next' }).focus()
+      await page.keyboard.press('ArrowRight')
+      await expect(board(page).getByTestId('postit-body')).toHaveText('Older')
+    }
   })
+
 
   test('on a touch screen, swiping left and right flips through the stack', async ({ page }, info) => {
     test.skip(info.project.name !== 'android-phone', 'real touch input runs on the phone')
@@ -150,22 +171,5 @@ test.describe('Spec §5 Post It', () => {
     await expect(board(page)).toHaveCount(0)
     await expect.poll(() => lastWrite('tasks')).toMatchObject({ title: 'Call the vet', notes: 'ask about shots', due_date: null, status: 'open' })
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: expect.any(String) })
-  })
-
-  test('the note shown can be moved earlier or later in the stack', async ({ page }) => {
-    server.seed('post_its', [
-      { id: 'p1', body: '<p>First</p>', color: 'yellow', position: 0 },
-      { id: 'p2', body: '<p>Second</p>', color: 'pink', position: 1 },
-    ])
-    await open(page, '/')
-    await expect(board(page).getByTestId('postit-body')).toHaveText('First')
-    await expect(page.getByRole('button', { name: 'Move earlier' })).toBeDisabled()
-    await page.getByRole('button', { name: 'Move later' }).click()
-    // The same note stays in view, now second.
-    await expect(board(page).getByTestId('postit-body')).toHaveText('First')
-    await expect(page.getByTestId('postit-count')).toHaveText('2 of 2')
-    await expect(page.getByTestId('postit-announcement')).toHaveText('Moved to 2 of 2.')
-    await page.getByRole('button', { name: 'Previous' }).click()
-    await expect(board(page).getByTestId('postit-body')).toHaveText('Second')
   })
 })
