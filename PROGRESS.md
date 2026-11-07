@@ -125,7 +125,9 @@ Done:
 - App: Journal page (menu), today's stats as rings/bars/chips, writing saved as you type, tasks for tomorrow (source journal), earlier entries editable; missed days written by the app and frozen; journal reminder setting on Profile.
 - Tests: `src/journal/stats.test.ts`, `e2e/journal.spec.ts`. Vitest 146, Playwright 164, SQL 8 files.
 
-Left in step 8: PR, Chrome test on the preview, prod migration, merge.
+- PR #10; Deploy Preview 10 checked in Chrome (today entry created, writing saves; test text cleared). Fixed a stray dot on empty rings. Prod migrated and verified.
+
+Left in step 8: merge.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
