@@ -27,7 +27,7 @@ begin
   select count(*) into n from public.habit_logs where user_id = bob;
   if n <> 0 then raise exception 'FAIL: Spec §8: a user cannot read someone else''s habit logs'; end if;
 
-  select count(*) into n from public.shared_streaks where user_id = bob;
+  select count(*) into n from public.shared_streaks() where user_id = bob;
   if n <> 0 then raise exception 'FAIL: Spec §5 Profile page: streaks are private by default'; end if;
 
   begin
@@ -67,9 +67,9 @@ begin
   execute 'set local role authenticated';
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
 
-  select count(*) into n from public.shared_streaks where user_id = bob and title = 'Bob runs' and best_streak = 9;
+  select count(*) into n from public.shared_streaks() where user_id = bob and title = 'Bob runs' and best_streak = 9;
   if n <> 1 then raise exception 'FAIL: Spec §5 Profile page: shared streaks show habit title and streak numbers'; end if;
-  select count(*) into n from public.shared_streaks where user_id = bob and title = 'Bob meds';
+  select count(*) into n from public.shared_streaks() where user_id = bob and title = 'Bob meds';
   if n <> 0 then raise exception 'FAIL: Spec §5 Habits: a private habit never appears to other users'; end if;
 
   -- "People I approve" shares nothing until Phase 2 approvals exist.
@@ -77,13 +77,13 @@ begin
   update public.profiles set streak_visibility = 'approved' where user_id = bob;
   execute 'set local role authenticated';
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  select count(*) into n from public.shared_streaks where user_id = bob;
+  select count(*) into n from public.shared_streaks() where user_id = bob;
   if n <> 0 then raise exception 'FAIL: Spec §5 Profile page: approved-only streaks are not visible without approval'; end if;
 
   execute 'reset role';
   begin
     execute 'set local role anon';
-    perform 1 from public.shared_streaks;
+    perform 1 from public.shared_streaks();
     raise exception 'FAIL: Spec §8: signed-out visitors cannot read shared streaks';
   exception when insufficient_privilege then null;
   end;

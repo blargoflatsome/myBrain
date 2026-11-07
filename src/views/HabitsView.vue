@@ -133,6 +133,7 @@ const ring = {
                 <span data-testid="habit-streak">{{ m.streak(streakOf(h).current) }}</span>
                 <span data-testid="habit-best">{{ m.best(streakOf(h).best) }}</span>
                 <span v-if="h.is_private">{{ m.privateBadge }}</span>
+                <span v-if="h.is_priority" class="text-danger">{{ m.priorityBadge }}</span>
               </span>
             </button>
           </div>

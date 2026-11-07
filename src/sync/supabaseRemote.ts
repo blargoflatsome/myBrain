@@ -15,6 +15,8 @@ function forUpload<T extends { created_at?: string; updated_at?: string }>(row: 
   const rest: Partial<T> = { ...row }
   delete rest.created_at
   delete rest.updated_at
+  // Written only by the reminder job (SPEC §6).
+  delete (rest as Record<string, unknown>).last_sent_at
   return rest
 }
 

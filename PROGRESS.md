@@ -102,9 +102,24 @@ Done:
 Left in step 6:
 - ~~Chrome test on Deploy Preview 8~~ — created a 2-step routine, ran it (Completed then Skip), saw it finish and show 1 of 1 days (100%); dev logs matched; deleted it. ~~Prod migration~~ — applied right before merge. ~~Merge~~ — merged 2026-11-06 with the user's OK.
 
+## Step 7 — Notifications, priority habits and tasks (done, PR #9)
+
+Done:
+- Spec: Supabase Cron scheduler (user approved), priority habits, priority tasks one-off or weekdays, reminder offers slide/Snooze 10 min/Cancel (§5, §6, §14).
+- Migration `20261106080000_notifications.sql`: priority flag on habits, priority_tasks + logs, reminder_state (snooze/cancel/last sent), push_subscriptions, notification_log, `due_reminders()`, `send_due_reminders()` (ntfy direct via pg_net, Web Push via Netlify function), cleanup of gone subscriptions, two cron jobs. `rls_reminders.sql` passes.
+- Migration `20261106090000_shared_streaks_function.sql`: `shared_streaks` view replaced by a function (Supabase security advisor flagged the owner-rights view).
+- Netlify function `send-push` (shared secret; no database access). Custom service worker with push + notification click deep links. Fixed on preview: web-push 4 is ESM with named exports only.
+- App: full-screen priority reminder with slide to complete, Snooze, Cancel; Priority checkbox on habits; Tasks > Priority tab; reminder settings on Profile (device push, ntfy topic, quiet hours).
+- Fixed: a background streak refresh could overwrite a habit edit (now a one-step patch).
+- Netlify env vars set (VAPID keys, subject, push secret; secrets marked secret). Vault secrets `push_function_url` and `push_secret` set on dev and prod by the user (Claude may not write secret stores).
+- Dev and prod migrated and verified (2 cron jobs, 2 Vault secrets on prod). Deploy Preview 9 checked in Chrome: priority task overlay, real slide drag completes it, settings render; test task soft-deleted.
+- "Powered by Netlify" badge overlapped the Capture button: it is a Netlify setting (Project configuration > General), turned off by the user.
+
+Next: user tries a real reminder on the phone (turn on device notifications on each device; optional ntfy topic).
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
-- Habit and routine notify times only stored for now; the reminders themselves are step 7 (notifications).
+- Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).
 - None else. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.
 
 ## Decisions

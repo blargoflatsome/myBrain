@@ -12,6 +12,13 @@ export default defineConfig({
     // SPEC §3: installable PWA with a service worker, home-screen capture shortcut, and Web Share Target.
     VitePWA({
       registerType: 'autoUpdate',
+      // Our own service worker (src/sw.ts) so it can show Web Push notifications (SPEC §6).
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+      },
       includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png', 'icon.svg'],
       manifest: {
         id: '/',
@@ -43,10 +50,6 @@ export default defineConfig({
           method: 'GET',
           params: { title: 'title', text: 'text', url: 'url' },
         },
-      },
-      workbox: {
-        navigateFallback: '/index.html',
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
       },
     }),
   ],

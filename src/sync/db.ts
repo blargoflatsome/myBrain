@@ -28,6 +28,9 @@ export class LocalDb extends Dexie {
   routine_steps!: Table<RowTypes['routine_steps'], string>
   routine_runs!: Table<RowTypes['routine_runs'], string>
   routine_step_logs!: Table<RowTypes['routine_step_logs'], string>
+  priority_tasks!: Table<RowTypes['priority_tasks'], string>
+  priority_task_logs!: Table<RowTypes['priority_task_logs'], string>
+  reminder_state!: Table<RowTypes['reminder_state'], string>
   outbox!: Table<OutboxEntry, number>
   meta!: Table<MetaEntry, string>
 
@@ -53,6 +56,12 @@ export class LocalDb extends Dexie {
       routine_steps: 'id, updated_at, routine_id',
       routine_runs: 'id, updated_at, routine_id, date',
       routine_step_logs: 'id, updated_at, run_id, step_id',
+    })
+    // Step 7: priority tasks, their daily completions, and per-day reminder state (snooze / cancel).
+    this.version(4).stores({
+      priority_tasks: 'id, updated_at',
+      priority_task_logs: 'id, updated_at, task_id, date',
+      reminder_state: 'id, updated_at, item_id, date',
     })
   }
 

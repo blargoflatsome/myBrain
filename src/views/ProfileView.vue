@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { messages } from '@/messages'
+import NotificationSettings from '@/components/NotificationSettings.vue'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
 import { streaks } from '@/habits/rules'
 import { deviceTimeZone } from '@/tasks/days'
@@ -114,6 +115,8 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
       <p v-if="notice" role="status" class="text-muted">{{ notice }}</p>
     </form>
     <p v-else class="text-muted">{{ m.offline }}</p>
+
+    <NotificationSettings />
 
     <button type="button" class="self-start text-sm text-muted underline" @click="signOut">{{ messages.signOut.button }}</button>
   </main>

@@ -16,6 +16,7 @@ const notifyTime = ref('')
 const timer = ref<number | null>(null)
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
 const isPrivate = ref(false)
+const isPriority = ref(false)
 const timerOptions = [15, 30, 60, 120, 180, 240]
 
 watch(
@@ -27,6 +28,7 @@ watch(
     timer.value = h.timer_minutes ?? null
     weekdays.value = [...h.weekdays]
     isPrivate.value = h.is_private
+    isPriority.value = !!h.is_priority
     dialog.value?.showModal()
   },
 )
@@ -52,6 +54,7 @@ function save() {
     timer_minutes: notifyTime.value ? timer.value : null,
     weekdays: weekdays.value,
     is_private: isPrivate.value,
+    is_priority: isPriority.value,
   })
 }
 
@@ -112,6 +115,13 @@ const chip = (on: boolean) => [
         <span>
           <span class="font-medium">{{ m.editor.private }}</span>
           <span class="block text-sm text-muted">{{ m.editor.privateHint }}</span>
+        </span>
+      </label>
+      <label class="flex items-start gap-3">
+        <input v-model="isPriority" type="checkbox" class="mt-1 size-5">
+        <span>
+          <span class="font-medium">{{ m.editor.priority }}</span>
+          <span class="block text-sm text-muted">{{ m.editor.priorityHint }}</span>
         </span>
       </label>
       <div class="flex gap-2">
