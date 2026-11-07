@@ -74,22 +74,31 @@ test.describe('Spec §5 Post It', () => {
     await expect(board(page).getByTestId('postit-body')).toHaveText('Newer')
   })
 
-  test('on a touch screen, swiping left and right flips through the stack', async ({ page }) => {
+  test('on a touch screen, swiping left and right flips through the stack', async ({ page }, info) => {
+    test.skip(info.project.name !== 'android-phone', 'real touch input runs on the phone')
     server.seed('post_its', [
       { id: 'p1', body: '<p>Top</p>', color: 'yellow', position: 0 },
       { id: 'p2', body: '<p>Next one</p>', color: 'pink', position: 1 },
     ])
     await open(page, '/')
-    const stack = page.locator('.postit-stack')
+    await expect(board(page).getByTestId('postit-body')).toHaveText('Top')
+    const box = (await page.locator('.postit-stack').boundingBox())!
+    const y = box.y + box.height / 2
+    // A real finger swipe (touch start, several moves, touch end), the way a phone sends it.
+    const cdp = await page.context().newCDPSession(page)
     const swipe = async (fromX: number, toX: number) => {
-      await stack.dispatchEvent('pointerdown', { pointerType: 'touch', clientX: fromX, clientY: 100, bubbles: true })
-      await stack.dispatchEvent('pointerup', { pointerType: 'touch', clientX: toX, clientY: 100, bubbles: true })
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: fromX, y }] })
+      for (let k = 1; k <= 8; k++) {
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: fromX + ((toX - fromX) * k) / 8, y: y + k }] })
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
     }
-    await swipe(300, 150)
+    await swipe(box.x + box.width * 0.8, box.x + box.width * 0.2)
     await expect(board(page).getByTestId('postit-body')).toHaveText('Next one')
-    await swipe(150, 300)
+    await swipe(box.x + box.width * 0.2, box.x + box.width * 0.8)
     await expect(board(page).getByTestId('postit-body')).toHaveText('Top')
   })
+
 
   test('it looks taped to the page: a strip of tape, a tilt, and the notes underneath peeking out', async ({ page }) => {
     server.seed('post_its', [

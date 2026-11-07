@@ -52,6 +52,9 @@ let swipeX: number | null = null
 function onPointerDown(event: PointerEvent) {
   swipeX = event.pointerType === 'touch' && !editingId.value ? event.clientX : null
 }
+function onPointerCancel() {
+  swipeX = null
+}
 function onPointerUp(event: PointerEvent) {
   if (swipeX === null) return
   const dx = event.clientX - swipeX
@@ -144,7 +147,15 @@ const navBtn = 'flex min-h-11 items-center gap-1 rounded-xl border border-line b
     :aria-label="m.heading"
     @keydown="onKeydown"
   >
-    <div v-if="current" class="postit-stack relative mb-3 w-full max-w-sm pt-3" @pointerdown="onPointerDown" @pointerup="onPointerUp">
+    <!-- touch-pan-y: the page still scrolls up and down, but a sideways swipe comes to the stack instead of being
+         taken by the browser (which would cancel the touch before it ends). -->
+    <div
+      v-if="current"
+      class="postit-stack relative mb-3 w-full max-w-sm touch-pan-y pt-3"
+      @pointerdown="onPointerDown"
+      @pointerup="onPointerUp"
+      @pointercancel="onPointerCancel"
+    >
       <!-- The notes underneath, peeking out (decoration only). -->
       <div
         v-for="(n, k) in under"
