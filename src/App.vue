@@ -46,7 +46,7 @@ const navItems = [
   { to: '/journal', label: messages.nav.journal },
   { to: '/quests', label: messages.nav.quests },
   { to: '/inbox', label: messages.nav.inbox },
-  { to: '/profile', label: messages.nav.profile },
+  { to: '/account', label: messages.nav.account },
 ]
 
 // Phone: the menu slides out from the left. Wider screens: it is always shown on the left.

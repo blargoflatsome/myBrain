@@ -137,7 +137,7 @@ test.describe('Spec §5: priority tasks, one-off or repeating', () => {
 
 test.describe('Spec §6: reminder settings', () => {
   test('ntfy topic, quiet hours and the priority-in-quiet-hours choice are saved to my profile', async ({ page }) => {
-    await open(page, '/profile', '2026-11-10T12:00:00Z')
+    await open(page, '/account', '2026-11-10T12:00:00Z')
     const settings = page.getByTestId('notification-settings')
     await expect(settings.getByRole('heading', { name: 'Reminders' })).toBeVisible()
     await settings.getByRole('checkbox', { name: /Also send to the ntfy app/ }).check()

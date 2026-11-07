@@ -209,8 +209,8 @@ test.describe('Spec §5 Journal', () => {
     expect(server.written('journal_entries').filter((e) => e.date === '2026-11-09')).toHaveLength(0)
   })
 
-  test('the journal reminder is off by default and can be set on Profile', async ({ page }) => {
-    await open(page, '/profile')
+  test('the journal reminder is off by default and can be set on the Account page', async ({ page }) => {
+    await open(page, '/account')
     const settings = page.getByTestId('journal-reminder')
     await expect(settings.getByRole('checkbox', { name: "Don't remind me" })).toBeChecked()
     await settings.getByRole('checkbox', { name: "Don't remind me" }).uncheck()

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// SPEC §5 Profile page: display name, avatar, bio, streak visibility, and streaks (private habits never shown).
+// SPEC §5 Account page: display name, avatar, streak visibility, and streaks (private habits never shown), then settings.
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
@@ -20,7 +20,6 @@ const router = useRouter()
 const m = messages.profile
 
 const displayName = ref('')
-const bio = ref('')
 const avatarUrl = ref<string | null>(null)
 const visibility = ref<Visibility>('private')
 const loaded = ref(false)
@@ -30,12 +29,11 @@ const notice = ref('')
 onMounted(async () => {
   const { data } = await supabase
     .from('profiles')
-    .select('display_name, bio, avatar_url, streak_visibility')
+    .select('display_name, avatar_url, streak_visibility')
     .eq('user_id', auth.user?.id ?? '')
     .maybeSingle()
   if (data) {
     displayName.value = data.display_name ?? ''
-    bio.value = data.bio ?? ''
     avatarUrl.value = data.avatar_url
     visibility.value = data.streak_visibility as Visibility
     loaded.value = true
@@ -47,13 +45,13 @@ async function save() {
   saving.value = true
   const { error } = await supabase
     .from('profiles')
-    .update({ display_name: displayName.value.trim() || null, bio: bio.value.trim() || null, streak_visibility: visibility.value })
+    .update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value })
     .eq('user_id', auth.user?.id ?? '')
   saving.value = false
   notice.value = error ? m.offline : m.saved
 }
 
-// Private habits never appear on the Profile page (SPEC §5 Habits).
+// Private habits never appear on the Account page (SPEC §5 Habits).
 const habits = useLiveQuery<HabitRow[]>(
   async () => (brain.db ? (await brain.db.habits.toArray()).filter((h) => !h.deleted_at && !h.is_private) : []),
   [],
@@ -69,12 +67,12 @@ async function signOut() {
   await router.push({ name: 'sign-in' })
 }
 
-const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink'
+const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-base text-ink'
 const visibilities: Visibility[] = ['private', 'approved', 'everyone']
 </script>
 
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-6 pb-28">
     <div class="flex items-center gap-4">
       <img v-if="avatarUrl" :src="avatarUrl" alt="" class="size-16 rounded-full border border-line" referrerpolicy="no-referrer">
       <div v-else class="flex size-16 items-center justify-center rounded-full bg-surface text-2xl" aria-hidden="true">🙂</div>
@@ -95,29 +93,30 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
       </ul>
     </section>
 
-    <form v-if="loaded" class="flex flex-col gap-4" @submit.prevent="save">
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.displayName }}
-        <input v-model="displayName" :class="field">
-      </label>
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.bio }}
-        <textarea v-model="bio" rows="3" :class="[field, 'py-2']" />
-      </label>
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.visibility }}
-        <select v-model="visibility" :class="field">
-          <option v-for="v in visibilities" :key="v" :value="v">{{ m.visibilityOptions[v] }}</option>
-        </select>
-        <span class="text-xs">{{ m.visibilityHint }}</span>
-      </label>
-      <button type="submit" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="saving">{{ m.save }}</button>
-      <p v-if="notice" role="status" class="text-muted">{{ notice }}</p>
-    </form>
-    <p v-else class="text-muted">{{ m.offline }}</p>
+    <section class="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4" data-testid="profile-settings">
+      <h2 class="text-lg font-semibold">{{ m.settingsHeading }}</h2>
+      <form v-if="loaded" class="flex flex-col gap-4" @submit.prevent="save">
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ m.displayName }}
+          <input v-model="displayName" :class="field">
+        </label>
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ m.visibility }}
+          <select v-model="visibility" :class="field">
+            <option v-for="v in visibilities" :key="v" :value="v">{{ m.visibilityOptions[v] }}</option>
+          </select>
+          <span class="text-xs">{{ m.visibilityHint }}</span>
+        </label>
+        <div class="flex items-center gap-3">
+          <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="saving">{{ m.save }}</button>
+          <p v-if="notice" role="status" class="text-sm text-muted">{{ notice }}</p>
+        </div>
+      </form>
+      <p v-else class="text-muted">{{ m.offline }}</p>
+    </section>
 
     <NotificationSettings />
 
-    <button type="button" class="self-start text-sm text-muted underline" @click="signOut">{{ messages.signOut.button }}</button>
+    <button type="button" class="min-h-12 rounded-xl border border-line px-4 text-muted" @click="signOut">{{ messages.signOut.button }}</button>
   </main>
 </template>

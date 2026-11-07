@@ -62,9 +62,9 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Keep a `PROGRESS.md` (what is done, what is next, and decisions made) and update it at the end of each session. Also create a short `CLAUDE.md` with the key rules and the build and test commands, pointing back to this document.
 
 ## 4. Data model (all tables have `id`, `user_id`, `created_at`, `updated_at`, and deleted_at (soft delete, so deletions sync to other devices), with row-level security so users only access their own rows. updated_at is set by the server, not the device clock)
-- **profiles:** timezone, display settings, notification preferences (ntfy topic, quiet hours, default snooze length), email, phone number (both required at signup), preferred event notification method (email, text, or both), display name, avatar, short bio, and a visibility setting for who can see my streaks (private by default).
+- **profiles:** timezone, display settings, notification preferences (ntfy topic, quiet hours, default snooze length), email, phone number (both required at signup), preferred event notification method (email, text, or both), display name, avatar, and a visibility setting for who can see my streaks (private by default).
 - **tasks:** title, notes, due date, priority, status (open, done, cancelled), completed_at, carry_over_count, source (manual, capture, journal).
-- **habits:** title, notify time, timer duration (how long I have to complete it; an expired timer counts as a miss), cached current streak and best streak (the source of truth is habit_logs, so streaks can always be recalculated), is_private (hidden from my Profile and from all other users).
+- **habits:** title, notify time, timer duration (how long I have to complete it; an expired timer counts as a miss), cached current streak and best streak (the source of truth is habit_logs, so streaks can always be recalculated), is_private (hidden from my Account page and from all other users).
 - **habit_logs:** habit id, date, status (completed or missed), completed_at (so history and streaks can be recalculated and stats survive).
 - **routines:** title, notify time, ordered list of steps.
 - **routine_steps:** routine id, position, title.
@@ -122,21 +122,21 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Fields: title, notify time, timer (time window to complete), the weekdays it repeats on (default every day), private.
 - **Timer** starts at the notify time: notify 8:00 am with a 2-hour timer means done by 10:00 am. With no timer (or no notify time) the habit is due by midnight. **On the day a habit is created it is always due by midnight**, so it is never missed the moment it is saved; the timer applies from the next day. A timer needs a notify time. A habit can be completed any time before its deadline, and a completion can be undone until then.
 - **Weekdays:** a habit only counts on its chosen weekdays. Days it isn't scheduled neither extend nor break the streak. A habit's history starts on the day it was created.
-- Track a streak of scheduled days in a row. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on my Profile page (see the Profile page section below).
+- Track a streak of scheduled days in a row. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on my Account page (see the Account page section below).
 
 - The Habits page displays this line, worded exactly: "You are only in competition with yourself." It keeps the focus on beating my own best streak.
 
-- When creating or editing a habit, I can mark it **private**. A private habit never appears on my Profile page, in comparisons or leaderboards, or in any badge or achievement shown to others, and other users cannot tell it exists. Enforce this in the database (row-level security and the restricted view), not just in the interface. Habits are not private by default, but nothing is shared with anyone until my profile visibility setting allows it.
+- When creating or editing a habit, I can mark it **private**. A private habit never appears on my Account page, in comparisons or leaderboards, or in any badge or achievement shown to others, and other users cannot tell it exists. Enforce this in the database (row-level security and the restricted view), not just in the interface. Habits are not private by default, but nothing is shared with anyone until my profile visibility setting allows it.
 
 - **Timer:** if the timer expires before I complete the habit, it counts as a **miss**. The habit is logged as missed for that day and the streak resets to zero, while my best streak is kept.
 
-### Profile page
-- Every user has a Profile page with a display name, avatar, and short bio.
+### Account page
+- Every user has a Account page with a display name and avatar.
 - The page shows each habit's **current streak** and **best streak**, plus overall highlights such as my longest streak ever, so I can feel proud of them.
 - Streaks are meant to create accountability and friendly competition between users, so the page can be viewed by other users I choose to share it with.
 - **Privacy comes first.** Streaks are private by default, and I can choose who sees them (only me, people I approve, or everyone). Other users must only ever see the streak numbers and habit titles I choose to share, never my tasks, journal, vault, reminders, or events. Enforce this with row-level security and a restricted view, not just in the user interface.
-- Habits marked private (see Habits) never appear on my Profile page, and other users cannot tell they exist, for example anything personal like meds.
-- Phase 1 builds the Profile page for myself, with the visibility setting in place: it defaults to **only me**, can be changed now, and sharing takes effect only when Phase 2 adds other users. Display name and avatar come from Google sign-in; display name and bio are editable. Following other users, comparing streaks, and leaderboards are Phase 2 (see section 10).
+- Habits marked private (see Habits) never appear on my Account page, and other users cannot tell they exist, for example anything personal like meds.
+- Phase 1 builds the Account page for myself, with the visibility setting in place: it defaults to **only me**, can be changed now, and sharing takes effect only when Phase 2 adds other users. Display name and avatar come from Google sign-in; the display name is editable. Settings on the Account page are grouped into two cards, Your profile and Reminders, each with its own Save. Following other users, comparing streaks, and leaderboards are Phase 2 (see section 10).
 
 ### Routines (chained tasks)
 - A routine is an ordered series of steps with a notify time.
@@ -180,7 +180,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Stats are shown visually so they can be read at a glance (progress rings and bars, check marks, small chips), with as little text as possible.
 - Stats stay live while the day is open and freeze at midnight (my timezone). The writing stays editable at any time, including past days.
 - **Missed days are logged for me, if I did something:** when a day ends without an entry, the app creates one on my behalf with that day's stats and no writing, marked as written by the app, but only if I completed something that day (a task, habit, routine step, priority item or quest). A day with no activity gets no entry. I can open an entry later and add my own words.
-- **Optional journal reminder:** on the Profile page I can set a time each day to be reminded ("Past you asked that you journal today."), or turn it off (the default). It is not sent if I already wrote something that day, and it respects quiet hours.
+- **Optional journal reminder:** on the Account page I can set a time each day to be reminded ("Past you asked that you journal today."), or turn it off (the default). It is not sent if I already wrote something that day, and it respects quiet hours.
 
 ### The Vault
 - User-defined buckets of things to remember that are not tasks (restaurant reviews, places to go, books, shows, ideas to research, shopping list).
@@ -292,7 +292,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 - **Social streaks:** follow or add other users, compare streaks on profiles, and optional leaderboards for accountability and friendly competition. Only with explicit opt-in sharing, and with the ability to block or leave at any time.
 
-- **Achievements:** objectives that reward me for using the app and keeping up my routines and streaks. Earned achievements appear as badges on the Profile page (respecting my visibility setting) and are celebrated when earned with a small in-app moment and an optional notification. Examples: journal 5 days in a row; reach a 7-day or 30-day habit streak; complete a routine 10 times; finish every task in a day; beat my best streak; capture 25 thoughts; try a Random Quest. Claude Code and I will brainstorm the full list together before building this.
+- **Achievements:** objectives that reward me for using the app and keeping up my routines and streaks. Earned achievements appear as badges on the Account page (respecting my visibility setting) and are celebrated when earned with a small in-app moment and an optional notification. Examples: journal 5 days in a row; reach a 7-day or 30-day habit streak; complete a routine 10 times; finish every task in a day; beat my best streak; capture 25 thoughts; try a Random Quest. Claude Code and I will brainstorm the full list together before building this.
 - Design for achievements now: define them as data (id, title, description, rule type, threshold) and calculate them from existing history, so new ones can be added without restructuring the app. Phase 1 must keep full completion histories (habit logs, routine step logs, journal dates, task completions) so achievements can be calculated retroactively. Store earned achievements per user with the date earned. Achievements that come from private habits are never shown to other users.
 
 - **Google Calendar sync:** see the Google Calendar sync section under Calendar and reminders. Build one-way sync first, then two-way, after verifying Google's OAuth requirements.
@@ -309,7 +309,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 1. PWA shell with offline storage, sync queue (with soft deletes), and quick capture (task, vault item, quest, or decide later), including voice-to-text. First milestone: capture works from my phone and laptop, even offline.
 1. Tasks with carry-over, red text, cancel/edit, scheduling, priorities, "past you" voice.
 1. Random Quest picker (quick win).
-1. Habits with streaks, best streak, timer misses, private habits, and the Profile page that displays them.
+1. Habits with streaks, best streak, timer misses, private habits, and the Account page that displays them.
 1. Routines and completion stats.
 1. Notifications (Web Push and ntfy, quiet hours, snooze) and priority task full-screen reminders.
 1. Journal with auto stats.
@@ -409,8 +409,9 @@ Before building, walk me through creating each account below. Ask me for the cre
 - 2026-11-06 — Scaffolded the local project (step 1 code that needs no accounts) before the §13 account walkthrough, so the walkthrough can end in a working deploy. The walkthrough happens next.
 - 2026-11-06 — Tailwind CSS v4 via the `@tailwindcss/vite` plugin (no `tailwind.config` file). Pinned to 4.3.4 because the 4.3.5 package was missing from npm on this date; unpin later.
 - 2026-11-06 — Playwright runs two projects: desktop Chromium and a Pixel 7 (Android phone) viewport, against the production build.
-- 2026-11-06 — Journal (user's choices): stats cover tasks, habits, routines, priority items, streaks and completed quests, shown visually; stats are live until midnight then frozen; entries always editable; journal tasks due tomorrow; optional daily journal reminder set on Profile (off by default); a missed day gets an entry written by the app with that day's stats. Claude's calls: the app (not the server) writes missed-day entries and freezes stats when it next opens, the same way it records habit misses, so it works offline and the server needs no copy of the stats rules; quests get a `completed_at` (backfilled from `updated_at` for quests already done) so completed quests can be counted by day; the reminder is skipped if the day's entry already has writing.
+- 2026-11-06 — Journal (user's choices): stats cover tasks, habits, routines, priority items, streaks and completed quests, shown visually; stats are live until midnight then frozen; entries always editable; journal tasks due tomorrow; optional daily journal reminder set on Profile (now Account) (off by default); a missed day gets an entry written by the app with that day's stats. Claude's calls: the app (not the server) writes missed-day entries and freezes stats when it next opens, the same way it records habit misses, so it works offline and the server needs no copy of the stats rules; quests get a `completed_at` (backfilled from `updated_at` for quests already done) so completed quests can be counted by day; the reminder is skipped if the day's entry already has writing.
 - 2026-11-06 — Journal clarification (user): only write an entry on my behalf for a day when I actually did something. Claude's call: "did something" means completing at least one task, habit, routine step, priority item or quest that day; simply opening the app is not recorded, so it does not count. Missed days are counted from my first entry or the day the device first opened the journal (kept on the device), so no entry is written just to mark the start.
 - 2026-11-06 — Journal editing (user): a bigger writing area with a full-screen option, formatted text (bold, lists, links and other basic formatting), and "Add a task for tomorrow" in its own box that opens the Capture screen rather than a separate form. Claude's calls: the Tiptap editor (open source, made for Vue); writing is stored as HTML limited to the editor's own formatting and cleaned with DOMPurify before it is shown; links open in a new tab; entries written earlier as plain text open as paragraphs.
 - 2026-11-06 — Capture window (user): Capture opens as a window (modal) over the current page instead of a separate page, so capturing never takes me away; "Add a task for tomorrow" in the Journal opens that window with Task and tomorrow's date, and it stays ready for the next task. Claude's call: the /capture page stays for the home screen shortcut and sharing from other apps, which arrive from outside the app.
-
+- 2026-11-06 — Account page (user): the short bio is removed (not needed) and the settings are tidied. Claude's calls: settings grouped into two cards (Your profile; Reminders with this device, ntfy, quiet hours and journal reminder separated by lines), each with one Save; the `bio` column is left in the database unused, so nothing is deleted.
+- 2026-11-06 — Renamed the Profile page to Account (user: more accurate). It lives at /account; the old /profile address redirects there. The "Your profile" settings card keeps its name, since it holds the profile details others may see (name, streak visibility).

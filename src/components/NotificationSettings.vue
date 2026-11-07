@@ -113,65 +113,89 @@ async function test() {
   notice.value = m.testSent
 }
 
-const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink'
+const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-base text-ink'
 </script>
 
 <template>
-  <section class="flex flex-col gap-4" data-testid="notification-settings">
+  <section class="flex flex-col rounded-2xl border border-line bg-surface p-4" data-testid="notification-settings">
     <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
 
-    <div class="flex flex-col gap-1">
-      <div class="flex items-center justify-between gap-3">
-        <span class="font-medium">{{ m.webPush }}</span>
-        <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" :aria-pressed="pushOn" @click="togglePush">
-          {{ pushOn ? m.webPushOn : m.webPushOff }}
-        </button>
+    <div class="divide-y divide-line">
+      <!-- This device -->
+      <div class="flex flex-col gap-1 py-4">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <div class="font-medium">{{ m.webPush }}</div>
+            <p class="text-xs text-muted">{{ m.webPushHint }}</p>
+          </div>
+          <button
+            type="button"
+            class="min-h-11 shrink-0 rounded-xl border px-3 text-sm"
+            :class="pushOn ? 'border-accent bg-accent font-semibold text-accent-ink' : 'border-line'"
+            :aria-pressed="pushOn"
+            @click="togglePush"
+          >
+            {{ pushOn ? m.webPushOn : m.webPushOff }}
+          </button>
+        </div>
+        <p v-if="pushError" class="text-sm text-danger" role="alert">{{ pushError }}</p>
       </div>
-      <p class="text-xs text-muted">{{ m.webPushHint }}</p>
-      <p v-if="pushError" class="text-sm text-danger" role="alert">{{ pushError }}</p>
+
+      <template v-if="loaded">
+        <!-- ntfy backup -->
+        <div class="flex flex-col gap-3 py-4">
+          <label class="flex items-center justify-between gap-4">
+            <span>
+              <span class="font-medium">{{ m.ntfy }}</span>
+              <span class="block text-xs text-muted">{{ m.ntfyHint }}</span>
+            </span>
+            <input v-model="notifyNtfy" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+          </label>
+          <div v-if="notifyNtfy" class="flex flex-col gap-1">
+            <label class="flex flex-col gap-1 text-sm text-muted">
+              {{ m.ntfyTopic }}
+              <input v-model="topic" :class="field" autocomplete="off" spellcheck="false">
+            </label>
+            <span class="text-xs text-muted">{{ m.ntfyTopicHint }}</span>
+            <button type="button" class="mt-1 min-h-11 self-start rounded-xl border border-line px-3 text-sm" @click="makeTopic">{{ m.ntfyMake }}</button>
+          </div>
+        </div>
+
+        <!-- Quiet hours -->
+        <fieldset class="flex flex-col gap-3 py-4">
+          <legend class="contents">
+            <span class="font-medium">{{ m.quietHours }}</span>
+          </legend>
+          <p class="-mt-2 text-xs text-muted">{{ m.quietHint }}</p>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="flex flex-col gap-1 text-sm text-muted">{{ m.quietStart }}<input v-model="quietStart" type="time" :class="field"></label>
+            <label class="flex flex-col gap-1 text-sm text-muted">{{ m.quietEnd }}<input v-model="quietEnd" type="time" :class="field"></label>
+          </div>
+          <label class="flex items-center justify-between gap-4 text-sm">
+            {{ m.priorityQuiet }}
+            <input v-model="priorityRings" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+          </label>
+        </fieldset>
+
+        <!-- Journal reminder -->
+        <fieldset class="flex flex-col gap-3 py-4" data-testid="journal-reminder">
+          <legend class="contents">
+            <span class="font-medium">{{ m.journalReminder }}</span>
+          </legend>
+          <p class="-mt-2 text-xs text-muted">{{ m.journalReminderHint }}</p>
+          <label class="flex items-center justify-between gap-4 text-sm">
+            {{ m.journalOff }}
+            <input v-model="journalOff" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+          </label>
+          <label v-if="!journalOff" class="flex flex-col gap-1 text-sm text-muted">{{ m.journalTime }}<input v-model="journalTime" type="time" :class="field"></label>
+        </fieldset>
+      </template>
     </div>
 
-    <template v-if="loaded">
-      <div class="flex flex-col gap-2">
-        <label class="flex items-start gap-3">
-          <input v-model="notifyNtfy" type="checkbox" class="mt-1 size-5">
-          <span>
-            <span class="font-medium">{{ m.ntfy }}</span>
-            <span class="block text-xs text-muted">{{ m.ntfyHint }}</span>
-          </span>
-        </label>
-        <div v-if="notifyNtfy" class="flex flex-col gap-1">
-          <label class="flex flex-col gap-1 text-sm text-muted">
-            {{ m.ntfyTopic }}
-            <input v-model="topic" :class="field" autocomplete="off" spellcheck="false">
-          </label>
-          <span class="text-xs text-muted">{{ m.ntfyTopicHint }}</span>
-          <button type="button" class="min-h-11 self-start rounded-xl border border-line px-3 text-sm" @click="makeTopic">{{ m.ntfyMake }}</button>
-        </div>
-      </div>
-
-      <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 font-medium">{{ m.quietHours }}</legend>
-        <p class="text-xs text-muted">{{ m.quietHint }}</p>
-        <div class="grid grid-cols-2 gap-3">
-          <label class="flex flex-col gap-1 text-sm text-muted">{{ m.quietStart }}<input v-model="quietStart" type="time" :class="field"></label>
-          <label class="flex flex-col gap-1 text-sm text-muted">{{ m.quietEnd }}<input v-model="quietEnd" type="time" :class="field"></label>
-        </div>
-        <label class="flex items-center gap-3 text-sm"><input v-model="priorityRings" type="checkbox" class="size-5">{{ m.priorityQuiet }}</label>
-      </fieldset>
-
-      <fieldset class="flex flex-col gap-2" data-testid="journal-reminder">
-        <legend class="mb-1 font-medium">{{ m.journalReminder }}</legend>
-        <p class="text-xs text-muted">{{ m.journalReminderHint }}</p>
-        <label class="flex items-center gap-3 text-sm"><input v-model="journalOff" type="checkbox" class="size-5">{{ m.journalOff }}</label>
-        <label v-if="!journalOff" class="flex flex-col gap-1 text-sm text-muted">{{ m.journalTime }}<input v-model="journalTime" type="time" :class="field"></label>
-      </fieldset>
-
-      <div class="flex flex-wrap gap-2">
-        <button type="button" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="save">{{ m.save }}</button>
-        <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="test">{{ m.test }}</button>
-      </div>
-      <p v-if="notice" class="text-sm text-muted">{{ notice }}</p>
-    </template>
+    <div v-if="loaded" class="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+      <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="save">{{ m.save }}</button>
+      <button type="button" class="min-h-11 rounded-xl border border-line px-4 text-sm" @click="test">{{ m.test }}</button>
+      <p v-if="notice" class="text-sm text-muted" role="status">{{ notice }}</p>
+    </div>
   </section>
 </template>
