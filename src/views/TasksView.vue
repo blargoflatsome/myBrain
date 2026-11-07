@@ -146,7 +146,7 @@ const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
 
       <form v-if="canAdd" class="flex gap-2" @submit.prevent="add">
         <input
-          v-model="newTitle"
+          v-model="newTitle" maxlength="500"
           :placeholder="addLabel"
           :aria-label="addLabel"
           class="min-h-12 flex-1 rounded-xl border border-line bg-surface px-3 text-base text-ink"

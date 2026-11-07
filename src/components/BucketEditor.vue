@@ -45,7 +45,7 @@ const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-
       <h2 class="text-lg font-semibold">{{ m.bucketEditor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.bucketEditor.name }}
-        <input v-model="name" required :class="field">
+        <input v-model="name" maxlength="200" required :class="field">
       </label>
       <label class="flex items-center justify-between gap-4">
         <span>

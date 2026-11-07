@@ -193,7 +193,7 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
         </li>
       </ul>
       <form v-if="addingBucket" class="flex gap-2" @submit.prevent="createBucket">
-        <input v-model="newBucketName" :class="field" :aria-label="m.newBucketName" :placeholder="m.newBucketName">
+        <input v-model="newBucketName" maxlength="200" :class="field" :aria-label="m.newBucketName" :placeholder="m.newBucketName">
         <button type="submit" class="min-h-12 shrink-0 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.createBucket }}</button>
       </form>
       <button v-else type="button" class="min-h-12 self-start rounded-xl border border-line bg-surface px-4 font-medium" @click="addingBucket = true">
@@ -225,7 +225,7 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 tex
       </div>
 
       <form class="flex gap-2" @submit.prevent="addItem">
-        <input v-model="newItem" :class="field" :aria-label="m.addLabel(bucket.name)" :placeholder="m.addPlaceholder">
+        <input v-model="newItem" maxlength="500" :class="field" :aria-label="m.addLabel(bucket.name)" :placeholder="m.addPlaceholder">
         <button type="submit" class="min-h-12 shrink-0 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.add }}</button>
       </form>
 

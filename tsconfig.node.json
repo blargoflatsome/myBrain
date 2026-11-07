@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["vite.config.ts", "pwa-assets.config.ts", "playwright.config.ts", "eslint.config.ts", "e2e/**/*.ts", "netlify/**/*.ts", "netlify/**/*.mts"]
+  "include": ["vite.config.ts", "build/**/*.ts", "pwa-assets.config.ts", "playwright.config.ts", "eslint.config.ts", "e2e/**/*.ts", "netlify/**/*.ts", "netlify/**/*.mts"]
 }

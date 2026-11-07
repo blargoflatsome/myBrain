@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { previewHeaders } from './build/security-headers'
 
 export default defineConfig({
   plugins: [
@@ -53,6 +54,8 @@ export default defineConfig({
       },
     }),
   ],
+  // The browser tests run against `vite preview` with the same security headers as Netlify (public/_headers).
+  preview: { headers: previewHeaders(fileURLToPath(new URL('./public/_headers', import.meta.url))) },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

@@ -19,9 +19,22 @@ export function toEditorHtml(body: string): string {
     .join('')
 }
 
+// The only form control the editor makes is a checklist box: any other input (a password box, a button) is removed.
+DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+  if (data.tagName === 'input' && (node as Element).getAttribute?.('type') !== 'checkbox') node.parentNode?.removeChild(node)
+})
+
 /** Only the formatting the editor offers survives; scripts, styles and event handlers are removed. Links open safely. */
 export function cleanHtml(html: string): string {
-  const clean = DOMPurify.sanitize(toEditorHtml(html), { ALLOWED_TAGS, ALLOWED_ATTR, ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:)/i })
+  // Links may only be web, email or phone links. `type` is listed as safe so a checklist box keeps type="checkbox"
+  // (with a strict link rule, DOMPurify otherwise drops any attribute whose value doesn't look like an allowed link);
+  // the hook above already removes every input that isn't a checkbox.
+  const clean = DOMPurify.sanitize(toEditorHtml(html), {
+    ALLOWED_TAGS,
+    ALLOWED_ATTR,
+    ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:)/i,
+    ADD_URI_SAFE_ATTR: ['type'],
+  })
   const doc = new DOMParser().parseFromString(clean, 'text/html')
   for (const a of doc.querySelectorAll('a')) {
     a.setAttribute('target', '_blank')

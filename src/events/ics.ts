@@ -17,7 +17,12 @@ export interface IcsEvent {
 }
 
 function escapeText(text: string) {
-  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
+  // Every kind of line break (\r\n, \n, or a lone \r) becomes \n, so typed text can never start a new calendar line.
+  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r\n|\r|\n/g, '\\n')
+}
+/** A parameter value (like a name): quoted, with quotes and line breaks removed, so a colon or semicolon can't break it. */
+function paramText(text: string) {
+  return `"${text.replace(/["\r\n]/g, ' ').trim()}"`
 }
 const utc = (ms: number) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
 const day = (date: string) => date.replaceAll('-', '')
@@ -54,7 +59,7 @@ export function icsFile(e: IcsEvent, now: Date = new Date()): string {
     timed ? `DTEND:${utc(zonedTime(e.end_date, e.end_time!.slice(0, 5), e.timezone))}` : `DTEND;VALUE=DATE:${day(addDays(e.end_date, 1))}`,
     `SUMMARY:${escapeText(e.title)}`,
     ...(e.notes ? [`DESCRIPTION:${escapeText(e.notes)}`] : []),
-    ...(e.organizer ? [`ORGANIZER;CN=${escapeText(e.organizer)}:invalid:nomail`] : []),
+    ...(e.organizer ? [`ORGANIZER;CN=${paramText(e.organizer)}:invalid:nomail`] : []),
     ...(RULES[e.repeat] ? [`RRULE:${RULES[e.repeat]}`] : []),
     'END:VEVENT',
     'END:VCALENDAR',
