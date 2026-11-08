@@ -259,10 +259,14 @@ Merged and live.
 ## Share a contact into My Brain (done, PR #33, then removed)
 - Worked once the phone's app registration was refreshed, but the user found it an awful experience; removed in the next change along with Pick from contacts.
 
-## My people (branch `saved-people`)
+## My people (done, PR #34)
 - Pick from contacts and sharing a contact in are gone (code, tests, share target back to GET /capture). Guests are typed once; saving the event saves them to **my people** (new `people` table, Dexie v10, synced; same email/phone = same person, new name replaces old). The event's People section lists my people A–Z, 10 per page, filtered by what I type, with Add buttons; already invited or waiting people aren't listed. Account page has a People section to add (duplicates flagged), edit or remove (confirmation). Replaces the remembered-people suggestions. Delete my data has a "Your people" part. Privacy page mentions it.
 - Migration `20261108010000_people.sql` (table, RLS, Realtime, one-time import of everyone already invited by email/phone, delete_my_data part). Dev migrated; 19 SQL files pass. Prod: applied right before merge.
 - Tests: `src/events/people.test.ts`, `e2e/my-people.spec.ts`, `supabase/tests/rls_people.sql`; delete-my-data and accessibility tests updated. Vitest 284, Playwright 547.
+
+## Contacts window (branch `contacts-window`)
+- The People section has a **Contacts** button that opens `ContactsDialog.vue`: my people A–Z, search as you type, Add per person (stays open; Added with Undo; already invited shows Invited), Done. The typing form only adds. Finding My Brain users by name moves to Phase 2 (people need to match first), and with it the availability schedule, free/busy checks, suggested times, and the findable and share-availability settings (screens and client code removed; tables and server functions kept). Docs, Features and Privacy updated.
+- Tests: `e2e/my-people.spec.ts` rewritten for the window, Contacts window added to the accessibility scans, availability/name-search tests removed. Vitest 281, Playwright 545.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

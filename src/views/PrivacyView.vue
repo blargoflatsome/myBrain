@@ -10,7 +10,7 @@
     <ul>
       <li><strong>From Google sign-in:</strong> your email address, name and profile picture.</li>
       <li><strong>What you give us:</strong> your phone number (used only for events) and your settings.</li>
-      <li><strong>What you put in the app:</strong> tasks, habits, routines, journal entries, The Vault, quests, events, tags, reminders and availability.</li>
+      <li><strong>What you put in the app:</strong> tasks, habits, routines, journal entries, The Vault, quests, events, tags, reminders and your people.</li>
       <li><strong>For notifications:</strong> a notification address for each device you turn them on for, and your ntfy topic if you use ntfy.</li>
       <li><strong>Messages about events:</strong> a log of invitations, answers, messages and cancellations sent to people (who, how, when, and whether it worked).</li>
       <li><strong>About guests you invite:</strong> the name, email address or phone number you typed, and their answer.</li>
@@ -22,8 +22,7 @@
       <li>Your data is yours. Other users can't see your tasks, journal, Vault, habits, routines, reminders or events.</li>
       <li>If you choose to share streaks, others see only the habit name and streak numbers, never private habits.</li>
       <li>People you invite to an event see its title, date, time and notes, and who invited them. The host sees each person's answer.</li>
-      <li>When someone checks availability, they see only when you're free or busy, never what your plans are. You can turn this off.</li>
-      <li>Others can find you by name (name and picture only) unless you turn that off. Typing your email or phone number never tells anyone whether you have an account.</li>
+      <li>No one can search for you by name. Typing your email or phone number never tells anyone whether you have an account.</li>
     </ul>
 
     <h2>Services we use</h2>

@@ -165,6 +165,9 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(page.getByRole('heading', { name: 'Calendar', level: 1 })).toBeVisible()
       await page.getByRole('button', { name: '+ New event' }).click()
       await scan(page, 'New event')
+      await page.getByRole('dialog', { name: 'New event' }).getByRole('button', { name: 'Contacts' }).click()
+      await expect(page.getByRole('dialog', { name: 'Your people' }).getByTestId('contact')).toHaveCount(1)
+      await scan(page, 'Contacts window')
     })
 
     test('Vault item editor and delete confirmation', async ({ page }) => {
