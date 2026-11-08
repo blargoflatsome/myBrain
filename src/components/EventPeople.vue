@@ -47,35 +47,44 @@
     <p v-else-if="searched" class="text-xs text-muted">{{ m.noMatches }}</p>
 
     <div class="grid grid-cols-2 gap-2">
-      <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contact }}<input ref="contactInput" v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
+      <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contact }}<input v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
       <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contactName }}<input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
-    </div>
-    <div v-if="remembered.length" class="flex flex-col gap-1" data-testid="remembered-people">
-      <span id="remembered-heading" class="text-xs text-muted">{{ m.rememberedHeading }}</span>
-      <ul class="flex flex-col gap-1" aria-labelledby="remembered-heading">
-        <li v-for="r in remembered" :key="contactKey(r) ?? ''">
-          <button type="button" class="flex min-h-11 w-full flex-wrap items-center gap-x-2 rounded-xl px-2 text-left hover:bg-bg" @click="addRemembered(r)">
-            <span class="font-medium">{{ m.addFound(r.name || r.email || r.phone || '') }}</span>
-            <span v-if="r.name" class="text-sm text-muted">{{ r.email || r.phone }}</span>
-          </button>
-        </li>
-      </ul>
     </div>
     <p v-if="contactError" class="text-sm text-danger" role="alert" data-testid="people-error">{{ contactError }}</p>
     <p class="text-sm text-muted" role="status" data-testid="people-status">{{ status }}</p>
     <div class="flex flex-wrap gap-2">
-      <button ref="addButton" type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="addContact">{{ m.addContact }}</button>
-      <button v-if="canPickContacts()" type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="fromContacts">{{ m.pickContacts }}</button>
+      <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="addContact">{{ m.addContact }}</button>
     </div>
+
+    <section v-if="available.length" class="flex flex-col gap-2" aria-labelledby="my-people-heading" data-testid="my-people">
+      <h3 id="my-people-heading" class="text-sm font-medium">{{ m.myPeopleHeading }}</h3>
+      <p class="-mt-1 text-xs text-muted">{{ m.myPeopleHint }}</p>
+      <p v-if="!listed.length" class="text-sm text-muted">{{ m.myPeopleNoMatch }}</p>
+      <ul v-else class="flex flex-col gap-1">
+        <li v-for="p in pageItems" :key="p.id" class="flex min-w-0 items-center justify-between gap-2" data-testid="my-person">
+          <span class="min-w-0 text-sm [overflow-wrap:anywhere]">
+            <span class="font-medium">{{ personLabel(p) }}</span>
+            <span v-if="p.name" class="text-muted"> · {{ p.email || p.phone }}</span>
+          </span>
+          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-3 text-sm" :aria-label="m.addPerson(personLabel(p))" @click="addSaved(p)">{{ m.addContact }}</button>
+        </li>
+      </ul>
+      <PageControls v-model:page="page" :page-count="pageCount" :label="m.myPeopleHeading" />
+    </section>
   </fieldset>
 </template>
 
 <script setup lang="ts">
-// SPEC §5 Shared events and Availability: invite people by name, email, phone or from my contacts; see who's
+// SPEC §5 Shared events and Availability: invite people by name, email or phone, or from my people; see who's
 // invited and their answers; for people found by name, see who is free and get suggested times.
-import { computed, nextTick, onMounted, onScopeDispose, ref, watch } from 'vue'
-import { contactKey, matchRemembered, rememberedPeople, type RememberedPerson } from '@/events/contacts'
-import { canPickContacts, clearLostContactPick, eventPeople, lostContactPick, freeBusy, pickContacts, searchPeople, uninvite, type EventPerson, type FoundPerson, type PersonToInvite } from '@/events/sharing'
+import { computed, ref, watch } from 'vue'
+import PageControls from '@/components/PageControls.vue'
+import { usePagination } from '@/composables/usePagination'
+import { contactKey } from '@/events/contacts'
+import { matchesPerson, personLabel, sortPeople, uniquePeople } from '@/events/people'
+import { eventPeople, freeBusy, searchPeople, uninvite, type EventPerson, type FoundPerson, type PersonToInvite } from '@/events/sharing'
+import { live } from '@/sync/live'
+import type { PersonRow } from '@/sync/types'
 import { busyTimes, hasConflict, suggestTimes, type Interval } from '@/events/availability'
 import { parseContact } from '@/events/contacts'
 import { zonedTime } from '@/habits/rules'
@@ -147,17 +156,20 @@ function addFound(p: FoundPerson) {
 const contact = ref('')
 const contactName = ref('')
 const contactError = ref('')
-// People I've invited before, suggested as I type (SPEC §5 Calendar: remembered people). They come from my own
-// invitations already on this device, so nothing new is stored and it works offline.
-const myInvites = useLiveQuery(async () => (brain.db ? brain.db.event_invites.toArray() : []), [], [() => brain.db])
-const people = computed(() => rememberedPeople(myInvites.value, brain.userId))
-const remembered = computed(() => {
+// My people (SPEC §5 Calendar): everyone I've invited by email or phone, A to Z, 10 per page; typing in the boxes
+// filters the list; people already on this event or waiting to be invited aren't listed.
+const myPeople = useLiveQuery<PersonRow[]>(async () => (brain.db ? live(await brain.db.people.toArray()) : []), [], [() => brain.db])
+const available = computed(() => {
   const taken = new Set([...pending.value, ...invited.value].map((x) => contactKey(x)).filter((k): k is string => !!k))
-  return matchRemembered(people.value, contact.value || contactName.value, taken)
+  return sortPeople(uniquePeople(myPeople.value).filter((p) => !taken.has(contactKey(p) ?? '')))
 })
-function addRemembered(r: RememberedPerson) {
-  add({ name: r.name, email: r.email, phone: r.phone })
-  status.value = m.added(r.name || r.email || r.phone || '')
+const typed = computed(() => contact.value || contactName.value)
+const listed = computed(() => available.value.filter((p) => matchesPerson(p, typed.value)))
+const { page, pageCount, pageItems } = usePagination(listed, 10)
+watch(typed, () => (page.value = 1))
+function addSaved(p: PersonRow) {
+  add({ name: p.name ?? undefined, email: p.email ?? undefined, phone: p.email ? undefined : (p.phone ?? undefined) })
+  status.value = m.added(personLabel(p))
   contact.value = ''
   contactName.value = ''
 }
@@ -174,75 +186,6 @@ function addContact() {
   status.value = m.added(nameOf(person))
   contact.value = ''
   contactName.value = ''
-}
-// One contact fills the email-or-phone and name boxes, ready to Add (what people expect); several are added at
-// once. Every outcome is said on screen and scrolled into view, since the phone's picker covered the app.
-const addButton = ref<HTMLButtonElement | null>(null)
-const contactInput = ref<HTMLInputElement | null>(null)
-// If the phone closed the app while I was picking, the app reloaded and the pick is gone: say so.
-onMounted(() => {
-  if (props.eventId && lostContactPick()?.event === props.eventId) {
-    clearLostContactPick()
-    contactError.value = m.contactPickLost
-    void showOutcome()
-  }
-})
-// If I'm back in the app and the phone still hasn't sent the contact a few seconds later, say so.
-const STUCK_MS = 4000
-let stuckTimer: ReturnType<typeof setTimeout> | undefined
-function watchForStuck() {
-  if (document.visibilityState !== 'visible') return
-  clearTimeout(stuckTimer)
-  stuckTimer = setTimeout(() => {
-    contactError.value = m.contactPickStuck
-    void showOutcome()
-  }, STUCK_MS)
-}
-onScopeDispose(() => {
-  clearTimeout(stuckTimer)
-  document.removeEventListener('visibilitychange', watchForStuck)
-})
-async function fromContacts() {
-  contactError.value = ''
-  status.value = ''
-  let picked: Awaited<ReturnType<typeof pickContacts>>
-  document.addEventListener('visibilitychange', watchForStuck)
-  try {
-    picked = await pickContacts(props.isNew ? null : props.eventId)
-  } catch {
-    contactError.value = m.contactsFailed
-    return showOutcome()
-  } finally {
-    document.removeEventListener('visibilitychange', watchForStuck)
-    clearTimeout(stuckTimer)
-  }
-  contactError.value = ''
-  if (picked.blocked) {
-    contactError.value = m.contactPickBlocked
-    contactInput.value?.focus()
-    return showOutcome()
-  }
-  if (!picked.people.length) {
-    if (picked.skipped) contactError.value = m.noUsableContacts
-    else status.value = m.noContactPicked
-    return showOutcome()
-  }
-  if (picked.people.length === 1 && !picked.skipped) {
-    const p = picked.people[0]!
-    contact.value = p.email ?? p.phone ?? ''
-    contactName.value = p.name ?? ''
-    status.value = m.filledIn(nameOf(p))
-    await showOutcome()
-    addButton.value?.focus()
-    return
-  }
-  add(...picked.people)
-  status.value = m.addedSome(picked.people.length, picked.skipped)
-  return showOutcome()
-}
-async function showOutcome() {
-  await nextTick()
-  document.querySelector<HTMLElement>('[data-testid="people-status"], [data-testid="people-error"]')?.scrollIntoView({ block: 'nearest' })
 }
 
 // ---------- Availability: only people found by name (never reveals who has an account) ----------

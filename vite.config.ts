@@ -46,18 +46,10 @@ export default defineConfig({
             icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
           },
         ],
-        // SPEC §3/§5: text and links go to Capture; contact files go to the invite screen. POST so files can come
-        // too; the service worker (src/sw.ts) answers it.
         share_target: {
-          action: '/share',
-          method: 'POST',
-          enctype: 'multipart/form-data',
-          params: {
-            title: 'title',
-            text: 'text',
-            url: 'url',
-            files: [{ name: 'contacts', accept: ['text/vcard', 'text/x-vcard', 'text/directory', '.vcf', '.vcard'] }],
-          },
+          action: '/capture',
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
         },
       },
     }),

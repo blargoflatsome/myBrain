@@ -78,8 +78,7 @@ const groups: { heading: string; features: Feature[] }[] = [
     features: [
       { icon: '📅', title: 'Calendar', text: 'Month, week and day views with your events, dated tasks and priority tasks together. Events repeat daily, weekly, every 2 weeks, monthly or yearly, with reminders.' },
       { icon: '✉️', title: 'Invitations', text: 'Invite people by name, email or phone. Guests answer from a private link without an account, see who’s free before you pick a time, and let everyone know if plans change.' },
-      { icon: '📇', title: 'Invite from your contacts', text: 'Share a contact from your phone’s Contacts app to My Brain, choose the event, and they’re ready to invite. Only their name, email and phone number are used.' },
-      { icon: '🙋', title: 'People you’ve invited', text: 'My Brain remembers who you’ve invited before and suggests them as you type, so you only enter someone’s details once.' },
+      { icon: '🙋', title: 'Your people', text: 'Type a guest’s email or phone once. When you save the event they join your people, so next time you add them from a list with one tap.' },
     ],
   },
   {

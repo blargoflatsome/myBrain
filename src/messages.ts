@@ -394,6 +394,7 @@ export const messages = {
       tags: 'Tags',
       events: 'Your own events (not ones you invited people to)',
       post_its: 'Post Its',
+      people: 'Your people (everyone saved for invitations)',
     },
     selectAll: 'Tick all',
     selectNone: 'Untick all',
@@ -426,30 +427,30 @@ export const messages = {
     terms: 'Terms of service',
     back: 'Back',
   },
-  /** SPEC §5 Calendar, "Sharing a contact": contacts shared from the phone's Contacts app. */
-  shareContact: {
-    headingNone: 'Invite to an event',
-    headingOne: (name: string) => `Invite ${name} to…`,
-    headingMany: (n: number) => `Invite ${n} people to…`,
-    loading: 'Opening what you shared…',
-    nothingShared: 'Nothing was shared. To invite someone from your contacts, share their contact to My Brain from your Contacts app.',
-    nothingUsable: (skipped: number) =>
-      `${skipped === 1 ? 'That contact has' : skipped ? 'Those contacts have' : 'That file has'} no phone number or email, so there’s no one to invite.`,
-    toCalendar: 'Go to the Calendar',
-    peopleHeading: 'From your contacts',
-    leftOut: (skipped: number, extra: number) =>
-      [
-        skipped ? `${skipped} ${skipped === 1 ? 'contact has' : 'contacts have'} no phone number or email.` : '',
-        extra ? `Only the first 25 people were kept (${extra} left out).` : '',
-      ]
-        .filter(Boolean)
-        .join(' '),
-    howItWorks: 'Choose an event. They’ll be ready to invite there, and invited when you save it.',
-    newEvent: 'New event',
-    eventsHeading: 'Your upcoming events',
-    noEvents: 'No upcoming events yet. Make a new one.',
-    allDay: 'All day',
-    repeats: 'Repeats',
+  /** SPEC §5 Calendar, my people: the list on the Account page. */
+  myPeople: {
+    heading: 'Your people',
+    hint: 'Everyone you’ve invited by email or phone is saved here when you save the event, so you can add them from a list next time.',
+    empty: 'No one yet. People you invite by email or phone will show up here.',
+    edit: 'Edit',
+    editLabel: (name: string) => `Edit ${name}`,
+    remove: 'Remove',
+    removeLabel: (name: string) => `Remove ${name}`,
+    editHeading: 'Edit person',
+    name: 'Name (optional)',
+    email: 'Email',
+    phone: 'Phone number',
+    save: 'Save',
+    cancel: 'Cancel',
+    badEmail: 'That email address doesn’t look right.',
+    badPhone: 'That phone number doesn’t look right.',
+    needOne: 'Keep an email address or a phone number, so you can invite them.',
+    confirmRemove: {
+      heading: 'Remove from your people?',
+      body: (name: string) => `${name} won’t be listed for invitations any more. Invitations you already sent stay as they are.`,
+      confirm: 'Remove',
+      keep: 'Keep',
+    },
   },
   invites: {
     // Messages to other people are written from me to them, not in the "past you" voice.
@@ -463,20 +464,13 @@ export const messages = {
     contactName: 'Their name (optional)',
     addContact: 'Add',
     contactError: 'Add an email address or a phone number.',
-    pickContacts: 'Pick from contacts',
     remove: (name: string) => `Remove ${name}`,
     toInvite: 'To invite (when you save)',
-    rememberedHeading: 'People you’ve invited before',
     added: (name: string) => `Added ${name}. They’ll be invited when you save.`,
-    addedSome: (n: number, skipped: number) =>
-      `Added ${n} ${n === 1 ? 'person' : 'people'}.${skipped ? ` ${skipped} ${skipped === 1 ? 'contact has' : 'contacts have'} no phone number or email.` : ''} They’ll be invited when you save.`,
-    noUsableContacts: 'Those contacts have no phone number or email, so they can’t be invited.',
-    contactsFailed: 'Couldn’t open your contacts. You can type an email or phone number instead.',
-    contactPickBlocked: 'Chrome on your phone didn’t let the contact through (a Chrome bug on some phones). Type their email or phone number instead.',
-    contactPickLost: 'Your phone closed My Brain while you were picking a contact, so it didn’t come back. Try again, or type their email or phone number.',
-    contactPickStuck: 'Your phone hasn’t sent the contact back. Try again, or type their email or phone number.',
-    noContactPicked: 'No contact was picked. Try again, or type an email or phone number.',
-    filledIn: (name: string) => `${name}’s details are filled in. Press Add to invite them.`,
+    myPeopleHeading: 'Your people',
+    myPeopleHint: 'People you’ve invited before. Type above to find someone.',
+    myPeopleNoMatch: 'No one in your people matches. Press Add to invite them.',
+    addPerson: (name: string) => `Add ${name}`,
     ready: (n: number) => `Invitations ready for ${n} ${n === 1 ? 'person' : 'people'}. Send each one from the next window.`,
     inApp: (n: number) => `${n} ${n === 1 ? 'person uses' : 'people use'} My Brain and will see the invitation there.`,
     shared: (n: number, total: number) =>
@@ -866,7 +860,6 @@ export const messages = {
   /** Page titles (WCAG 2.4.2): shown in the browser tab and read out after moving to another page. */
   pageTitles: {
     dashboard: 'Dashboard',
-    'invite-contact': 'Invite to an event',
     home: 'Tasks',
     capture: 'Capture',
     routines: 'Routines',

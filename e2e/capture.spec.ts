@@ -213,16 +213,11 @@ test.describe('Spec §2/§5/§7: capture works offline and syncs later', () => {
 })
 
 test.describe('Spec §3: PWA install, home-screen shortcut, Web Share Target', () => {
-  test('the manifest has a Capture shortcut and a share target that takes text, links and contact files', async ({ request }) => {
+  test('the manifest has a Capture shortcut and a share target that opens capture', async ({ request }) => {
     const manifest = await (await request.get('/manifest.webmanifest')).json()
     expect(manifest).toMatchObject({ name: 'My Brain', display: 'standalone', start_url: '/' })
     expect(manifest.shortcuts).toEqual([expect.objectContaining({ name: 'Capture', url: '/capture' })])
-    expect(manifest.share_target).toMatchObject({
-      action: '/share',
-      method: 'POST',
-      enctype: 'multipart/form-data',
-      params: { title: 'title', text: 'text', url: 'url', files: [{ name: 'contacts', accept: expect.arrayContaining(['text/vcard', 'text/x-vcard', '.vcf']) }] },
-    })
+    expect(manifest.share_target).toMatchObject({ action: '/capture', method: 'GET' })
     expect(manifest.icons.map((i: { sizes: string }) => i.sizes)).toEqual(expect.arrayContaining(['192x192', '512x512']))
   })
 

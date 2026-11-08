@@ -293,7 +293,7 @@ test.describe('Spec §8: before anyone else uses the app', () => {
     await expect(page.getByRole('status').filter({ hasText: 'Past you left a clean slate.' })).toBeVisible()
     expect(rpc('delete_my_data')).toHaveLength(1)
     expect(rpc('delete_my_data')[0]!.args).toEqual({
-      parts: ['tasks', 'inbox', 'quests', 'vault', 'journal', 'habits', 'routines', 'priority_tasks', 'tags', 'events', 'post_its'],
+      parts: ['tasks', 'inbox', 'quests', 'vault', 'journal', 'habits', 'routines', 'priority_tasks', 'tags', 'events', 'post_its', 'people'],
     })
     await expect(page).toHaveURL(/\/account$/)
     await page.goto('/tasks')
@@ -305,7 +305,7 @@ test.describe('Spec §8: before anyone else uses the app', () => {
     await open(page, '/account')
     await page.getByRole('button', { name: 'Delete my data' }).click()
     const dialog = page.getByRole('dialog', { name: 'Delete your data and start fresh?' })
-    await expect(dialog.getByRole('checkbox')).toHaveCount(11)
+    await expect(dialog.getByRole('checkbox')).toHaveCount(12)
     await expect(dialog.getByRole('checkbox', { name: 'Post Its' })).toBeChecked()
     await dialog.getByRole('button', { name: 'Untick all', exact: true }).click()
     await expect(dialog.getByRole('alert')).toHaveText('Tick at least one thing to delete.')
@@ -318,7 +318,7 @@ test.describe('Spec §8: before anyone else uses the app', () => {
     await expect(dialog.getByTestId('wipe-keeps')).toContainText('Journal entries')
     await dialog.getByRole('button', { name: 'Delete my data' }).click()
     await expect.poll(() => rpc('delete_my_data')[0]?.args).toEqual({
-      parts: ['tasks', 'inbox', 'quests', 'vault', 'habits', 'routines', 'priority_tasks', 'events', 'post_its'],
+      parts: ['tasks', 'inbox', 'quests', 'vault', 'habits', 'routines', 'priority_tasks', 'events', 'post_its', 'people'],
     })
   })
 
