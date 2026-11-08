@@ -51,6 +51,7 @@
         <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
       </div>
       <p class="flex gap-4 text-sm">
+        <RouterLink to="/docs" class="text-muted underline">{{ messages.legal.docs }}</RouterLink>
         <RouterLink to="/privacy" class="text-muted underline">{{ messages.legal.privacy }}</RouterLink>
         <RouterLink to="/terms" class="text-muted underline">{{ messages.legal.terms }}</RouterLink>
       </p>

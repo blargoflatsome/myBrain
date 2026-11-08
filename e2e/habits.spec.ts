@@ -294,6 +294,7 @@ test.describe('Navigation', () => {
       'Quests',
       'Orphans',
       'Account',
+      'Help',
     ])
   })
 

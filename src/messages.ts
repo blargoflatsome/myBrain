@@ -420,6 +420,8 @@ export const messages = {
     failed: 'Couldn’t download your data. Check your connection and try again.',
   },
   legal: {
+    features: 'Features',
+    docs: 'How to use My Brain',
     privacy: 'Privacy policy',
     terms: 'Terms of service',
     back: 'Back',
@@ -829,6 +831,7 @@ export const messages = {
     account: 'Account',
     quests: 'Quests',
     inbox: 'Orphans',
+    help: 'Help',
   },
   /** Page titles (WCAG 2.4.2): shown in the browser tab and read out after moving to another page. */
   pageTitles: {
@@ -848,6 +851,8 @@ export const messages = {
     rsvp: 'Invitation',
     privacy: 'Privacy policy',
     terms: 'Terms of service',
+    features: 'Features',
+    docs: 'How to use My Brain',
     'sign-in': 'Sign in',
   } as Record<string, string>,
   pageTitle: (page: string | undefined) => (page ? `${page} · My Brain` : 'My Brain'),

@@ -105,6 +105,8 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Account', '/account', (p) => expect(p.getByRole('heading', { name: 'Your profile', level: 2 })).toBeVisible()],
   ['Capture page', '/capture', (p) => expect(p.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()],
   ['Privacy', '/privacy', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
+  ['Features', '/features', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
+  ['Docs', '/docs', (p) => expect(p.getByRole('heading', { name: 'How to use My Brain', level: 1 })).toBeVisible()],
   ['Terms', '/terms', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
 ]
 

@@ -23,6 +23,8 @@ file says *how* the code is written.
   components or modules.
 - Messages that need values are small functions: `deleteItem: (title: string) => \`Delete ${title}\``.
 - Messages to other people (guests, invitees) are written plainly from the user, not in the "past you" voice.
+- Long-form pages (Privacy, Terms, Features, Docs) keep their text in their own page file, written plainly for anyone, since it is a document rather than interface wording.
+- **Features and Docs stay current:** any change that adds, alters or removes functionality updates `src/views/FeaturesView.vue` (a short marketing summary of each feature) and `src/views/DocsView.vue` (how to use it) in the same pull request. A review checks both.
 
 ## 3. Where code goes
 
