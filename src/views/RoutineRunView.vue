@@ -1,3 +1,40 @@
+<template>
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-6 pb-28">
+    <template v-if="routine">
+      <div>
+        <RouterLink to="/routines" class="text-sm text-muted underline">{{ m.run.back }}</RouterLink>
+        <h1 class="mt-2 text-2xl font-bold">{{ routine.title }}</h1>
+      </div>
+
+      <template v-if="anytimeFinished">
+        <p class="rounded-2xl bg-surface p-6 text-lg font-medium" role="status" data-testid="routine-finished">{{ m.run.finished }}</p>
+        <button type="button" class="min-h-12 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="startAgain = true">
+          {{ m.run.startAgain }}
+        </button>
+      </template>
+      <section v-else-if="state.current" class="flex flex-col gap-6 rounded-2xl border border-line bg-surface p-6" aria-live="polite">
+        <p class="text-sm text-muted" data-testid="step-of">{{ m.run.stepOf(state.index, state.total) }}</p>
+        <p class="cross-out text-3xl font-bold break-words" :class="{ crossing }" data-testid="current-step">{{ stepTitle }}</p>
+        <p v-if="currentHabit" class="-mt-4 text-sm text-muted" data-testid="habit-step-note">
+          <span v-if="currentHabit.is_priority" class="text-danger">⚠ </span>{{ m.run.habitNote }}
+        </p>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" class="min-h-14 rounded-xl border border-line px-4 text-lg font-medium" :disabled="busy" @click="act('skipped')">
+            {{ m.run.skip }}
+          </button>
+          <button type="button" class="min-h-14 rounded-xl bg-accent px-4 text-lg font-semibold text-accent-ink" :disabled="busy" @click="act('completed')">
+            {{ m.run.completed }}
+          </button>
+        </div>
+      </section>
+
+      <p v-else-if="state.finished" class="rounded-2xl bg-surface p-6 text-lg font-medium" role="status" data-testid="routine-finished">{{ m.run.finished }}</p>
+      <p v-else class="text-muted">{{ m.noSteps }}</p>
+    </template>
+    <p v-else-if="routine === undefined" class="text-muted">{{ m.run.missing }}</p>
+  </main>
+</template>
+
 <script setup lang="ts">
 // SPEC §5 Routines: one step at a time. Skip moves on at once; Completed crosses the step out first.
 // The step 7 notification opens this screen directly (/routines/<id>/run).
@@ -74,43 +111,6 @@ async function act(status: 'completed' | 'skipped') {
   }
 }
 </script>
-
-<template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-6 pb-28">
-    <template v-if="routine">
-      <div>
-        <RouterLink to="/routines" class="text-sm text-muted underline">{{ m.run.back }}</RouterLink>
-        <h1 class="mt-2 text-2xl font-bold">{{ routine.title }}</h1>
-      </div>
-
-      <template v-if="anytimeFinished">
-        <p class="rounded-2xl bg-surface p-6 text-lg font-medium" role="status" data-testid="routine-finished">{{ m.run.finished }}</p>
-        <button type="button" class="min-h-12 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="startAgain = true">
-          {{ m.run.startAgain }}
-        </button>
-      </template>
-      <section v-else-if="state.current" class="flex flex-col gap-6 rounded-2xl border border-line bg-surface p-6" aria-live="polite">
-        <p class="text-sm text-muted" data-testid="step-of">{{ m.run.stepOf(state.index, state.total) }}</p>
-        <p class="cross-out text-3xl font-bold break-words" :class="{ crossing }" data-testid="current-step">{{ stepTitle }}</p>
-        <p v-if="currentHabit" class="-mt-4 text-sm text-muted" data-testid="habit-step-note">
-          <span v-if="currentHabit.is_priority" class="text-danger">⚠ </span>{{ m.run.habitNote }}
-        </p>
-        <div class="grid grid-cols-2 gap-3">
-          <button type="button" class="min-h-14 rounded-xl border border-line px-4 text-lg font-medium" :disabled="busy" @click="act('skipped')">
-            {{ m.run.skip }}
-          </button>
-          <button type="button" class="min-h-14 rounded-xl bg-accent px-4 text-lg font-semibold text-accent-ink" :disabled="busy" @click="act('completed')">
-            {{ m.run.completed }}
-          </button>
-        </div>
-      </section>
-
-      <p v-else-if="state.finished" class="rounded-2xl bg-surface p-6 text-lg font-medium" role="status" data-testid="routine-finished">{{ m.run.finished }}</p>
-      <p v-else class="text-muted">{{ m.noSteps }}</p>
-    </template>
-    <p v-else-if="routine === undefined" class="text-muted">{{ m.run.missing }}</p>
-  </main>
-</template>
 
 <style scoped>
 /* Completed: a strikethrough draws across the step, then it fades and the next step appears (SPEC §5 Routines). */

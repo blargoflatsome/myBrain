@@ -1,22 +1,3 @@
-<script setup lang="ts">
-// SPEC §5: a priority reminder must be marked complete with a slider, so it can't be dismissed by a stray tap.
-// A range input keeps it usable by keyboard and screen readers; it completes only at the far right.
-import { ref } from 'vue'
-
-const props = defineProps<{ label: string; hint: string }>()
-const emit = defineEmits<{ complete: [] }>()
-const value = ref(0)
-
-function release() {
-  if (value.value >= 95) emit('complete')
-  else value.value = 0
-}
-function onInput() {
-  // Keyboard users: reaching the end completes immediately.
-  if (value.value >= 100) emit('complete')
-}
-</script>
-
 <template>
   <div class="relative">
     <input
@@ -40,6 +21,25 @@ function onInput() {
     <span id="slide-hint" class="sr-only">{{ props.hint }}</span>
   </div>
 </template>
+
+<script setup lang="ts">
+// SPEC §5: a priority reminder must be marked complete with a slider, so it can't be dismissed by a stray tap.
+// A range input keeps it usable by keyboard and screen readers; it completes only at the far right.
+import { ref } from 'vue'
+
+const props = defineProps<{ label: string; hint: string }>()
+const emit = defineEmits<{ complete: [] }>()
+const value = ref(0)
+
+function release() {
+  if (value.value >= 95) emit('complete')
+  else value.value = 0
+}
+function onInput() {
+  // Keyboard users: reaching the end completes immediately.
+  if (value.value >= 100) emit('complete')
+}
+</script>
 
 <style scoped>
 .slide::-webkit-slider-thumb {

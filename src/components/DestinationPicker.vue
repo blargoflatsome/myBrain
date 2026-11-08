@@ -1,62 +1,3 @@
-<script setup lang="ts">
-// SPEC §5: choose where a thought goes each time: Task (optional date), The Vault (bucket picker), Quest, or Decide later.
-import { ref } from 'vue'
-import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
-import { messages } from '@/messages'
-import type { CaptureInput, Destination } from '@/capture/capture'
-import type { VaultBucketRow } from '@/sync/types'
-
-const props = withDefaults(defineProps<{ allowLater?: boolean; disabled?: boolean }>(), { allowLater: true, disabled: false })
-const emit = defineEmits<{ choose: [Omit<CaptureInput, 'text'>] }>()
-
-const brain = useBrainStore()
-const m = messages.capture
-const step = ref<'pick' | 'task' | 'vault'>('pick')
-const dueDate = ref('')
-const newBucketName = ref('')
-const addingBucket = ref(false)
-
-const buckets = useLiveQuery<VaultBucketRow[]>(
-  async () => (brain.db ? (await brain.db.vault_buckets.orderBy('position').toArray()).filter((b) => !b.deleted_at) : []),
-  [],
-  [() => brain.db],
-)
-
-const order: Destination[] = ['task', 'vault', 'quest', 'later']
-
-function pick(d: Destination) {
-  if (d === 'task') step.value = 'task'
-  else if (d === 'vault') step.value = 'vault'
-  else finish({ destination: d })
-}
-
-function finish(choice: Omit<CaptureInput, 'text'>) {
-  emit('choose', choice)
-}
-
-async function addBucket() {
-  if (!newBucketName.value.trim()) return
-  const bucket = await brain.createBucket(newBucketName.value)
-  newBucketName.value = ''
-  addingBucket.value = false
-  finish({ destination: 'vault', bucketId: bucket.id })
-}
-
-/** Called by the parent after a save, to start fresh. */
-function reset() {
-  step.value = 'pick'
-  dueDate.value = ''
-  addingBucket.value = false
-  newBucketName.value = ''
-}
-defineExpose({ reset })
-
-const btn =
-  'min-h-12 rounded-xl border border-line bg-surface px-4 text-base font-medium text-ink active:scale-[0.98] disabled:opacity-50'
-const primary = 'min-h-12 rounded-xl bg-accent px-4 text-base font-semibold text-accent-ink disabled:opacity-50'
-</script>
-
 <template>
   <div class="flex flex-col gap-3">
     <template v-if="step === 'pick'">
@@ -118,3 +59,62 @@ const primary = 'min-h-12 rounded-xl bg-accent px-4 text-base font-semibold text
     </template>
   </div>
 </template>
+
+<script setup lang="ts">
+// SPEC §5: choose where a thought goes each time: Task (optional date), The Vault (bucket picker), Quest, or Decide later.
+import { ref } from 'vue'
+import { useBrainStore } from '@/stores/brain'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { messages } from '@/messages'
+import type { CaptureInput, Destination } from '@/capture/capture'
+import type { VaultBucketRow } from '@/sync/types'
+
+const props = withDefaults(defineProps<{ allowLater?: boolean; disabled?: boolean }>(), { allowLater: true, disabled: false })
+const emit = defineEmits<{ choose: [Omit<CaptureInput, 'text'>] }>()
+
+const brain = useBrainStore()
+const m = messages.capture
+const step = ref<'pick' | 'task' | 'vault'>('pick')
+const dueDate = ref('')
+const newBucketName = ref('')
+const addingBucket = ref(false)
+
+const buckets = useLiveQuery<VaultBucketRow[]>(
+  async () => (brain.db ? (await brain.db.vault_buckets.orderBy('position').toArray()).filter((b) => !b.deleted_at) : []),
+  [],
+  [() => brain.db],
+)
+
+const order: Destination[] = ['task', 'vault', 'quest', 'later']
+
+function pick(d: Destination) {
+  if (d === 'task') step.value = 'task'
+  else if (d === 'vault') step.value = 'vault'
+  else finish({ destination: d })
+}
+
+function finish(choice: Omit<CaptureInput, 'text'>) {
+  emit('choose', choice)
+}
+
+async function addBucket() {
+  if (!newBucketName.value.trim()) return
+  const bucket = await brain.createBucket(newBucketName.value)
+  newBucketName.value = ''
+  addingBucket.value = false
+  finish({ destination: 'vault', bucketId: bucket.id })
+}
+
+/** Called by the parent after a save, to start fresh. */
+function reset() {
+  step.value = 'pick'
+  dueDate.value = ''
+  addingBucket.value = false
+  newBucketName.value = ''
+}
+defineExpose({ reset })
+
+const btn =
+  'min-h-12 rounded-xl border border-line bg-surface px-4 text-base font-medium text-ink active:scale-[0.98] disabled:opacity-50'
+const primary = 'min-h-12 rounded-xl bg-accent px-4 text-base font-semibold text-accent-ink disabled:opacity-50'
+</script>

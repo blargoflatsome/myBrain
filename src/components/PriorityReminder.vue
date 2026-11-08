@@ -1,3 +1,29 @@
+<template>
+  <div
+    v-if="current"
+    class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-bg p-6 text-center"
+    role="alertdialog"
+    aria-modal="true"
+    :aria-label="m.overlayLabel"
+    data-testid="priority-reminder"
+  >
+    <div class="flex max-w-md flex-col gap-3">
+      <p class="text-sm font-semibold tracking-wide text-danger uppercase">⚠ {{ m.eyebrow }}</p>
+      <h2 class="text-4xl font-bold break-words" data-testid="priority-title">{{ current.title }}</h2>
+      <p v-if="current.description" class="text-lg text-muted">{{ current.description }}</p>
+      <p v-if="due.length > 1" class="text-sm text-muted">{{ m.more(due.length - 1) }}</p>
+    </div>
+    <div class="flex w-full max-w-md flex-col gap-4">
+      <SlideToComplete :key="`${current.id}-${slider}`" :label="m.slide" :hint="m.slideHint" @complete="act('complete')" />
+      <div class="grid grid-cols-2 gap-3">
+        <button type="button" class="min-h-12 rounded-xl border border-line px-4 font-medium" @click="act('snooze')">{{ m.snooze }}</button>
+        <button type="button" class="min-h-12 rounded-xl border border-line px-4 font-medium" @click="act('cancel')">{{ m.cancel }}</button>
+      </div>
+    </div>
+    <p class="max-w-md text-xs text-muted">{{ m.reliability }}</p>
+  </div>
+</template>
+
 <script setup lang="ts">
 // SPEC §5: full-screen reminder for due priority habits and tasks. Stays until slide to complete, Snooze or Cancel.
 import { computed, onScopeDispose, ref } from 'vue'
@@ -41,29 +67,3 @@ async function act(kind: 'complete' | 'snooze' | 'cancel') {
   now.value = new Date()
 }
 </script>
-
-<template>
-  <div
-    v-if="current"
-    class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-bg p-6 text-center"
-    role="alertdialog"
-    aria-modal="true"
-    :aria-label="m.overlayLabel"
-    data-testid="priority-reminder"
-  >
-    <div class="flex max-w-md flex-col gap-3">
-      <p class="text-sm font-semibold tracking-wide text-danger uppercase">⚠ {{ m.eyebrow }}</p>
-      <h2 class="text-4xl font-bold break-words" data-testid="priority-title">{{ current.title }}</h2>
-      <p v-if="current.description" class="text-lg text-muted">{{ current.description }}</p>
-      <p v-if="due.length > 1" class="text-sm text-muted">{{ m.more(due.length - 1) }}</p>
-    </div>
-    <div class="flex w-full max-w-md flex-col gap-4">
-      <SlideToComplete :key="`${current.id}-${slider}`" :label="m.slide" :hint="m.slideHint" @complete="act('complete')" />
-      <div class="grid grid-cols-2 gap-3">
-        <button type="button" class="min-h-12 rounded-xl border border-line px-4 font-medium" @click="act('snooze')">{{ m.snooze }}</button>
-        <button type="button" class="min-h-12 rounded-xl border border-line px-4 font-medium" @click="act('cancel')">{{ m.cancel }}</button>
-      </div>
-    </div>
-    <p class="max-w-md text-xs text-muted">{{ m.reliability }}</p>
-  </div>
-</template>

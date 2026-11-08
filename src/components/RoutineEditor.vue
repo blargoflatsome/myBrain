@@ -1,3 +1,101 @@
+<template>
+  <dialog
+    ref="dialog"
+    :class="dialogBox"
+    :aria-label="isNew ? m.editor.newHeading : m.editor.heading"
+    @close="emit('close')"
+  >
+    <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
+      <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
+      <label class="flex flex-col gap-1 text-sm text-muted">
+        {{ m.editor.title }}
+        <input v-model="title" maxlength="500" required :class="field">
+      </label>
+      <label class="flex items-center justify-between gap-4">
+        <span>
+          <span class="font-medium">{{ m.editor.anytime }}</span>
+          <span class="block text-xs text-muted">{{ m.editor.anytimeHint }}</span>
+        </span>
+        <input v-model="anytime" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+      </label>
+      <TimeInput v-if="!anytime" v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
+      <fieldset v-if="!anytime" class="flex flex-col gap-2">
+        <legend class="mb-1 text-sm text-muted">{{ m.editor.weekdays }}</legend>
+        <div class="flex flex-wrap gap-1.5" role="group" :aria-label="m.editor.weekdays">
+          <button v-for="d in ALL_WEEKDAYS" :key="d" type="button" :class="dayChip(weekdays.includes(d))" :aria-pressed="weekdays.includes(d)" @click="toggleDay(d)">
+            {{ dayNames[d] }}
+          </button>
+        </div>
+      </fieldset>
+      <HowOften v-if="!anytime" v-model="weekInterval" />
+      <fieldset class="flex flex-col gap-2">
+        <legend class="mb-1 text-sm text-muted">{{ m.editor.steps }}</legend>
+        <p v-if="stepRows.length > 1" class="-mt-1 text-xs text-muted">{{ m.editor.dragHint }}</p>
+        <ol ref="stepList" class="flex flex-col gap-2">
+          <li v-for="(s, i) in stepRows" :key="s.key" class="flex flex-wrap items-center gap-1.5" data-testid="routine-step-row">
+            <button
+              type="button"
+              class="drag-handle flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-xl text-xl text-muted active:cursor-grabbing"
+              :aria-label="m.editor.drag(s.title || m.editor.stepLabel(i + 1))"
+              :data-handle="s.key"
+              :aria-expanded="moving === s.key"
+              @keydown="moveByKey($event, i)"
+              @click="moving = moving === s.key ? null : s.key"
+            >
+              <span aria-hidden="true">⠿</span>
+            </button>
+            <span
+              v-if="s.habitId"
+              class="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-xl border border-accent/50 bg-bg px-3 text-base"
+              data-testid="habit-step"
+            >
+              <span class="truncate">{{ habitById(s.habitId)?.title ?? s.title }}</span>
+              <span v-if="habitById(s.habitId)?.is_priority" class="text-danger" :aria-label="messages.habits.priorityBadge">⚠</span>
+              <span class="ml-auto shrink-0 text-xs text-muted">{{ m.editor.habitTag }}</span>
+            </span>
+            <input v-else v-model="s.title" maxlength="500" :aria-label="m.editor.stepLabel(i + 1)" :placeholder="m.editor.stepLabel(i + 1)" :class="[field, 'min-w-0 flex-1']">
+            <button type="button" :class="small" :aria-label="m.editor.removeStep(s.title)" @click="remove(i)">✕</button>
+            <div v-if="moving === s.key" class="flex w-full gap-2 pl-12" role="group" :aria-label="m.editor.moveGroup(s.title || m.editor.stepLabel(i + 1))">
+              <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="i === 0" :data-move="s.key" :data-step="-1" @click="moveByButton(i, -1)">↑ {{ messages.moveUp }}</button>
+              <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="i === stepRows.length - 1" :data-move="s.key" :data-step="1" @click="moveByButton(i, 1)">↓ {{ messages.moveDown }}</button>
+            </div>
+          </li>
+        </ol>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" class="min-h-11 rounded-xl border border-dashed border-line px-3 text-sm" @click="addStep">{{ m.editor.addStep }}</button>
+          <button
+            v-if="habitChoices.length && !choosingHabit"
+            type="button"
+            class="min-h-11 rounded-xl border border-dashed border-line px-3 text-sm"
+            @click="choosingHabit = true"
+          >
+            {{ m.editor.addHabit }}
+          </button>
+          <select v-if="choosingHabit" :class="[field, 'min-h-11']" :aria-label="m.editor.chooseHabit" @change="addHabitStep">
+            <option value="">{{ m.editor.chooseHabit }}</option>
+            <option v-for="h in habitChoices" :key="h.id" :value="h.id">{{ h.is_priority ? `⚠ ${h.title}` : h.title }}</option>
+          </select>
+        </div>
+        <p v-if="stepRows.some((r) => r.habitId)" class="text-xs text-muted">{{ m.editor.habitHint }}</p>
+      </fieldset>
+      <div class="flex gap-2">
+        <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
+        <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
+      </div>
+      <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.open()">{{ m.editor.delete }}</button>
+    </form>
+  </dialog>
+
+  <ConfirmDialog
+    ref="confirmDialog"
+    :heading="m.confirmDelete.heading"
+    :body="m.confirmDelete.body(routine?.title ?? '')"
+    :confirm-label="m.confirmDelete.confirm"
+    :keep-label="m.confirmDelete.keep"
+    @confirm="confirmDelete"
+  />
+</template>
+
 <script setup lang="ts">
 // New or edit routine: title, reminder time and weekdays (or run anytime), ordered steps that can be my own text or
 // one of my habits (SPEC §5 Routines). Delete asks first (SPEC §2).
@@ -10,6 +108,9 @@ import { arrowStep, useDragSort } from '@/composables/useDragSort'
 import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
 import { ALL_WEEKDAYS } from '@/routines/rules'
 import { messages } from '@/messages'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { dayChip, dialogBox, field } from '@/ui/styles'
+import { live } from '@/sync/live'
 
 const props = defineProps<{ routine: RoutineRow | null; steps: RoutineStepRow[]; isNew?: boolean }>()
 const emit = defineEmits<{ save: [RoutineRow, { id?: string; title: string; habitId?: string | null }[]]; delete: [RoutineRow]; close: [] }>()
@@ -17,7 +118,7 @@ const m = messages.routines
 const dayNames = messages.habits.weekdayNames
 
 const dialog = ref<HTMLDialogElement | null>(null)
-const confirmDialog = ref<HTMLDialogElement | null>(null)
+const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const title = ref('')
 const notifyTime = ref('')
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
@@ -28,7 +129,7 @@ const stepRows = ref<{ key: string; id?: string; title: string; habitId?: string
 // My habits, for habit steps.
 const brain = useBrainStore()
 const habits = useLiveQuery<HabitRow[]>(
-  async () => (brain.db ? (await brain.db.habits.toArray()).filter((h) => !h.deleted_at).sort((a, b) => a.title.localeCompare(b.title)) : []),
+  async () => (brain.db ? live(await brain.db.habits.toArray()).sort((a, b) => a.title.localeCompare(b.title)) : []),
   [],
   [() => brain.db],
 )
@@ -125,113 +226,5 @@ function confirmDelete() {
   confirmDialog.value?.close()
 }
 
-const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-ink'
-const chip = (on: boolean) => [
-  'min-h-11 min-w-11 rounded-full border px-2 text-sm',
-  on ? 'border-accent bg-accent font-semibold text-accent-ink' : 'border-line bg-surface text-ink',
-]
 const small = 'min-h-11 min-w-11 rounded-xl border border-line px-2 text-sm disabled:opacity-40'
 </script>
-
-<template>
-  <dialog
-    ref="dialog"
-    class="m-auto w-[min(100%-2rem,32rem)] rounded-2xl border border-line bg-surface p-0 text-ink backdrop:bg-black/40"
-    :aria-label="isNew ? m.editor.newHeading : m.editor.heading"
-    @close="emit('close')"
-  >
-    <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
-      <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.title }}
-        <input v-model="title" maxlength="500" required :class="field">
-      </label>
-      <label class="flex items-center justify-between gap-4">
-        <span>
-          <span class="font-medium">{{ m.editor.anytime }}</span>
-          <span class="block text-xs text-muted">{{ m.editor.anytimeHint }}</span>
-        </span>
-        <input v-model="anytime" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
-      </label>
-      <TimeInput v-if="!anytime" v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
-      <fieldset v-if="!anytime" class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted">{{ m.editor.weekdays }}</legend>
-        <div class="flex flex-wrap gap-1.5" role="group" :aria-label="m.editor.weekdays">
-          <button v-for="d in ALL_WEEKDAYS" :key="d" type="button" :class="chip(weekdays.includes(d))" :aria-pressed="weekdays.includes(d)" @click="toggleDay(d)">
-            {{ dayNames[d] }}
-          </button>
-        </div>
-      </fieldset>
-      <HowOften v-if="!anytime" v-model="weekInterval" />
-      <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted">{{ m.editor.steps }}</legend>
-        <p v-if="stepRows.length > 1" class="-mt-1 text-xs text-muted">{{ m.editor.dragHint }}</p>
-        <ol ref="stepList" class="flex flex-col gap-2">
-          <li v-for="(s, i) in stepRows" :key="s.key" class="flex flex-wrap items-center gap-1.5" data-testid="routine-step-row">
-            <button
-              type="button"
-              class="drag-handle flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-xl text-xl text-muted active:cursor-grabbing"
-              :aria-label="m.editor.drag(s.title || m.editor.stepLabel(i + 1))"
-              :data-handle="s.key"
-              :aria-expanded="moving === s.key"
-              @keydown="moveByKey($event, i)"
-              @click="moving = moving === s.key ? null : s.key"
-            >
-              <span aria-hidden="true">⠿</span>
-            </button>
-            <span
-              v-if="s.habitId"
-              class="flex min-h-12 min-w-0 flex-1 items-center gap-2 rounded-xl border border-accent/50 bg-bg px-3 text-base"
-              data-testid="habit-step"
-            >
-              <span class="truncate">{{ habitById(s.habitId)?.title ?? s.title }}</span>
-              <span v-if="habitById(s.habitId)?.is_priority" class="text-danger" :aria-label="messages.habits.priorityBadge">⚠</span>
-              <span class="ml-auto shrink-0 text-xs text-muted">{{ m.editor.habitTag }}</span>
-            </span>
-            <input v-else v-model="s.title" maxlength="500" :aria-label="m.editor.stepLabel(i + 1)" :placeholder="m.editor.stepLabel(i + 1)" :class="[field, 'min-w-0 flex-1']">
-            <button type="button" :class="small" :aria-label="m.editor.removeStep(s.title)" @click="remove(i)">✕</button>
-            <div v-if="moving === s.key" class="flex w-full gap-2 pl-12" role="group" :aria-label="m.editor.moveGroup(s.title || m.editor.stepLabel(i + 1))">
-              <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="i === 0" :data-move="s.key" :data-step="-1" @click="moveByButton(i, -1)">↑ {{ messages.moveUp }}</button>
-              <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="i === stepRows.length - 1" :data-move="s.key" :data-step="1" @click="moveByButton(i, 1)">↓ {{ messages.moveDown }}</button>
-            </div>
-          </li>
-        </ol>
-        <div class="flex flex-wrap items-center gap-2">
-          <button type="button" class="min-h-11 rounded-xl border border-dashed border-line px-3 text-sm" @click="addStep">{{ m.editor.addStep }}</button>
-          <button
-            v-if="habitChoices.length && !choosingHabit"
-            type="button"
-            class="min-h-11 rounded-xl border border-dashed border-line px-3 text-sm"
-            @click="choosingHabit = true"
-          >
-            {{ m.editor.addHabit }}
-          </button>
-          <select v-if="choosingHabit" :class="[field, 'min-h-11']" :aria-label="m.editor.chooseHabit" @change="addHabitStep">
-            <option value="">{{ m.editor.chooseHabit }}</option>
-            <option v-for="h in habitChoices" :key="h.id" :value="h.id">{{ h.is_priority ? `⚠ ${h.title}` : h.title }}</option>
-          </select>
-        </div>
-        <p v-if="stepRows.some((r) => r.habitId)" class="text-xs text-muted">{{ m.editor.habitHint }}</p>
-      </fieldset>
-      <div class="flex gap-2">
-        <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
-        <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
-      </div>
-      <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.showModal()">{{ m.editor.delete }}</button>
-    </form>
-  </dialog>
-
-  <dialog
-    ref="confirmDialog"
-    class="m-auto w-[min(100%-2rem,24rem)] rounded-2xl border border-line bg-surface p-5 text-ink backdrop:bg-black/50"
-    role="alertdialog"
-    :aria-label="m.confirmDelete.heading"
-  >
-    <h2 class="text-lg font-semibold">{{ m.confirmDelete.heading }}</h2>
-    <p class="mt-2 text-muted">{{ m.confirmDelete.body(routine?.title ?? '') }}</p>
-    <div class="mt-4 flex gap-2">
-      <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink" @click="confirmDelete">{{ m.confirmDelete.confirm }}</button>
-      <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDialog?.close()">{{ m.confirmDelete.keep }}</button>
-    </div>
-  </dialog>
-</template>

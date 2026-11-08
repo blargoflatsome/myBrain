@@ -1,12 +1,27 @@
+<template>
+  <div class="flex flex-col gap-1" data-testid="journal-tomorrow-box">
+    <span class="text-sm font-medium">{{ m.tomorrowLabel }}</span>
+    <RichTextEditor
+      :model-value="draft ?? entry?.tomorrow ?? ''"
+      :label="m.tomorrowLabel"
+      min-height="6rem"
+      @update:model-value="onInput"
+      @blur="save"
+    />
+  </div>
+</template>
+
 <script setup lang="ts">
 // SPEC §5 Journal: "How to make tomorrow better?", formatted like the main writing, saved as I type.
-import { onScopeDispose, ref } from 'vue'
-import RichTextEditor from '@/components/RichTextEditor.vue'
+import { defineAsyncComponent, onScopeDispose, ref } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { onPageHide } from '@/composables/usePageHide'
 import { normalizeBody } from '@/journal/body'
 import { messages } from '@/messages'
 import type { JournalEntryRow } from '@/sync/types'
+
+// The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
+const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
 
 const props = defineProps<{ date: string; entry?: JournalEntryRow }>()
 const brain = useBrainStore()
@@ -29,16 +44,3 @@ async function save() {
 onPageHide(() => void save())
 onScopeDispose(() => void save())
 </script>
-
-<template>
-  <div class="flex flex-col gap-1" data-testid="journal-tomorrow-box">
-    <span class="text-sm font-medium">{{ m.tomorrowLabel }}</span>
-    <RichTextEditor
-      :model-value="draft ?? entry?.tomorrow ?? ''"
-      :label="m.tomorrowLabel"
-      min-height="6rem"
-      @update:model-value="onInput"
-      @blur="save"
-    />
-  </div>
-</template>

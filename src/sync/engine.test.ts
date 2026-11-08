@@ -224,3 +224,12 @@ describe('Spec §7: small online/offline/syncing indicator', () => {
     expect((await db.outbox.toArray())[0]?.error).toMatch(/row-level security/)
   })
 })
+
+describe('Spec §5 Shared events: invitations change only through server functions', () => {
+  it('the device refuses to write an invitation directly', async () => {
+    const invite = { id: 'i1', user_id: 'u', event_id: 'e1', response: 'yes', deleted_at: null } as never
+    await expect(engine.save('event_invites', invite)).rejects.toThrow(/read-only/)
+    await expect(engine.patch('event_invites', 'i1', () => ({}))).rejects.toThrow(/read-only/)
+    expect(await db.outbox.count()).toBe(0)
+  })
+})

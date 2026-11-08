@@ -1,102 +1,3 @@
-<script setup lang="ts">
-// SPEC §5 Tasks: daily list (with carry-over), scheduling for other days, and the Undated list.
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import TaskItem from '@/components/TaskItem.vue'
-import TaskEditor from '@/components/TaskEditor.vue'
-import PriorityTasks from '@/components/PriorityTasks.vue'
-import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
-import { useToday } from '@/composables/useToday'
-import { addDays, daysBetween } from '@/tasks/days'
-import { cancelTask, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
-import { messages } from '@/messages'
-import type { TaskRow } from '@/sync/types'
-
-const brain = useBrainStore()
-const m = messages.tasks
-const { today, timeZone } = useToday()
-
-const view = ref<'day' | 'undated' | 'priority'>('day')
-const day = ref(today.value)
-// When midnight passes while the app is open on today, follow it to the new day.
-watch(today, (next, prev) => {
-  if (day.value === prev) day.value = next
-})
-
-const all = useLiveQuery<TaskRow[]>(async () => (brain.db ? brain.db.tasks.toArray() : []), [], [() => brain.db])
-const list = computed(() => (view.value === 'undated' ? undatedTasks(all.value) : tasksForDay(all.value, day.value, today.value, timeZone.value)))
-
-const offset = computed(() => daysBetween(today.value, day.value))
-const dayLabel = computed(() => {
-  if (offset.value === 0) return m.day.today
-  if (offset.value === 1) return m.day.tomorrow
-  if (offset.value === -1) return m.day.yesterday
-  const [y, mo, d] = day.value.split('-').map(Number)
-  return new Date(y!, mo! - 1, d!).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-})
-
-const emptyText = computed(() => {
-  if (view.value === 'undated') return m.emptyUndated
-  if (offset.value < 0) return m.emptyPast
-  return offset.value === 0 ? m.emptyToday : m.emptyFuture
-})
-const allDoneToday = computed(
-  () => view.value === 'day' && offset.value === 0 && list.value.length > 0 && list.value.every((t) => t.status === 'done'),
-)
-
-const newTitle = ref('')
-const addLabel = computed(() =>
-  view.value === 'undated' ? m.addPlaceholderUndated : m.addPlaceholder(offset.value === 0 || offset.value === 1 ? dayLabel.value.toLowerCase() : dayLabel.value),
-)
-const canAdd = computed(() => view.value === 'undated' || offset.value >= 0)
-async function add() {
-  await brain.addTask(newTitle.value, view.value === 'undated' ? null : day.value)
-  newTitle.value = ''
-}
-
-const editing = ref<TaskRow | null>(null)
-const route = useRoute()
-const router = useRouter()
-// Opened with ?priority=<id> (from the calendar): show the Priority tab and open that priority task.
-const openPriority = ref<string | null>(null)
-watch(
-  () => route.query.priority,
-  (id) => {
-    if (typeof id !== 'string') return
-    view.value = 'priority'
-    openPriority.value = id
-  },
-  { immediate: true },
-)
-// Opened with ?task=<id> (from search or the calendar): show its day and open its editor.
-watch(
-  [() => route.query.task, all],
-  ([id]) => {
-    if (typeof id !== 'string') return
-    const task = all.value.find((t) => t.id === id && !t.deleted_at)
-    if (!task) return
-    if (task.due_date) {
-      view.value = 'day'
-      day.value = task.due_date < today.value && task.status === 'open' ? today.value : task.due_date
-    } else view.value = 'undated'
-    editing.value = task
-    void router.replace({ query: {} })
-  },
-  { immediate: true },
-)
-async function saveEdit(t: TaskRow) {
-  await brain.saveTask(t)
-  editing.value = null
-}
-async function remove(t: TaskRow) {
-  await brain.deleteTask(t.id)
-  editing.value = null
-}
-
-const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
-</script>
-
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-28">
     <div>
@@ -174,3 +75,102 @@ const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
     <TaskEditor :task="editing" @save="saveEdit" @delete="remove" @close="editing = null" />
   </main>
 </template>
+
+<script setup lang="ts">
+// SPEC §5 Tasks: daily list (with carry-over), scheduling for other days, and the Undated list.
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import TaskItem from '@/components/TaskItem.vue'
+import TaskEditor from '@/components/TaskEditor.vue'
+import PriorityTasks from '@/components/PriorityTasks.vue'
+import { useBrainStore } from '@/stores/brain'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { useToday } from '@/composables/useToday'
+import { addDays, daysBetween } from '@/tasks/days'
+import { cancelTask, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
+import { messages } from '@/messages'
+import type { TaskRow } from '@/sync/types'
+import { shortDay } from '@/ui/dates'
+
+const brain = useBrainStore()
+const m = messages.tasks
+const { today, timeZone } = useToday()
+
+const view = ref<'day' | 'undated' | 'priority'>('day')
+const day = ref(today.value)
+// When midnight passes while the app is open on today, follow it to the new day.
+watch(today, (next, prev) => {
+  if (day.value === prev) day.value = next
+})
+
+const all = useLiveQuery<TaskRow[]>(async () => (brain.db ? brain.db.tasks.toArray() : []), [], [() => brain.db])
+const list = computed(() => (view.value === 'undated' ? undatedTasks(all.value) : tasksForDay(all.value, day.value, today.value, timeZone.value)))
+
+const offset = computed(() => daysBetween(today.value, day.value))
+const dayLabel = computed(() => {
+  if (offset.value === 0) return m.day.today
+  if (offset.value === 1) return m.day.tomorrow
+  if (offset.value === -1) return m.day.yesterday
+  return shortDay(day.value)
+})
+
+const emptyText = computed(() => {
+  if (view.value === 'undated') return m.emptyUndated
+  if (offset.value < 0) return m.emptyPast
+  return offset.value === 0 ? m.emptyToday : m.emptyFuture
+})
+const allDoneToday = computed(
+  () => view.value === 'day' && offset.value === 0 && list.value.length > 0 && list.value.every((t) => t.status === 'done'),
+)
+
+const newTitle = ref('')
+const addLabel = computed(() =>
+  view.value === 'undated' ? m.addPlaceholderUndated : m.addPlaceholder(offset.value === 0 || offset.value === 1 ? dayLabel.value.toLowerCase() : dayLabel.value),
+)
+const canAdd = computed(() => view.value === 'undated' || offset.value >= 0)
+async function add() {
+  await brain.addTask(newTitle.value, view.value === 'undated' ? null : day.value)
+  newTitle.value = ''
+}
+
+const editing = ref<TaskRow | null>(null)
+const route = useRoute()
+const router = useRouter()
+// Opened with ?priority=<id> (from the calendar): show the Priority tab and open that priority task.
+const openPriority = ref<string | null>(null)
+watch(
+  () => route.query.priority,
+  (id) => {
+    if (typeof id !== 'string') return
+    view.value = 'priority'
+    openPriority.value = id
+  },
+  { immediate: true },
+)
+// Opened with ?task=<id> (from search or the calendar): show its day and open its editor.
+watch(
+  [() => route.query.task, all],
+  ([id]) => {
+    if (typeof id !== 'string') return
+    const task = all.value.find((t) => t.id === id && !t.deleted_at)
+    if (!task) return
+    if (task.due_date) {
+      view.value = 'day'
+      day.value = task.due_date < today.value && task.status === 'open' ? today.value : task.due_date
+    } else view.value = 'undated'
+    editing.value = task
+    void router.replace({ query: {} })
+  },
+  { immediate: true },
+)
+async function saveEdit(t: TaskRow) {
+  await brain.saveTask(t)
+  editing.value = null
+}
+async function remove(t: TaskRow) {
+  await brain.deleteTask(t.id)
+  editing.value = null
+}
+
+const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
+</script>

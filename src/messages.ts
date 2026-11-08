@@ -1,5 +1,4 @@
 // Every piece of wording the app says to the user lives here, in the "past you" voice (SPEC §2 Voice and tone).
-// Capture, inbox and sync wording approved 2026-11-06.
 export const messages = {
   appName: 'My Brain',
   signIn: {
@@ -55,7 +54,6 @@ export const messages = {
     emptyError: 'Nothing to save yet. What did past you want to remember?',
   },
   tasks: {
-    // Drafted by Claude at the user's request (2026-11-06); adjust freely.
     heading: 'Tasks',
     intro: 'Let\'s get these To-Done.',
     todayHeading: 'Today',
@@ -96,7 +94,6 @@ export const messages = {
     },
   },
   quests: {
-    // Drafted by Claude in the established voice (2026-11-06); adjust freely.
     heading: 'Random Quest',
     intro: 'Bored? We have a quest for that.',
     energyLabel: "How's your energy?",
@@ -135,7 +132,6 @@ export const messages = {
     },
   },
   habits: {
-    // Intro line chosen by the user (2026-11-06, SPEC §5 Habits). The rest drafted by Claude in the established voice.
     intro: 'You are only in competition with yourself.',
     heading: 'Habits',
     todayHeading: 'Today',
@@ -181,7 +177,6 @@ export const messages = {
     },
   },
   routines: {
-    // Drafted by Claude in the established voice (2026-11-06); adjust freely.
     heading: 'Routines',
     intro: "Past you lined these up so present you doesn't have to think.",
     empty: "Past you hasn't set up any routines yet.",
@@ -242,7 +237,6 @@ export const messages = {
     },
   },
   priority: {
-    // Drafted by Claude in the established voice (2026-11-06); adjust freely.
     overlayLabel: 'Priority reminder',
     eyebrow: 'Past you marked this as important',
     slide: 'Slide to complete',
@@ -281,7 +275,6 @@ export const messages = {
     },
   },
   journal: {
-    // Wording approved by the user (2026-11-06).
     heading: 'Journal',
     subtitle: 'How did today go?',
     today: 'Today',
@@ -326,7 +319,6 @@ export const messages = {
     biweekly: 'Every 2 weeks',
   },
   welcome: {
-    // Wording approved by the user (2026-11-07).
     heading: 'One more thing',
     body: 'Past you needs a phone number for event invites.',
     phone: 'Phone number',
@@ -422,7 +414,7 @@ export const messages = {
     back: 'Back',
   },
   invites: {
-    // Wording approved by the user (2026-11-07). Messages to other people are written from me to them.
+    // Messages to other people are written from me to them, not in the "past you" voice.
     people: 'People',
     peopleHint: 'Invite friends by name, email or phone number.',
     search: 'Find people by name',
@@ -574,7 +566,6 @@ export const messages = {
     routines: 'Routines',
   },
   vault: {
-    // Wording approved by the user (2026-11-06).
     heading: 'The Vault',
     intro: 'Things worth remembering that are not tasks.',
     bucketsHeading: 'Buckets',
@@ -653,7 +644,6 @@ export const messages = {
     openMap: 'Open in maps',
   },
   search: {
-    // Wording approved by the user (2026-11-06).
     open: 'Search',
     windowLabel: 'Search',
     placeholder: 'Search everything',
@@ -665,7 +655,6 @@ export const messages = {
     type: { task: 'Task', event: 'Event', journal_entry: 'Journal', vault_item: 'Vault', quest: 'Quest' },
   },
   calendar: {
-    // Wording approved by the user (2026-11-06).
     heading: 'Calendar',
     newEvent: '+ New event',
     emptyDay: 'Nothing planned. Past you left today open.',

@@ -1,101 +1,3 @@
-<script setup lang="ts">
-// SPEC §5 Calendar and reminders: add or edit a personal event: title, start and end (or all day), repeat,
-// reminder, notes, tags. Delete asks first; deleting a repeating event deletes the whole series.
-import TimeInput from '@/components/TimeInput.vue'
-import { computed, ref, watch } from 'vue'
-import TagInput from '@/components/TagInput.vue'
-import EventPeople from '@/components/EventPeople.vue'
-import type { PersonToInvite } from '@/events/sharing'
-import { useItemTags } from '@/composables/useItemTags'
-import { eventProblem, REMINDERS, REPEATS } from '@/events/rules'
-import { messages } from '@/messages'
-import type { EventRepeat, EventRow } from '@/sync/types'
-
-const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
-const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow]; close: []; cancel: [EventRow] }>()
-const m = messages.calendar
-
-const dialog = ref<HTMLDialogElement | null>(null)
-const confirmDialog = ref<HTMLDialogElement | null>(null)
-const title = ref('')
-const allDay = ref(false)
-const startDate = ref('')
-const startTime = ref('09:00')
-const endDate = ref('')
-const endTime = ref('10:00')
-const repeat = ref<EventRepeat>('never')
-const reminder = ref<number | null>(null)
-const notes = ref('')
-const error = ref('')
-const tags = useItemTags('event', computed(() => props.event?.id))
-// People to invite when saving (SPEC §5 Shared events).
-const people = ref<PersonToInvite[]>([])
-function useSuggestion(s: { date: string; start: string; end: string }) {
-  allDay.value = false
-  startDate.value = s.date
-  endDate.value = s.date
-  startTime.value = s.start
-  endTime.value = s.end
-}
-
-watch(
-  () => props.event,
-  (e) => {
-    if (!e) return dialog.value?.close()
-    title.value = e.title
-    allDay.value = !e.start_time
-    startDate.value = e.start_date
-    endDate.value = e.end_date
-    startTime.value = e.start_time?.slice(0, 5) ?? '09:00'
-    endTime.value = e.end_time?.slice(0, 5) ?? '10:00'
-    repeat.value = e.repeat
-    reminder.value = e.reminder_minutes
-    notes.value = e.notes ?? ''
-    error.value = ''
-    people.value = []
-    dialog.value?.showModal()
-  },
-)
-// Moving the start keeps the end after it.
-watch(startDate, (d, before) => {
-  if (!before || !endDate.value) return
-  if (endDate.value < d) endDate.value = d
-})
-
-const draft = computed<EventRow | null>(() =>
-  props.event
-    ? {
-        ...props.event,
-        title: title.value.trim(),
-        start_date: startDate.value,
-        end_date: endDate.value || startDate.value,
-        start_time: allDay.value ? null : startTime.value,
-        end_time: allDay.value ? null : endTime.value,
-        repeat: repeat.value,
-        reminder_minutes: reminder.value,
-        notes: notes.value.trim() || null,
-      }
-    : null,
-)
-
-async function save() {
-  const row = draft.value
-  if (!row) return
-  const problem = eventProblem(row)
-  if (problem) {
-    error.value = problem === 'title' ? m.editor.titleError : m.editor.endError
-    return
-  }
-  await tags.save(row.id)
-  emit('save', row, people.value)
-}
-function confirmDelete() {
-  if (props.event) emit('delete', props.event)
-  confirmDialog.value?.close()
-}
-const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-base text-ink'
-</script>
-
 <template>
   <dialog
     ref="dialog"
@@ -172,23 +74,117 @@ const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-bas
       >
         {{ messages.cancelEvent.button }}
       </button>
-      <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.showModal()">
+      <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.open()">
         {{ m.editor.delete }}
       </button>
     </form>
   </dialog>
 
-  <dialog
+  <ConfirmDialog
     ref="confirmDialog"
-    class="m-auto w-[min(100%-2rem,24rem)] rounded-2xl border border-line bg-surface p-5 text-ink backdrop:bg-black/50"
-    role="alertdialog"
-    :aria-label="m.confirmDelete.heading"
-  >
-    <h2 class="text-lg font-semibold">{{ m.confirmDelete.heading }}</h2>
-    <p class="mt-2 text-muted">{{ m.confirmDelete.body(event?.title ?? '', (event?.repeat ?? 'never') !== 'never') }}</p>
-    <div class="mt-4 flex gap-2">
-      <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink" @click="confirmDelete">{{ m.confirmDelete.confirm }}</button>
-      <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDialog?.close()">{{ m.confirmDelete.keep }}</button>
-    </div>
-  </dialog>
+    :heading="m.confirmDelete.heading"
+    :body="m.confirmDelete.body(event?.title ?? '', (event?.repeat ?? 'never') !== 'never')"
+    :confirm-label="m.confirmDelete.confirm"
+    :keep-label="m.confirmDelete.keep"
+    @confirm="confirmDelete"
+  />
 </template>
+
+<script setup lang="ts">
+// SPEC §5 Calendar and reminders: add or edit a personal event: title, start and end (or all day), repeat,
+// reminder, notes, tags. Delete asks first; deleting a repeating event deletes the whole series.
+import TimeInput from '@/components/TimeInput.vue'
+import { computed, ref, watch } from 'vue'
+import TagInput from '@/components/TagInput.vue'
+import EventPeople from '@/components/EventPeople.vue'
+import type { PersonToInvite } from '@/events/sharing'
+import { useItemTags } from '@/composables/useItemTags'
+import { eventProblem, REMINDERS, REPEATS } from '@/events/rules'
+import { messages } from '@/messages'
+import type { EventRepeat, EventRow } from '@/sync/types'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { field } from '@/ui/styles'
+
+const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
+const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow]; close: []; cancel: [EventRow] }>()
+const m = messages.calendar
+
+const dialog = ref<HTMLDialogElement | null>(null)
+const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
+const title = ref('')
+const allDay = ref(false)
+const startDate = ref('')
+const startTime = ref('09:00')
+const endDate = ref('')
+const endTime = ref('10:00')
+const repeat = ref<EventRepeat>('never')
+const reminder = ref<number | null>(null)
+const notes = ref('')
+const error = ref('')
+const tags = useItemTags('event', computed(() => props.event?.id))
+// People to invite when saving (SPEC §5 Shared events).
+const people = ref<PersonToInvite[]>([])
+function useSuggestion(s: { date: string; start: string; end: string }) {
+  allDay.value = false
+  startDate.value = s.date
+  endDate.value = s.date
+  startTime.value = s.start
+  endTime.value = s.end
+}
+
+watch(
+  () => props.event,
+  (e) => {
+    if (!e) return dialog.value?.close()
+    title.value = e.title
+    allDay.value = !e.start_time
+    startDate.value = e.start_date
+    endDate.value = e.end_date
+    startTime.value = e.start_time?.slice(0, 5) ?? '09:00'
+    endTime.value = e.end_time?.slice(0, 5) ?? '10:00'
+    repeat.value = e.repeat
+    reminder.value = e.reminder_minutes
+    notes.value = e.notes ?? ''
+    error.value = ''
+    people.value = []
+    dialog.value?.showModal()
+  },
+)
+// Moving the start keeps the end after it.
+watch(startDate, (d, before) => {
+  if (!before || !endDate.value) return
+  if (endDate.value < d) endDate.value = d
+})
+
+const draft = computed<EventRow | null>(() =>
+  props.event
+    ? {
+        ...props.event,
+        title: title.value.trim(),
+        start_date: startDate.value,
+        end_date: endDate.value || startDate.value,
+        start_time: allDay.value ? null : startTime.value,
+        end_time: allDay.value ? null : endTime.value,
+        repeat: repeat.value,
+        reminder_minutes: reminder.value,
+        notes: notes.value.trim() || null,
+      }
+    : null,
+)
+
+async function save() {
+  const row = draft.value
+  if (!row) return
+  const problem = eventProblem(row)
+  if (problem) {
+    error.value = problem === 'title' ? m.editor.titleError : m.editor.endError
+    return
+  }
+  await tags.save(row.id)
+  emit('save', row, people.value)
+}
+function confirmDelete() {
+  if (props.event) emit('delete', props.event)
+  confirmDialog.value?.close()
+}
+</script>

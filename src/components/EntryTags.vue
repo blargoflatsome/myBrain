@@ -1,3 +1,7 @@
+<template>
+  <TagInput :model-value="tags.names.value" @update:model-value="update" />
+</template>
+
 <script setup lang="ts">
 // Tags on one item, saved as soon as they change (used for journal entries, which save as I type).
 import { toRef } from 'vue'
@@ -13,7 +17,3 @@ async function update(names: string[]) {
   await tags.save(props.itemId)
 }
 </script>
-
-<template>
-  <TagInput :model-value="tags.names.value" @update:model-value="update" />
-</template>

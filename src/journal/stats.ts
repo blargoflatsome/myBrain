@@ -17,6 +17,7 @@ import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/
 import { activeSteps, isAnytime, isScheduled as routineScheduled, runFor, stepsForDay } from '@/routines/rules'
 import { isTaskScheduled } from '@/reminders/priority'
 import { addDays, todayIn } from '@/tasks/days'
+import { live } from '@/sync/live'
 
 export interface DayData {
   tasks: TaskRow[]
@@ -31,7 +32,6 @@ export interface DayData {
   quests: QuestRow[]
 }
 
-const live = <T extends { deleted_at: string | null }>(rows: T[]) => rows.filter((r) => !r.deleted_at)
 const localDay = (iso: string, timeZone: string) => todayIn(timeZone, new Date(iso))
 
 /** A streak counts as reached from 2 days in a row; a reset is only noted when there was a streak to lose. */

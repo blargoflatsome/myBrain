@@ -19,6 +19,7 @@ import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/
 import { isAnytime, routineStats } from '@/routines/rules'
 import { occursOn } from '@/events/rules'
 import { addDays, daysBetween, todayIn } from '@/tasks/days'
+import { live } from '@/sync/live'
 
 export type Period = 'year' | '12months' | 'all'
 export const PERIODS: Period[] = ['year', '12months', 'all']
@@ -30,7 +31,6 @@ export function periodStart(period: Period, today: string): string | null {
   return null
 }
 
-const live = <T extends { deleted_at: string | null }>(rows: T[]) => rows.filter((r) => !r.deleted_at)
 const inPeriod = (date: string | null | undefined, from: string | null, today: string) => !!date && (!from || date >= from) && date <= today
 const localDay = (iso: string, timeZone: string) => todayIn(timeZone, new Date(iso))
 

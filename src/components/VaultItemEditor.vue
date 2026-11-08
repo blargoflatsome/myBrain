@@ -1,63 +1,7 @@
-<script setup lang="ts">
-// SPEC §5 The Vault: edit an item: title, notes, star rating, link or address, bucket, tags. Delete asks first.
-import { computed, ref, watch } from 'vue'
-import TagInput from '@/components/TagInput.vue'
-import { useItemTags } from '@/composables/useItemTags'
-import { clampRating } from '@/vault/rules'
-import { messages } from '@/messages'
-import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
-
-const props = defineProps<{ item: VaultItemRow | null; buckets: VaultBucketRow[] }>()
-const emit = defineEmits<{ save: [VaultItemRow]; delete: [VaultItemRow]; close: [] }>()
-const m = messages.vault
-
-const dialog = ref<HTMLDialogElement | null>(null)
-const confirmDialog = ref<HTMLDialogElement | null>(null)
-const title = ref('')
-const notes = ref('')
-const rating = ref<number | null>(null)
-const link = ref('')
-const bucketId = ref('')
-const tags = useItemTags('vault_item', computed(() => props.item?.id))
-
-watch(
-  () => props.item,
-  (i) => {
-    if (!i) return dialog.value?.close()
-    title.value = i.title
-    notes.value = i.notes ?? ''
-    rating.value = i.rating ?? null
-    link.value = i.link ?? ''
-    bucketId.value = i.bucket_id
-    dialog.value?.showModal()
-  },
-)
-
-async function save() {
-  if (!props.item || !title.value.trim()) return
-  await tags.save(props.item.id)
-  emit('save', {
-    ...props.item,
-    title: title.value.trim(),
-    notes: notes.value.trim() || null,
-    rating: clampRating(rating.value),
-    link: link.value.trim() || null,
-    bucket_id: bucketId.value,
-  })
-}
-
-function confirmDelete() {
-  if (props.item) emit('delete', props.item)
-  confirmDialog.value?.close()
-}
-
-const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-ink'
-</script>
-
 <template>
   <dialog
     ref="dialog"
-    class="m-auto w-[min(100%-2rem,32rem)] rounded-2xl border border-line bg-surface p-0 text-ink backdrop:bg-black/40"
+    :class="dialogBox"
     :aria-label="m.itemEditor.heading"
     @close="emit('close')"
   >
@@ -108,27 +52,75 @@ const field = 'min-h-12 rounded-xl border border-line bg-bg px-3 text-base text-
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.itemEditor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.itemEditor.close }}</button>
       </div>
-      <button type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.showModal()">
+      <button type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.open()">
         {{ m.itemEditor.delete }}
       </button>
     </form>
   </dialog>
 
-  <dialog
+  <ConfirmDialog
     ref="confirmDialog"
-    class="m-auto w-[min(100%-2rem,24rem)] rounded-2xl border border-line bg-surface p-5 text-ink backdrop:bg-black/50"
-    role="alertdialog"
-    :aria-label="m.confirmItemDelete.heading"
-  >
-    <h2 class="text-lg font-semibold">{{ m.confirmItemDelete.heading }}</h2>
-    <p class="mt-2 text-muted">{{ m.confirmItemDelete.body(item?.title ?? '') }}</p>
-    <div class="mt-4 flex gap-2">
-      <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink" @click="confirmDelete">
-        {{ m.confirmItemDelete.confirm }}
-      </button>
-      <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDialog?.close()">
-        {{ m.confirmItemDelete.keep }}
-      </button>
-    </div>
-  </dialog>
+    :heading="m.confirmItemDelete.heading"
+    :body="m.confirmItemDelete.body(item?.title ?? '')"
+    :confirm-label="m.confirmItemDelete.confirm"
+    :keep-label="m.confirmItemDelete.keep"
+    @confirm="confirmDelete"
+  />
 </template>
+
+<script setup lang="ts">
+// SPEC §5 The Vault: edit an item: title, notes, star rating, link or address, bucket, tags. Delete asks first.
+import { computed, ref, watch } from 'vue'
+import TagInput from '@/components/TagInput.vue'
+import { useItemTags } from '@/composables/useItemTags'
+import { clampRating } from '@/vault/rules'
+import { messages } from '@/messages'
+import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { dialogBox, field } from '@/ui/styles'
+
+const props = defineProps<{ item: VaultItemRow | null; buckets: VaultBucketRow[] }>()
+const emit = defineEmits<{ save: [VaultItemRow]; delete: [VaultItemRow]; close: [] }>()
+const m = messages.vault
+
+const dialog = ref<HTMLDialogElement | null>(null)
+const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
+const title = ref('')
+const notes = ref('')
+const rating = ref<number | null>(null)
+const link = ref('')
+const bucketId = ref('')
+const tags = useItemTags('vault_item', computed(() => props.item?.id))
+
+watch(
+  () => props.item,
+  (i) => {
+    if (!i) return dialog.value?.close()
+    title.value = i.title
+    notes.value = i.notes ?? ''
+    rating.value = i.rating ?? null
+    link.value = i.link ?? ''
+    bucketId.value = i.bucket_id
+    dialog.value?.showModal()
+  },
+)
+
+async function save() {
+  if (!props.item || !title.value.trim()) return
+  await tags.save(props.item.id)
+  emit('save', {
+    ...props.item,
+    title: title.value.trim(),
+    notes: notes.value.trim() || null,
+    rating: clampRating(rating.value),
+    link: link.value.trim() || null,
+    bucket_id: bucketId.value,
+  })
+}
+
+function confirmDelete() {
+  if (props.item) emit('delete', props.item)
+  confirmDialog.value?.close()
+}
+
+</script>

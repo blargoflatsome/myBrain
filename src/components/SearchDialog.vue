@@ -1,99 +1,3 @@
-<script setup lang="ts">
-// SPEC §5 Global search and tags: search tasks, journal, The Vault, quests and events on this device; filter by tag;
-// tap a result to open it where it lives.
-import { computed, nextTick, ref, watch } from 'vue'
-import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
-import { useBrainStore } from '@/stores/brain'
-import { useSearchStore } from '@/stores/search'
-import { useLiveQuery } from '@/composables/useLiveQuery'
-import { RESULT_ORDER, search, searchDocs, snippet, type SearchDoc } from '@/search/search'
-import { messages } from '@/messages'
-import type { TaggedType, TagRow } from '@/sync/types'
-
-const brain = useBrainStore()
-const store = useSearchStore()
-const route = useRoute()
-const router = useRouter()
-const m = messages.search
-
-const dialog = ref<HTMLDialogElement | null>(null)
-const box = ref<HTMLInputElement | null>(null)
-const query = ref('')
-const chosenTags = ref<string[]>([])
-
-const docs = useLiveQuery<SearchDoc[]>(
-  async () => {
-    const db = brain.db
-    if (!db) return []
-    return searchDocs({
-      tasks: await db.tasks.toArray(),
-      vaultItems: await db.vault_items.toArray(),
-      buckets: await db.vault_buckets.toArray(),
-      journal: await db.journal_entries.toArray(),
-      quests: await db.quests.toArray(),
-      events: await db.events.toArray(),
-      itemTags: await db.item_tags.toArray(),
-    })
-  },
-  [],
-  [() => brain.db],
-)
-const tags = useLiveQuery<TagRow[]>(
-  async () => (brain.db ? (await brain.db.tags.toArray()).filter((t) => !t.deleted_at).sort((a, b) => a.name.localeCompare(b.name)) : []),
-  [],
-  [() => brain.db],
-)
-
-const results = computed(() => search(docs.value, query.value, chosenTags.value))
-const groups = computed(() =>
-  RESULT_ORDER.map((type) => ({ type, items: results.value.filter((r) => r.type === type).slice(0, 30) })).filter((g) => g.items.length),
-)
-const searching = computed(() => !!query.value.trim() || chosenTags.value.length > 0)
-
-function toggleTag(id: string) {
-  chosenTags.value = chosenTags.value.includes(id) ? chosenTags.value.filter((t) => t !== id) : [...chosenTags.value, id]
-}
-
-watch(
-  () => store.isOpen,
-  async (open) => {
-    await nextTick()
-    if (open && !dialog.value?.open) {
-      dialog.value?.showModal()
-      box.value?.focus()
-      box.value?.select()
-    }
-    if (!open && dialog.value?.open) dialog.value.close()
-  },
-)
-watch(() => route.fullPath, () => store.close())
-
-function journalLabel(date: string) {
-  const [y, mo, d] = date.split('-').map(Number)
-  return new Date(Date.UTC(y!, mo! - 1, d!)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
-}
-function titleOf(doc: SearchDoc) {
-  return doc.type === 'journal_entry' ? journalLabel(doc.title) : doc.title
-}
-function contextOf(doc: SearchDoc) {
-  if (doc.type === 'vault_item') return doc.context ?? ''
-  if ((doc.type === 'task' || doc.type === 'event') && doc.date) return journalLabel(doc.date)
-  return ''
-}
-
-const targets: Record<TaggedType, (d: SearchDoc) => RouteLocationRaw> = {
-  task: (d) => ({ name: 'home', query: { task: d.id } }),
-  event: (d) => ({ name: 'calendar', query: { date: d.date ?? undefined, event: d.id } }),
-  journal_entry: (d) => ({ name: 'journal', query: { date: d.date ?? undefined } }),
-  vault_item: (d) => ({ name: 'vault', query: { bucket: d.bucketId, item: d.id } }),
-  quest: (d) => ({ name: 'quests', query: { quest: d.id } }),
-}
-async function openResult(doc: SearchDoc) {
-  store.close()
-  await router.push(targets[doc.type](doc))
-}
-</script>
-
 <template>
   <dialog
     ref="dialog"
@@ -154,3 +58,96 @@ async function openResult(doc: SearchDoc) {
     </div>
   </dialog>
 </template>
+
+<script setup lang="ts">
+// SPEC §5 Global search and tags: search tasks, journal, The Vault, quests and events on this device; filter by tag;
+// tap a result to open it where it lives.
+import { computed, nextTick, ref, watch } from 'vue'
+import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
+import { useBrainStore } from '@/stores/brain'
+import { useSearchStore } from '@/stores/search'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { RESULT_ORDER, search, searchDocs, snippet, type SearchDoc } from '@/search/search'
+import { messages } from '@/messages'
+import type { TaggedType, TagRow } from '@/sync/types'
+import { shortDayWithYear } from '@/ui/dates'
+import { live } from '@/sync/live'
+
+const brain = useBrainStore()
+const store = useSearchStore()
+const route = useRoute()
+const router = useRouter()
+const m = messages.search
+
+const dialog = ref<HTMLDialogElement | null>(null)
+const box = ref<HTMLInputElement | null>(null)
+const query = ref('')
+const chosenTags = ref<string[]>([])
+
+const docs = useLiveQuery<SearchDoc[]>(
+  async () => {
+    const db = brain.db
+    if (!db) return []
+    return searchDocs({
+      tasks: await db.tasks.toArray(),
+      vaultItems: await db.vault_items.toArray(),
+      buckets: await db.vault_buckets.toArray(),
+      journal: await db.journal_entries.toArray(),
+      quests: await db.quests.toArray(),
+      events: await db.events.toArray(),
+      itemTags: await db.item_tags.toArray(),
+    })
+  },
+  [],
+  [() => brain.db],
+)
+const tags = useLiveQuery<TagRow[]>(
+  async () => (brain.db ? live(await brain.db.tags.toArray()).sort((a, b) => a.name.localeCompare(b.name)) : []),
+  [],
+  [() => brain.db],
+)
+
+const results = computed(() => search(docs.value, query.value, chosenTags.value))
+const groups = computed(() =>
+  RESULT_ORDER.map((type) => ({ type, items: results.value.filter((r) => r.type === type).slice(0, 30) })).filter((g) => g.items.length),
+)
+const searching = computed(() => !!query.value.trim() || chosenTags.value.length > 0)
+
+function toggleTag(id: string) {
+  chosenTags.value = chosenTags.value.includes(id) ? chosenTags.value.filter((t) => t !== id) : [...chosenTags.value, id]
+}
+
+watch(
+  () => store.isOpen,
+  async (open) => {
+    await nextTick()
+    if (open && !dialog.value?.open) {
+      dialog.value?.showModal()
+      box.value?.focus()
+      box.value?.select()
+    }
+    if (!open && dialog.value?.open) dialog.value.close()
+  },
+)
+watch(() => route.fullPath, () => store.close())
+function titleOf(doc: SearchDoc) {
+  return doc.type === 'journal_entry' ? shortDayWithYear(doc.title) : doc.title
+}
+function contextOf(doc: SearchDoc) {
+  if (doc.type === 'vault_item') return doc.context ?? ''
+  if ((doc.type === 'task' || doc.type === 'event') && doc.date) return shortDayWithYear(doc.date)
+  return ''
+}
+
+const targets: Record<TaggedType, (d: SearchDoc) => RouteLocationRaw> = {
+  task: (d) => ({ name: 'home', query: { task: d.id } }),
+  event: (d) => ({ name: 'calendar', query: { date: d.date ?? undefined, event: d.id } }),
+  journal_entry: (d) => ({ name: 'journal', query: { date: d.date ?? undefined } }),
+  vault_item: (d) => ({ name: 'vault', query: { bucket: d.bucketId, item: d.id } }),
+  quest: (d) => ({ name: 'quests', query: { quest: d.id } }),
+}
+async function openResult(doc: SearchDoc) {
+  store.close()
+  await router.push(targets[doc.type](doc))
+}
+</script>

@@ -1,11 +1,201 @@
+<template>
+  <div class="flex flex-col gap-4">
+    <template v-if="!type">
+      <h1 class="text-2xl font-bold">{{ m.typeHeading }}</h1>
+      <div v-if="shared" class="rounded-xl border border-line bg-surface p-3 text-sm">
+        <p class="text-muted">{{ m.sharedPreview }}</p>
+        <p class="whitespace-pre-wrap break-words" data-testid="shared-text">{{ shared }}</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3" role="group" :aria-label="m.typeHeading">
+        <button v-for="d in types" :key="d" type="button" :class="typeBtn" @click="choose(d)">
+          {{ m.destinations[d] }}
+        </button>
+      </div>
+      <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
+    </template>
+
+    <form v-else class="flex flex-col gap-4" @submit.prevent="save">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">{{ m.destinations[type] }}</h1>
+        <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="reset">{{ m.back }}</button>
+      </div>
+      <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
+
+      <!-- Post It: a small formatted note and its color (SPEC §5 Quick capture) -->
+      <template v-if="type === 'postit'">
+        <div class="flex flex-col gap-1" data-testid="capture-postit">
+          <span class="text-sm text-muted">{{ pm.label }}</span>
+          <RichTextEditor v-model="postBody" :label="pm.label" :placeholder="pm.placeholder" min-height="8rem" autofocus @update:model-value="error = ''" />
+        </div>
+        <fieldset class="flex flex-col gap-2">
+          <legend class="mb-1 text-sm text-muted">{{ pm.color }}</legend>
+          <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="pm.color">
+            <button
+              v-for="c in POST_IT_COLORS"
+              :key="c"
+              type="button"
+              role="radio"
+              :aria-checked="postColor === c"
+              :class="['min-h-11 rounded-full border-2 px-4 text-sm font-medium', `note-${c}`, postColor === c ? 'border-ink' : 'border-transparent']"
+              @click="postColor = c"
+            >
+              <span v-if="postColor === c" aria-hidden="true">✓ </span>{{ pm.colors[c] }}
+            </button>
+          </div>
+        </fieldset>
+      </template>
+
+      <div v-if="type !== 'postit'" class="flex flex-col gap-1">
+        <label for="capture-title" class="text-sm text-muted">{{ type === 'later' ? m.placeholder : m.titleLabel }}</label>
+        <div class="relative">
+          <textarea
+            v-if="type === 'later'"
+            id="capture-title"
+            ref="titleBox"
+            v-model="title"
+            maxlength="20000"
+            rows="4"
+            :placeholder="m.placeholder"
+            :class="[fieldOnPage, 'resize-none py-3 pr-28 text-lg']"
+            @input="error = ''"
+          />
+          <input v-else id="capture-title" ref="titleBox" v-model="title" maxlength="500" :class="[fieldOnPage, 'pr-28 text-lg']" @input="error = ''">
+          <button
+            v-if="speech.supported"
+            type="button"
+            class="absolute top-2 right-2 min-h-9 rounded-full border border-line bg-bg px-3 text-sm text-ink"
+            :aria-pressed="speech.listening.value"
+            @click="speech.listening.value ? speech.stop() : speech.start()"
+          >
+            🎙 {{ speech.listening.value ? m.micListening : m.micStart }}
+          </button>
+        </div>
+        <p v-if="speech.failed.value" class="text-sm text-danger" role="alert">{{ m.micError }}</p>
+      </div>
+
+      <!-- The Vault: bucket first-preselected, or a new one -->
+      <fieldset v-if="type === 'vault'" class="flex flex-col gap-2">
+        <legend class="mb-1 text-sm text-muted">{{ m.bucketLabel }}</legend>
+        <div class="flex flex-wrap gap-2" role="group" :aria-label="m.bucketLabel">
+          <button
+            v-for="b in buckets"
+            :key="b.id"
+            type="button"
+            :class="chip(!addingBucket && bucketId === b.id)"
+            :aria-pressed="!addingBucket && bucketId === b.id"
+            @click="(bucketId = b.id), (addingBucket = false)"
+          >
+            {{ b.name }}
+          </button>
+          <button type="button" :class="chip(addingBucket)" :aria-pressed="addingBucket" @click="addingBucket = true">
+            + {{ m.newBucket }}
+          </button>
+        </div>
+        <input v-if="addingBucket" v-model="newBucketName" maxlength="200" :aria-label="m.newBucket" :placeholder="m.newBucket" :class="fieldOnPage">
+      </fieldset>
+
+      <label v-if="type !== 'later' && type !== 'habit' && type !== 'postit'" class="flex flex-col gap-1 text-sm text-muted">
+        {{ type === 'quest' ? m.detailsLabel : m.notesLabel }}
+        <textarea v-model="notes" maxlength="20000" rows="3" :class="[fieldOnPage, 'py-2']" />
+      </label>
+
+      <!-- Task: optional date, priority -->
+      <template v-if="type === 'task'">
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ m.taskDateLabel }}
+          <input v-model="dueDate" type="date" :class="fieldOnPage">
+          <span class="text-xs">{{ m.taskDateHint }}</span>
+        </label>
+        <fieldset class="flex flex-col gap-2">
+          <legend class="mb-1 text-sm text-muted">{{ t.priorityLabel }}</legend>
+          <div class="flex flex-wrap gap-2" role="group" :aria-label="t.priorityLabel">
+            <button
+              v-for="p in [...PRIORITIES].reverse()"
+              :key="p.level"
+              type="button"
+              :class="chip(priority === p.level)"
+              :aria-pressed="priority === p.level"
+              @click="priority = p.level"
+            >
+              <span class="mr-1 inline-block size-2 rounded-full" :class="dot[p.key]" aria-hidden="true" />{{ t.priority[p.key] }}
+            </button>
+          </div>
+        </fieldset>
+      </template>
+
+      <!-- Habit: the full habit form (SPEC §5 Quick capture) -->
+      <template v-if="type === 'habit'">
+        <fieldset class="flex flex-col gap-2">
+          <legend class="mb-1 text-sm text-muted">{{ h.editor.weekdays }}</legend>
+          <div class="flex flex-wrap gap-1.5" role="group" :aria-label="h.editor.weekdays">
+            <button
+              v-for="d in [0, 1, 2, 3, 4, 5, 6]"
+              :key="d"
+              type="button"
+              :class="chip(habitDays.includes(d))"
+              :aria-pressed="habitDays.includes(d)"
+              @click="toggleHabitDay(d)"
+            >
+              {{ h.weekdayNames[d] }}
+            </button>
+          </div>
+        </fieldset>
+        <HowOften v-model="habitInterval" />
+        <div class="grid grid-cols-2 gap-3">
+          <TimeInput v-model="habitTime" :label="h.editor.notifyTime" :input-class="fieldOnPage" />
+          <label class="flex flex-col gap-1 text-sm text-muted">
+            {{ h.editor.timer }}
+            <select v-model="habitTimer" :class="fieldOnPage" :disabled="!habitTime">
+              <option value="">{{ h.editor.timerNone }}</option>
+              <option v-for="mins in [15, 30, 60, 120, 180, 240]" :key="mins" :value="String(mins)">{{ h.editor.timerOptions[mins] }}</option>
+            </select>
+          </label>
+        </div>
+        <label class="flex items-start gap-3 text-sm">
+          <input v-model="habitPrivate" type="checkbox" class="mt-0.5 size-5 accent-[var(--accent)]">
+          <span><span class="font-medium">{{ h.editor.private }}</span><span class="block text-xs text-muted">{{ h.editor.privateHint }}</span></span>
+        </label>
+        <label class="flex items-start gap-3 text-sm">
+          <input v-model="habitPriority" type="checkbox" class="mt-0.5 size-5 accent-[var(--accent)]">
+          <span><span class="font-medium">{{ h.editor.priority }}</span><span class="block text-xs text-muted">{{ h.editor.priorityHint }}</span></span>
+        </label>
+      </template>
+
+      <!-- Quest: energy and time, defaults Ugh / 30 min -->
+      <template v-if="type === 'quest'">
+        <fieldset class="flex flex-col gap-2">
+          <legend class="mb-1 text-sm text-muted">{{ q.editor.energy }}</legend>
+          <div class="flex flex-wrap gap-2" role="group" :aria-label="q.editor.energy">
+            <button v-for="e in ENERGY_LEVELS" :key="e" type="button" :class="chip(energy === e)" :aria-pressed="energy === e" @click="energy = e">
+              {{ q.energy[e] }}
+            </button>
+          </div>
+        </fieldset>
+        <fieldset class="flex flex-col gap-2">
+          <legend class="mb-1 text-sm text-muted">{{ q.editor.time }}</legend>
+          <div class="flex flex-wrap gap-2" role="group" :aria-label="q.editor.time">
+            <button v-for="tb in TIME_BUCKETS" :key="tb" type="button" :class="chip(time === tb)" :aria-pressed="time === tb" @click="time = tb">
+              {{ q.time[tb] }}
+            </button>
+          </div>
+        </fieldset>
+      </template>
+
+      <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
+      <button type="submit" class="min-h-14 rounded-2xl bg-accent px-4 text-lg font-semibold text-accent-ink" :disabled="saving">
+        {{ m.save }}
+      </button>
+    </form>
+  </div>
+</template>
+
 <script setup lang="ts">
 // SPEC §5 Quick capture: choose the type first, then a form made for it. Only the title is required. Works offline.
 // Shown in the Capture window over any page (CaptureDialog), and on the /capture page used for sharing from other apps.
 import TimeInput from '@/components/TimeInput.vue'
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HowOften from '@/components/HowOften.vue'
-import RichTextEditor from '@/components/RichTextEditor.vue'
 import { DEFAULT_POST_IT_COLOR, POST_IT_COLORS } from '@/postits/rules'
 import { plainText, toEditorHtml } from '@/journal/body'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -22,10 +212,12 @@ import { PRIORITIES } from '@/tasks/rules'
 import { ENERGY_LEVELS, TIME_BUCKETS } from '@/quests/picker'
 import { messages } from '@/messages'
 import type { EnergyLevel, PostItColor, TimeBucket, VaultBucketRow } from '@/sync/types'
+import { chip, fieldOnPage } from '@/ui/styles'
+
+// The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
+const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
 
 const props = defineProps<{
-  /** Opened from the Journal: a task with this date (SPEC §5 Journal). */
-  preset?: { due: string | null; source: 'journal' }
   /** Text shared from another app (Web Share Target), waiting while I pick the type. */
   sharedInput?: string
 }>()
@@ -72,15 +264,8 @@ const speech = useSpeech((heard) => {
   title.value = title.value ? `${title.value} ${heard}` : heard
 })
 
-async function applyPreset() {
-  if (!props.preset) return
-  await choose('task')
-  dueDate.value = props.preset.due ?? ''
-}
-
 onMounted(async () => {
   if (props.sharedInput) shared.value = props.sharedInput
-  await applyPreset()
 })
 
 async function choose(d: Destination) {
@@ -195,7 +380,6 @@ async function save() {
       bucketId: bucketId.value ?? undefined,
       energy: energy.value,
       time: time.value,
-      source: props.preset && type.value === 'task' ? props.preset.source : 'capture',
       habit: {
         weekdays: habitDays.value,
         weekInterval: habitInterval.value,
@@ -208,211 +392,13 @@ async function save() {
     await brain.capture(input)
     const message = savedMessage(input)
     reset()
-    // From the Journal: ready for the next task for tomorrow.
-    await applyPreset()
     notice.value = message
   } finally {
     saving.value = false
   }
 }
 
-const chip = (on: boolean) => [
-  'min-h-11 rounded-full border px-3 text-sm',
-  on ? 'border-accent bg-accent font-semibold text-accent-ink' : 'border-line bg-surface text-ink',
-]
-const field = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink focus:border-accent'
 const typeBtn = 'min-h-16 rounded-2xl border border-line bg-surface px-4 text-lg font-semibold text-ink active:scale-[0.98]'
 const types: Destination[] = ['task', 'vault', 'quest', 'habit', 'postit', 'later']
 const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' } as const
 </script>
-
-<template>
-  <div class="flex flex-col gap-4">
-    <template v-if="!type">
-      <h1 class="text-2xl font-bold">{{ m.typeHeading }}</h1>
-      <div v-if="shared" class="rounded-xl border border-line bg-surface p-3 text-sm">
-        <p class="text-muted">{{ m.sharedPreview }}</p>
-        <p class="whitespace-pre-wrap break-words" data-testid="shared-text">{{ shared }}</p>
-      </div>
-      <div class="grid grid-cols-2 gap-3" role="group" :aria-label="m.typeHeading">
-        <button v-for="d in types" :key="d" type="button" :class="typeBtn" @click="choose(d)">
-          {{ m.destinations[d] }}
-        </button>
-      </div>
-      <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
-    </template>
-
-    <form v-else class="flex flex-col gap-4" @submit.prevent="save">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold">{{ m.destinations[type] }}</h1>
-        <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="reset">{{ m.back }}</button>
-      </div>
-      <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
-
-      <!-- Post It: a small formatted note and its color (SPEC §5 Quick capture) -->
-      <template v-if="type === 'postit'">
-        <div class="flex flex-col gap-1" data-testid="capture-postit">
-          <span class="text-sm text-muted">{{ pm.label }}</span>
-          <RichTextEditor v-model="postBody" :label="pm.label" :placeholder="pm.placeholder" min-height="8rem" autofocus @update:model-value="error = ''" />
-        </div>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ pm.color }}</legend>
-          <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="pm.color">
-            <button
-              v-for="c in POST_IT_COLORS"
-              :key="c"
-              type="button"
-              role="radio"
-              :aria-checked="postColor === c"
-              :class="['min-h-11 rounded-full border-2 px-4 text-sm font-medium', `note-${c}`, postColor === c ? 'border-ink' : 'border-transparent']"
-              @click="postColor = c"
-            >
-              <span v-if="postColor === c" aria-hidden="true">✓ </span>{{ pm.colors[c] }}
-            </button>
-          </div>
-        </fieldset>
-      </template>
-
-      <div v-if="type !== 'postit'" class="flex flex-col gap-1">
-        <label for="capture-title" class="text-sm text-muted">{{ type === 'later' ? m.placeholder : m.titleLabel }}</label>
-        <div class="relative">
-          <textarea
-            v-if="type === 'later'"
-            id="capture-title"
-            ref="titleBox"
-            v-model="title"
-            maxlength="20000"
-            rows="4"
-            :placeholder="m.placeholder"
-            :class="[field, 'resize-none py-3 pr-28 text-lg']"
-            @input="error = ''"
-          />
-          <input v-else id="capture-title" ref="titleBox" v-model="title" maxlength="500" :class="[field, 'pr-28 text-lg']" @input="error = ''">
-          <button
-            v-if="speech.supported"
-            type="button"
-            class="absolute top-2 right-2 min-h-9 rounded-full border border-line bg-bg px-3 text-sm text-ink"
-            :aria-pressed="speech.listening.value"
-            @click="speech.listening.value ? speech.stop() : speech.start()"
-          >
-            🎙 {{ speech.listening.value ? m.micListening : m.micStart }}
-          </button>
-        </div>
-        <p v-if="speech.failed.value" class="text-sm text-danger" role="alert">{{ m.micError }}</p>
-      </div>
-
-      <!-- The Vault: bucket first-preselected, or a new one -->
-      <fieldset v-if="type === 'vault'" class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted">{{ m.bucketLabel }}</legend>
-        <div class="flex flex-wrap gap-2" role="group" :aria-label="m.bucketLabel">
-          <button
-            v-for="b in buckets"
-            :key="b.id"
-            type="button"
-            :class="chip(!addingBucket && bucketId === b.id)"
-            :aria-pressed="!addingBucket && bucketId === b.id"
-            @click="(bucketId = b.id), (addingBucket = false)"
-          >
-            {{ b.name }}
-          </button>
-          <button type="button" :class="chip(addingBucket)" :aria-pressed="addingBucket" @click="addingBucket = true">
-            + {{ m.newBucket }}
-          </button>
-        </div>
-        <input v-if="addingBucket" v-model="newBucketName" maxlength="200" :aria-label="m.newBucket" :placeholder="m.newBucket" :class="field">
-      </fieldset>
-
-      <label v-if="type !== 'later' && type !== 'habit' && type !== 'postit'" class="flex flex-col gap-1 text-sm text-muted">
-        {{ type === 'quest' ? m.detailsLabel : m.notesLabel }}
-        <textarea v-model="notes" maxlength="20000" rows="3" :class="[field, 'py-2']" />
-      </label>
-
-      <!-- Task: optional date, priority -->
-      <template v-if="type === 'task'">
-        <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.taskDateLabel }}
-          <input v-model="dueDate" type="date" :class="field">
-          <span class="text-xs">{{ m.taskDateHint }}</span>
-        </label>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ t.priorityLabel }}</legend>
-          <div class="flex flex-wrap gap-2" role="group" :aria-label="t.priorityLabel">
-            <button
-              v-for="p in [...PRIORITIES].reverse()"
-              :key="p.level"
-              type="button"
-              :class="chip(priority === p.level)"
-              :aria-pressed="priority === p.level"
-              @click="priority = p.level"
-            >
-              <span class="mr-1 inline-block size-2 rounded-full" :class="dot[p.key]" aria-hidden="true" />{{ t.priority[p.key] }}
-            </button>
-          </div>
-        </fieldset>
-      </template>
-
-      <!-- Habit: the full habit form (SPEC §5 Quick capture) -->
-      <template v-if="type === 'habit'">
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ h.editor.weekdays }}</legend>
-          <div class="flex flex-wrap gap-1.5" role="group" :aria-label="h.editor.weekdays">
-            <button
-              v-for="d in [0, 1, 2, 3, 4, 5, 6]"
-              :key="d"
-              type="button"
-              :class="chip(habitDays.includes(d))"
-              :aria-pressed="habitDays.includes(d)"
-              @click="toggleHabitDay(d)"
-            >
-              {{ h.weekdayNames[d] }}
-            </button>
-          </div>
-        </fieldset>
-        <HowOften v-model="habitInterval" />
-        <div class="grid grid-cols-2 gap-3">
-          <TimeInput v-model="habitTime" :label="h.editor.notifyTime" :input-class="field" />
-          <label class="flex flex-col gap-1 text-sm text-muted">
-            {{ h.editor.timer }}
-            <select v-model="habitTimer" :class="field" :disabled="!habitTime">
-              <option value="">{{ h.editor.timerNone }}</option>
-              <option v-for="mins in [15, 30, 60, 120, 180, 240]" :key="mins" :value="String(mins)">{{ h.editor.timerOptions[mins] }}</option>
-            </select>
-          </label>
-        </div>
-        <label class="flex items-start gap-3 text-sm">
-          <input v-model="habitPrivate" type="checkbox" class="mt-0.5 size-5 accent-[var(--accent)]">
-          <span><span class="font-medium">{{ h.editor.private }}</span><span class="block text-xs text-muted">{{ h.editor.privateHint }}</span></span>
-        </label>
-        <label class="flex items-start gap-3 text-sm">
-          <input v-model="habitPriority" type="checkbox" class="mt-0.5 size-5 accent-[var(--accent)]">
-          <span><span class="font-medium">{{ h.editor.priority }}</span><span class="block text-xs text-muted">{{ h.editor.priorityHint }}</span></span>
-        </label>
-      </template>
-
-      <!-- Quest: energy and time, defaults Ugh / 30 min -->
-      <template v-if="type === 'quest'">
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ q.editor.energy }}</legend>
-          <div class="flex flex-wrap gap-2" role="group" :aria-label="q.editor.energy">
-            <button v-for="e in ENERGY_LEVELS" :key="e" type="button" :class="chip(energy === e)" :aria-pressed="energy === e" @click="energy = e">
-              {{ q.energy[e] }}
-            </button>
-          </div>
-        </fieldset>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ q.editor.time }}</legend>
-          <div class="flex flex-wrap gap-2" role="group" :aria-label="q.editor.time">
-            <button v-for="tb in TIME_BUCKETS" :key="tb" type="button" :class="chip(time === tb)" :aria-pressed="time === tb" @click="time = tb">
-              {{ q.time[tb] }}
-            </button>
-          </div>
-        </fieldset>
-      </template>
-
-      <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
-      <button type="submit" class="min-h-14 rounded-2xl bg-accent px-4 text-lg font-semibold text-accent-ink" :disabled="saving">
-        {{ m.save }}
-      </button>
-    </form>
-  </div>
-</template>

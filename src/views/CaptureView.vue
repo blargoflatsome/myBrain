@@ -1,3 +1,9 @@
+<template>
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-28">
+    <CaptureForm :shared-input="shared || undefined" />
+  </main>
+</template>
+
 <script setup lang="ts">
 // SPEC §3/§5: the Capture page, for the home-screen shortcut and text shared from other apps (Web Share Target).
 // Everywhere else in the app, Capture opens as a window over the current page (CaptureDialog).
@@ -13,9 +19,3 @@ onMounted(async () => {
   if (Object.keys(route.query).length) await router.replace({ query: {} })
 })
 </script>
-
-<template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-28">
-    <CaptureForm :shared-input="shared || undefined" />
-  </main>
-</template>

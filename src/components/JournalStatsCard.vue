@@ -1,22 +1,3 @@
-<script setup lang="ts">
-// SPEC §5 Journal: the day's stats, shown visually so they can be read at a glance.
-import { computed } from 'vue'
-import type { JournalStats } from '@/sync/types'
-import { percent } from '@/routines/rules'
-import { messages } from '@/messages'
-
-const props = defineProps<{ stats: JournalStats }>()
-const m = messages.journal
-
-const R = 26
-const C = 2 * Math.PI * R
-const rings = computed(() => [
-  { key: 'tasks', label: m.tasks, done: props.stats.tasks.done, total: props.stats.tasks.due },
-  { key: 'habits', label: m.habits, done: props.stats.habits.kept, total: props.stats.habits.scheduled },
-])
-const dash = (done: number, total: number) => `${total ? (done / total) * C : 0} ${C}`
-</script>
-
 <template>
   <section class="flex flex-col gap-4" :aria-label="m.statsLabel" data-testid="journal-stats">
     <div class="grid grid-cols-2 gap-3">
@@ -88,3 +69,22 @@ const dash = (done: number, total: number) => `${total ? (done / total) * C : 0}
     </div>
   </section>
 </template>
+
+<script setup lang="ts">
+// SPEC §5 Journal: the day's stats, shown visually so they can be read at a glance.
+import { computed } from 'vue'
+import type { JournalStats } from '@/sync/types'
+import { percent } from '@/routines/rules'
+import { messages } from '@/messages'
+
+const props = defineProps<{ stats: JournalStats }>()
+const m = messages.journal
+
+const R = 26
+const C = 2 * Math.PI * R
+const rings = computed(() => [
+  { key: 'tasks', label: m.tasks, done: props.stats.tasks.done, total: props.stats.tasks.due },
+  { key: 'habits', label: m.habits, done: props.stats.habits.kept, total: props.stats.habits.scheduled },
+])
+const dash = (done: number, total: number) => `${total ? (done / total) * C : 0} ${C}`
+</script>

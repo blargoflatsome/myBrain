@@ -1,140 +1,3 @@
-<script setup lang="ts">
-// SPEC §5 Account page: display name, avatar and streak visibility, then settings. Streaks are on the Dashboard.
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
-import { supabase } from '@/lib/supabase'
-import { supabaseRemote } from '@/sync/supabaseRemote'
-import { useAuthStore } from '@/stores/auth'
-import { useBrainStore } from '@/stores/brain'
-import { messages } from '@/messages'
-import NotificationSettings from '@/components/NotificationSettings.vue'
-import EventSettings from '@/components/EventSettings.vue'
-import AvailabilityCard from '@/components/AvailabilityCard.vue'
-import { downloadMyData } from '@/account/export'
-
-type Visibility = 'private' | 'approved' | 'everyone'
-
-const auth = useAuthStore()
-const brain = useBrainStore()
-const router = useRouter()
-const m = messages.profile
-
-const displayName = ref('')
-const avatarUrl = ref<string | null>(null)
-const visibility = ref<Visibility>('private')
-const loaded = ref(false)
-const saving = ref(false)
-const notice = ref('')
-
-onMounted(async () => {
-  const { data } = await supabase
-    .from('profiles')
-    .select('display_name, avatar_url, streak_visibility')
-    .eq('user_id', auth.user?.id ?? '')
-    .maybeSingle()
-  if (data) {
-    displayName.value = data.display_name ?? ''
-    avatarUrl.value = data.avatar_url
-    visibility.value = data.streak_visibility as Visibility
-    loaded.value = true
-  }
-})
-
-async function save() {
-  notice.value = ''
-  saving.value = true
-  const { error } = await supabase
-    .from('profiles')
-    .update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value })
-    .eq('user_id', auth.user?.id ?? '')
-  saving.value = false
-  notice.value = error ? m.offline : m.saved
-}
-
-
-// ---------- Delete My Account (SPEC §9): confirm, then delete everything ----------
-const confirmDelete = ref<HTMLDialogElement | null>(null)
-const typed = ref('')
-const deleting = ref(false)
-const deleteError = ref('')
-function askDelete() {
-  typed.value = ''
-  deleteError.value = ''
-  confirmDelete.value?.showModal()
-}
-async function deleteAccount() {
-  if (typed.value.trim().toUpperCase() !== m.deleteConfirm.word) return
-  deleting.value = true
-  deleteError.value = ''
-  brain.stop()
-  const ok = await auth.deleteAccount()
-  deleting.value = false
-  if (!ok) {
-    deleteError.value = m.deleteConfirm.failed
-    if (auth.user) brain.start(auth.user.id, supabaseRemote(supabase))
-    return
-  }
-  confirmDelete.value?.close()
-  await router.push({ name: 'sign-in', query: { deleted: '1' } })
-}
-
-// ---------- Download my data (SPEC §8) ----------
-const exporting = ref(false)
-const exportError = ref('')
-async function exportData() {
-  exportError.value = ''
-  exporting.value = true
-  try {
-    await downloadMyData(auth.user?.id ?? '')
-  } catch {
-    exportError.value = messages.dataExport.failed
-  } finally {
-    exporting.value = false
-  }
-}
-
-// ---------- Delete my data: start fresh, keeping the account and settings (SPEC §8) ----------
-const confirmWipe = ref<HTMLDialogElement | null>(null)
-const wipeTyped = ref('')
-const wiping = ref(false)
-const wipeError = ref('')
-const wipeDone = ref('')
-// Everything is ticked to start; I untick what I want to keep (SPEC §8).
-type WipePart = keyof typeof messages.deleteData.parts
-const wipeParts = Object.keys(messages.deleteData.parts) as WipePart[]
-const wipeChosen = ref<WipePart[]>([...wipeParts])
-const wipeKept = computed(() => wipeParts.filter((p) => !wipeChosen.value.includes(p)))
-function askWipe() {
-  wipeChosen.value = [...wipeParts]
-  wipeTyped.value = ''
-  wipeError.value = ''
-  wipeDone.value = ''
-  confirmWipe.value?.showModal()
-}
-async function wipeData() {
-  if (wipeTyped.value.trim().toUpperCase() !== messages.deleteData.word || !wipeChosen.value.length) return
-  wiping.value = true
-  wipeError.value = ''
-  const { data, error } = await supabase.rpc('delete_my_data', { parts: wipeChosen.value })
-  wiping.value = false
-  if (error) {
-    wipeError.value = messages.deleteData.failed
-    return
-  }
-  confirmWipe.value?.close()
-  await brain.applyDataReset(typeof data === 'string' ? data : new Date().toISOString())
-  wipeDone.value = messages.deleteData.done
-}
-
-async function signOut() {
-  await auth.signOut()
-  await router.push({ name: 'sign-in' })
-}
-
-const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-base text-ink'
-const visibilities: Visibility[] = ['private', 'approved', 'everyone']
-</script>
-
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-6 pb-28">
     <div class="flex items-center gap-4">
@@ -278,3 +141,140 @@ const visibilities: Visibility[] = ['private', 'approved', 'everyone']
     </dialog>
   </main>
 </template>
+
+<script setup lang="ts">
+// SPEC §5 Account page: display name, avatar and streak visibility, then settings. Streaks are on the Dashboard.
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { supabase } from '@/lib/supabase'
+import { supabaseRemote } from '@/sync/supabaseRemote'
+import { useAuthStore } from '@/stores/auth'
+import { useBrainStore } from '@/stores/brain'
+import { messages } from '@/messages'
+import NotificationSettings from '@/components/NotificationSettings.vue'
+import EventSettings from '@/components/EventSettings.vue'
+import AvailabilityCard from '@/components/AvailabilityCard.vue'
+import { downloadMyData } from '@/account/export'
+import { field } from '@/ui/styles'
+
+type Visibility = 'private' | 'approved' | 'everyone'
+
+const auth = useAuthStore()
+const brain = useBrainStore()
+const router = useRouter()
+const m = messages.profile
+
+const displayName = ref('')
+const avatarUrl = ref<string | null>(null)
+const visibility = ref<Visibility>('private')
+const loaded = ref(false)
+const saving = ref(false)
+const notice = ref('')
+
+onMounted(async () => {
+  const { data } = await supabase
+    .from('profiles')
+    .select('display_name, avatar_url, streak_visibility')
+    .eq('user_id', auth.user?.id ?? '')
+    .maybeSingle()
+  if (data) {
+    displayName.value = data.display_name ?? ''
+    avatarUrl.value = data.avatar_url
+    visibility.value = data.streak_visibility as Visibility
+    loaded.value = true
+  }
+})
+
+async function save() {
+  notice.value = ''
+  saving.value = true
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value })
+    .eq('user_id', auth.user?.id ?? '')
+  saving.value = false
+  notice.value = error ? m.offline : m.saved
+}
+
+
+// ---------- Delete My Account (SPEC §9): confirm, then delete everything ----------
+const confirmDelete = ref<HTMLDialogElement | null>(null)
+const typed = ref('')
+const deleting = ref(false)
+const deleteError = ref('')
+function askDelete() {
+  typed.value = ''
+  deleteError.value = ''
+  confirmDelete.value?.showModal()
+}
+async function deleteAccount() {
+  if (typed.value.trim().toUpperCase() !== m.deleteConfirm.word) return
+  deleting.value = true
+  deleteError.value = ''
+  brain.stop()
+  const ok = await auth.deleteAccount()
+  deleting.value = false
+  if (!ok) {
+    deleteError.value = m.deleteConfirm.failed
+    if (auth.user) brain.start(auth.user.id, supabaseRemote(supabase))
+    return
+  }
+  confirmDelete.value?.close()
+  await router.push({ name: 'sign-in', query: { deleted: '1' } })
+}
+
+// ---------- Download my data (SPEC §8) ----------
+const exporting = ref(false)
+const exportError = ref('')
+async function exportData() {
+  exportError.value = ''
+  exporting.value = true
+  try {
+    await downloadMyData(auth.user?.id ?? '')
+  } catch {
+    exportError.value = messages.dataExport.failed
+  } finally {
+    exporting.value = false
+  }
+}
+
+// ---------- Delete my data: start fresh, keeping the account and settings (SPEC §8) ----------
+const confirmWipe = ref<HTMLDialogElement | null>(null)
+const wipeTyped = ref('')
+const wiping = ref(false)
+const wipeError = ref('')
+const wipeDone = ref('')
+// Everything is ticked to start; I untick what I want to keep (SPEC §8).
+type WipePart = keyof typeof messages.deleteData.parts
+const wipeParts = Object.keys(messages.deleteData.parts) as WipePart[]
+const wipeChosen = ref<WipePart[]>([...wipeParts])
+const wipeKept = computed(() => wipeParts.filter((p) => !wipeChosen.value.includes(p)))
+function askWipe() {
+  wipeChosen.value = [...wipeParts]
+  wipeTyped.value = ''
+  wipeError.value = ''
+  wipeDone.value = ''
+  confirmWipe.value?.showModal()
+}
+async function wipeData() {
+  if (wipeTyped.value.trim().toUpperCase() !== messages.deleteData.word || !wipeChosen.value.length) return
+  wiping.value = true
+  wipeError.value = ''
+  const { data, error } = await supabase.rpc('delete_my_data', { parts: wipeChosen.value })
+  wiping.value = false
+  if (error) {
+    wipeError.value = messages.deleteData.failed
+    return
+  }
+  confirmWipe.value?.close()
+  await brain.applyDataReset(typeof data === 'string' ? data : new Date().toISOString())
+  wipeDone.value = messages.deleteData.done
+}
+
+async function signOut() {
+  await auth.signOut()
+  await router.push({ name: 'sign-in' })
+}
+
+const visibilities: Visibility[] = ['private', 'approved', 'everyone']
+</script>

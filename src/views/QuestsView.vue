@@ -1,82 +1,3 @@
-<script setup lang="ts">
-// SPEC §5 Random Quest: pick a project from the bucket list when bored, filtered by time and energy.
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import QuestEditor from '@/components/QuestEditor.vue'
-import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
-import { acceptQuest, ENERGY_LEVELS, finishQuest, markPicked, pickQuest, TIME_BUCKETS } from '@/quests/picker'
-import { messages } from '@/messages'
-import type { EnergyLevel, QuestRow, TimeBucket } from '@/sync/types'
-
-const brain = useBrainStore()
-const m = messages.quests
-
-const all = useLiveQuery<QuestRow[]>(async () => (brain.db ? brain.db.quests.toArray() : []), [], [() => brain.db])
-const live = computed(() => all.value.filter((q) => !q.deleted_at))
-const open = computed(() => live.value.filter((q) => q.status === 'open'))
-const inProgress = computed(() => live.value.filter((q) => q.status === 'accepted'))
-
-const energy = ref<EnergyLevel | null>(null)
-const time = ref<TimeBucket | null>(null)
-const currentId = ref<string | null>(null)
-const current = computed(() => live.value.find((q) => q.id === currentId.value) ?? null)
-const notice = ref('')
-
-async function pick() {
-  notice.value = ''
-  const choice = pickQuest(live.value, { energy: energy.value, time: time.value })
-  if (!choice) {
-    currentId.value = null
-    notice.value = m.nothingFits
-    return
-  }
-  await brain.saveQuest(markPicked(choice))
-  currentId.value = choice.id
-}
-
-async function accept(q: QuestRow) {
-  await brain.saveQuest(acceptQuest(q))
-  currentId.value = null
-  notice.value = m.accepted
-}
-
-async function finish(q: QuestRow) {
-  await brain.saveQuest(finishQuest(q))
-  if (currentId.value === q.id) currentId.value = null
-  notice.value = m.finished
-}
-
-const editing = ref<QuestRow | null>(null)
-// Opened with ?quest=<id> (from search): open that quest's editor.
-const route = useRoute()
-const router = useRouter()
-watch(
-  [() => route.query.quest, all],
-  ([id]) => {
-    if (typeof id !== 'string') return
-    const quest = all.value.find((q) => q.id === id && !q.deleted_at)
-    if (!quest) return
-    editing.value = quest
-    void router.replace({ query: {} })
-  },
-  { immediate: true },
-)
-async function saveEdit(q: QuestRow) {
-  await brain.saveQuest(q)
-  editing.value = null
-}
-async function remove(q: QuestRow) {
-  await brain.deleteQuest(q.id)
-  if (currentId.value === q.id) currentId.value = null
-  editing.value = null
-}
-
-const chip = (on: boolean) =>
-  ['min-h-10 rounded-full border px-3 text-sm', on ? 'border-accent bg-accent text-accent-ink font-semibold' : 'border-line bg-surface text-ink']
-const btn = 'min-h-12 rounded-xl border border-line bg-surface px-4 font-medium'
-</script>
-
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
     <div>
@@ -156,3 +77,81 @@ const btn = 'min-h-12 rounded-xl border border-line bg-surface px-4 font-medium'
     <QuestEditor :quest="editing" @save="saveEdit" @delete="remove" @close="editing = null" />
   </main>
 </template>
+
+<script setup lang="ts">
+// SPEC §5 Random Quest: pick a project from the bucket list when bored, filtered by time and energy.
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import QuestEditor from '@/components/QuestEditor.vue'
+import { useBrainStore } from '@/stores/brain'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { acceptQuest, ENERGY_LEVELS, finishQuest, markPicked, pickQuest, TIME_BUCKETS } from '@/quests/picker'
+import { messages } from '@/messages'
+import type { EnergyLevel, QuestRow, TimeBucket } from '@/sync/types'
+import { chip } from '@/ui/styles'
+
+const brain = useBrainStore()
+const m = messages.quests
+
+const all = useLiveQuery<QuestRow[]>(async () => (brain.db ? brain.db.quests.toArray() : []), [], [() => brain.db])
+const live = computed(() => all.value.filter((q) => !q.deleted_at))
+const open = computed(() => live.value.filter((q) => q.status === 'open'))
+const inProgress = computed(() => live.value.filter((q) => q.status === 'accepted'))
+
+const energy = ref<EnergyLevel | null>(null)
+const time = ref<TimeBucket | null>(null)
+const currentId = ref<string | null>(null)
+const current = computed(() => live.value.find((q) => q.id === currentId.value) ?? null)
+const notice = ref('')
+
+async function pick() {
+  notice.value = ''
+  const choice = pickQuest(live.value, { energy: energy.value, time: time.value })
+  if (!choice) {
+    currentId.value = null
+    notice.value = m.nothingFits
+    return
+  }
+  await brain.saveQuest(markPicked(choice))
+  currentId.value = choice.id
+}
+
+async function accept(q: QuestRow) {
+  await brain.saveQuest(acceptQuest(q))
+  currentId.value = null
+  notice.value = m.accepted
+}
+
+async function finish(q: QuestRow) {
+  await brain.saveQuest(finishQuest(q))
+  if (currentId.value === q.id) currentId.value = null
+  notice.value = m.finished
+}
+
+const editing = ref<QuestRow | null>(null)
+// Opened with ?quest=<id> (from search): open that quest's editor.
+const route = useRoute()
+const router = useRouter()
+watch(
+  [() => route.query.quest, all],
+  ([id]) => {
+    if (typeof id !== 'string') return
+    const quest = all.value.find((q) => q.id === id && !q.deleted_at)
+    if (!quest) return
+    editing.value = quest
+    void router.replace({ query: {} })
+  },
+  { immediate: true },
+)
+async function saveEdit(q: QuestRow) {
+  await brain.saveQuest(q)
+  editing.value = null
+}
+async function remove(q: QuestRow) {
+  await brain.deleteQuest(q.id)
+  if (currentId.value === q.id) currentId.value = null
+  editing.value = null
+}
+
+const btn = 'min-h-12 rounded-xl border border-line bg-surface px-4 font-medium'
+</script>

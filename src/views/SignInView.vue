@@ -1,26 +1,3 @@
-<script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { messages } from '@/messages'
-
-const auth = useAuthStore()
-const deleted = useRoute().query.deleted === '1'
-const failed = ref(false)
-const busy = ref(false)
-
-async function signIn() {
-  failed.value = false
-  busy.value = true
-  try {
-    await auth.signInWithGoogle()
-  } catch {
-    failed.value = true
-    busy.value = false
-  }
-}
-</script>
-
 <template>
   <main class="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-6 px-4">
     <p v-if="deleted" role="status" class="rounded-xl bg-surface p-3 text-ink">{{ messages.signIn.deleted }}</p>
@@ -44,3 +21,26 @@ async function signIn() {
     </p>
   </main>
 </template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { messages } from '@/messages'
+
+const auth = useAuthStore()
+const deleted = useRoute().query.deleted === '1'
+const failed = ref(false)
+const busy = ref(false)
+
+async function signIn() {
+  failed.value = false
+  busy.value = true
+  try {
+    await auth.signInWithGoogle()
+  } catch {
+    failed.value = true
+    busy.value = false
+  }
+}
+</script>

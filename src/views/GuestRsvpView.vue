@@ -1,3 +1,50 @@
+<template>
+  <main class="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-5 px-4 pt-10 pb-16">
+    <p v-if="state === 'loading'" class="text-muted">{{ m.loading }}</p>
+    <p v-else-if="state === 'invalid'" class="text-lg" role="alert" data-testid="guest-invalid">{{ m.invalid }}</p>
+    <template v-else-if="data">
+      <p class="text-sm font-semibold tracking-wide text-muted uppercase">{{ m.invitedBy(host) }}</p>
+      <div class="flex flex-col gap-1">
+        <h1 class="text-3xl font-bold" :class="data.cancelled ? 'line-through' : ''">{{ data.title }}</h1>
+        <p class="text-lg" data-testid="guest-when">{{ whenText(data) }}</p>
+        <p v-if="data.notes" class="whitespace-pre-wrap text-muted">{{ data.notes }}</p>
+      </div>
+
+      <p v-if="data.cancelled" class="rounded-xl bg-surface p-4 font-medium" role="status">{{ m.cancelled }}</p>
+      <template v-else>
+        <div class="flex flex-col gap-3 rounded-2xl border border-line p-4">
+          <p class="font-medium">{{ data.guest_name ? m.hi(data.guest_name) : '' }} {{ m.going }}</p>
+          <div class="flex gap-2" role="group" :aria-label="m.going">
+            <button type="button" :class="btn(data.response === 'yes')" :aria-pressed="data.response === 'yes'" @click="answer('yes')">{{ m.yes }}</button>
+            <button type="button" :class="btn(data.response === 'maybe')" :aria-pressed="data.response === 'maybe'" @click="answer('maybe')">{{ m.maybe }}</button>
+            <button type="button" :class="btn(data.response === 'no')" :aria-pressed="data.response === 'no'" @click="answer('no')">{{ m.no }}</button>
+          </div>
+          <p v-if="thanks" class="text-sm" role="status">{{ thanks }}</p>
+          <p v-else-if="data.response !== 'pending'" class="text-sm text-muted">{{ m.yourAnswer(m.answers[data.response]) }}</p>
+        </div>
+        <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" @click="addToCalendar">📅 {{ m.addToCalendar }}</button>
+      </template>
+
+      <form class="flex flex-col gap-2" @submit.prevent="send">
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ m.message(host) }}
+          <textarea v-model="message" rows="3" maxlength="2000" class="rounded-xl border border-line bg-surface px-3 py-2 text-base text-ink" :placeholder="m.messagePlaceholder" />
+        </label>
+        <button type="submit" class="min-h-11 self-start rounded-xl border border-line px-4">{{ m.send }}</button>
+        <p v-if="messageSent" class="text-sm" role="status">{{ m.sent }}</p>
+      </form>
+
+      <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
+
+      <footer class="mt-auto flex flex-col gap-2 border-t border-line pt-4 text-sm text-muted">
+        <p v-if="stopped" role="status">{{ m.stopped }}</p>
+        <button v-else type="button" class="self-start underline" @click="stop">{{ m.stop }}</button>
+        <p>{{ m.poweredBy }} · <RouterLink to="/privacy" class="underline">{{ m.privacy }}</RouterLink></p>
+      </footer>
+    </template>
+  </main>
+</template>
+
 <script setup lang="ts">
 // SPEC §5 Shared events: the public page a guest opens from their private link. No account needed: see the event,
 // answer Yes / Maybe / No, message the host, add it to a calendar, or stop the emails.
@@ -66,50 +113,3 @@ function addToCalendar() {
 }
 const btn = (on: boolean) => ['min-h-12 flex-1 rounded-xl border px-4 text-lg font-semibold', on ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-surface']
 </script>
-
-<template>
-  <main class="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-5 px-4 pt-10 pb-16">
-    <p v-if="state === 'loading'" class="text-muted">{{ m.loading }}</p>
-    <p v-else-if="state === 'invalid'" class="text-lg" role="alert" data-testid="guest-invalid">{{ m.invalid }}</p>
-    <template v-else-if="data">
-      <p class="text-sm font-semibold tracking-wide text-muted uppercase">{{ m.invitedBy(host) }}</p>
-      <div class="flex flex-col gap-1">
-        <h1 class="text-3xl font-bold" :class="data.cancelled ? 'line-through' : ''">{{ data.title }}</h1>
-        <p class="text-lg" data-testid="guest-when">{{ whenText(data) }}</p>
-        <p v-if="data.notes" class="whitespace-pre-wrap text-muted">{{ data.notes }}</p>
-      </div>
-
-      <p v-if="data.cancelled" class="rounded-xl bg-surface p-4 font-medium" role="status">{{ m.cancelled }}</p>
-      <template v-else>
-        <div class="flex flex-col gap-3 rounded-2xl border border-line p-4">
-          <p class="font-medium">{{ data.guest_name ? m.hi(data.guest_name) : '' }} {{ m.going }}</p>
-          <div class="flex gap-2" role="group" :aria-label="m.going">
-            <button type="button" :class="btn(data.response === 'yes')" :aria-pressed="data.response === 'yes'" @click="answer('yes')">{{ m.yes }}</button>
-            <button type="button" :class="btn(data.response === 'maybe')" :aria-pressed="data.response === 'maybe'" @click="answer('maybe')">{{ m.maybe }}</button>
-            <button type="button" :class="btn(data.response === 'no')" :aria-pressed="data.response === 'no'" @click="answer('no')">{{ m.no }}</button>
-          </div>
-          <p v-if="thanks" class="text-sm" role="status">{{ thanks }}</p>
-          <p v-else-if="data.response !== 'pending'" class="text-sm text-muted">{{ m.yourAnswer(m.answers[data.response]) }}</p>
-        </div>
-        <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" @click="addToCalendar">📅 {{ m.addToCalendar }}</button>
-      </template>
-
-      <form class="flex flex-col gap-2" @submit.prevent="send">
-        <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.message(host) }}
-          <textarea v-model="message" rows="3" maxlength="2000" class="rounded-xl border border-line bg-surface px-3 py-2 text-base text-ink" :placeholder="m.messagePlaceholder" />
-        </label>
-        <button type="submit" class="min-h-11 self-start rounded-xl border border-line px-4">{{ m.send }}</button>
-        <p v-if="messageSent" class="text-sm" role="status">{{ m.sent }}</p>
-      </form>
-
-      <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
-
-      <footer class="mt-auto flex flex-col gap-2 border-t border-line pt-4 text-sm text-muted">
-        <p v-if="stopped" role="status">{{ m.stopped }}</p>
-        <button v-else type="button" class="self-start underline" @click="stop">{{ m.stop }}</button>
-        <p>{{ m.poweredBy }} · <RouterLink to="/privacy" class="underline">{{ m.privacy }}</RouterLink></p>
-      </footer>
-    </template>
-  </main>
-</template>

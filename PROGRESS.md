@@ -221,11 +221,18 @@ Merged and live.
 - Then (user): the yesterday block is renamed "How past you did yesterday" and sits left of the Post Its on wide screens (xl, 1280 px+; Dashboard widens to 5xl there); stacked below on narrower screens. Checked in screenshots at 1440 and 1100 px.
 - Phone side-scroll fix (user report): favorite bucket cards and the tilted Post Its underneath pushed the Dashboard sideways. Fixed (grid columns can shrink, cards min-w-0, padding round the stack on phones, `overflow-wrap: anywhere` site-wide). New rule (user): test typed text long; `e2e/a11y.spec.ts` now seeds a long sentence, paragraph and unbroken link for every kind of typed text and names the offending element when a page scrolls sideways. Confirmed the test fails without the fix.
 
-## Security sweep (branch `security-sweep`)
+## Security sweep (done, PR #23)
 - User asked for a sweep of all inputs (entities, injection, other attacks). Audit and fixes recorded in SPEC §8 and §14.
 - Migrations `20261107030000_security_limits.sql` (size limits NOT VALID, https-only picture and push addresses, journal tomorrow limit raised) and `..030100_search_people_fix.sql` (the first one's search pattern was an invalid regex and broke search on dev; caught by the SQL checks and fixed with translate()). Dev migrated; 16 SQL files pass.
 - App: `public/_headers` (CSP etc., also used by `vite preview` through `build/security-headers.ts`), push allowlist (`src/notifications/pushEndpoints.ts`, used by the app and `send-push`), constant-time secret, `src/security/redirect.ts`, calendar escaping, DOMPurify checkbox fix, input maxlengths, `fitTitle` for long titles.
 - Tests: `e2e/security.spec.ts`, `src/security/security.test.ts`, `supabase/tests/rls_security.sql`. Vitest 266, Playwright 463.
+
+## Code review and coding standards (branch `code-review`)
+- `docs/CODING_STANDARDS.md` (for the user to review and tweak). Templates before scripts in every .vue file; ESLint `vue/block-order` enforces it.
+- Shared code: `src/ui/styles.ts` (16 copies of the field style, 5 chip copies, 3 answer-button copies, window and card styles), `src/ui/dates.ts` (5 copies of date formatting), `src/sync/live.ts` (two identical helpers and 14 inline filters), `ConfirmDialog.vue` (9 copied confirmation windows).
+- Dead code removed: the Journal preset in Capture (left from the removed Add a task for tomorrow button), the capture `source` option, `newInviteLink`. `needsDecision` is now used by the task row instead of being re-implemented inline. `READ_ONLY_TABLES` is now enforced by the sync engine (it was declared but unused).
+- Comments: removed ones that repeated a heading or the code, and who-approved-what notes (the decision log has them).
+- Performance: the formatting editor (Tiptap) loads on first use; initial download 702 kB to 373 kB (211 kB to 109 kB compressed).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
