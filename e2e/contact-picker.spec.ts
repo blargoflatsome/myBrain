@@ -50,6 +50,24 @@ async function phonePicker(page: Page, picked: Picked) {
   }, picked)
 }
 
+/** A picker that never sends anything back: the page is hidden while the contacts app is open, then shown again. */
+async function silentPicker(page: Page) {
+  await page.addInitScript(() => {
+    ;(window as unknown as { ContactsManager: unknown }).ContactsManager = function ContactsManager() {}
+    Object.defineProperty(navigator, 'contacts', {
+      value: {
+        select: () => {
+          for (const state of ['hidden', 'visible']) {
+            Object.defineProperty(document, 'visibilityState', { value: state, configurable: true })
+            document.dispatchEvent(new Event('visibilitychange'))
+          }
+          return new Promise(() => {})
+        },
+      },
+    })
+  })
+}
+
 async function openEvent(page: Page) {
   server.seed('events', [calendarEvent])
   await page.clock.install({ time: NOW })
@@ -126,5 +144,42 @@ test.describe('Spec §5 Calendar: picking from contacts fills the form or adds t
     await expect(dialog.getByTestId('pending-person')).toHaveCount(1)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     expect(overflow).toBeLessThanOrEqual(0)
+  })
+
+  test('if the phone closes the app while picking, the reopened event says the contact didn’t come back', async ({ page }) => {
+    await silentPicker(page)
+    const dialog = await openEvent(page)
+    await dialog.getByRole('button', { name: 'Pick from contacts' }).click()
+    // Android closed the app in the background; it reloads when I come back.
+    await page.reload()
+    const error = page.getByRole('dialog', { name: 'Edit event' }).getByTestId('people-error')
+    await expect(error).toHaveText('Your phone closed My Brain while you were picking a contact, so it didn’t come back. Try again, or type their email or phone number.')
+    await expect(error).toBeInViewport()
+    // Said once only.
+    await page.reload()
+    await expect(page.getByRole('heading', { name: 'Calendar', level: 1 })).toBeVisible()
+    await expect(page.getByTestId('people-error')).toHaveCount(0)
+    await expect(page.getByRole('dialog', { name: 'Edit event' })).toHaveCount(0)
+  })
+
+  test('for a new event that wasn’t saved, the calendar says the contact didn’t come back', async ({ page }) => {
+    await silentPicker(page)
+    await page.clock.install({ time: NOW })
+    await page.goto('/calendar?date=2026-11-10')
+    await page.getByRole('button', { name: 'New event' }).click()
+    const dialog = page.getByRole('dialog', { name: 'New event' })
+    await dialog.getByRole('button', { name: 'Pick from contacts' }).click()
+    await page.reload()
+    await expect(page.getByTestId('invite-notice')).toHaveText('Your phone closed My Brain while you were picking a contact, so it didn’t come back. Try again, or type their email or phone number.')
+  })
+
+  test('if I’m back and the phone still hasn’t sent the contact, it says so after a few seconds', async ({ page }) => {
+    await silentPicker(page)
+    const dialog = await openEvent(page)
+    await dialog.getByRole('button', { name: 'Pick from contacts' }).click()
+    await page.clock.runFor(3000)
+    await expect(dialog.getByTestId('people-error')).toHaveCount(0)
+    await page.clock.runFor(1500)
+    await expect(dialog.getByTestId('people-error')).toHaveText('Your phone hasn’t sent the contact back. Try again, or type their email or phone number.')
   })
 })

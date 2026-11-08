@@ -141,7 +141,10 @@ for (const scheme of ['light', 'dark'] as const) {
 
     test('Search window with results', async ({ page }) => {
       await page.goto('/tasks')
+      // Wait for the page to be ready, or the click can land before Search is wired up.
+      await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
       await page.getByRole('button', { name: /Search/ }).first().click()
+      await expect(page.getByRole('searchbox')).toBeVisible()
       await page.getByRole('searchbox').fill('a')
       await scan(page, 'Search')
     })
@@ -228,6 +231,8 @@ test.describe('Spec §2 WCAG 2.2 AA: by hand checks made automatic', () => {
   })
 
   test('every page reflows at 320 px wide with no sideways scrolling (1.4.10)', async ({ page }) => {
+    // Visits every page and waits for each to settle, so it gets more than the usual 30 seconds.
+    test.slow()
     await page.setViewportSize({ width: 320, height: 640 })
     for (const [name, path, ready] of PAGES) {
       await page.goto(path)

@@ -61,7 +61,7 @@ import EventEditor from '@/components/EventEditor.vue'
 import InvitedEventDialog from '@/components/InvitedEventDialog.vue'
 import CancelEventDialog from '@/components/CancelEventDialog.vue'
 import ShareFlow from '@/components/ShareFlow.vue'
-import { invitePeople, inviteLink, inviteMessage, type PersonToInvite, type ShareTarget } from '@/events/sharing'
+import { clearLostContactPick, invitePeople, inviteLink, inviteMessage, lostContactPick, type PersonToInvite, type ShareTarget } from '@/events/sharing'
 import { supabase } from '@/lib/supabase'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -236,6 +236,15 @@ function cancelled(targets: ShareTarget[]) {
 async function deleteEvent(e: EventRow) {
   await brain.deleteEvent(e.id)
   editing.value = null
+}
+
+// The phone closed the app while I was picking a contact (SPEC §5 Calendar): reopen that event, where it's
+// explained, or say so here if the event wasn't saved yet.
+const lostPick = lostContactPick()
+if (lostPick?.event) void router.replace({ query: { ...route.query, event: lostPick.event } })
+else if (lostPick) {
+  inviteNotice.value = messages.invites.contactPickLost
+  clearLostContactPick()
 }
 
 // Opened with ?date= (a reminder or search) and maybe ?event= (search): go there and open the event.

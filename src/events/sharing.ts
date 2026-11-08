@@ -125,12 +125,48 @@ export const canPickContacts = () => typeof navigator !== 'undefined' && 'contac
 /** True while the phone's contact picker is open (it covers the app, and Android may send "back" to the open window). */
 export let contactPickerOpen = false
 
+// Android can close the app in the background while the contacts app is open; it then reloads on return and the
+// pick is lost. A note kept on the device while picking lets the reloaded app say so and reopen the event (SPEC §5
+// Calendar). It is read once, when the app starts.
+const PICKING_KEY = 'my-brain:picking-contacts'
+const LOST_WITHIN_MS = 10 * 60 * 1000
+interface PickingNote {
+  at: number
+  /** The saved event I was inviting people to (none for a new event). */
+  event: string | null
+}
+function notePicking(note: PickingNote | null) {
+  try {
+    if (note) localStorage.setItem(PICKING_KEY, JSON.stringify(note))
+    else localStorage.removeItem(PICKING_KEY)
+  } catch {
+    // Storage blocked: the app just can't tell later.
+  }
+}
+function readNote(): PickingNote | null {
+  try {
+    const note = JSON.parse(localStorage.getItem(PICKING_KEY) ?? 'null') as PickingNote | null
+    localStorage.removeItem(PICKING_KEY)
+    return note && Date.now() - note.at < LOST_WITHIN_MS ? note : null
+  } catch {
+    return null
+  }
+}
+let lostPick = typeof localStorage === 'undefined' ? null : readNote()
+/** A contact pick lost because the phone closed the app while picking, until it has been told. */
+export const lostContactPick = (): PickingNote | null => lostPick
+export function clearLostContactPick() {
+  lostPick = null
+}
+
 /** People picked from the phone's contacts; `skipped` counts picked contacts with no email or phone number. */
-export async function pickContacts(): Promise<{ people: PersonToInvite[]; skipped: number }> {
+export async function pickContacts(event: string | null = null): Promise<{ people: PersonToInvite[]; skipped: number }> {
   contactPickerOpen = true
+  notePicking({ at: Date.now(), event })
   try {
     return await selectContacts()
   } finally {
+    notePicking(null)
     // Android delivers the "back" from closing the picker just after it returns; ignore it for a moment.
     setTimeout(() => (contactPickerOpen = false), 1000)
   }
