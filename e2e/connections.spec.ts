@@ -85,3 +85,51 @@ test.describe('Spec §10 Connections: inviting a connection in the app', () => {
     expect(server.written('people')).toHaveLength(0)
   })
 })
+
+test.describe('Spec §10 Connections: links and codes', () => {
+  test('making a link shows the link and an 8-character code, once; working links can be cancelled', async ({ page }) => {
+    server.rpcResults.create_connect_link = [{ id: 'link-1', token: 'abc123token', code: 'K7M2Q9XP', expires_at: '2026-11-11T14:00:00Z' }]
+    server.rpcResults.my_connect_links = [{ id: 'link-1', created_at: '2026-11-10T14:00:00Z', expires_at: '2026-11-11T14:00:00Z' }]
+    await open(page, '/connections')
+    await page.getByRole('button', { name: 'Make a link' }).click()
+    await expect(page.getByTestId('new-link-url')).toHaveText(/\/connect\/abc123token$/)
+    await expect(page.getByTestId('new-link-code')).toHaveText('K7M2Q9XP')
+    await expect(page.getByTestId('active-link')).toHaveCount(1)
+    await page.getByRole('button', { name: 'Cancel link' }).click()
+    await expect.poll(() => rpc('cancel_connect_link')[0]?.args).toMatchObject({ link: 'link-1' })
+    await expect(page.getByTestId('new-link')).toHaveCount(0)
+  })
+
+  test('entering someone’s code shows whose it is; Connect connects us straight away', async ({ page }) => {
+    server.rpcResults.preview_connect_link = [{ display_name: 'Bob Baker', avatar_url: null, already_connected: false }]
+    server.rpcResults.use_connect_link = 'Bob Baker'
+    await open(page, '/connections')
+    await page.getByLabel('Their 8-character code').fill('k7m2q9xp')
+    await page.getByRole('button', { name: 'Find' }).click()
+    await expect(page.getByTestId('code-owner')).toContainText('Connect with Bob Baker?')
+    await page.getByTestId('code-owner').getByRole('button', { name: 'Connect' }).click()
+    await expect(page.getByTestId('ask-status')).toHaveText('You’re connected with Bob Baker.')
+    expect(rpc('use_connect_link')[0]?.args).toMatchObject({ token: null, code: 'k7m2q9xp' })
+  })
+
+  test('a code that doesn’t work says so', async ({ page }) => {
+    server.rpcResults.preview_connect_link = []
+    await open(page, '/connections')
+    await page.getByLabel('Their 8-character code').fill('ZZZZZZZZ')
+    await page.getByRole('button', { name: 'Find' }).click()
+    await expect(page.getByTestId('code-error')).toHaveText('That code doesn’t work. It may have expired or been used.')
+  })
+
+  test('opening a connect link shows whose it is and connects on Connect; a used link says it no longer works', async ({ page }) => {
+    server.rpcResults.preview_connect_link = [{ display_name: 'Bob Baker', avatar_url: null, already_connected: false }]
+    server.rpcResults.use_connect_link = 'Bob Baker'
+    await open(page, '/connect/abc123token')
+    await expect(page.getByTestId('link-owner')).toHaveText('Connect with Bob Baker?')
+    await page.getByRole('button', { name: 'Connect' }).click()
+    await expect(page.getByTestId('link-done')).toHaveText('You’re connected with Bob Baker.')
+    expect(rpc('use_connect_link')[0]?.args).toMatchObject({ token: 'abc123token' })
+    server.rpcResults.preview_connect_link = []
+    await page.reload()
+    await expect(page.getByTestId('link-problem')).toHaveText('This link no longer works. It may have expired, been used, or been cancelled.')
+  })
+})

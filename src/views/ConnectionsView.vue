@@ -17,6 +17,48 @@
       <p class="text-sm text-muted" role="status" data-testid="ask-status">{{ askStatus }}</p>
     </section>
 
+    <section :class="card" aria-labelledby="code-heading">
+      <h2 id="code-heading" class="text-lg font-semibold">{{ m.codeSection }}</h2>
+      <form class="flex flex-col gap-2" novalidate @submit.prevent="findCode">
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ m.codeLabel }}
+          <input v-model="code" :class="[field, 'uppercase tracking-widest']" autocomplete="off" maxlength="8">
+        </label>
+        <button type="submit" class="min-h-11 self-start rounded-xl border border-line px-4" :disabled="!brain.online">{{ m.findCode }}</button>
+      </form>
+      <div v-if="codeOwner" class="flex flex-wrap items-center gap-2" data-testid="code-owner">
+        <span class="font-medium [overflow-wrap:anywhere]">{{ codeOwner.already_connected ? m.alreadyConnected(codeOwner.display_name) : m.connectWith(codeOwner.display_name) }}</span>
+        <button v-if="!codeOwner.already_connected" type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="useCode">{{ m.connect }}</button>
+      </div>
+      <p v-if="codeError" class="text-sm text-danger" role="alert" data-testid="code-error">{{ codeError }}</p>
+    </section>
+
+    <section :class="card" aria-labelledby="link-heading">
+      <h2 id="link-heading" class="text-lg font-semibold">{{ m.linkSection }}</h2>
+      <p class="text-sm text-muted">{{ m.linkHint }}</p>
+      <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" :disabled="!brain.online" @click="makeLink">{{ m.makeLink }}</button>
+      <div v-if="fresh" class="flex flex-col gap-2 rounded-xl bg-bg p-3" data-testid="new-link">
+        <span class="text-sm text-muted">{{ m.yourLink }}</span>
+        <span class="text-sm [overflow-wrap:anywhere]" data-testid="new-link-url">{{ freshUrl }}</span>
+        <span class="text-sm text-muted">{{ m.yourCode }}</span>
+        <span class="text-2xl font-bold tracking-widest" data-testid="new-link-code">{{ fresh.code }}</span>
+        <span class="flex flex-wrap gap-2">
+          <button type="button" class="min-h-11 rounded-xl border border-line px-4 text-sm" @click="copyLink">{{ m.copy }}</button>
+          <button v-if="canShare" type="button" class="min-h-11 rounded-xl border border-line px-4 text-sm" @click="shareLink">{{ m.share }}</button>
+        </span>
+      </div>
+      <p class="text-sm text-muted" role="status">{{ linkStatus }}</p>
+      <template v-if="links.length">
+        <h3 class="text-sm font-medium">{{ m.activeLinks }}</h3>
+        <ul class="flex flex-col gap-2">
+          <li v-for="l in links" :key="l.id" class="flex items-center justify-between gap-2 text-sm" data-testid="active-link">
+            <span>{{ m.linkExpires(when(l.expires_at)) }}</span>
+            <button type="button" class="min-h-11 rounded-xl border border-line px-3" @click="cancelOne(l.id)">{{ m.cancelLink }}</button>
+          </li>
+        </ul>
+      </template>
+    </section>
+
     <section v-if="incoming.length" :class="card" aria-labelledby="incoming-heading">
       <h2 id="incoming-heading" class="text-lg font-semibold">{{ m.incomingHeading }}</h2>
       <ul class="flex flex-col gap-3">
@@ -76,13 +118,22 @@
 <script setup lang="ts">
 // SPEC §10 Connections, part 1: ask to connect by exact email or phone (the answer never says whether they have an
 // account), answer requests (Accept, Decline, Block), see my connections and remove or block them.
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import {
   answerRequest,
   cancelRequest,
+  cancelLink,
+  createLink,
   incomingRequests,
+  linkUrl,
   myConnections,
+  myLinks,
+  previewLink,
+  useLink,
+  type ActiveLink,
+  type LinkOwner,
+  type NewLink,
   removeConnection,
   requestConnection,
   sentRequests,
@@ -100,13 +151,64 @@ const brain = useBrainStore()
 const incoming = ref<IncomingRequest[]>([])
 const sent = ref<SentRequest[]>([])
 const connections = ref<Connection[]>([])
+const links = ref<ActiveLink[]>([])
 async function load() {
   if (!brain.online) return
-  ;[incoming.value, sent.value, connections.value] = await Promise.all([
+  ;[incoming.value, sent.value, connections.value, links.value] = await Promise.all([
     incomingRequests().catch(() => []),
     sentRequests().catch(() => []),
     myConnections().catch(() => []),
+    myLinks().catch(() => []),
   ])
+}
+
+// ---------- Part 2: share a link or code; use someone's code ----------
+const fresh = ref<NewLink | null>(null)
+const freshUrl = computed(() => (fresh.value ? linkUrl(fresh.value.token) : ''))
+const linkStatus = ref('')
+const canShare = typeof navigator !== 'undefined' && 'share' in navigator
+const when = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })
+async function makeLink() {
+  linkStatus.value = ''
+  try {
+    fresh.value = await createLink()
+    await load()
+  } catch (e) {
+    linkStatus.value = e instanceof Error ? e.message : String(e)
+  }
+}
+async function copyLink() {
+  await navigator.clipboard?.writeText(freshUrl.value).catch(() => {})
+  linkStatus.value = m.copied
+}
+function shareLink() {
+  void navigator.share?.({ title: m.linkHeading, text: `${m.yourCode}: ${fresh.value?.code}`, url: freshUrl.value }).catch(() => {})
+}
+async function cancelOne(id: string) {
+  await cancelLink(id)
+  if (fresh.value?.id === id) fresh.value = null
+  await load()
+}
+const code = ref('')
+const codeOwner = ref<LinkOwner | null>(null)
+const codeError = ref('')
+async function findCode() {
+  codeOwner.value = null
+  codeError.value = ''
+  try {
+    codeOwner.value = (await previewLink({ code: code.value }))[0] ?? null
+    if (!codeOwner.value) codeError.value = m.codeGone
+  } catch (e) {
+    codeError.value = e instanceof Error ? e.message : String(e)
+  }
+}
+async function useCode() {
+  const name = await useLink({ code: code.value }).catch(() => null)
+  if (!name) return (codeError.value = m.codeGone)
+  codeOwner.value = null
+  code.value = ''
+  askStatus.value = m.accepted(name)
+  await load()
 }
 onMounted(load)
 

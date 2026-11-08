@@ -1,3 +1,4 @@
+import { safeNext } from '@/security/redirect'
 import { createRouter, createWebHistory } from 'vue-router'
 import { messages } from '@/messages'
 import DashboardView from '@/views/DashboardView.vue'
@@ -24,6 +25,7 @@ export const routes = [
   { path: '/habits', name: 'habits', component: () => import('@/views/HabitsView.vue') },
   { path: '/account', name: 'account', component: () => import('@/views/AccountView.vue') },
   { path: '/connections', name: 'connections', component: () => import('@/views/ConnectionsView.vue') },
+  { path: '/connect/:token', name: 'connect', component: () => import('@/views/ConnectLinkView.vue'), meta: { returnAfterSignIn: true } },
   // The page was called Profile before; old links still work.
   { path: '/profile', redirect: '/account' },
   { path: '/quests', name: 'quests', component: () => import('@/views/QuestsView.vue') },
@@ -49,8 +51,32 @@ router.afterEach((to) => {
   document.title = messages.pageTitle(messages.pageTitles[String(to.name)])
 })
 
+const RETURN_KEY = 'my-brain:after-sign-in'
+function rememberReturn(path: string) {
+  try {
+    sessionStorage.setItem(RETURN_KEY, path)
+  } catch {
+    // Storage blocked: sign-in just lands on the home page.
+  }
+}
+function takeReturn(): string | null {
+  try {
+    const path = sessionStorage.getItem(RETURN_KEY)
+    sessionStorage.removeItem(RETURN_KEY)
+    return path ? safeNext(path) : null
+  } catch {
+    return null
+  }
+}
+
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
   await auth.init()
+  // A connect link opened before signing in comes back after sign-in (SPEC §10 Connections).
+  if (!auth.isSignedIn && to.meta.returnAfterSignIn) rememberReturn(to.fullPath)
+  if (auth.isSignedIn) {
+    const back = takeReturn()
+    if (back && back !== to.fullPath) return back
+  }
   return authRedirect(to, auth.isSignedIn)
 })

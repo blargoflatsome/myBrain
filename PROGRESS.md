@@ -271,7 +271,8 @@ Merged and live.
 ## Connections, part 1 (branch `connections`, includes the spec from PR #36)
 - Migration `20261108020000_connections.sql`: `connection_requests`, `connections`, `connection_blocks` (functions only, no direct access); `request_connection` (same answer whatever is typed, 20 a day), `incoming_connection_requests`, `sent_connection_requests`, `answer_connection_request` (accept/decline/block), `cancel_connection_request`, `my_connections`, `remove_connection`; `invite_people` now invites only connections in the app (typed addresses of anyone else are guests); Delete my data part. Dev migrated; 20 SQL files pass (`rls_connections.sql`; two older tests now connect their users first). Prod: before merge.
 - App: `/connections` page (`ConnectionsView.vue`, `src/events/connections.ts`), link on Account, connections first in the Contacts window ("On My Brain"). Tests: `e2e/connections.spec.ts`, a11y scan. Vitest 281, Playwright 559 (one known journal flake).
-- Next parts: links/codes; Connect from my people, attendees and guest invites; guest page and edge cases; scheduling for connections. Push for connection requests comes with a later part.
+- Part 2 (same branch): migration `20261108030000_connect_links.sql` (`connect_links`, code tries; create/list/cancel/preview/use; only hashes stored), `/connect/:token` page, Make a link and Have a code? on the Connections page, return to the link after sign-in. `rls_connect_links.sql`; 21 SQL files pass on dev.
+- Next parts: Connect from my people, attendees and guest invites; guest page and edge cases; scheduling for connections. Push for connection requests comes with a later part.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
