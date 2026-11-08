@@ -16,6 +16,7 @@ export const routes = [
   { path: '/', name: 'dashboard', component: DashboardView },
   { path: '/tasks', name: 'home', component: () => import('@/views/TasksView.vue') },
   { path: '/capture', name: 'capture', component: () => import('@/views/CaptureView.vue') },
+  { path: '/invite-contact', name: 'invite-contact', component: () => import('@/views/InviteContactView.vue') },
   { path: '/routines', name: 'routines', component: () => import('@/views/RoutinesView.vue') },
   { path: '/routines/:id/run', name: 'routine-run', component: () => import('@/views/RoutineRunView.vue') },
   { path: '/journal', name: 'journal', component: () => import('@/views/JournalView.vue') },

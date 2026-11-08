@@ -103,7 +103,8 @@ import type { EventRepeat, EventRow } from '@/sync/types'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { field } from '@/ui/styles'
 
-const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
+// startPeople: people already chosen to invite, e.g. shared from my contacts (SPEC §5 Calendar).
+const props = defineProps<{ event: EventRow | null; isNew: boolean; startPeople?: PersonToInvite[] }>()
 const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow]; close: []; cancel: [EventRow] }>()
 const m = messages.calendar
 
@@ -153,7 +154,7 @@ watch(
     reminder.value = e.reminder_minutes
     notes.value = e.notes ?? ''
     error.value = ''
-    people.value = []
+    people.value = props.startPeople?.length ? [...props.startPeople] : []
     dialog.value?.showModal()
   },
 )

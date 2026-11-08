@@ -426,6 +426,31 @@ export const messages = {
     terms: 'Terms of service',
     back: 'Back',
   },
+  /** SPEC §5 Calendar, "Sharing a contact": contacts shared from the phone's Contacts app. */
+  shareContact: {
+    headingNone: 'Invite to an event',
+    headingOne: (name: string) => `Invite ${name} to…`,
+    headingMany: (n: number) => `Invite ${n} people to…`,
+    loading: 'Opening what you shared…',
+    nothingShared: 'Nothing was shared. To invite someone from your contacts, share their contact to My Brain from your Contacts app.',
+    nothingUsable: (skipped: number) =>
+      `${skipped === 1 ? 'That contact has' : skipped ? 'Those contacts have' : 'That file has'} no phone number or email, so there’s no one to invite.`,
+    toCalendar: 'Go to the Calendar',
+    peopleHeading: 'From your contacts',
+    leftOut: (skipped: number, extra: number) =>
+      [
+        skipped ? `${skipped} ${skipped === 1 ? 'contact has' : 'contacts have'} no phone number or email.` : '',
+        extra ? `Only the first 25 people were kept (${extra} left out).` : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+    howItWorks: 'Choose an event. They’ll be ready to invite there, and invited when you save it.',
+    newEvent: 'New event',
+    eventsHeading: 'Your upcoming events',
+    noEvents: 'No upcoming events yet. Make a new one.',
+    allDay: 'All day',
+    repeats: 'Repeats',
+  },
   invites: {
     // Messages to other people are written from me to them, not in the "past you" voice.
     people: 'People',
@@ -841,6 +866,7 @@ export const messages = {
   /** Page titles (WCAG 2.4.2): shown in the browser tab and read out after moving to another page. */
   pageTitles: {
     dashboard: 'Dashboard',
+    'invite-contact': 'Invite to an event',
     home: 'Tasks',
     capture: 'Capture',
     routines: 'Routines',
