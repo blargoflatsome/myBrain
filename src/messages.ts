@@ -447,6 +447,7 @@ export const messages = {
       `Added ${n} ${n === 1 ? 'person' : 'people'}.${skipped ? ` ${skipped} ${skipped === 1 ? 'contact has' : 'contacts have'} no phone number or email.` : ''} They’ll be invited when you save.`,
     noUsableContacts: 'Those contacts have no phone number or email, so they can’t be invited.',
     contactsFailed: 'Couldn’t open your contacts. You can type an email or phone number instead.',
+    contactPickBlocked: 'Chrome on your phone didn’t let the contact through (a Chrome bug on some phones). Type their email or phone number instead.',
     contactPickLost: 'Your phone closed My Brain while you were picking a contact, so it didn’t come back. Try again, or type their email or phone number.',
     contactPickStuck: 'Your phone hasn’t sent the contact back. Try again, or type their email or phone number.',
     noContactPicked: 'No contact was picked. Try again, or type an email or phone number.',

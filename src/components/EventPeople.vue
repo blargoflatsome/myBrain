@@ -47,7 +47,7 @@
     <p v-else-if="searched" class="text-xs text-muted">{{ m.noMatches }}</p>
 
     <div class="grid grid-cols-2 gap-2">
-      <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contact }}<input v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
+      <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contact }}<input ref="contactInput" v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
       <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contactName }}<input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
     </div>
     <div v-if="remembered.length" class="flex flex-col gap-1" data-testid="remembered-people">
@@ -178,6 +178,7 @@ function addContact() {
 // One contact fills the email-or-phone and name boxes, ready to Add (what people expect); several are added at
 // once. Every outcome is said on screen and scrolled into view, since the phone's picker covered the app.
 const addButton = ref<HTMLButtonElement | null>(null)
+const contactInput = ref<HTMLInputElement | null>(null)
 // If the phone closed the app while I was picking, the app reloaded and the pick is gone: say so.
 onMounted(() => {
   if (props.eventId && lostContactPick()?.event === props.eventId) {
@@ -216,6 +217,11 @@ async function fromContacts() {
     clearTimeout(stuckTimer)
   }
   contactError.value = ''
+  if (picked.blocked) {
+    contactError.value = m.contactPickBlocked
+    contactInput.value?.focus()
+    return showOutcome()
+  }
   if (!picked.people.length) {
     if (picked.skipped) contactError.value = m.noUsableContacts
     else status.value = m.noContactPicked

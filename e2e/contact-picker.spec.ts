@@ -68,6 +68,29 @@ async function silentPicker(page: Page) {
   })
 }
 
+/**
+ * Chrome 157 with Samsung's contact list (seen on the user's phone, 2026-11): Chrome answers "nobody" the moment
+ * the contacts screen opens and covers the app, before anyone is picked.
+ */
+async function brokenChromePicker(page: Page) {
+  await page.addInitScript(() => {
+    const setHidden = (hidden: boolean) => {
+      Object.defineProperty(document, 'visibilityState', { value: hidden ? 'hidden' : 'visible', configurable: true })
+      document.dispatchEvent(new Event('visibilitychange'))
+    }
+    ;(window as unknown as { ContactsManager: unknown }).ContactsManager = function ContactsManager() {}
+    Object.defineProperty(navigator, 'contacts', {
+      value: {
+        select: async () => {
+          setHidden(true)
+          setTimeout(() => setHidden(false), 3000)
+          return []
+        },
+      },
+    })
+  })
+}
+
 async function openEvent(page: Page) {
   server.seed('events', [calendarEvent])
   await page.clock.install({ time: NOW })
@@ -181,5 +204,16 @@ test.describe('Spec §5 Calendar: picking from contacts fills the form or adds t
     await expect(dialog.getByTestId('people-error')).toHaveCount(0)
     await page.clock.runFor(1500)
     await expect(dialog.getByTestId('people-error')).toHaveText('Your phone hasn’t sent the contact back. Try again, or type their email or phone number.')
+  })
+
+  test('when Chrome answers "nobody" while its contacts screen still covers the app, it says Chrome blocked it and puts me in the email-or-phone box', async ({ page }) => {
+    await brokenChromePicker(page)
+    const dialog = await openEvent(page)
+    await dialog.getByRole('button', { name: 'Pick from contacts' }).click()
+    await page.clock.runFor(3500)
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByTestId('people-error')).toHaveText('Chrome on your phone didn’t let the contact through (a Chrome bug on some phones). Type their email or phone number instead.')
+    await expect(dialog.getByLabel('Email or phone number')).toBeFocused()
+    await expect(dialog.getByTestId('people-status')).toHaveText('')
   })
 })
