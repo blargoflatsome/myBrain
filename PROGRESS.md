@@ -190,7 +190,6 @@ Merged and live.
 - WCAG 2.2 AA (SPEC §2, CLAUDE.md): `e2e/a11y.spec.ts` runs axe on every page and main window in light and dark, plus reflow at 320 px, titles, skip link, focus ring, tap-to-move and page announcements. Fixed everything it and a manual review found (see SPEC §14 2026-11-07).
 - Part 3 (user): removed the Journal's Add a task for tomorrow button; focus trapped in every window and returned on close (`src/a11y/focus.ts`, phone menu included); tests prove focus escapes without it.
 - Tests: Vitest 205, Playwright 417 (3 skipped, phone-only/desktop-only).
-- Next: Google Calendar sync (check Google's sensitive-scope/verification rules first, then plan and ask).
 
 ## Dashboard: yesterday (done, PR #17)
 - "Do better today than past you did yesterday" at the top of the Dashboard: yesterday's habits kept, routines finished, tasks done (x of y), and each routine's steps done; says so when nothing was scheduled (user's choices, SPEC §5 Dashboard). No database change.

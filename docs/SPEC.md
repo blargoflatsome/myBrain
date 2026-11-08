@@ -256,7 +256,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
   - my own events.
 - Events: tap a day or time, or "+ New event", to add one with a title, start and end (or all day), optional notes, repeat (never, daily, weekdays, weekly, every 2 weeks, monthly, yearly), and an optional reminder (at the start, or 5, 10, 15 or 30 minutes, 1 hour, or 1 day before). Events can be edited and deleted (after confirming; deleting a repeating event deletes the whole series). Event reminders are sent like other reminders (Web Push and ntfy, respecting quiet hours) and open the calendar on that day.
 
-- Everything below from Accounts and contact info through Google Calendar sync is built after the Dashboard (see the build order). Only the basic calendar view is built earlier.
+- Everything below from Accounts and contact info through Cancelling an event or attendance is built after the Dashboard (see the build order). Only the basic calendar view is built earlier.
 
 - **My people: type someone once, then pick them from a list.** I add a guest by typing their email or phone number (and optionally their name) and pressing Add. When I **save the event**, everyone I typed is saved to **my people** (people removed before saving aren't); the same email (any case) or phone number (any formatting) is the same person, and a new name replaces the old one. The event's People section lists **my people A to Z**, 10 per page, each with an **Add** button; typing in the email-or-phone or name box filters the list (by name, email or phone, ignoring case and phone formatting); people already on this event, or already waiting to be invited, aren't listed. On the **Account** page, a **People** section lists my people A to Z (10 per page) where I can **add** someone (name optional, plus an email or phone number, checked like the invite form; someone already saved with that email or phone is said, not saved twice), **edit** a name, email or phone, or **remove** someone (with a confirmation). My people sync across my devices and work offline. When this was added, everyone I'd already invited by email or phone was saved to my people. People found by name (app users) are invited by name and aren't saved here.
 - **Inviting shows what happened at every step:** adding someone says so; after saving, a message says the invitations are ready and the sharing window opens to send each one from my email or messaging app (the app doesn't send texts or emails itself yet, see Phase 2); when I finish, a message says how many I shared. Invited people then show in the event with their answer.
@@ -267,7 +267,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - The phone number, notification choice, my two cancellation messages, whether my free/busy times are shared, and whether others can find me by name are all on the Account page.
 
 ### Shared events and invitations
-- When I create an event I can invite other app users (search by display name, or enter their email or phone number) and add guests who are not users by typing an email address or phone number, or picking them from my people. There's no phone contact picker: Chrome's picker failed on the user's Samsung phone, and sharing contacts in was too awkward (2026-11-08), so typing once and picking from my people replaces both.
+- When I create an event I can invite other app users (search by display name, or enter their email or phone number) and add guests who are not users by typing an email address or phone number, or picking them from my people.
 - Searching by display name needs at least 3 letters and shows only matching names and profile pictures, never anything else. Users can turn off being findable by name (on by default).
 - Matching a typed email or phone number to an existing account must not reveal whether that person has an account or show anything from their profile. The invite simply goes out.
 - An invited app user gets the event on their own calendar (pending until they answer, shown with a dashed outline) and a push notification, and answers **Yes**, **Maybe**, or **No** from the event. A Yes stays on their calendar, a Maybe stays marked as tentative, and a No removes it. Invited events are read-only for invitees; only the creator can edit them, and edits show on every invitee's calendar. Invitees cannot suggest another time, because finding a time is handled by the availability check before the event is created.
@@ -295,12 +295,6 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Fully automatic texting (no extra taps) is a Phase 2 upgrade. I will decide on it after Claude Code explains the options (see sections 10 and 12).
 - This action needs a connection. If I am offline, show it as pending and ask me to confirm again when I am back online, so nothing is sent late by surprise.
 - The app shows who was notified and how, and logs each message (see Shared events and invitations).
-
-### Google Calendar sync
-- Opt-in per user, using the Google Calendar API with OAuth. Ask for calendar access separately from sign-in.
-- Start with one-way sync from this app to Google Calendar, then add two-way sync (changes made in Google appear here) using sync tokens or push notifications and a stored mapping of event ids, to avoid duplicates and loops.
-- Optionally import Google Calendar busy times into the availability check.
-- Google treats Calendar access as a sensitive scope, and public apps need Google's OAuth verification. Verify the current requirements and plan for them before opening the app to the public. Keep tokens server-side only and encrypted.
 
 ### Dashboard
 - The Dashboard is the first page the app opens on (Tasks moves to its own menu item), and the first item in the menu. It shows all of my stats at a glance, visually (big numbers, small bars and chips), updating live as I use the app.
@@ -379,11 +373,9 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Achievements:** objectives that reward me for using the app and keeping up my routines and streaks. Earned achievements appear as badges on the Account page (respecting my visibility setting) and are celebrated when earned with a small in-app moment and an optional notification. Examples: journal 5 days in a row; reach a 7-day or 30-day habit streak; complete a routine 10 times; finish every task in a day; beat my best streak; capture 25 thoughts; try a Random Quest. Claude Code and I will brainstorm the full list together before building this.
 - Design for achievements now: define them as data (id, title, description, rule type, threshold) and calculate them from existing history, so new ones can be added without restructuring the app. Phase 1 must keep full completion histories (habit logs, routine step logs, journal dates, task completions) so achievements can be calculated retroactively. Store earned achievements per user with the date earned. Achievements that come from private habits are never shown to other users.
 
-- **Google Calendar sync:** see the Google Calendar sync section under Calendar and reminders. Build one-way sync first, then two-way, after verifying Google's OAuth requirements.
-
 ### Phase 3: iPhone support
 - Android is the only supported phone for Phases 1 and 2, but keep the core app free of Android-only assumptions so iPhone support can be added without a rewrite.
-- Verify the current state of PWA support on iPhone before starting. Web Push on iPhone has required adding the app to the home screen (iOS 16.4 or later), and several Android features I rely on (the contact picker, share target, background behavior) may be missing or work differently.
+- Verify the current state of PWA support on iPhone before starting. Web Push on iPhone has required adding the app to the home screen (iOS 16.4 or later), and several Android features I rely on (share target, background behavior) may be missing or work differently.
 - Decide between a PWA only and a Capacitor iOS app, which needs an Apple Developer Program membership and a Mac for builds (verify cost and requirements).
 - iPhone texting can likely only open a pre-filled message for me to send (verify), so the one-message-at-a-time flow from the Cancelling section is the iPhone approach. The Android SMS gateway doesn't apply.
 - Test reminders and routine notifications on a real iPhone, since reliability differs from Android.
@@ -401,7 +393,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 1. Dashboard with all my stats.
 1. Shared events: contact info at signup, invitations, RSVPs, cancellations and notifications, and the availability schedule. Data export, account deletion, privacy policy and terms, and rate limits must be in place before anyone other than me uses the app.
 1. Optional, later: the Raspberry Pi kiosk display with device pairing and configurable dashboard blocks (section 9). Not needed for the core app.
-1. Phase 2 integrations, including Google Calendar sync.
+1. Phase 2 integrations.
 1. Phase 3: iPhone support.
 
 After each step, the app should deploy and be usable, and all Vitest and Playwright tests must pass.
@@ -442,7 +434,6 @@ Before building, walk me through creating each account below. Ask me for the cre
 
 ### Services for later phases
 - **SMS sending (only if I choose it):** after explaining the options to me, either an Android SMS gateway app on my phone (no signup; explain the setup) or Twilio (https://www.twilio.com; paid, and US sender registration is required).
-- **Google Calendar API** (Phase 2): enabled in the same Google Cloud project, with its own OAuth scopes and Google's verification process.
 - **Home Assistant and Alexa** (Phase 2): Home Assistant is already running on my linknlink device, so ask me for its URL and a long-lived access token when we get there. Alexa needs an Amazon developer account (https://developer.amazon.com).
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Revisit before choosing the email service (shared events build step) and before Google's OAuth verification for a public app, since both work much better with an owned domain.
 
@@ -517,6 +508,7 @@ Before building, walk me through creating each account below. Ask me for the cre
 - 2026-11-07 — Post It icons (user): Done became an X in the note's top right corner (delete, with Undo); Edit became a pencil icon in the bottom left; Make a task was removed.
 - 2026-11-07 — Yesterday block (user): renamed "How past you did yesterday"; on wide screens it sits left of the Post Its (Post Its stay first for screen readers and on narrow screens).
 - 2026-11-07 — Long text rule (user): test user-typed text with long lines and paragraphs. Found and fixed: favorite bucket cards and the tilted Post Its underneath pushed the Dashboard sideways on phones; long unbroken text now wraps anywhere (overflow-wrap: anywhere).
+- 2026-11-08 — Google Calendar sync and phone contact sync dropped (user: "It doesn't seem to be worth the effort"): both removed from the plan (Phase 2, build order, services). Google sign-in stays, so the Google Cloud project and its OAuth client are still needed for it.
 - 2026-11-08 — My people (user): drop Pick from contacts and sharing a contact in ("an awful user experience"); guests are typed once and saved to my people when the event is saved, then picked from a full A–Z list in the event (10 per page, filtered by what I type). Fixing or removing people is on the Account page. People already invited by email or phone were saved to my people. This replaces the "remembered people" suggestions. Later the same day (user): people can also be added from the Account page's People section.
 - 2026-11-08 — Share a contact into My Brain (user said yes to the plan): share a vCard from the Contacts app to My Brain, pick an upcoming event or New event, and the people are ready to invite. Only name, first email and first phone are read. Text shares still go to Capture. Whether Samsung Contacts lists My Brain for contact files can only be checked on the user's phone.
 - 2026-11-08 — Pick from contacts, Chrome bug (user chose "message + bug report, and plan sharing a contact into My Brain"): a test page showed Chrome 157 on the user's Samsung phone answering an empty list about 600 ms after the tap, as Samsung's contact list opens, for every way of asking. The app now says Chrome blocked it; the user files a Chrome bug report; sharing a contact from the Contacts app into My Brain is proposed as the way around it.
