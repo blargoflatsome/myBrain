@@ -74,7 +74,8 @@ test.describe('Spec §5 Journal', () => {
     await editor.click()
     await page.keyboard.type('Long day, but I got the rent paid.')
     await page.getByRole('heading', { name: 'Journal', level: 1 }).click()
-    await expect(page.getByRole('status').filter({ hasText: 'Saved.' })).toBeVisible()
+    // Like Google Docs: the status by the day's heading goes from Saving… to Saved.
+    await expect(page.getByTestId('journal-today').getByTestId('save-status')).toHaveText('Saved')
     await expect
       .poll(() => server.written('journal_entries').find((e) => e.date === '2026-11-10' && e.body))
       .toMatchObject({ body: '<p>Long day, but I got the rent paid.</p>', auto: false, stats_final: false, stats: { tasks: { done: 0, due: 0 } } })

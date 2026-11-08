@@ -101,12 +101,13 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
   test('the first bucket is preselected, so only the title is needed', async ({ page }) => {
     await startCapture(page, 'The Vault')
     const buckets = page.getByRole('group', { name: 'Which bucket?' })
-    await expect(buckets.getByRole('button')).toHaveText(['Shopping list', 'Restaurant reviews', 'Places to go', '+ New bucket'])
-    await expect(buckets.getByRole('button', { name: 'Shopping list' })).toHaveAttribute('aria-pressed', 'true')
-    await titleBox(page).fill('oat milk')
+    // Buckets are listed A to Z (favorites would come first); the first one is preselected.
+    await expect(buckets.getByRole('button')).toHaveText(['Places to go', 'Restaurant reviews', 'Shopping list', '+ New bucket'])
+    await expect(buckets.getByRole('button', { name: 'Places to go' })).toHaveAttribute('aria-pressed', 'true')
+    await titleBox(page).fill('Beach day')
     await save(page).click()
-    await expect(page.getByTestId('capture-notice')).toHaveText('Saved to Shopping list. Future you will be glad you did.')
-    await expect.poll(() => server.written('vault_items')[0]).toMatchObject({ title: 'oat milk', bucket_id: 'bucket-0' })
+    await expect(page.getByTestId('capture-notice')).toHaveText('Saved to Places to go. Future you will be glad you did.')
+    await expect.poll(() => server.written('vault_items')[0]).toMatchObject({ title: 'Beach day', bucket_id: 'bucket-2' })
   })
 
   test('another bucket and notes can be chosen', async ({ page }) => {

@@ -23,6 +23,7 @@ export const SYNC_TABLES = [
   'availability_rules',
   'availability_exceptions',
   'post_its',
+  'notifications',
 ] as const
 
 /** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
@@ -46,6 +47,18 @@ export interface TaskRow extends BaseRow {
   status: 'open' | 'done' | 'cancelled'
   completed_at?: string | null
   source: 'manual' | 'capture' | 'journal'
+}
+
+/** A notification sent today, for the Dashboard's list (SPEC §5 Dashboard). Written by the server; I can clear it. */
+export interface NotificationRow extends BaseRow {
+  kind: string
+  item_id: string | null
+  title: string
+  body: string
+  /** A page of this app ("/habits"). */
+  url: string
+  local_date: string
+  sent_at: string
 }
 
 export type PostItColor = 'yellow' | 'pink' | 'blue' | 'green'
@@ -273,6 +286,7 @@ export interface JournalEntryRow extends BaseRow {
 }
 
 export interface RowTypes {
+  notifications: NotificationRow
   post_its: PostItRow
   tasks: TaskRow
   vault_buckets: VaultBucketRow

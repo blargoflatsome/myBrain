@@ -24,6 +24,8 @@ import type { JournalEntryRow } from '@/sync/types'
 const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
 
 const props = defineProps<{ date: string; entry?: JournalEntryRow }>()
+/** busy: there's writing waiting to be stored (for the journal's save status). */
+const emit = defineEmits<{ busy: [on: boolean] }>()
 const brain = useBrainStore()
 const m = messages.journal
 
@@ -31,6 +33,7 @@ const draft = ref<string | null>(null)
 let timer: ReturnType<typeof setTimeout> | undefined
 function onInput(value: string) {
   draft.value = value
+  emit('busy', true)
   clearTimeout(timer)
   timer = setTimeout(save, 800)
 }
@@ -38,8 +41,8 @@ async function save() {
   clearTimeout(timer)
   if (draft.value === null) return
   const value = normalizeBody(draft.value)
-  if ((props.entry?.tomorrow ?? '') === value) return
-  await brain.saveJournalFields(props.date, { tomorrow: value })
+  if ((props.entry?.tomorrow ?? '') !== value) await brain.saveJournalFields(props.date, { tomorrow: value })
+  emit('busy', false)
 }
 onPageHide(() => void save())
 onScopeDispose(() => void save())

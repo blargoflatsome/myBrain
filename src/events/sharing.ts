@@ -122,10 +122,12 @@ export function shareHref(t: Pick<ShareTarget, 'email' | 'phone' | 'subject' | '
 
 /** Pick people from my phone's contacts, where the browser allows it (Chrome on Android). */
 export const canPickContacts = () => typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window
-export async function pickContacts(): Promise<PersonToInvite[]> {
+/** People picked from the phone's contacts; `skipped` counts picked contacts with no email or phone number. */
+export async function pickContacts(): Promise<{ people: PersonToInvite[]; skipped: number }> {
   const contacts = (navigator as unknown as { contacts: { select(p: string[], o: { multiple: boolean }): Promise<{ name?: string[]; email?: string[]; tel?: string[] }[]> } }).contacts
   const picked = await contacts.select(['name', 'email', 'tel'], { multiple: true })
-  return picked
+  const people = picked
     .map((c) => ({ name: c.name?.[0], email: c.email?.[0], phone: c.email?.[0] ? undefined : c.tel?.[0] }))
     .filter((p) => p.email || p.phone)
+  return { people, skipped: picked.length - people.length }
 }

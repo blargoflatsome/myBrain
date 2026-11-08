@@ -39,6 +39,7 @@ export class LocalDb extends Dexie {
   availability_rules!: Table<RowTypes['availability_rules'], string>
   availability_exceptions!: Table<RowTypes['availability_exceptions'], string>
   post_its!: Table<RowTypes['post_its'], string>
+  notifications!: Table<RowTypes['notifications'], string>
   outbox!: Table<OutboxEntry, number>
   meta!: Table<MetaEntry, string>
 
@@ -90,6 +91,10 @@ export class LocalDb extends Dexie {
     // Post Its on the Dashboard.
     this.version(8).stores({
       post_its: 'id, updated_at, position',
+    })
+    // Today's notifications on the Dashboard.
+    this.version(9).stores({
+      notifications: 'id, updated_at, local_date',
     })
   }
 

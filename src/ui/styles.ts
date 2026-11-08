@@ -15,6 +15,11 @@ const unselected = 'border-line bg-surface text-ink'
 export const chip = (on: boolean) => ['min-h-11 min-w-11 rounded-full border px-3 text-sm', on ? selected : unselected]
 /** A narrow chip for weekday pickers, so seven fit in a row. */
 export const dayChip = (on: boolean) => ['min-h-11 min-w-11 rounded-full border px-2 text-sm', on ? selected : unselected]
+/** A quieter filter chip: the chosen one gets a soft tint and a check mark (add the check in the template). */
+export const filterChip = (on: boolean) => [
+  'min-h-11 rounded-full border px-3 text-sm',
+  on ? 'border-accent bg-accent/10 font-semibold text-ink' : 'border-line bg-surface text-ink',
+]
 /** One of two or three side-by-side answers (Yes / No, Going / Maybe / No). */
 export const choice = (on: boolean) => ['min-h-11 flex-1 rounded-xl border px-3 font-semibold', on ? selected : 'border-line']
 

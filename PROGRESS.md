@@ -227,12 +227,18 @@ Merged and live.
 - App: `public/_headers` (CSP etc., also used by `vite preview` through `build/security-headers.ts`), push allowlist (`src/notifications/pushEndpoints.ts`, used by the app and `send-push`), constant-time secret, `src/security/redirect.ts`, calendar escaping, DOMPurify checkbox fix, input maxlengths, `fitTitle` for long titles.
 - Tests: `e2e/security.spec.ts`, `src/security/security.test.ts`, `supabase/tests/rls_security.sql`. Vitest 266, Playwright 463.
 
-## Code review and coding standards (branch `code-review`)
+## Code review and coding standards (done, PR #24)
 - `docs/CODING_STANDARDS.md` (for the user to review and tweak). Templates before scripts in every .vue file; ESLint `vue/block-order` enforces it.
 - Shared code: `src/ui/styles.ts` (16 copies of the field style, 5 chip copies, 3 answer-button copies, window and card styles), `src/ui/dates.ts` (5 copies of date formatting), `src/sync/live.ts` (two identical helpers and 14 inline filters), `ConfirmDialog.vue` (9 copied confirmation windows).
 - Dead code removed: the Journal preset in Capture (left from the removed Add a task for tomorrow button), the capture `source` option, `newInviteLink`. `needsDecision` is now used by the task row instead of being re-implemented inline. `READ_ONLY_TABLES` is now enforced by the sync engine (it was declared but unused).
 - Comments: removed ones that repeated a heading or the code, and who-approved-what notes (the decision log has them).
 - Performance: the formatting editor (Tiptap) loads on first use; initial download 702 kB to 373 kB (211 kB to 109 kB compressed).
+
+## Feedback round 2 (branch `feedback-round-2`)
+- User's choices (SPEC §14 2026-11-07): journal save status next to the heading (`SaveStatus.vue`); clearer invite feedback (contact picker results, "To invite (when you save)", ready and shared messages); app checks for updates hourly and on return (the user's phone was on an old version without "Every 2 weeks" for events); Quest page redesign (soft filter chips, compact list, easiest first, 10 per page); reusable `usePagination` + `PageControls.vue`; Vault buckets favorites first then A to Z everywhere (bucket dragging removed); Today's notifications on the Dashboard (5 per page, clear one or all, cleared at midnight).
+- Migrations `20261107040000_notifications_today.sql` (notifications table, `record_notification`, `expire_notifications` hourly cron, senders record every reminder and event news) and `..040100_record_notification_fix.sql` (parameter names clashed with columns and broke reminder runs on dev for a few minutes; caught by the SQL checks). Dev migrated; 17 SQL files pass.
+- Tests: `src/feedback-round-2.test.ts`, `e2e/feedback-round-2.spec.ts`, `supabase/tests/rls_notifications.sql`; updated Vault, Capture, journal and accessibility tests. Vitest 270, Playwright 477.
+- Open question to the user: remember people already invited (suggestions) instead of syncing all contacts.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

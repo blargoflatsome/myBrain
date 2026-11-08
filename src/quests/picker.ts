@@ -5,6 +5,17 @@ export const ENERGY_LEVELS: EnergyLevel[] = ['ugh', 'fun', 'needs_setup', 'medic
 export const TIME_BUCKETS: TimeBucket[] = ['30m', '2h', 'half_day', 'full_day'] // shortest to longest
 export const RECENT_PICKS = 3
 
+const rankOrLast = <T,>(order: T[], value: T | null | undefined) => (value != null && order.includes(value) ? order.indexOf(value) : order.length)
+
+/** The list of quests (SPEC §5 Random Quest): easiest first, then shortest, then by title; unset energy or time last. */
+export function byEffort(a: QuestRow, b: QuestRow): number {
+  return (
+    rankOrLast(ENERGY_LEVELS, a.energy_level as EnergyLevel | null) - rankOrLast(ENERGY_LEVELS, b.energy_level as EnergyLevel | null) ||
+    rankOrLast(TIME_BUCKETS, a.time_bucket as TimeBucket | null) - rankOrLast(TIME_BUCKETS, b.time_bucket as TimeBucket | null) ||
+    a.title.localeCompare(b.title)
+  )
+}
+
 export interface QuestFilter {
   /** How much energy I have; quests needing this much or less match. */
   energy?: EnergyLevel | null

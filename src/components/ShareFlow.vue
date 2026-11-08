@@ -41,7 +41,8 @@ import { markShared, shareHref, type ShareTarget } from '@/events/sharing'
 import { messages } from '@/messages'
 
 const props = defineProps<{ targets: ShareTarget[]; kind: 'invite' | 'message' | 'cancel' }>()
-const emit = defineEmits<{ done: [] }>()
+/** done: how many messages I said I sent. */
+const emit = defineEmits<{ done: [sent: number] }>()
 const m = messages.share
 
 const dialog = ref<HTMLDialogElement | null>(null)
@@ -69,7 +70,8 @@ function next(wasSent: boolean) {
 }
 async function close() {
   if (sent.value.length) await markShared(sent.value, props.kind).catch(() => {})
+  const count = sent.value.length
   dialog.value?.close()
-  emit('done')
+  emit('done', count)
 }
 </script>

@@ -34,6 +34,10 @@ ${LONG_WORD}`, due_date: day, priority: 2, status: 'open', source: 'manual', cre
   server.seed('vault_items', [{ id: 'v-long', bucket_id: 'b-long', title: LONG_WORD, notes: PARAGRAPH, rating: 3, link: LONG_WORD, checked: false, created_at: '2026-11-09T12:30:00Z' }])
   server.seed('events', [{ id: 'e-long', title: LONG_LINE, notes: PARAGRAPH, start_date: day, start_time: null, end_date: day, end_time: null, repeat: 'never', reminder_minutes: null }])
   server.seed('tags', [{ id: 'tag-long', name: LONG_WORD.slice(0, 60) }])
+  server.seed('notifications', [
+    { id: 'nt1', kind: 'habit', item_id: null, title: 'Take meds', body: 'Reminder: Past you asked that you take your meds.', url: '/habits', local_date: day, sent_at: '2026-11-10T13:00:00Z' },
+    { id: 'nt2', kind: 'event_message', item_id: null, title: LONG_LINE, body: `${PARAGRAPH} ${LONG_WORD}`, url: '/calendar', local_date: day, sent_at: '2026-11-10T14:00:00Z' },
+  ])
   server.seed('item_tags', [{ id: 'it-long', item_type: 'journal_entry', item_id: 'j8', tag_id: 'tag-long' }])
 }
 
@@ -250,16 +254,17 @@ test.describe('Spec §2 WCAG 2.2 AA: by hand checks made automatic', () => {
     expect(outline).toBe('solid 3px')
   })
 
-  test('buckets can be sorted by tapping instead of dragging (2.5.7)', async ({ page }) => {
-    await page.goto('/vault')
-    const names = page.getByTestId('vault-bucket').locator('span.font-medium')
-    await expect(names.first()).toBeVisible()
-    const before = await names.allTextContents()
-    const last = before.at(-1)!.replace('★ ', '').trim()
-    await page.getByRole('button', { name: new RegExp(`^Reorder ${last}`) }).click()
-    await page.getByRole('group', { name: `Move ${last}` }).getByRole('button', { name: /Move up/ }).click()
-    await expect(names).toHaveText([...before.slice(0, -2), before.at(-1)!, before.at(-2)!])
+  test('routine steps can be sorted by tapping instead of dragging (2.5.7)', async ({ page }) => {
+    await page.goto('/routines')
+    await page.getByRole('button', { name: 'Edit' }).first().click()
+    const dialog = page.getByRole('dialog')
+    const steps = dialog.getByTestId('routine-step-row').locator('input')
+    await expect(steps.first()).toHaveValue('Brush teeth')
+    await dialog.getByRole('button', { name: /^Reorder Brush teeth/ }).click()
+    await dialog.getByRole('group', { name: 'Move Brush teeth' }).getByRole('button', { name: /Move down/ }).click()
+    await expect(steps.nth(1)).toHaveValue('Brush teeth')
   })
+
 
   test('the page name is announced after moving to another page (4.1.3)', async ({ page }) => {
     await page.goto('/')
