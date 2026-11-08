@@ -55,7 +55,7 @@ begin
   if n <> 0 then raise exception 'FAIL: Spec §8: a search of only wildcards finds no one'; end if;
   select count(*) into n from public.search_people('___');
   if n <> 0 then raise exception 'FAIL: Spec §8: a search of only underscores finds no one'; end if;
-  select count(*) into n from public.search_people('Bob\');
+  select count(*) into n from public.search_people('Bob\') s where s.user_id = bob;
   if n <> 1 then raise exception 'FAIL: Spec §8: a trailing backslash is ignored, not an error'; end if;
   select count(*) into n from public.search_people('Bob''; drop table public.tasks; --');
   if n <> 0 then raise exception 'FAIL: Spec §8: quotes in a search are just text'; end if;

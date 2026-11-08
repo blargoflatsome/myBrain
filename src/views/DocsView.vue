@@ -28,7 +28,7 @@
     <section id="daily-rhythm" aria-labelledby="daily-rhythm-h">
       <h2 id="daily-rhythm-h">A simple daily rhythm</h2>
       <ul>
-        <li><strong>Morning:</strong> open the Dashboard. Check your Post Its, how yesterday went and today's notifications, then glance at <em>Tasks</em> and <em>Habits</em>.</li>
+        <li><strong>Morning:</strong> open the Dashboard. Check your Post Its, how yesterday went and the bell in the top right for alerts, then glance at <em>Tasks</em> and <em>Habits</em>.</li>
         <li><strong>All day:</strong> whenever something pops into your head, press <em>+ Capture</em>. Don't sort it now; "Decide later" is fine.</li>
         <li><strong>Need to focus?</strong> Start the <em>Focus timer</em> from the menu.</li>
         <li><strong>Evening:</strong> open the <em>Journal</em>, answer "Was today better than yesterday?", write a little, and note how to make tomorrow better. Add tomorrow's tasks with <em>+ Capture</em>.</li>
@@ -152,8 +152,8 @@
     <section id="dashboard" aria-labelledby="dashboard-h">
       <h2 id="dashboard-h">The Dashboard and notifications</h2>
       <ul>
-        <li>The Dashboard shows your Post Its, <em>How past you did yesterday</em>, <em>Today's notifications</em>, habit streaks, journal runs, favorite buckets and event stats. Use <em>Period</em> to change the stats' time range.</li>
-        <li><strong>Missed a notification?</strong> Every reminder and invitation update from today is listed in <em>Today's notifications</em>. Tap one to open it, ✕ to clear it, or <em>Clear all</em>. They clear themselves at midnight.</li>
+        <li>The Dashboard shows your Post Its, <em>How past you did yesterday</em>, habit streaks, journal runs, favorite buckets and event stats. Use <em>Period</em> to change the stats' time range.</li>
+        <li><strong>Alerts:</strong> every reminder, invitation update and connection request is also an alert inside the app, even if notifications on this device are off. The bell in the top right shows how many you haven't dealt with; tap it to see the last 7 days. Tap an alert to go where you deal with it, ✕ to clear it, or <em>Clear all</em>. If one arrives while My Brain is open, it slides in at the top for 8 seconds.</li>
         <li>Want a louder backup for priority reminders? Turn on <em>Also send to the ntfy app</em> on the Account page.</li>
       </ul>
     </section>

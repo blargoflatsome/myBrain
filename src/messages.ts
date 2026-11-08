@@ -682,12 +682,18 @@ export const messages = {
     close: 'Stop and close the timer',
     openPill: (phase: string, time: string) => `Focus timer: ${phase}, ${time} left. Open`,
   },
-  notificationsToday: {
-    heading: 'Today’s notifications',
-    empty: 'Nothing from past you yet today.',
+  /** SPEC §6 In-app alerts: the bell, its list, and the banner. */
+  alerts: {
+    heading: 'Alerts',
+    bellLabel: (n: number) => `Alerts, ${n} new`,
+    bellLabelNone: 'Alerts',
+    empty: 'Nothing from past you in the last 7 days.',
+    new: 'New',
     clearAll: 'Clear all',
     clear: (title: string) => `Clear: ${title}`,
     cleared: 'Cleared.',
+    close: 'Close',
+    closeBanner: 'Close this alert',
   },
   postIts: {
     label: 'Post It',

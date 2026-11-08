@@ -92,8 +92,8 @@ const groups: { heading: string; features: Feature[] }[] = [
   {
     heading: 'See it all at a glance',
     features: [
-      { icon: '📊', title: 'Dashboard', text: 'Your Post Its, how yesterday went, today’s notifications, habit streaks, journal runs, days since your worst day, favorite Vault buckets and event stats, all on one page.' },
-      { icon: '🔔', title: 'Reminders that reach you', text: 'Notifications on your phone and computer, or through the ntfy app, with quiet hours and snooze. Missed one? Today’s notifications are listed on your Dashboard.' },
+      { icon: '📊', title: 'Dashboard', text: 'Your Post Its, how yesterday went, habit streaks, journal runs, days since your worst day, favorite Vault buckets and event stats, all on one page.' },
+      { icon: '🔔', title: 'Reminders that reach you', text: 'Notifications on your phone and computer, or through the ntfy app, with quiet hours and snooze. Even with device notifications off, alerts show inside the app: a bell in the top right with a count, and a banner when one arrives while My Brain is open.' },
     ],
   },
   {

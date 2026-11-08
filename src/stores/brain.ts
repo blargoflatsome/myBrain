@@ -422,16 +422,20 @@ export const useBrainStore = defineStore('brain', () => {
     await e.save('journal_entries', { ...emptyEntry(uid, date, false), ...fields, stats, stats_final: date < today })
   }
 
-  // ---------- Today's notifications (SPEC §5 Dashboard) ----------
+  // ---------- In-app alerts (SPEC §6) ----------
   async function clearNotification(id: string) {
     await requireReady().engine.remove('notifications', id)
   }
-  /** Clear all: every notification from this day that's still showing. */
-  async function clearNotifications(date: string) {
+  /** Clear all alerts still showing. */
+  async function clearNotifications() {
     const { engine: e, local } = requireReady()
-    for (const n of await local.notifications.where('local_date').equals(date).toArray()) {
+    for (const n of await local.notifications.toArray()) {
       if (!n.deleted_at) await e.remove('notifications', n.id)
     }
+  }
+  /** Tapping an alert counts it as seen, on every device. */
+  async function markNotificationRead(id: string) {
+    await requireReady().engine.patch('notifications', id, (n) => (n.read_at ? {} : { read_at: new Date().toISOString() }))
   }
 
   // ---------- Post Its (SPEC §5 Quick capture and Dashboard) ----------
@@ -615,6 +619,7 @@ export const useBrainStore = defineStore('brain', () => {
     savePerson,
     removePerson,
     clearNotification,
+    markNotificationRead,
     clearNotifications,
     savePostIt,
     removePostIt,
