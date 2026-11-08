@@ -61,10 +61,10 @@
         </li>
       </ul>
     </div>
-    <p v-if="contactError" class="text-sm text-danger" role="alert">{{ contactError }}</p>
+    <p v-if="contactError" class="text-sm text-danger" role="alert" data-testid="people-error">{{ contactError }}</p>
     <p class="text-sm text-muted" role="status" data-testid="people-status">{{ status }}</p>
     <div class="flex flex-wrap gap-2">
-      <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="addContact">{{ m.addContact }}</button>
+      <button ref="addButton" type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="addContact">{{ m.addContact }}</button>
       <button v-if="canPickContacts()" type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="fromContacts">{{ m.pickContacts }}</button>
     </div>
   </fieldset>
@@ -73,7 +73,7 @@
 <script setup lang="ts">
 // SPEC §5 Shared events and Availability: invite people by name, email, phone or from my contacts; see who's
 // invited and their answers; for people found by name, see who is free and get suggested times.
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { contactKey, matchRemembered, rememberedPeople, type RememberedPerson } from '@/events/contacts'
 import { canPickContacts, eventPeople, freeBusy, pickContacts, searchPeople, uninvite, type EventPerson, type FoundPerson, type PersonToInvite } from '@/events/sharing'
 import { busyTimes, hasConflict, suggestTimes, type Interval } from '@/events/availability'
@@ -113,10 +113,12 @@ async function remove(p: EventPerson) {
 
 // ---------- Adding people ----------
 const pending = computed(() => props.modelValue)
-function add(p: PersonToInvite) {
+// Several people are added in one update: the list prop only changes after the parent re-renders.
+function add(...people: PersonToInvite[]) {
   const key = (x: PersonToInvite) => x.user_id ?? x.email ?? x.phone
-  if (pending.value.some((x) => key(x) === key(p))) return
-  emit('update:modelValue', [...pending.value, p])
+  const next = [...pending.value]
+  for (const p of people) if (!next.some((x) => key(x) === key(p))) next.push(p)
+  if (next.length > pending.value.length) emit('update:modelValue', next)
 }
 function drop(i: number) {
   emit('update:modelValue', pending.value.filter((_, j) => j !== i))
@@ -173,21 +175,40 @@ function addContact() {
   contact.value = ''
   contactName.value = ''
 }
+// One contact fills the email-or-phone and name boxes, ready to Add (what people expect); several are added at
+// once. Every outcome is said on screen and scrolled into view, since the phone's picker covered the app.
+const addButton = ref<HTMLButtonElement | null>(null)
 async function fromContacts() {
   contactError.value = ''
+  status.value = ''
   let picked: Awaited<ReturnType<typeof pickContacts>>
   try {
     picked = await pickContacts()
   } catch {
     contactError.value = m.contactsFailed
-    return
+    return showOutcome()
   }
   if (!picked.people.length) {
     if (picked.skipped) contactError.value = m.noUsableContacts
+    else status.value = m.noContactPicked
+    return showOutcome()
+  }
+  if (picked.people.length === 1 && !picked.skipped) {
+    const p = picked.people[0]!
+    contact.value = p.email ?? p.phone ?? ''
+    contactName.value = p.name ?? ''
+    status.value = m.filledIn(nameOf(p))
+    await showOutcome()
+    addButton.value?.focus()
     return
   }
-  for (const p of picked.people) add(p)
-  status.value = picked.people.length === 1 && !picked.skipped ? m.added(nameOf(picked.people[0]!)) : m.addedSome(picked.people.length, picked.skipped)
+  add(...picked.people)
+  status.value = m.addedSome(picked.people.length, picked.skipped)
+  return showOutcome()
+}
+async function showOutcome() {
+  await nextTick()
+  document.querySelector<HTMLElement>('[data-testid="people-status"], [data-testid="people-error"]')?.scrollIntoView({ block: 'nearest' })
 }
 
 // ---------- Availability: only people found by name (never reveals who has an account) ----------
