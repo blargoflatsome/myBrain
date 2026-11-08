@@ -78,7 +78,7 @@ const groups: { heading: string; features: Feature[] }[] = [
     features: [
       { icon: '📅', title: 'Calendar', text: 'Month, week and day views with your events, dated tasks and priority tasks together. Events repeat daily, weekly, every 2 weeks, monthly or yearly, with reminders.' },
       { icon: '✉️', title: 'Invitations', text: 'Invite people by name, email or phone. Guests answer from a private link without an account, see who’s free before you pick a time, and let everyone know if plans change.' },
-      { icon: '🙋', title: 'Your people', text: 'Type a guest’s email or phone once. When you save the event they join your people, so next time you add them from a list with one tap.' },
+      { icon: '🙋', title: 'Your people', text: 'Type a guest’s email or phone once. When you save the event they join your people, so next time you add them from a list with one tap. You can also add people ahead of time from your Account page.' },
     ],
   },
   {

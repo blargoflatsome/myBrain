@@ -2,6 +2,10 @@
   <section class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4" aria-labelledby="my-people-settings" data-testid="my-people-settings">
     <h2 id="my-people-settings" class="text-lg font-semibold">{{ m.heading }}</h2>
     <p class="text-sm text-muted">{{ m.hint }}</p>
+    <div>
+      <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="startAdd">{{ m.add }}</button>
+    </div>
+    <p class="text-sm text-muted" role="status" data-testid="people-notice">{{ notice }}</p>
     <p v-if="!people.length" class="text-muted">{{ m.empty }}</p>
     <ul v-else class="flex flex-col gap-2">
       <li v-for="p in pageItems" :key="p.id" class="flex min-w-0 items-center justify-between gap-2" data-testid="saved-person">
@@ -17,9 +21,9 @@
     </ul>
     <PageControls v-model:page="page" :page-count="pageCount" :label="m.heading" />
 
-    <dialog ref="editor" :class="dialogBox" :aria-label="m.editHeading" @close="editing = null">
+    <dialog ref="editor" :class="dialogBox" :aria-label="adding ? m.addHeading : m.editHeading" @close="editing = null">
       <form v-if="editing" class="flex flex-col gap-3 p-5" novalidate @submit.prevent="saveEdit">
-        <h3 class="text-lg font-semibold">{{ m.editHeading }}</h3>
+        <h3 class="text-lg font-semibold">{{ adding ? m.addHeading : m.editHeading }}</h3>
         <label class="flex flex-col gap-1 text-sm text-muted">{{ m.name }}<input v-model="name" maxlength="120" :class="field" autocomplete="off"></label>
         <label class="flex flex-col gap-1 text-sm text-muted">{{ m.email }}<input v-model="email" type="email" maxlength="320" :class="field" autocomplete="off"></label>
         <label class="flex flex-col gap-1 text-sm text-muted">{{ m.phone }}<input v-model="phone" type="tel" maxlength="40" :class="field" autocomplete="off"></label>
@@ -50,7 +54,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
 import { useLiveQuery } from '@/composables/useLiveQuery'
-import { isEmail, isPhone } from '@/events/contacts'
+import { contactKey, isEmail, isPhone } from '@/events/contacts'
 import { personLabel, sortPeople } from '@/events/people'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
@@ -70,7 +74,16 @@ const name = ref('')
 const email = ref('')
 const phone = ref('')
 const error = ref('')
+// Adding uses the same form as editing, starting empty (SPEC §5 Calendar, my people).
+const adding = ref(false)
+const notice = ref('')
+function startAdd() {
+  startEdit({ id: crypto.randomUUID(), user_id: brain.userId ?? undefined, name: null, email: null, phone: null, deleted_at: null })
+  adding.value = true
+}
 function startEdit(p: PersonRow) {
+  adding.value = false
+  notice.value = ''
   editing.value = p
   name.value = p.name ?? ''
   email.value = p.email ?? ''
@@ -85,7 +98,13 @@ async function saveEdit() {
   if (e && !isEmail(e)) return (error.value = m.badEmail)
   if (ph && !isPhone(ph)) return (error.value = m.badPhone)
   if (!e && !ph) return (error.value = m.needOne)
-  await brain.savePerson({ ...editing.value, name: name.value.trim() || null, email: e || null, phone: ph || null })
+  const row = { ...editing.value, name: name.value.trim() || null, email: e || null, phone: ph || null }
+  // Someone else already saved with this email or phone: say so instead of saving them twice.
+  const key = contactKey(row)
+  const twin = rows.value.find((p) => p.id !== row.id && contactKey(p) === key)
+  if (twin) return (error.value = m.alreadySaved(personLabel(twin)))
+  await brain.savePerson(row)
+  if (adding.value) notice.value = m.addedNotice(personLabel(row))
   editor.value?.close()
 }
 

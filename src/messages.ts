@@ -431,7 +431,11 @@ export const messages = {
   myPeople: {
     heading: 'Your people',
     hint: 'Everyone you’ve invited by email or phone is saved here when you save the event, so you can add them from a list next time.',
-    empty: 'No one yet. People you invite by email or phone will show up here.',
+    empty: 'No one yet. Add someone, or people you invite by email or phone will show up here.',
+    add: 'Add a person',
+    addHeading: 'Add a person',
+    addedNotice: (name: string) => `Added ${name} to your people.`,
+    alreadySaved: (name: string) => `${name} is already in your people with that email or phone number.`,
     edit: 'Edit',
     editLabel: (name: string) => `Edit ${name}`,
     remove: 'Remove',
