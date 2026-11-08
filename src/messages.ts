@@ -7,6 +7,14 @@ function ordinal(n: number): string {
 
 export const messages = {
   appName: 'My Brain',
+  /** Dev-only sign-in for test accounts (local dev server only). */
+  devSignIn: {
+    heading: 'Dev sign-in (test accounts)',
+    hint: 'Only on the local dev server. The password is DEV_TEST_PASSWORD in .env.local.',
+    who: 'Test account',
+    password: 'Password',
+    button: 'Sign in as this test account',
+  },
   signIn: {
     deleted: 'Your account and all of its data have been deleted.',
     heading: 'Welcome back',

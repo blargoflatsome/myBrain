@@ -15,6 +15,7 @@
       {{ messages.signIn.button }}
     </button>
     <p v-if="failed" role="alert" class="text-danger">{{ messages.signIn.error }}</p>
+    <DevSignIn v-if="DevSignIn" />
     <p class="flex flex-wrap justify-center gap-4 text-sm">
       <RouterLink to="/features" class="text-muted underline">{{ messages.legal.features }}</RouterLink>
       <RouterLink to="/docs" class="text-muted underline">{{ messages.legal.docs }}</RouterLink>
@@ -25,10 +26,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { defineAsyncComponent, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { messages } from '@/messages'
+import { devSignInEnabled } from '@/auth/devSignIn'
+
+// Dev-only password sign-in for test accounts: only on the local dev server with VITE_DEV_SIGN_IN=true.
+const DevSignIn = devSignInEnabled(import.meta.env) ? defineAsyncComponent(() => import('@/components/DevSignIn.vue')) : null
 
 const auth = useAuthStore()
 const deleted = useRoute().query.deleted === '1'
