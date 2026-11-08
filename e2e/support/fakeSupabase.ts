@@ -106,6 +106,15 @@ export class FakeSupabase {
       },
       [storageKey, JSON.stringify(session)],
     )
+    // Tests reach into every Account section, so its groups start open here (the page itself opens only Your profile;
+    // e2e/account-layout.spec.ts checks that with fresh storage).
+    if (this.openAccountGroups) {
+      await page.addInitScript(() => {
+        if (!localStorage.getItem('my-brain:account-open')) {
+          localStorage.setItem('my-brain:account-open', JSON.stringify(['profile', 'reminders', 'events', 'people', 'data', 'account']))
+        }
+      })
+    }
 
     await page.routeWebSocket(/\/realtime\/v1\//, () => {
       // Accept and stay silent: Realtime is covered by the sync engine's unit tests.
@@ -156,6 +165,8 @@ export class FakeSupabase {
   rpcArgs: { name: string; args: Record<string, unknown> }[] = []
   /** What a database function returns: a value, or a function of its arguments. Unset = no content. */
   rpcResults: Record<string, unknown> = {}
+  /** Start with every Account group open (set false to see the page's own defaults). */
+  openAccountGroups = true
 
   /** Remove every row from a table, as the server would after a delete. */
   clear(table: string) {

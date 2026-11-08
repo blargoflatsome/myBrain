@@ -1,7 +1,5 @@
 <template>
-  <section class="flex flex-col rounded-2xl border border-line bg-surface p-4" data-testid="notification-settings">
-    <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
-
+  <section class="flex flex-col" :aria-label="m.heading" data-testid="notification-settings">
     <div class="divide-y divide-line">
       <div class="flex flex-col gap-1 py-4">
         <div class="flex items-center justify-between gap-4">

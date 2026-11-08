@@ -201,7 +201,7 @@ test.describe('Spec §5 Account page', () => {
     await open(page, '/account')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Test Person')
     await expect(page.getByLabel('Who can see my streaks')).toHaveValue('private')
-    await expect(page.getByText('Sharing starts when other people can join My Brain.')).toBeVisible()
+    await expect(page.getByText('Sharing starts later. Private habits are never shown.')).toBeVisible()
 
     await expect(page.getByLabel('Short bio')).toHaveCount(0)
     await page.getByLabel('Display name').fill('Jo')
