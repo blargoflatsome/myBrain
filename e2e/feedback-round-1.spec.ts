@@ -126,6 +126,8 @@ test.describe('Spec §5 Journal: tomorrow and better than yesterday', () => {
     await expect.poll(() => lastWrite('journal_entries')).toMatchObject({ date: '2026-11-10', better_than_yesterday: true })
     await group.getByRole('radio', { name: 'No' }).click()
     await expect.poll(() => lastWrite('journal_entries')).toMatchObject({ better_than_yesterday: false })
+    // Wait for the first tap to show before tapping again (a slow phone can otherwise take both as one).
+    await expect(group.getByRole('radio', { name: 'No' })).toHaveAttribute('aria-checked', 'true')
     await group.getByRole('radio', { name: 'No' }).click()
     await expect.poll(() => lastWrite('journal_entries')).toMatchObject({ better_than_yesterday: null })
   })

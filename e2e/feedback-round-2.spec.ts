@@ -11,7 +11,6 @@ async function open(page: Page, path: string) {
   await page.clock.install({ time: NOW })
   await page.goto(path)
 }
-const lastWrite = (table: string) => server.written(table).at(-1)
 
 test.beforeEach(async ({ page }) => {
   server = new FakeSupabase()
@@ -91,37 +90,3 @@ test.describe('Spec §5 Random Quest: calmer page, sorted by effort, in pages', 
   })
 })
 
-test.describe('Spec §5 Dashboard: today’s notifications', () => {
-  const note = (id: string, title: string, sent: string, date = '2026-11-10') => ({ id, kind: 'habit', item_id: null, title, body: 'Past you asked for this.', url: '/habits', local_date: date, sent_at: sent })
-
-  test('lists only today’s, newest first, five per page; clear one or all', async ({ page }) => {
-    server.seed('notifications', [
-      ...Array.from({ length: 6 }, (_, i) => note(`n${i}`, `Reminder ${i}`, `2026-11-10T1${i}:00:00Z`)),
-      note('old', 'Yesterday’s reminder', '2026-11-09T15:00:00Z', '2026-11-09'),
-    ])
-    await open(page, '/')
-    const box = page.getByTestId('dash-notifications')
-    await expect(box.getByRole('heading', { name: 'Today’s notifications' })).toBeVisible()
-    await expect(box.getByTestId('notification')).toHaveCount(5)
-    await expect(box.getByTestId('notification').first()).toContainText('Reminder 5')
-    await expect(box).not.toContainText('Yesterday’s reminder')
-    await expect(box.getByTestId('page-position')).toHaveText('Page 1 of 2')
-
-    await box.getByRole('button', { name: 'Clear: Reminder 5' }).click()
-    await expect.poll(() => lastWrite('notifications')).toMatchObject({ id: 'n5', deleted_at: expect.any(String) })
-    await expect(box.getByTestId('notification')).toHaveCount(5)
-    await expect(box.getByTestId('page-controls')).toHaveCount(0)
-
-    await box.getByRole('button', { name: 'Clear all' }).click()
-    await expect(box.getByTestId('notification')).toHaveCount(0)
-    await expect(box).toContainText('Nothing from past you yet today.')
-    await expect.poll(() => server.written('notifications').filter((n) => n.deleted_at).length).toBe(6)
-  })
-
-  test('tapping one opens what it is about', async ({ page }) => {
-    server.seed('notifications', [note('n1', 'Take meds', '2026-11-10T13:00:00Z')])
-    await open(page, '/')
-    await page.getByTestId('dash-notifications').getByRole('link', { name: /Take meds/ }).click()
-    await expect(page).toHaveURL(/\/habits$/)
-  })
-})

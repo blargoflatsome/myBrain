@@ -60,6 +60,8 @@ export interface NotificationRow extends BaseRow {
   url: string
   local_date: string
   sent_at: string
+  /** When I tapped it (SPEC §6 In-app alerts); null until then. */
+  read_at?: string | null
 }
 
 export type PostItColor = 'yellow' | 'pink' | 'blue' | 'green'

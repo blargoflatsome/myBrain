@@ -44,7 +44,7 @@ begin
   -- Name search: 3 letters, only findable people, only name and picture.
   select count(*) into n from public.search_people('Bo');
   if n <> 0 then raise exception 'FAIL: Spec §5: name search needs at least 3 letters'; end if;
-  select count(*) into n from public.search_people('bob');
+  select count(*) into n from public.search_people('bob') s where s.user_id = bob;
   if n <> 1 then raise exception 'FAIL: Spec §5: a findable user can be found by name'; end if;
   select count(*) into n from public.search_people('Eve');
   if n <> 0 then raise exception 'FAIL: Spec §5: people who turned off being findable are not found by name'; end if;

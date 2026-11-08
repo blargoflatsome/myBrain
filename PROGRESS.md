@@ -278,8 +278,13 @@ Merged and live.
 - Part 5 (done): migration `20261108070000_scheduling_for_connections.sql` (`free_busy` only for connections); availability card, share setting, free/busy and suggested times restored from before PR #35, now for connections. `rls_scheduling.sql`; 25 SQL files pass on dev.
 - Not built: "Just this date" answers for repeating events; push for connection requests.
 
-## Dev test accounts (branch `dev-test-accounts`)
+## Dev test accounts (done, PR #38)
 - `scripts/dev-accounts.mjs` (`npm run dev:accounts`), `scripts/test-flows.mjs` (`npm run test:flows`), shared `scripts/dev-env.mjs` (refuses production). Dev-only password sign-in (`DevSignIn.vue`, `src/auth/devSignIn.ts`, unit test). Waiting on the user: the dev service role key in `.env.local`, and Email sign-in turned on in the dev Supabase project; then run `npm run dev:accounts` and `npm run test:flows`.
+
+## In-app alerts (branch `in-app-alerts`)
+- Bell in the header (top right on desktop) with the count of alerts not yet tapped; alerts list (7 days, newest first, 5 per page, tap = go + seen, ✕, Clear all); banner at the top for alerts sent while the app is open (8 s, pauses on hover/focus). Regardless of device notifications. Replaces the Dashboard's Today's notifications box. User's choices: 7 days, count drops one at a time, 8 s banner.
+- Migration `20261108080000_in_app_alerts.sql` (`notifications.read_at`, re-sent reminders count as new, 7-day keep). Dev migrated; 25 SQL files pass (name-search checks now ignore the dev test accounts). Prod: before merge.
+- Tests: `e2e/alerts.spec.ts`, Alerts window in the axe scans; the journal better-than-yesterday test steadied. Vitest 285, Playwright 603.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

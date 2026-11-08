@@ -66,6 +66,9 @@
     </template>
 
     <div class="flex min-h-dvh min-w-0 flex-1 flex-col">
+      <!-- SPEC §6 In-app alerts: the bell sits in the top right corner on wide screens (in the header on phones). -->
+      <div v-if="showChrome && wide" class="fixed top-3 right-4 z-20"><AlertsBell /></div>
+      <AlertBanner v-if="showChrome" />
       <header v-if="showChrome" class="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur md:hidden">
         <div class="flex items-center justify-between gap-3 px-4 py-3">
           <button
@@ -84,6 +87,7 @@
             <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line text-lg" :aria-label="messages.search.open" @click="searchWindow.open()">
               <span aria-hidden="true">⌕</span>
             </button>
+            <AlertsBell v-if="!wide" />
           </div>
         </div>
       </header>
@@ -113,6 +117,8 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
+import AlertsBell from '@/components/AlertsBell.vue'
+import AlertBanner from '@/components/AlertBanner.vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import SyncIndicator from '@/components/SyncIndicator.vue'
 import PriorityReminder from '@/components/PriorityReminder.vue'

@@ -169,6 +169,11 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.getByRole('dialog', { name: 'New event' }).getByRole('button', { name: 'Contacts' }).click()
       await expect(page.getByRole('dialog', { name: 'Your people' }).getByTestId('contact')).toHaveCount(1)
       await scan(page, 'Contacts window')
+      await page.goto('/tasks')
+      await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
+      await page.getByTestId('alerts-bell').first().click()
+      await expect(page.getByRole('dialog', { name: 'Alerts' })).toBeVisible()
+      await scan(page, 'Alerts window')
     })
 
     test('Vault item editor and delete confirmation', async ({ page }) => {

@@ -39,13 +39,24 @@ begin
   if n <> 1 then raise exception 'FAIL: Spec §5: I can clear my notifications'; end if;
   execute 'reset role';
 
-  -- At midnight in my time zone, the day's notifications are cleared.
-  update public.notifications set deleted_at = null, local_date = current_date - 2 where user_id = alice;
+  -- Alerts are kept for 7 days (SPEC §6 In-app alerts): a 2-day-old one stays, an 8-day-old one goes.
+  update public.notifications set deleted_at = null, sent_at = now() - interval '2 days' where user_id = alice;
   perform public.expire_notifications();
   select count(*) into n from public.notifications where user_id = alice and deleted_at is null;
-  if n <> 0 then raise exception 'FAIL: Spec §5: yesterday''s notifications are cleared at midnight'; end if;
+  if n <> 1 then raise exception 'FAIL: Spec §6: alerts are kept for 7 days'; end if;
+  update public.notifications set sent_at = now() - interval '8 days' where user_id = alice;
+  perform public.expire_notifications();
+  select count(*) into n from public.notifications where user_id = alice and deleted_at is null;
+  if n <> 0 then raise exception 'FAIL: Spec §6: alerts older than 7 days are removed'; end if;
   select count(*) into n from cron.job where jobname = 'my-brain-expire-notifications';
-  if n <> 1 then raise exception 'FAIL: Spec §5: the midnight clear-out runs every hour'; end if;
+  if n <> 1 then raise exception 'FAIL: Spec §6: the clear-out runs every hour'; end if;
+
+  -- A reminder sent again counts as new again (seen is cleared).
+  perform public.record_notification(alice, 'habit', item, 'Take meds', 'now', '/habits', now());
+  update public.notifications set read_at = now() where user_id = alice and deleted_at is null;
+  perform public.record_notification(alice, 'habit', item, 'Take meds', 'still waiting', '/habits', now());
+  select count(*) into n from public.notifications where user_id = alice and deleted_at is null and read_at is null;
+  if n <> 1 then raise exception 'FAIL: Spec §6: a reminder sent again counts as new again'; end if;
 
   raise exception 'PASS: all notification checks passed (test data rolled back)';
 end
