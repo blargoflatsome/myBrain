@@ -73,9 +73,9 @@
 <script setup lang="ts">
 // SPEC §5 Shared events and Availability: invite people by name, email, phone or from my contacts; see who's
 // invited and their answers; for people found by name, see who is free and get suggested times.
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onScopeDispose, ref, watch } from 'vue'
 import { contactKey, matchRemembered, rememberedPeople, type RememberedPerson } from '@/events/contacts'
-import { canPickContacts, eventPeople, freeBusy, pickContacts, searchPeople, uninvite, type EventPerson, type FoundPerson, type PersonToInvite } from '@/events/sharing'
+import { canPickContacts, clearLostContactPick, eventPeople, lostContactPick, freeBusy, pickContacts, searchPeople, uninvite, type EventPerson, type FoundPerson, type PersonToInvite } from '@/events/sharing'
 import { busyTimes, hasConflict, suggestTimes, type Interval } from '@/events/availability'
 import { parseContact } from '@/events/contacts'
 import { zonedTime } from '@/habits/rules'
@@ -178,16 +178,44 @@ function addContact() {
 // One contact fills the email-or-phone and name boxes, ready to Add (what people expect); several are added at
 // once. Every outcome is said on screen and scrolled into view, since the phone's picker covered the app.
 const addButton = ref<HTMLButtonElement | null>(null)
+// If the phone closed the app while I was picking, the app reloaded and the pick is gone: say so.
+onMounted(() => {
+  if (props.eventId && lostContactPick()?.event === props.eventId) {
+    clearLostContactPick()
+    contactError.value = m.contactPickLost
+    void showOutcome()
+  }
+})
+// If I'm back in the app and the phone still hasn't sent the contact a few seconds later, say so.
+const STUCK_MS = 4000
+let stuckTimer: ReturnType<typeof setTimeout> | undefined
+function watchForStuck() {
+  if (document.visibilityState !== 'visible') return
+  clearTimeout(stuckTimer)
+  stuckTimer = setTimeout(() => {
+    contactError.value = m.contactPickStuck
+    void showOutcome()
+  }, STUCK_MS)
+}
+onScopeDispose(() => {
+  clearTimeout(stuckTimer)
+  document.removeEventListener('visibilitychange', watchForStuck)
+})
 async function fromContacts() {
   contactError.value = ''
   status.value = ''
   let picked: Awaited<ReturnType<typeof pickContacts>>
+  document.addEventListener('visibilitychange', watchForStuck)
   try {
-    picked = await pickContacts()
+    picked = await pickContacts(props.isNew ? null : props.eventId)
   } catch {
     contactError.value = m.contactsFailed
     return showOutcome()
+  } finally {
+    document.removeEventListener('visibilitychange', watchForStuck)
+    clearTimeout(stuckTimer)
   }
+  contactError.value = ''
   if (!picked.people.length) {
     if (picked.skipped) contactError.value = m.noUsableContacts
     else status.value = m.noContactPicked
