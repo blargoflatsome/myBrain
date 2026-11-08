@@ -23,4 +23,6 @@
 - `npm run test:e2e` — Playwright (`e2e/`, desktop + Pixel 7; builds and serves on :4173)
 - `npm run test:all` — everything CI runs
 - `npm run test:db` — SQL rule checks (RLS) against dev; prints ✔/✘ per file. Only the user runs it (it confirms with --yes); ask first.
+- `npm run dev:accounts` — create or reset the dev-only test accounts (Dev Alice, Bob, Carol); password saved to `.env.local`, never printed.
+- `npm run test:flows` — walk the connection and sharing flows against the real dev backend as the test accounts; prints ✔/✘ per step.
 - `npx supabase db push --remote` — apply new migrations to the linked dev project (no Docker, so no local stack)
