@@ -1,7 +1,7 @@
 <template>
-  <section class="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4" data-testid="availability">
+  <section class="flex flex-col gap-4 rounded-xl border border-line p-4" data-testid="availability">
     <div>
-      <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
+      <h3 class="font-semibold">{{ m.heading }}</h3>
       <p class="text-xs text-muted">{{ m.intro }}</p>
     </div>
 

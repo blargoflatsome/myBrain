@@ -286,8 +286,11 @@ Merged and live.
 - Migration `20261108080000_in_app_alerts.sql` (`notifications.read_at`, re-sent reminders count as new, 7-day keep). Dev migrated; 25 SQL files pass (name-search checks now ignore the dev test accounts). Prod: before merge.
 - Tests: `e2e/alerts.spec.ts`, Alerts window in the axe scans; the journal better-than-yesterday test steadied. Vitest 285, Playwright 603.
 
-## Navigation: bottom tabs (branch `bottom-tabs`)
+## Navigation: bottom tabs (done, PR #40)
 - Phones: bottom tab bar (Tasks, Habits, Calendar, The Vault, More); More opens a bottom panel with the rest (Routines, Journal, Quests, Orphans, Focus timer, Connections, Account, Help). No Menu button. Wide screens: side menu with the four and a More section that opens/closes (remembered, opens on its pages). Dashboard via My Brain. `BottomTabs.vue`, `src/ui/nav.ts`; Capture and the Focus pill sit above the tabs. Tests' `goTo` helper now uses tabs/More.
+
+## Account page tidy-up (branch `account-layout`)
+- Accordion groups (`AccountGroup.vue`, native details/summary): Your profile (open by default), Reminders, Events (settings + availability side by side), People, Your data, Account; open groups remembered per device; page wider; shorter hints. Tests start with all groups open via the fake server (`openAccountGroups`); `e2e/account-layout.spec.ts` checks the real defaults and side-by-side layout. Vitest 285, Playwright 606.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

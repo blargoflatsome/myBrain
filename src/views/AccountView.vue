@@ -1,81 +1,97 @@
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 pt-6 pb-28">
     <div class="flex items-center gap-4">
       <img v-if="avatarUrl" :src="avatarUrl" alt="" class="size-16 rounded-full border border-line" referrerpolicy="no-referrer">
       <div v-else class="flex size-16 items-center justify-center rounded-full bg-surface text-2xl" aria-hidden="true">🙂</div>
       <h1 class="text-2xl font-bold">{{ displayName || m.heading }}</h1>
     </div>
 
-    <section class="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4" data-testid="profile-settings">
-      <h2 class="text-lg font-semibold">{{ m.settingsHeading }}</h2>
-      <form v-if="loaded" class="flex flex-col gap-4" @submit.prevent="save">
-        <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.displayName }}
-          <input v-model="displayName" maxlength="120" :class="field">
-        </label>
-        <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.visibility }}
-          <select v-model="visibility" :class="field">
-            <option v-for="v in visibilities" :key="v" :value="v">{{ m.visibilityOptions[v] }}</option>
-          </select>
-          <span class="text-xs">{{ m.visibilityHint }}</span>
-        </label>
-        <div class="flex items-center gap-3">
-          <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="saving">{{ m.save }}</button>
-          <p v-if="notice" role="status" class="text-sm text-muted">{{ notice }}</p>
-        </div>
-      </form>
-      <p v-else class="text-muted">{{ m.offline }}</p>
-    </section>
+    <AccountGroup id="profile" :title="m.settingsHeading" :summary="g.profile">
+      <section data-testid="profile-settings" :aria-label="m.settingsHeading">
+        <form v-if="loaded" class="flex flex-col gap-4" @submit.prevent="save">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="flex flex-col gap-1 text-sm text-muted">
+              {{ m.displayName }}
+              <input v-model="displayName" maxlength="120" :class="field">
+            </label>
+            <label class="flex flex-col gap-1 text-sm text-muted">
+              {{ m.visibility }}
+              <select v-model="visibility" :class="field">
+                <option v-for="v in visibilities" :key="v" :value="v">{{ m.visibilityOptions[v] }}</option>
+              </select>
+              <span class="text-xs">{{ m.visibilityHint }}</span>
+            </label>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="saving">{{ m.save }}</button>
+            <p v-if="notice" role="status" class="text-sm text-muted">{{ notice }}</p>
+          </div>
+        </form>
+        <p v-else class="text-muted">{{ m.offline }}</p>
+      </section>
+    </AccountGroup>
 
-    <NotificationSettings />
+    <AccountGroup id="reminders" :title="messages.notifications.heading" :summary="g.reminders">
+      <NotificationSettings />
+    </AccountGroup>
 
-    <EventSettings />
-
-    <AvailabilityCard />
-
-    <section class="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4" aria-labelledby="account-connections">
-      <h2 id="account-connections" class="text-lg font-semibold">{{ messages.connections.heading }}</h2>
-      <p class="text-sm text-muted">{{ messages.connections.intro }}</p>
-      <RouterLink to="/connections" class="min-h-11 self-start rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ messages.connections.manage }}</RouterLink>
-    </section>
-
-    <MyPeople />
-
-    <section class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4" data-testid="data-export">
-      <div>
-        <h2 class="text-lg font-semibold">{{ messages.dataExport.heading }}</h2>
-        <p class="text-sm text-muted">{{ messages.dataExport.body }}</p>
+    <AccountGroup id="events" :title="g.eventsTitle" :summary="g.events">
+      <div class="grid items-start gap-4 lg:grid-cols-2">
+        <EventSettings />
+        <AvailabilityCard />
       </div>
-      <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" :disabled="exporting" @click="exportData">
-        {{ exporting ? messages.dataExport.working : messages.dataExport.button }}
-      </button>
-      <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
-      <div class="flex flex-col gap-1 border-t border-line pt-3">
-        <button type="button" class="min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askWipe">
-          {{ messages.deleteData.button }}
-        </button>
-        <p class="text-xs text-muted">{{ messages.deleteData.hint }}</p>
-        <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
-      </div>
-      <p class="flex gap-4 text-sm">
-        <RouterLink to="/docs" class="text-muted underline">{{ messages.legal.docs }}</RouterLink>
-        <RouterLink to="/privacy" class="text-muted underline">{{ messages.legal.privacy }}</RouterLink>
-        <RouterLink to="/terms" class="text-muted underline">{{ messages.legal.terms }}</RouterLink>
-      </p>
-    </section>
+    </AccountGroup>
 
-    <button type="button" class="min-h-12 rounded-xl border border-line px-4 text-muted" @click="signOut">{{ messages.signOut.button }}</button>
+    <AccountGroup id="people" :title="g.peopleTitle" :summary="g.people">
+      <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4" aria-labelledby="account-connections">
+        <span class="min-w-0">
+          <h3 id="account-connections" class="font-semibold">{{ messages.connections.heading }}</h3>
+          <span class="block text-sm text-muted">{{ g.connectionsHint }}</span>
+        </span>
+        <RouterLink to="/connections" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openConnections }}</RouterLink>
+      </section>
+      <MyPeople />
+    </AccountGroup>
 
-    <section class="flex flex-col gap-3 rounded-2xl border border-danger/40 p-4" data-testid="delete-account">
-      <div>
-        <h2 class="text-lg font-semibold">{{ m.deleteHeading }}</h2>
-        <p class="text-sm text-muted">{{ m.deleteHint }}</p>
+    <AccountGroup id="data" :title="messages.dataExport.heading" :summary="g.data">
+      <div class="grid gap-4 sm:grid-cols-2" data-testid="data-export">
+        <section class="flex flex-col gap-2 rounded-xl border border-line p-4" :aria-label="messages.dataExport.button">
+          <p class="text-sm text-muted">{{ messages.dataExport.body }}</p>
+          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-line px-4" :disabled="exporting" @click="exportData">
+            {{ exporting ? messages.dataExport.working : messages.dataExport.button }}
+          </button>
+          <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
+        </section>
+        <section class="flex flex-col gap-2 rounded-xl border border-danger/40 p-4" :aria-label="messages.deleteData.button">
+          <p class="text-sm text-muted">{{ messages.deleteData.hint }}</p>
+          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askWipe">
+            {{ messages.deleteData.button }}
+          </button>
+          <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
+        </section>
       </div>
-      <button type="button" class="min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askDelete">
-        {{ m.deleteButton }}
-      </button>
-    </section>
+    </AccountGroup>
+
+    <AccountGroup id="account" :title="g.accountTitle" :summary="g.account">
+      <div class="grid gap-4 sm:grid-cols-2">
+        <section class="flex flex-col gap-2 rounded-xl border border-line p-4" :aria-label="messages.signOut.button">
+          <p class="text-sm text-muted">{{ g.signOutHint }}</p>
+          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-line px-4" @click="signOut">{{ messages.signOut.button }}</button>
+        </section>
+        <section class="flex flex-col gap-2 rounded-xl border border-danger/40 p-4" data-testid="delete-account" :aria-label="m.deleteHeading">
+          <p class="text-sm text-muted">{{ m.deleteHint }}</p>
+          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askDelete">
+            {{ m.deleteButton }}
+          </button>
+        </section>
+      </div>
+    </AccountGroup>
+
+    <p class="flex flex-wrap justify-center gap-4 text-sm">
+      <RouterLink to="/docs" class="text-muted underline">{{ messages.legal.docs }}</RouterLink>
+      <RouterLink to="/privacy" class="text-muted underline">{{ messages.legal.privacy }}</RouterLink>
+      <RouterLink to="/terms" class="text-muted underline">{{ messages.legal.terms }}</RouterLink>
+    </p>
 
     <dialog
       ref="confirmWipe"
@@ -154,6 +170,7 @@
 <script setup lang="ts">
 // SPEC §5 Account page: display name, avatar and streak visibility, then settings. Streaks are on the Dashboard.
 import { computed, onMounted, ref } from 'vue'
+import AccountGroup from '@/components/AccountGroup.vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { supabaseRemote } from '@/sync/supabaseRemote'
@@ -173,6 +190,7 @@ const auth = useAuthStore()
 const brain = useBrainStore()
 const router = useRouter()
 const m = messages.profile
+const g = messages.accountGroups
 
 const displayName = ref('')
 const avatarUrl = ref<string | null>(null)

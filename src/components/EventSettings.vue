@@ -1,6 +1,6 @@
 <template>
-  <section class="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4" data-testid="event-settings">
-    <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
+  <section class="flex flex-col gap-4 rounded-xl border border-line p-4" data-testid="event-settings">
+    <h3 class="font-semibold">{{ m.heading }}</h3>
     <template v-if="loaded">
       <label class="flex flex-col gap-1 text-sm text-muted">
         <span class="flex items-center justify-between">{{ m.phone }}<span v-if="phone && !phoneVerified" class="text-xs">{{ m.unverified }}</span></span>

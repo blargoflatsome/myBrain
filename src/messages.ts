@@ -364,7 +364,7 @@ export const messages = {
   },
   deleteData: {
     button: 'Delete my data',
-    hint: 'Start fresh: clears everything you added but keeps your account and settings.',
+    hint: 'Start fresh, keeping your account and settings.',
     heading: 'Delete your data and start fresh?',
     removes: 'Tick what to permanently delete, on all your devices:',
     parts: {
@@ -401,7 +401,7 @@ export const messages = {
   },
   dataExport: {
     heading: 'Your data',
-    body: 'Download everything you have in My Brain as one file.',
+    body: 'Everything you have in My Brain, as one file.',
     button: 'Download my data',
     working: 'Gathering your data…',
     failed: 'Couldn’t download your data. Check your connection and try again.',
@@ -527,10 +527,25 @@ export const messages = {
     invited: 'Invited',
     done: 'Done',
   },
+  /** SPEC §5 Account page: the groups and their one-line summaries. */
+  accountGroups: {
+    profile: 'Your name and who sees your profile',
+    reminders: 'Notifications, ntfy, quiet hours and snooze',
+    eventsTitle: 'Events',
+    events: 'Phone, event news, cancellation messages, availability',
+    peopleTitle: 'People',
+    people: 'Connections and your saved people',
+    connectionsHint: 'People you’re connected with on My Brain',
+    openConnections: 'Open Connections',
+    data: 'Download or delete your data',
+    accountTitle: 'Account',
+    account: 'Sign out or delete your account',
+    signOutHint: 'Sign out on this device.',
+  },
   /** SPEC §5 Calendar, my people: the list on the Account page. */
   myPeople: {
     heading: 'Your people',
-    hint: 'Everyone you’ve invited by email or phone is saved here when you save the event, so you can add them from a list next time.',
+    hint: 'Saved when you invite someone by email or phone.',
     empty: 'No one yet. Add someone, or people you invite by email or phone will show up here.',
     add: 'Add a person',
     addHeading: 'Add a person',
@@ -933,7 +948,7 @@ export const messages = {
   },
   profile: {
     deleteHeading: 'Delete my account',
-    deleteHint: 'Permanently removes your account and everything in it, on every device.',
+    deleteHint: 'Removes your account and everything in it, for good.',
     deleteButton: 'Delete My Account',
     deleteConfirm: {
       heading: 'Delete your account?',
@@ -951,7 +966,7 @@ export const messages = {
     offline: 'Connect to the internet to edit your profile.',
     visibility: 'Who can see my streaks',
     visibilityOptions: { private: 'Only me', approved: 'People I approve', everyone: 'Everyone' },
-    visibilityHint: 'Sharing starts when other people can join My Brain. Private habits are never shown.',
+    visibilityHint: 'Sharing starts later. Private habits are never shown.',
     streaksHeading: 'Streaks',
     settingsHeading: 'Your profile',
     longest: (n: number, title: string) => `Longest streak ever: ${n} (${title})`,

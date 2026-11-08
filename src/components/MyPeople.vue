@@ -1,6 +1,6 @@
 <template>
-  <section class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4" aria-labelledby="my-people-settings" data-testid="my-people-settings">
-    <h2 id="my-people-settings" class="text-lg font-semibold">{{ m.heading }}</h2>
+  <section class="flex flex-col gap-4 rounded-xl border border-line p-4" aria-labelledby="my-people-settings" data-testid="my-people-settings">
+    <h3 id="my-people-settings" class="font-semibold">{{ m.heading }}</h3>
     <p class="text-sm text-muted">{{ m.hint }}</p>
     <div>
       <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="startAdd">{{ m.add }}</button>
