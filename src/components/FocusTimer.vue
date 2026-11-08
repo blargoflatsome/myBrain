@@ -26,7 +26,7 @@
   <button
     v-else-if="focus.state"
     type="button"
-    class="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-40 flex min-h-12 items-center gap-2 rounded-full bg-black px-4 font-semibold text-white shadow-lg tabular-nums md:left-60"
+    class="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-4 z-40 md:bottom-[max(1rem,env(safe-area-inset-bottom))] flex min-h-12 items-center gap-2 rounded-full bg-black px-4 font-semibold text-white shadow-lg tabular-nums md:left-60"
     :aria-label="m.openPill(m.phaseShort[focus.state.phase], time)"
     data-testid="focus-pill"
     @click="focus.minimized = false"

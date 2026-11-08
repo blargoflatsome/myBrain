@@ -972,6 +972,9 @@ export const messages = {
     quests: 'Quests',
     inbox: 'Orphans',
     help: 'Help',
+    connections: 'Connections',
+    more: 'More',
+    closeMore: 'Close',
   },
   /** Page titles (WCAG 2.4.2): shown in the browser tab and read out after moving to another page. */
   pageTitles: {

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { goTo } from './support/nav'
 
 // SPEC §5 Features and Docs pages: public pages for new people, kept in step with the app.
 test.describe('Spec §5 Features and Docs pages (signed out)', () => {
@@ -38,9 +39,7 @@ test.describe('Spec §5 Features and Docs pages (signed in)', () => {
     await server.install(page)
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
-    const menu = page.getByRole('button', { name: 'Menu' })
-    if (await menu.isVisible()) await menu.click()
-    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Help' }).click()
+    await goTo(page, 'Help')
     await expect(page.getByRole('heading', { name: 'How to use My Brain', level: 1 })).toBeVisible()
   })
 })

@@ -22,6 +22,7 @@
         <li><strong>Install it.</strong> On an Android phone in Chrome, open the ⋮ menu and choose <em>Install app</em> (or <em>Add to Home screen</em>). On a computer, use the install icon at the right of the address bar. Installed, it opens like any app and works offline.</li>
         <li><strong>Turn on reminders.</strong> Go to <em>Account → Reminders</em> and switch on <em>Notifications on this device</em>, once on each device. Press <em>Send a test</em> to check. Set <em>Quiet hours</em> if you don't want ordinary reminders at night.</li>
         <li><strong>Look around the Dashboard.</strong> It's the first page you see and shows everything at a glance.</li>
+        <li><strong>Getting around.</strong> On a phone, the tabs along the bottom go to <em>Tasks</em>, <em>Habits</em>, <em>Calendar</em> and <em>The Vault</em>; <em>More</em> has everything else (Routines, Journal, Quests, Orphans, Focus timer, Connections, Account, Help). On a computer they're in the side menu, with <em>More</em> opening the rest. Tap <em>My Brain</em> at the top to go back to the Dashboard.</li>
       </ol>
     </section>
 
@@ -30,7 +31,7 @@
       <ul>
         <li><strong>Morning:</strong> open the Dashboard. Check your Post Its, how yesterday went and the bell in the top right for alerts, then glance at <em>Tasks</em> and <em>Habits</em>.</li>
         <li><strong>All day:</strong> whenever something pops into your head, press <em>+ Capture</em>. Don't sort it now; "Decide later" is fine.</li>
-        <li><strong>Need to focus?</strong> Start the <em>Focus timer</em> from the menu.</li>
+        <li><strong>Need to focus?</strong> Start the <em>Focus timer</em> from <em>More</em>.</li>
         <li><strong>Evening:</strong> open the <em>Journal</em>, answer "Was today better than yesterday?", write a little, and note how to make tomorrow better. Add tomorrow's tasks with <em>+ Capture</em>.</li>
       </ul>
     </section>
@@ -41,7 +42,7 @@
         <li>Press <em>+ Capture</em> (bottom right of every page). Pick what it is: <em>Task</em>, <em>The Vault</em>, <em>Quest</em>, <em>Habit</em>, <em>Post It</em> or <em>Decide later</em>. Only the title is needed.</li>
         <li>Press the 🎙 microphone button to speak instead of typing (where your browser supports it).</li>
         <li>From another app, use <em>Share → My Brain</em> to send text or a link straight into Capture.</li>
-        <li><em>Decide later</em> puts the thought in <strong>Orphans</strong> (in the menu). Sort it into a task, quest or Vault item when you have a minute.</li>
+        <li><em>Decide later</em> puts the thought in <strong>Orphans</strong> (under <em>More</em>). Sort it into a task, quest or Vault item when you have a minute.</li>
         <li>No connection? Capture anyway. It's saved on your device and syncs when you're back online.</li>
       </ul>
     </section>
@@ -118,14 +119,14 @@
       <ul>
         <li><strong>Random Quest:</strong> add projects you'd love to do someday through Capture. When you're bored, choose your energy and time and press <em>Pick a quest for me</em>. Choose <em>I'll do it</em>, <em>Re-roll</em>, or <em>Mark done</em>.</li>
         <li><strong>Post Its:</strong> capture a Post It, pick a color, and it's taped to the top of your Dashboard. Swipe or use the arrows to flip through them, ✎ to edit, ✕ to take one down (with Undo).</li>
-        <li><strong>Focus timer:</strong> choose <em>Focus timer</em> in the menu. Work for 25 minutes, break for 5, and every fourth break is 15. <em>Minimize</em> it to a pill in the bottom-left corner to keep it running while you do other things; tap the pill to bring it back; ✕ stops it.</li>
+        <li><strong>Focus timer:</strong> choose <em>Focus timer</em> under <em>More</em>. Work for 25 minutes, break for 5, and every fourth break is 15. <em>Minimize</em> it to a pill in the bottom-left corner to keep it running while you do other things; tap the pill to bring it back; ✕ stops it.</li>
       </ul>
     </section>
 
     <section id="tags" aria-labelledby="tags-h">
       <h2 id="tags-h">Search and tags</h2>
       <ul>
-        <li>Open <em>Search</em> (in the menu, or ⌕ at the top on a phone) and type. It searches tasks, habits, routines, the journal, the Vault, quests and events instantly, even offline.</li>
+        <li>Open <em>Search</em> (⌕ at the top on a phone, or in the side menu on a computer) and type. It searches tasks, habits, routines, the journal, the Vault, quests and events instantly, even offline.</li>
         <li><strong>Tags</strong> go on tasks, habits and routines. Open one, type a tag in <em>Tags</em> and press Enter. Tags you've used before are suggested.</li>
       </ul>
       <h3>Example: keeping Work and Personal apart</h3>
