@@ -430,6 +430,7 @@ export const messages = {
     pickContacts: 'Pick from contacts',
     remove: (name: string) => `Remove ${name}`,
     toInvite: 'To invite (when you save)',
+    rememberedHeading: 'People you’ve invited before',
     added: (name: string) => `Added ${name}. They’ll be invited when you save.`,
     addedSome: (n: number, skipped: number) =>
       `Added ${n} ${n === 1 ? 'person' : 'people'}.${skipped ? ` ${skipped} ${skipped === 1 ? 'contact has' : 'contacts have'} no phone number or email.` : ''} They’ll be invited when you save.`,

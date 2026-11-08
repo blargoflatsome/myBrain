@@ -234,11 +234,14 @@ Merged and live.
 - Comments: removed ones that repeated a heading or the code, and who-approved-what notes (the decision log has them).
 - Performance: the formatting editor (Tiptap) loads on first use; initial download 702 kB to 373 kB (211 kB to 109 kB compressed).
 
-## Feedback round 2 (branch `feedback-round-2`)
+## Feedback round 2 (done, PR #25)
 - User's choices (SPEC §14 2026-11-07): journal save status next to the heading (`SaveStatus.vue`); clearer invite feedback (contact picker results, "To invite (when you save)", ready and shared messages); app checks for updates hourly and on return (the user's phone was on an old version without "Every 2 weeks" for events); Quest page redesign (soft filter chips, compact list, easiest first, 10 per page); reusable `usePagination` + `PageControls.vue`; Vault buckets favorites first then A to Z everywhere (bucket dragging removed); Today's notifications on the Dashboard (5 per page, clear one or all, cleared at midnight).
 - Migrations `20261107040000_notifications_today.sql` (notifications table, `record_notification`, `expire_notifications` hourly cron, senders record every reminder and event news) and `..040100_record_notification_fix.sql` (parameter names clashed with columns and broke reminder runs on dev for a few minutes; caught by the SQL checks). Dev migrated; 17 SQL files pass.
 - Tests: `src/feedback-round-2.test.ts`, `e2e/feedback-round-2.spec.ts`, `supabase/tests/rls_notifications.sql`; updated Vault, Capture, journal and accessibility tests. Vitest 270, Playwright 477.
-- Open question to the user: remember people already invited (suggestions) instead of syncing all contacts.
+- User said yes to remembering people already invited (next section).
+
+## Remembered people (branch `remember-people`)
+- The invite form suggests people I've invited before by email or phone (up to 5, matching name, email or phone; once per person, latest name; not ones already on the event). From my own invitations on the device; no database change. `rememberedPeople` / `matchRemembered` in `src/events/contacts.ts`. Tests: `src/events/remembered.test.ts`, `e2e/feedback-round-2.spec.ts`. Vitest 272, Playwright 479.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

@@ -50,6 +50,17 @@
       <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contact }}<input v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
       <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contactName }}<input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
     </div>
+    <div v-if="remembered.length" class="flex flex-col gap-1" data-testid="remembered-people">
+      <span id="remembered-heading" class="text-xs text-muted">{{ m.rememberedHeading }}</span>
+      <ul class="flex flex-col gap-1" aria-labelledby="remembered-heading">
+        <li v-for="r in remembered" :key="contactKey(r) ?? ''">
+          <button type="button" class="flex min-h-11 w-full flex-wrap items-center gap-x-2 rounded-xl px-2 text-left hover:bg-bg" @click="addRemembered(r)">
+            <span class="font-medium">{{ m.addFound(r.name || r.email || r.phone || '') }}</span>
+            <span v-if="r.name" class="text-sm text-muted">{{ r.email || r.phone }}</span>
+          </button>
+        </li>
+      </ul>
+    </div>
     <p v-if="contactError" class="text-sm text-danger" role="alert">{{ contactError }}</p>
     <p class="text-sm text-muted" role="status" data-testid="people-status">{{ status }}</p>
     <div class="flex flex-wrap gap-2">
@@ -63,6 +74,7 @@
 // SPEC §5 Shared events and Availability: invite people by name, email, phone or from my contacts; see who's
 // invited and their answers; for people found by name, see who is free and get suggested times.
 import { computed, ref, watch } from 'vue'
+import { contactKey, matchRemembered, rememberedPeople, type RememberedPerson } from '@/events/contacts'
 import { canPickContacts, eventPeople, freeBusy, pickContacts, searchPeople, uninvite, type EventPerson, type FoundPerson, type PersonToInvite } from '@/events/sharing'
 import { busyTimes, hasConflict, suggestTimes, type Interval } from '@/events/availability'
 import { parseContact } from '@/events/contacts'
@@ -71,6 +83,7 @@ import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
 import { useBrainStore } from '@/stores/brain'
 import { messages } from '@/messages'
 import { fieldCompact } from '@/ui/styles'
+import { useLiveQuery } from '@/composables/useLiveQuery'
 
 const props = defineProps<{
   eventId: string
@@ -132,6 +145,21 @@ function addFound(p: FoundPerson) {
 const contact = ref('')
 const contactName = ref('')
 const contactError = ref('')
+// People I've invited before, suggested as I type (SPEC §5 Calendar: remembered people). They come from my own
+// invitations already on this device, so nothing new is stored and it works offline.
+const myInvites = useLiveQuery(async () => (brain.db ? brain.db.event_invites.toArray() : []), [], [() => brain.db])
+const people = computed(() => rememberedPeople(myInvites.value, brain.userId))
+const remembered = computed(() => {
+  const taken = new Set([...pending.value, ...invited.value].map((x) => contactKey(x)).filter((k): k is string => !!k))
+  return matchRemembered(people.value, contact.value || contactName.value, taken)
+})
+function addRemembered(r: RememberedPerson) {
+  add({ name: r.name, email: r.email, phone: r.phone })
+  status.value = m.added(r.name || r.email || r.phone || '')
+  contact.value = ''
+  contactName.value = ''
+}
+
 // What just happened, said out loud and on screen (SPEC §5 Calendar: inviting shows every step).
 const status = ref('')
 const nameOf = (p: PersonToInvite) => p.name || p.email || p.phone || ''
