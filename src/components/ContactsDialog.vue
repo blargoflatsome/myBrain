@@ -2,6 +2,22 @@
   <dialog ref="dialog" :class="dialogBox" :aria-label="m.heading" data-testid="contacts-dialog" @close="search = ''">
     <div class="flex max-h-[85dvh] flex-col gap-3 p-5">
       <h3 class="text-lg font-semibold">{{ m.heading }}</h3>
+      <section v-if="connections.length" class="flex flex-col gap-1" aria-labelledby="contacts-on-my-brain" data-testid="contacts-connections">
+        <h4 id="contacts-on-my-brain" class="text-sm font-medium">{{ c.onMyBrain }}</h4>
+        <ul class="flex flex-col gap-1">
+          <li v-for="f in connections" :key="f.friend_id" class="flex min-w-0 items-center justify-between gap-2" data-testid="contact-connection">
+            <span class="min-w-0 text-sm font-medium [overflow-wrap:anywhere]">{{ f.display_name }}</span>
+            <span v-if="invitedIds.has(f.friend_id)" class="shrink-0 text-sm text-muted">{{ m.invited }}</span>
+            <span v-else-if="addedIds.has(f.friend_id)" class="flex shrink-0 items-center gap-1">
+              <span class="text-sm text-accent">✓ {{ m.added }}</span>
+              <button type="button" class="min-h-11 rounded-xl px-3 text-sm underline" :aria-label="m.undoLabel(f.display_name)" @click="emit('undoConnection', f)">{{ m.undo }}</button>
+            </span>
+            <button v-else type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-3 text-sm" :aria-label="m.addLabel(f.display_name)" @click="emit('addConnection', f)">
+              {{ m.add }}
+            </button>
+          </li>
+        </ul>
+      </section>
       <template v-if="people.length">
         <label class="flex flex-col gap-1 text-sm text-muted">
           {{ m.search }}
@@ -26,7 +42,8 @@
         </ul>
         <PageControls v-model:page="page" :page-count="pageCount" :label="m.heading" />
       </template>
-      <p v-else class="text-sm text-muted">{{ m.empty }}</p>
+      <p v-else-if="!connections.length" class="text-sm text-muted">{{ m.empty }}</p>
+      <RouterLink to="/connections" class="text-sm text-accent underline">{{ c.manage }}</RouterLink>
       <button type="button" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="dialog?.close()">{{ m.done }}</button>
     </div>
   </dialog>
@@ -42,15 +59,17 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { contactKey } from '@/events/contacts'
 import { matchesPerson, personLabel, sortPeople, uniquePeople } from '@/events/people'
 import type { PersonToInvite } from '@/events/sharing'
+import { myConnections, type Connection } from '@/events/connections'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { live } from '@/sync/live'
 import type { PersonRow } from '@/sync/types'
 import { dialogBox, fieldCompact } from '@/ui/styles'
 
-const props = defineProps<{ pending: PersonToInvite[]; invited: { email?: string | null; phone?: string | null }[] }>()
-const emit = defineEmits<{ add: [PersonRow]; undo: [PersonRow] }>()
+const props = defineProps<{ pending: PersonToInvite[]; invited: { email?: string | null; phone?: string | null; user_id?: string | null }[] }>()
+const emit = defineEmits<{ add: [PersonRow]; undo: [PersonRow]; addConnection: [Connection]; undoConnection: [Connection] }>()
 const m = messages.contacts
+const c = messages.connections
 const brain = useBrainStore()
 
 const rows = useLiveQuery<PersonRow[]>(async () => (brain.db ? live(await brain.db.people.toArray()) : []), [], [() => brain.db])
@@ -66,6 +85,16 @@ const invitedKeys = computed(() => keys(props.invited))
 const isAdded = (p: PersonRow) => addedKeys.value.has(contactKey(p) ?? '')
 const isInvited = (p: PersonRow) => invitedKeys.value.has(contactKey(p) ?? '')
 
+// My connections (SPEC §10), fetched when the window opens; they're invited in the app.
+const connections = ref<Connection[]>([])
+const addedIds = computed(() => new Set(props.pending.map((p) => p.user_id).filter((x): x is string => !!x)))
+const invitedIds = computed(() => new Set(props.invited.map((p) => p.user_id).filter((x): x is string => !!x)))
+
 const dialog = ref<HTMLDialogElement | null>(null)
-defineExpose({ open: () => dialog.value?.showModal() })
+defineExpose({
+  open: () => {
+    dialog.value?.showModal()
+    if (brain.online) void myConnections().then((list) => (connections.value = list), () => {})
+  },
+})
 </script>

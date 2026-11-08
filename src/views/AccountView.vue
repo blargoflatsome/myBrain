@@ -32,6 +32,12 @@
 
     <EventSettings />
 
+    <section class="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4" aria-labelledby="account-connections">
+      <h2 id="account-connections" class="text-lg font-semibold">{{ messages.connections.heading }}</h2>
+      <p class="text-sm text-muted">{{ messages.connections.intro }}</p>
+      <RouterLink to="/connections" class="min-h-11 self-start rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ messages.connections.manage }}</RouterLink>
+    </section>
+
     <MyPeople />
 
     <section class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4" data-testid="data-export">

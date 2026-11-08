@@ -23,6 +23,7 @@ export const routes = [
   { path: '/calendar', name: 'calendar', component: () => import('@/views/CalendarView.vue') },
   { path: '/habits', name: 'habits', component: () => import('@/views/HabitsView.vue') },
   { path: '/account', name: 'account', component: () => import('@/views/AccountView.vue') },
+  { path: '/connections', name: 'connections', component: () => import('@/views/ConnectionsView.vue') },
   // The page was called Profile before; old links still work.
   { path: '/profile', redirect: '/account' },
   { path: '/quests', name: 'quests', component: () => import('@/views/QuestsView.vue') },

@@ -15,7 +15,7 @@
 
     <h3 v-if="pending.length" id="people-to-invite" class="text-sm font-medium">{{ m.toInvite }}</h3>
     <ul v-if="pending.length" class="flex flex-col gap-1" aria-labelledby="people-to-invite">
-      <li v-for="(p, i) in pending" :key="contactKey(p) ?? i" class="flex items-center justify-between gap-2 text-sm" data-testid="pending-person">
+      <li v-for="(p, i) in pending" :key="keyOf(p) ?? i" class="flex items-center justify-between gap-2 text-sm" data-testid="pending-person">
         <span class="min-w-0 [overflow-wrap:anywhere]">{{ personLabel(p) }}</span>
         <button type="button" class="size-9 shrink-0 rounded-lg text-muted" :aria-label="m.remove(personLabel(p))" @click="drop(i)">✕</button>
       </li>
@@ -36,7 +36,7 @@
     <p v-if="contactError" class="text-sm text-danger" role="alert" data-testid="people-error">{{ contactError }}</p>
     <p class="text-sm text-muted" role="status" data-testid="people-status">{{ status }}</p>
 
-    <ContactsDialog ref="contacts" :pending="pending" :invited="invited" @add="addSaved" @undo="undoSaved" />
+    <ContactsDialog ref="contacts" :pending="pending" :invited="invited" @add="addSaved" @undo="undoSaved" @add-connection="addConnection" @undo-connection="undoConnection" />
   </fieldset>
 </template>
 
@@ -47,6 +47,7 @@ import { computed, ref, watch } from 'vue'
 import ContactsDialog from '@/components/ContactsDialog.vue'
 import { contactKey, parseContact } from '@/events/contacts'
 import { personLabel } from '@/events/people'
+import type { Connection } from '@/events/connections'
 import { eventPeople, uninvite, type EventPerson, type PersonToInvite } from '@/events/sharing'
 import { useBrainStore } from '@/stores/brain'
 import { messages } from '@/messages'
@@ -73,9 +74,10 @@ async function remove(p: EventPerson) {
 
 // ---------- Adding people ----------
 const pending = computed(() => props.modelValue)
+const keyOf = (p: PersonToInvite) => (p.user_id ? `u:${p.user_id}` : contactKey(p))
 function add(p: PersonToInvite) {
-  const key = contactKey(p)
-  if (pending.value.some((x) => contactKey(x) === key)) return
+  const key = keyOf(p)
+  if (pending.value.some((x) => keyOf(x) === key)) return
   emit('update:modelValue', [...pending.value, p])
 }
 function drop(i: number) {
@@ -103,6 +105,14 @@ const contacts = ref<InstanceType<typeof ContactsDialog> | null>(null)
 function addSaved(p: PersonRow) {
   add({ name: p.name ?? undefined, email: p.email ?? undefined, phone: p.email ? undefined : (p.phone ?? undefined) })
   status.value = m.added(personLabel(p))
+}
+function addConnection(f: Connection) {
+  add({ user_id: f.friend_id, name: f.display_name })
+  status.value = m.added(f.display_name)
+}
+function undoConnection(f: Connection) {
+  emit('update:modelValue', pending.value.filter((x) => x.user_id !== f.friend_id))
+  status.value = m.undone(f.display_name)
 }
 function undoSaved(p: PersonRow) {
   const key = contactKey(p)
