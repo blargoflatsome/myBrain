@@ -17,6 +17,8 @@ import type { JournalEntryRow } from '@/sync/types'
 import { choice } from '@/ui/styles'
 
 const props = defineProps<{ date: string; entry?: JournalEntryRow }>()
+/** busy: the answer is being stored (for the journal's save status). */
+const emit = defineEmits<{ busy: [on: boolean] }>()
 const brain = useBrainStore()
 const m = messages.journal
 
@@ -27,6 +29,8 @@ watch(
 )
 async function answer(value: boolean) {
   better.value = better.value === value ? null : value
+  emit('busy', true)
   await brain.saveJournalFields(props.date, { better_than_yesterday: better.value })
+  emit('busy', false)
 }
 </script>

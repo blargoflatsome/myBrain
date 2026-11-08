@@ -419,6 +419,18 @@ export const useBrainStore = defineStore('brain', () => {
     await e.save('journal_entries', { ...emptyEntry(uid, date, false), ...fields, stats, stats_final: date < today })
   }
 
+  // ---------- Today's notifications (SPEC §5 Dashboard) ----------
+  async function clearNotification(id: string) {
+    await requireReady().engine.remove('notifications', id)
+  }
+  /** Clear all: every notification from this day that's still showing. */
+  async function clearNotifications(date: string) {
+    const { engine: e, local } = requireReady()
+    for (const n of await local.notifications.where('local_date').equals(date).toArray()) {
+      if (!n.deleted_at) await e.remove('notifications', n.id)
+    }
+  }
+
   // ---------- Post Its (SPEC §5 Quick capture and Dashboard) ----------
   /** A new Post It goes in front of the others. Returns null when nothing was written. */
   async function addPostIt(html: string, color: PostItColor) {
@@ -581,6 +593,8 @@ export const useBrainStore = defineStore('brain', () => {
     deleteBucket,
     addVaultItem,
     addPostIt,
+    clearNotification,
+    clearNotifications,
     savePostIt,
     removePostIt,
     restorePostIt,

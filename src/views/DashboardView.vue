@@ -53,6 +53,9 @@
       </section>
     </div>
 
+    <!-- Notifications can be missed, so today's are listed here (SPEC §5 Dashboard). -->
+    <TodayNotifications />
+
     <template v-if="stats">
       <section class="flex flex-col gap-3" data-testid="dash-habits">
         <h2 class="text-lg font-semibold">{{ m.habitsHeading }}</h2>
@@ -206,6 +209,7 @@
 import { computed, onScopeDispose, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import PostItBoard from '@/components/PostItBoard.vue'
+import TodayNotifications from '@/components/TodayNotifications.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'

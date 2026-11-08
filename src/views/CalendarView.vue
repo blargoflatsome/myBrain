@@ -35,10 +35,11 @@
     <p v-if="emptyDay" class="text-muted" data-testid="calendar-empty">{{ m.emptyDay }}</p>
 
     <p v-if="inviteError" class="text-sm text-danger" role="alert">{{ inviteError }}</p>
+    <p v-if="inviteNotice" class="rounded-xl border border-line bg-surface p-3 text-sm" role="status" data-testid="invite-notice">{{ inviteNotice }}</p>
     <EventEditor :event="editing" :is-new="isNew" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="editing = null" />
     <InvitedEventDialog :event="viewing" :invite="viewingInvite" @drop-out="startDropOut" @close="viewing = null" />
     <CancelEventDialog :event="cancelling" :mode="cancelMode" @done="cancelled" @close="cancelling = null" />
-    <ShareFlow v-if="shareTargets.length" :targets="shareTargets" :kind="shareKind" @done="shareTargets = []" />
+    <ShareFlow v-if="shareTargets.length" :targets="shareTargets" :kind="shareKind" @done="shared" />
   </main>
 </template>
 
@@ -176,6 +177,11 @@ function openEvent(id: string) {
 
 // ---------- Inviting, and reaching guests one at a time (SPEC §5 Shared events) ----------
 const inviteError = ref('')
+const inviteNotice = ref('')
+function shared(sent: number) {
+  if (shareKind.value === 'invite') inviteNotice.value = messages.invites.shared(sent, shareTargets.value.length)
+  shareTargets.value = []
+}
 const shareTargets = ref<ShareTarget[]>([])
 const shareKind = ref<'invite' | 'cancel'>('invite')
 async function myName() {
@@ -186,6 +192,7 @@ async function saveEvent(e: EventRow, people: PersonToInvite[] = []) {
   await brain.saveEvent(e)
   editing.value = null
   inviteError.value = ''
+  inviteNotice.value = ''
   if (!people.length) return
   if (!brain.online) return (inviteError.value = messages.invites.offline)
   try {
@@ -193,9 +200,12 @@ async function saveEvent(e: EventRow, people: PersonToInvite[] = []) {
     const created = await invitePeople(e.id, people)
     const host = await myName()
     shareKind.value = 'invite'
-    shareTargets.value = created
+    const targets = created
       .filter((c) => c.token && (c.email || c.phone))
       .map((c) => ({ inviteId: c.invite_id, name: c.name, email: c.email, phone: c.phone, ...inviteMessage(host, c.name, e, inviteLink(c.invite_id, c.token!)) }))
+    const inApp = created.length - targets.length
+    inviteNotice.value = [targets.length ? messages.invites.ready(targets.length) : '', inApp ? messages.invites.inApp(inApp) : ''].filter(Boolean).join(' ')
+    shareTargets.value = targets
     await brain.refresh(['event_invites'])
   } catch (err) {
     inviteError.value = messages.invites.failed(err instanceof Error ? err.message : String(err))

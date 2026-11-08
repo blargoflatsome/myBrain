@@ -13,7 +13,8 @@
       </li>
     </ul>
 
-    <ul v-if="pending.length" class="flex flex-col gap-1" :aria-label="m.toInvite">
+    <h3 v-if="pending.length" id="people-to-invite" class="text-sm font-medium">{{ m.toInvite }}</h3>
+    <ul v-if="pending.length" class="flex flex-col gap-1" aria-labelledby="people-to-invite">
       <li v-for="(p, i) in pending" :key="p.user_id ?? p.email ?? p.phone" class="flex items-center justify-between gap-2 text-sm" data-testid="pending-person">
         <span class="truncate">
           {{ p.name || p.email || p.phone }}
@@ -50,6 +51,7 @@
       <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contactName }}<input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
     </div>
     <p v-if="contactError" class="text-sm text-danger" role="alert">{{ contactError }}</p>
+    <p class="text-sm text-muted" role="status" data-testid="people-status">{{ status }}</p>
     <div class="flex flex-wrap gap-2">
       <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="addContact">{{ m.addContact }}</button>
       <button v-if="canPickContacts()" type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="fromContacts">{{ m.pickContacts }}</button>
@@ -121,6 +123,7 @@ watch(query, (q) => {
   }, 300)
 })
 function addFound(p: FoundPerson) {
+  status.value = m.added(p.display_name || '')
   add({ user_id: p.user_id, name: p.display_name ?? undefined })
   query.value = ''
   found.value = []
@@ -129,16 +132,34 @@ function addFound(p: FoundPerson) {
 const contact = ref('')
 const contactName = ref('')
 const contactError = ref('')
+// What just happened, said out loud and on screen (SPEC §5 Calendar: inviting shows every step).
+const status = ref('')
+const nameOf = (p: PersonToInvite) => p.name || p.email || p.phone || ''
 function addContact() {
   const parsed = parseContact(contact.value)
   if (!parsed) return (contactError.value = m.contactError)
   contactError.value = ''
-  add({ ...parsed, name: contactName.value.trim() || undefined })
+  const person = { ...parsed, name: contactName.value.trim() || undefined }
+  add(person)
+  status.value = m.added(nameOf(person))
   contact.value = ''
   contactName.value = ''
 }
 async function fromContacts() {
-  for (const p of await pickContacts().catch(() => [])) add(p)
+  contactError.value = ''
+  let picked: Awaited<ReturnType<typeof pickContacts>>
+  try {
+    picked = await pickContacts()
+  } catch {
+    contactError.value = m.contactsFailed
+    return
+  }
+  if (!picked.people.length) {
+    if (picked.skipped) contactError.value = m.noUsableContacts
+    return
+  }
+  for (const p of picked.people) add(p)
+  status.value = picked.people.length === 1 && !picked.skipped ? m.added(nameOf(picked.people[0]!)) : m.addedSome(picked.people.length, picked.skipped)
 }
 
 // ---------- Availability: only people found by name (never reveals who has an account) ----------

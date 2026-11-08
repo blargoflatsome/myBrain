@@ -118,7 +118,7 @@ export function daysSinceWorstDay(entries: JournalEntryRow[], today: string): nu
 export function favoriteBuckets(buckets: VaultBucketRow[], items: VaultItemRow[]) {
   return live(buckets)
     .filter((b) => b.starred)
-    .sort((a, b) => a.position - b.position)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
     .map((bucket) => ({
       bucket,
       newest: live(items)

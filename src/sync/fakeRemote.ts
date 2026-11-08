@@ -11,6 +11,7 @@ export class FakeRemote implements Remote {
   readonly tables: { [T in SyncTable]: Map<string, RowTypes[T]> } = {
     tasks: new Map(),
     post_its: new Map(),
+    notifications: new Map(),
     vault_buckets: new Map(),
     vault_items: new Map(),
     quests: new Map(),

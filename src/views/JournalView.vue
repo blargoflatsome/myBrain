@@ -6,9 +6,12 @@
     </div>
 
     <section class="flex flex-col gap-4 rounded-2xl border border-line p-4" data-testid="journal-today">
-      <h2 class="text-lg font-semibold">{{ m.today }} · {{ shortDay(today) }}</h2>
+      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 class="text-lg font-semibold">{{ m.today }} · {{ shortDay(today) }}</h2>
+        <SaveStatus :busy="isBusy(today)" :has-saved="!!todayEntry" />
+      </div>
       <JournalStatsCard v-if="todayStats" :stats="todayStats" />
-      <JournalBetter :key="today" :date="today" :entry="todayEntry" />
+      <JournalBetter :key="today" :date="today" :entry="todayEntry" @busy="track(today, 'better', $event)" />
 
       <RichTextEditor
         :model-value="draftOf(today, todayEntry)"
@@ -18,8 +21,7 @@
         @update:model-value="onInput(today, $event)"
         @blur="save(today)"
       />
-      <p v-if="savedDate === today" class="text-sm text-muted" role="status">{{ m.saved }}</p>
-      <JournalTomorrow :key="today" :date="today" :entry="todayEntry" />
+      <JournalTomorrow :key="today" :date="today" :entry="todayEntry" @busy="track(today, 'tomorrow', $event)" />
       <EntryTags v-if="brain.userId" type="journal_entry" :item-id="entryIdFor(brain.userId, today)" />
     </section>
 
@@ -35,7 +37,10 @@
         :data-testid="`journal-entry-${e.date}`"
       >
         <div class="flex items-center justify-between gap-2">
-          <h3 class="font-semibold">{{ shortDay(e.date) }}</h3>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h3 class="font-semibold">{{ shortDay(e.date) }}</h3>
+            <SaveStatus v-if="editingDate === e.date" :busy="isBusy(e.date)" :has-saved="true" />
+          </div>
           <button
             v-if="editingDate !== e.date"
             type="button"
@@ -53,7 +58,7 @@
           {{ e.better_than_yesterday ? `✓ ${m.betterYes}` : m.betterNo }}
         </p>
         <template v-if="editingDate === e.date">
-          <JournalBetter :date="e.date" :entry="e" />
+          <JournalBetter :date="e.date" :entry="e" @busy="track(e.date, 'better', $event)" />
           <RichTextEditor
             :model-value="draftOf(e.date, e)"
             :label="m.writeLabel"
@@ -61,7 +66,7 @@
             min-height="12rem"
             @update:model-value="onInput(e.date, $event)"
           />
-          <JournalTomorrow :date="e.date" :entry="e" />
+          <JournalTomorrow :date="e.date" :entry="e" @busy="track(e.date, 'tomorrow', $event)" />
           <EntryTags type="journal_entry" :item-id="e.id" />
           <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="finishEditing(e.date)">
             {{ m.done }}
@@ -89,6 +94,7 @@ import JournalStatsCard from '@/components/JournalStatsCard.vue'
 import EntryTags from '@/components/EntryTags.vue'
 import JournalBetter from '@/components/JournalBetter.vue'
 import JournalTomorrow from '@/components/JournalTomorrow.vue'
+import SaveStatus from '@/components/SaveStatus.vue'
 import { onPageHide } from '@/composables/usePageHide'
 import { tagsOf } from '@/tags/rules'
 import { useBrainStore } from '@/stores/brain'
@@ -144,14 +150,22 @@ const earlier = computed(() =>
 
 // ---------- Writing (saved as I type, and when I leave the editor) ----------
 const drafts = ref<Record<string, string>>({})
-const savedDate = ref<string | null>(null)
 const timers = new Map<string, ReturnType<typeof setTimeout>>()
+// What's still being stored, per day ("2026-11-10:body"), for the save status next to each day's heading.
+const busy = ref(new Set<string>())
+function track(date: string, part: string, on: boolean) {
+  const next = new Set(busy.value)
+  if (on) next.add(`${date}:${part}`)
+  else next.delete(`${date}:${part}`)
+  busy.value = next
+}
+const isBusy = (date: string) => [...busy.value].some((k) => k.startsWith(`${date}:`))
 function draftOf(date: string, entry?: JournalEntryRow) {
   return drafts.value[date] ?? entry?.body ?? ''
 }
 function onInput(date: string, value: string) {
   drafts.value[date] = value
-  savedDate.value = null
+  track(date, 'body', true)
   clearTimeout(timers.get(date))
   timers.set(date, setTimeout(() => void save(date), 800))
 }
@@ -160,7 +174,7 @@ async function save(date: string) {
   const body = drafts.value[date]
   if (body === undefined) return
   await brain.saveJournalBody(date, body, new Date(), timeZone.value)
-  savedDate.value = date
+  track(date, 'body', false)
 }
 function saveAll() {
   for (const date of Object.keys(drafts.value)) void save(date)

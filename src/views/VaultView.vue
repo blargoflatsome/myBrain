@@ -6,29 +6,12 @@
         <p class="text-muted italic">{{ m.intro }}</p>
       </div>
       <p v-if="!buckets.length" class="text-muted">{{ m.noBuckets }}</p>
-      <p v-if="buckets.length > 1" class="-mt-3 text-xs text-muted">{{ m.dragHint }}</p>
-      <ul ref="list" class="flex flex-col gap-2" :aria-label="m.bucketsHeading">
-        <li v-for="(b, bi) in buckets" :key="b.id" class="flex flex-wrap items-center gap-1 rounded-2xl border border-line bg-surface pl-1" data-testid="vault-bucket">
-          <button
-            type="button"
-            class="drag-handle flex size-11 shrink-0 cursor-grab touch-none items-center justify-center rounded-lg text-xl text-muted active:cursor-grabbing"
-            :aria-label="m.drag(b.name)"
-            :data-handle="b.id"
-            :aria-expanded="movingId === b.id"
-            @keydown="moveByKey($event, b)"
-            @blur="onHandleBlur"
-            @click="movingId = movingId === b.id ? null : b.id"
-          >
-            <span aria-hidden="true">⠿</span>
-          </button>
-          <button type="button" class="flex min-h-14 flex-1 items-center justify-between gap-3 pr-4 pl-1 text-left" @click="openBucket(b)">
+      <ul class="flex flex-col gap-2" :aria-label="m.bucketsHeading">
+        <li v-for="b in buckets" :key="b.id" class="flex items-center rounded-2xl border border-line bg-surface" data-testid="vault-bucket">
+          <button type="button" class="flex min-h-14 flex-1 items-center justify-between gap-3 px-4 text-left" @click="openBucket(b)">
             <span class="font-medium"><span v-if="b.starred" class="text-star" aria-hidden="true">★ </span>{{ b.name }}</span>
             <span class="text-sm text-muted">{{ m.itemCount(countIn(b)) }}</span>
           </button>
-          <div v-if="movingId === b.id" class="flex w-full gap-2 px-2 pb-2" role="group" :aria-label="m.moveGroup(b.name)">
-            <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="bi === 0" :data-move="b.id" :data-step="-1" @click="moveByButton(b.id, -1)">↑ {{ messages.moveUp }}</button>
-            <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm" :disabled="bi === buckets.length - 1" :data-move="b.id" :data-step="1" @click="moveByButton(b.id, 1)">↓ {{ messages.moveDown }}</button>
-          </div>
         </li>
       </ul>
       <form v-if="addingBucket" class="flex gap-2" @submit.prevent="createBucket">
@@ -151,7 +134,6 @@
 <script setup lang="ts">
 // SPEC §5 The Vault: my buckets; inside one, its items with a quick add box, check-off, ratings and links.
 import { computed, ref, watch } from 'vue'
-import { arrowStep, useDragSort } from '@/composables/useDragSort'
 import { useRoute, useRouter } from 'vue-router'
 import VaultItemEditor from '@/components/VaultItemEditor.vue'
 import BucketEditor from '@/components/BucketEditor.vue'
@@ -192,63 +174,6 @@ async function createBucket() {
   newBucketName.value = ''
   addingBucket.value = false
 }
-/** Move a bucket from one place in the list to another and save the new order. */
-async function reorder(from: number, to: number) {
-  const order = buckets.value.map((x) => x.id)
-  if (from === to || from < 0 || to < 0 || to >= order.length) return
-  const [id] = order.splice(from, 1)
-  order.splice(to, 0, id!)
-  for (const [position, bid] of order.entries()) {
-    const row = buckets.value.find((x) => x.id === bid)!
-    if (row.position !== position) await brain.saveBucket({ ...row, position })
-  }
-}
-
-// Drag and drop by the handle (mouse or touch). The arrow keys on the handle move a bucket too.
-const list = ref<HTMLUListElement | null>(null)
-useDragSort(list, reorder)
-
-// Key presses queue up, so quick presses each move the bucket one place, in order.
-let keyMoves: Promise<void> = Promise.resolve()
-/** The bucket being moved with the keyboard: its handle keeps focus while the list redraws. */
-const keyboardId = ref<string | null>(null)
-function moveByKey(event: KeyboardEvent, b: VaultBucketRow) {
-  const step = arrowStep(event)
-  if (!step) return
-  event.preventDefault()
-  keyboardId.value = b.id
-  keyMoves = keyMoves.then(() => moveOne(b.id, step)).catch(() => {})
-}
-async function moveOne(id: string, step: number) {
-  const from = buckets.value.findIndex((x) => x.id === id)
-  const to = from + step
-  if (from < 0 || to < 0 || to >= buckets.value.length) return
-  await reorder(from, to)
-  // Let the list catch up before the next queued move reads the order.
-  for (let i = 0; i < 50 && buckets.value.findIndex((x) => x.id === id) !== to; i++) await new Promise((r) => setTimeout(r, 20))
-}
-// Right after each redraw, put focus back on the handle being moved (moving an element can drop its focus).
-watch(
-  buckets,
-  () => {
-    const el = keyboardId.value ? list.value?.querySelector<HTMLButtonElement>(`[data-handle="${keyboardId.value}"]`) : null
-    if (el && document.activeElement !== el) el.focus()
-  },
-  { flush: 'post' },
-)
-// Tapping a handle shows Move up / Move down, so buckets can be sorted without dragging (WCAG 2.5.7).
-const movingId = ref<string | null>(null)
-async function moveByButton(id: string, step: -1 | 1) {
-  await moveOne(id, step)
-  const at = buckets.value.findIndex((x) => x.id === id)
-  const target = (at + step < 0 || at + step >= buckets.value.length) ? -step : step
-  list.value?.querySelector<HTMLButtonElement>(`[data-move="${id}"][data-step="${target}"]`)?.focus()
-}
-function onHandleBlur(event: FocusEvent) {
-  // Focus moved somewhere else on purpose (not lost to a redraw): stop following.
-  if (event.relatedTarget) keyboardId.value = null
-}
-
 const editingBucket = ref<VaultBucketRow | null>(null)
 async function saveBucket(b: VaultBucketRow) {
   await brain.saveBucket(b)

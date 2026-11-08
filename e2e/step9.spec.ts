@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
 import { goTo } from './support/nav'
-import { dragHandle } from './support/drag'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -23,7 +22,7 @@ test.describe('Spec §5 The Vault', () => {
   test('the Vault lists my buckets; inside one I can add items and check them off', async ({ page }) => {
     await open(page, '/')
     await goTo(page, 'The Vault')
-    await expect(page.getByTestId('vault-bucket')).toHaveText([/Shopping list\s*0 items/, /Restaurant reviews/, /Places to go/])
+    await expect(page.getByTestId('vault-bucket')).toHaveText([/Places to go/, /Restaurant reviews/, /Shopping list\s*0 items/])
     await page.getByRole('button', { name: /^Shopping list/ }).click()
     await expect(page.getByText("Past you hasn't put anything in here yet.")).toBeVisible()
 
@@ -74,22 +73,12 @@ test.describe('Spec §5 The Vault', () => {
     )
   })
 
-  test('buckets can be added, renamed, made into a checklist, and reordered', async ({ page }) => {
+  test('buckets can be added (taking their place A to Z), renamed and made into a checklist', async ({ page }) => {
     await open(page, '/vault')
     await page.getByRole('button', { name: '+ New bucket' }).click()
     await page.getByRole('textbox', { name: 'Bucket name' }).fill('Books')
     await page.getByRole('button', { name: 'Add bucket' }).click()
-    await expect(page.getByTestId('vault-bucket')).toHaveCount(4)
-    // The arrow keys on the handle move a bucket, and focus stays with it for the next press.
-    await page.getByRole('button', { name: /^Reorder Books/ }).focus()
-    await page.keyboard.press('ArrowUp')
-    await expect(page.getByTestId('vault-bucket').nth(2)).toContainText('Books')
-    await page.keyboard.press('ArrowUp')
-    await expect(page.getByTestId('vault-bucket').nth(1)).toContainText('Books')
-    await page.keyboard.press('ArrowDown')
-    await page.keyboard.press('ArrowDown')
-    await page.keyboard.press('ArrowDown')
-    await expect(page.getByTestId('vault-bucket').nth(3)).toContainText('Books')
+    await expect(page.getByTestId('vault-bucket')).toHaveText([/Books/, /Places to go/, /Restaurant reviews/, /Shopping list/])
 
     await page.getByRole('button', { name: /^Books/ }).click()
     await page.getByRole('button', { name: 'Bucket settings' }).click()
@@ -101,23 +90,18 @@ test.describe('Spec §5 The Vault', () => {
     await expect.poll(() => lastWrite('vault_buckets')).toMatchObject({ name: 'Books to read', checkable: true })
   })
 
-  test('buckets are sorted by drag and drop', async ({ page }) => {
+  test('buckets are always favorites first, then A to Z, with nothing to drag', async ({ page }) => {
+    server.seed('vault_buckets', [{ id: 'b-z', name: 'Zoo trips', position: 9, checkable: false, starred: true }])
     await open(page, '/vault')
-    const handle = (name: string) => page.getByRole('button', { name: new RegExp(`^Reorder ${name}`) })
-    await dragHandle(page, handle('Places to go'), handle('Shopping list'), 'above')
-    await expect(page.getByTestId('vault-bucket')).toHaveText([/Places to go/, /Shopping list/, /Restaurant reviews/])
-
-    // And downward: Places to go back to the bottom.
-    await dragHandle(page, handle('Places to go'), handle('Restaurant reviews'), 'below')
-    await expect(page.getByTestId('vault-bucket')).toHaveText([/Shopping list/, /Restaurant reviews/, /Places to go/])
-    await expect.poll(() => server.written('vault_buckets').map((b) => [b.name, b.position])).toEqual(
-      expect.arrayContaining([
-        ['Places to go', 0],
-        ['Shopping list', 1],
-        ['Restaurant reviews', 2],
-      ]),
-    )
+    await expect(page.getByTestId('vault-bucket')).toHaveText([/Zoo trips/, /Places to go/, /Restaurant reviews/, /Shopping list/])
+    await expect(page.getByRole('button', { name: /^Reorder/ })).toHaveCount(0)
+    // Starring one moves it up with the favorites.
+    await page.getByRole('button', { name: /^Shopping list/ }).click()
+    await page.getByRole('button', { name: 'Star Shopping list' }).click()
+    await page.goto('/vault')
+    await expect(page.getByTestId('vault-bucket')).toHaveText([/Shopping list/, /Zoo trips/, /Places to go/, /Restaurant reviews/])
   })
+
 
   test('deleting a bucket says how many items go with it, then deletes them', async ({ page }) => {
     server.seed('vault_items', [

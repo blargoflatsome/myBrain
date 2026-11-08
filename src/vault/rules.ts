@@ -1,8 +1,11 @@
 // The Vault rules (SPEC §5 The Vault): bucket order, items in a bucket, check-off, links.
 import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
 
+/** Buckets as they're always listed (SPEC §5 The Vault): starred first, then the rest, each group A to Z. */
 export function activeBuckets(buckets: VaultBucketRow[]): VaultBucketRow[] {
-  return buckets.filter((b) => !b.deleted_at).sort((a, b) => a.position - b.position || a.name.localeCompare(b.name))
+  return buckets
+    .filter((b) => !b.deleted_at)
+    .sort((a, b) => Number(!!b.starred) - Number(!!a.starred) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
 }
 
 /** A bucket's items in the order they were added; in a checklist bucket, checked items go to the bottom. */

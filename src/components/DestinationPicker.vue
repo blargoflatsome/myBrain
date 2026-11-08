@@ -68,6 +68,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { messages } from '@/messages'
 import type { CaptureInput, Destination } from '@/capture/capture'
 import type { VaultBucketRow } from '@/sync/types'
+import { activeBuckets } from '@/vault/rules'
 
 const props = withDefaults(defineProps<{ allowLater?: boolean; disabled?: boolean }>(), { allowLater: true, disabled: false })
 const emit = defineEmits<{ choose: [Omit<CaptureInput, 'text'>] }>()
@@ -80,7 +81,7 @@ const newBucketName = ref('')
 const addingBucket = ref(false)
 
 const buckets = useLiveQuery<VaultBucketRow[]>(
-  async () => (brain.db ? (await brain.db.vault_buckets.orderBy('position').toArray()).filter((b) => !b.deleted_at) : []),
+  async () => (brain.db ? activeBuckets(await brain.db.vault_buckets.toArray()) : []),
   [],
   [() => brain.db],
 )
