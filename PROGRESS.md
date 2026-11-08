@@ -264,9 +264,14 @@ Merged and live.
 - Migration `20261108010000_people.sql` (table, RLS, Realtime, one-time import of everyone already invited by email/phone, delete_my_data part). Dev migrated; 19 SQL files pass. Prod: applied right before merge.
 - Tests: `src/events/people.test.ts`, `e2e/my-people.spec.ts`, `supabase/tests/rls_people.sql`; delete-my-data and accessibility tests updated. Vitest 284, Playwright 547.
 
-## Contacts window (branch `contacts-window`)
+## Contacts window (done, PR #35)
 - The People section has a **Contacts** button that opens `ContactsDialog.vue`: my people A–Z, search as you type, Add per person (stays open; Added with Undo; already invited shows Invited), Done. The typing form only adds. Finding My Brain users by name moves to Phase 2 (people need to match first), and with it the availability schedule, free/busy checks, suggested times, and the findable and share-availability settings (screens and client code removed; tables and server functions kept). Docs, Features and Privacy updated.
 - Tests: `e2e/my-people.spec.ts` rewritten for the window, Contacts window added to the accessibility scans, availability/name-search tests removed. Vitest 281, Playwright 545.
+
+## Connections, part 1 (branch `connections`, includes the spec from PR #36)
+- Migration `20261108020000_connections.sql`: `connection_requests`, `connections`, `connection_blocks` (functions only, no direct access); `request_connection` (same answer whatever is typed, 20 a day), `incoming_connection_requests`, `sent_connection_requests`, `answer_connection_request` (accept/decline/block), `cancel_connection_request`, `my_connections`, `remove_connection`; `invite_people` now invites only connections in the app (typed addresses of anyone else are guests); Delete my data part. Dev migrated; 20 SQL files pass (`rls_connections.sql`; two older tests now connect their users first). Prod: before merge.
+- App: `/connections` page (`ConnectionsView.vue`, `src/events/connections.ts`), link on Account, connections first in the Contacts window ("On My Brain"). Tests: `e2e/connections.spec.ts`, a11y scan. Vitest 281, Playwright 559 (one known journal flake).
+- Next parts: links/codes; Connect from my people, attendees and guest invites; guest page and edge cases; scheduling for connections. Push for connection requests comes with a later part.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
