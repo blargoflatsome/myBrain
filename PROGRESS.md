@@ -248,8 +248,11 @@ Merged and live.
 - Migration `20261107050000_round_3.sql`. Dev migrated; 18 SQL files pass.
 - Tests: `src/feedback-round-3.test.ts`, `e2e/feedback-round-3.spec.ts`, `supabase/tests/rls_round_3.sql`; tag and Vault tests updated. Vitest 280, Playwright 513.
 
-## Features and Docs pages (branch `features-docs`)
+## Features and Docs pages (done, PR #28)
 - Public `/features` (marketing summary of every feature) and `/docs` (how to use each feature, with a Work/Personal tags example). Linked from sign-in, Account and Help in the menu. Standard added: update both with every functionality change (CLAUDE.md, SPEC, coding standards, memory). Tests: `e2e/features-docs.spec.ts`, accessibility scans. Playwright 527.
+
+## Pick from contacts fix (done, PR #29)
+- User bug report: on the phone, picking a contact never filled the form. Cause: Android's "back" as the picker closes closed the event window. The event window now ignores "back" while picking and for a second after (`contactPickerOpen` in `src/events/sharing.ts`). One contact fills the boxes ready for Add; several are all added (only the last was kept before); nothing picked says so; messages scroll into view. Tests: `e2e/contact-picker.spec.ts` (stand-in phone picker that hides the page and sends "back"). Vitest 280, Playwright 539. Not yet tried on a real phone.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
