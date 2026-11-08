@@ -21,8 +21,8 @@
         @update:model-value="onInput(today, $event)"
         @blur="save(today)"
       />
+      <SaveStatus class="-mt-2" :busy="busy.has(`${today}:body`)" :has-saved="!!todayEntry?.body" test-id="save-status-writing" />
       <JournalTomorrow :key="today" :date="today" :entry="todayEntry" @busy="track(today, 'tomorrow', $event)" />
-      <EntryTags v-if="brain.userId" type="journal_entry" :item-id="entryIdFor(brain.userId, today)" />
     </section>
 
 
@@ -30,7 +30,7 @@
       <h2 class="text-lg font-semibold">{{ m.olderHeading }}</h2>
       <p v-if="!earlier.length" class="text-muted">{{ m.empty }}</p>
       <article
-        v-for="e in earlier"
+        v-for="e in pageItems"
         :key="e.id"
         class="flex flex-col gap-3 rounded-2xl border bg-surface p-4"
         :class="highlight === e.date ? 'border-accent' : 'border-line'"
@@ -50,9 +50,6 @@
             {{ m.edit }}
           </button>
         </div>
-        <ul v-if="tagsFor(e.id).length" class="flex flex-wrap gap-1.5" :aria-label="m.tagsLabel" data-testid="journal-entry-tags">
-          <li v-for="t in tagsFor(e.id)" :key="t.id" class="rounded-full bg-bg px-2.5 py-1 text-sm" data-testid="journal-entry-tag">#{{ t.name }}</li>
-        </ul>
         <JournalStatsCard v-if="hasStats(e.stats)" :stats="e.stats" />
         <p v-if="editingDate !== e.date && e.better_than_yesterday != null" class="text-sm text-muted" data-testid="journal-better">
           {{ e.better_than_yesterday ? `✓ ${m.betterYes}` : m.betterNo }}
@@ -66,8 +63,8 @@
             min-height="12rem"
             @update:model-value="onInput(e.date, $event)"
           />
+          <SaveStatus class="-mt-2" :busy="busy.has(`${e.date}:body`)" :has-saved="true" test-id="save-status-writing" />
           <JournalTomorrow :date="e.date" :entry="e" @busy="track(e.date, 'tomorrow', $event)" />
-          <EntryTags type="journal_entry" :item-id="e.id" />
           <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="finishEditing(e.date)">
             {{ m.done }}
           </button>
@@ -81,6 +78,7 @@
           <div class="rich" v-html="cleanHtml(e.tomorrow)" />
         </div>
       </article>
+      <PageControls v-model:page="page" :page-count="pageCount" :label="m.olderHeading" />
     </section>
   </main>
 </template>
@@ -91,25 +89,26 @@
 import { computed, defineAsyncComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import JournalStatsCard from '@/components/JournalStatsCard.vue'
-import EntryTags from '@/components/EntryTags.vue'
 import JournalBetter from '@/components/JournalBetter.vue'
 import JournalTomorrow from '@/components/JournalTomorrow.vue'
 import SaveStatus from '@/components/SaveStatus.vue'
 import { onPageHide } from '@/composables/usePageHide'
-import { tagsOf } from '@/tags/rules'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { entryIdFor, hadActivity, hasStats } from '@/journal/stats'
+import { hadActivity, hasStats } from '@/journal/stats'
 import { cleanHtml } from '@/journal/body'
 import { messages } from '@/messages'
-import type { ItemTagRow, JournalEntryRow, JournalStats, TagRow } from '@/sync/types'
+import type { JournalEntryRow, JournalStats } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
 import { live } from '@/sync/live'
+import PageControls from '@/components/PageControls.vue'
+import { usePagination } from '@/composables/usePagination'
 
 // The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
 const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
 
+const EARLIER_PER_PAGE = 3
 const brain = useBrainStore()
 const m = messages.journal
 const { today, timeZone } = useToday()
@@ -147,6 +146,8 @@ const earlier = computed(() =>
     .filter((e) => e.date < today.value && (e.body.trim() || e.tomorrow?.trim() || e.better_than_yesterday != null || (hasStats(e.stats) && hadActivity(e.stats))))
     .sort((a, b) => b.date.localeCompare(a.date)),
 )
+// Three days per page, newest first (SPEC §5 Journal).
+const { page, pageCount, pageItems } = usePagination(earlier, EARLIER_PER_PAGE)
 
 // ---------- Writing (saved as I type, and when I leave the editor) ----------
 const drafts = ref<Record<string, string>>({})
@@ -183,13 +184,6 @@ onScopeDispose(saveAll)
 // Phones may stop a hidden app, so writing waiting on the timer is stored as soon as I switch away (SPEC §7).
 onPageHide(saveAll)
 
-// Tags on each past entry, shown across its top.
-const tagData = useLiveQuery<{ links: ItemTagRow[]; tags: TagRow[] }>(
-  async () => (brain.db ? { links: await brain.db.item_tags.toArray(), tags: await brain.db.tags.toArray() } : { links: [], tags: [] }),
-  { links: [], tags: [] },
-  [() => brain.db],
-)
-const tagsFor = (id: string) => tagsOf(tagData.value.links, tagData.value.tags, 'journal_entry', id)
 
 const editingDate = ref<string | null>(null)
 
@@ -201,6 +195,8 @@ watch(
   async ([date]) => {
     if (typeof date !== 'string' || highlight.value === date || !entries.value.some((e) => e.date === date)) return
     highlight.value = date
+    const at = earlier.value.findIndex((e) => e.date === date)
+    if (at >= 0) page.value = Math.floor(at / EARLIER_PER_PAGE) + 1
     await nextTick()
     const el = document.querySelector(date === today.value ? '[data-testid="journal-today"]' : `[data-testid="journal-entry-${date}"]`)
     el?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })

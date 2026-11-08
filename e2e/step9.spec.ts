@@ -44,7 +44,7 @@ test.describe('Spec §5 The Vault', () => {
     await expect.poll(() => lastWrite('vault_items')).toMatchObject({ title: 'Milk', deleted_at: expect.any(String) })
   })
 
-  test('an item can have a star rating, a link or address, notes and tags', async ({ page }) => {
+  test('an item can have a star rating, a link or address and notes (no tags)', async ({ page }) => {
     server.seed('vault_items', [{ id: 'v1', bucket_id: 'bucket-1', title: 'Luigi’s', notes: null }])
     await open(page, '/vault?bucket=bucket-1')
     await page.getByRole('button', { name: 'Open Luigi’s' }).click()
@@ -52,16 +52,13 @@ test.describe('Spec §5 The Vault', () => {
     await dialog.getByRole('radio', { name: '4 stars' }).click()
     await dialog.getByLabel('Link or address (optional)').fill('luigis.example.com/menu')
     await dialog.getByLabel('Notes (optional)').fill('Great carbonara')
-    await dialog.getByRole('combobox', { name: 'Add a tag' }).fill('date night')
-    await dialog.getByRole('combobox', { name: 'Add a tag' }).press('Enter')
+    await expect(dialog.getByRole('combobox', { name: 'Add a tag' })).toHaveCount(0)
     await dialog.getByRole('button', { name: 'Save' }).click()
 
     await expect.poll(() => lastWrite('vault_items')).toMatchObject({ rating: 4, link: 'luigis.example.com/menu', notes: 'Great carbonara' })
     const item = page.getByTestId('vault-item')
     await expect(item.getByRole('img', { name: '4 of 5 stars' })).toBeVisible()
     await expect(item.getByRole('link', { name: 'Open link: luigis.example.com' })).toHaveAttribute('href', 'https://luigis.example.com/menu')
-    expect(server.written('tags')).toEqual([expect.objectContaining({ name: 'date night' })])
-    expect(server.written('item_tags')).toEqual([expect.objectContaining({ item_type: 'vault_item', item_id: 'v1' })])
   })
 
   test('an address opens in maps', async ({ page }) => {
@@ -98,6 +95,8 @@ test.describe('Spec §5 The Vault', () => {
     // Starring one moves it up with the favorites.
     await page.getByRole('button', { name: /^Shopping list/ }).click()
     await page.getByRole('button', { name: 'Star Shopping list' }).click()
+    await expect(page.getByRole('button', { name: 'Unstar Shopping list' })).toBeVisible()
+    await expect.poll(() => server.written('vault_buckets').some((b) => b.name === 'Shopping list' && b.starred)).toBe(true)
     await page.goto('/vault')
     await expect(page.getByTestId('vault-bucket')).toHaveText([/Shopping list/, /Zoo trips/, /Places to go/, /Restaurant reviews/])
   })
@@ -126,7 +125,7 @@ test.describe('Spec §5 Global search and tags', () => {
     server.seed('vault_items', [{ id: 'v1', bucket_id: 'bucket-1', title: 'Luigi’s', notes: 'Best cafe in town' }])
     server.seed('quests', [{ id: 'q1', title: 'Learn to bake', status: 'open' }])
     server.seed('tags', [{ id: 'tag-food', name: 'food' }])
-    server.seed('item_tags', [{ id: 'it1', tag_id: 'tag-food', item_type: 'vault_item', item_id: 'v1' }])
+    server.seed('item_tags', [{ id: 'it1', tag_id: 'tag-food', item_type: 'task', item_id: 't1' }])
   }
   async function openSearch(page: Page) {
     const header = page.getByRole('banner').getByRole('button', { name: 'Search' })
@@ -171,12 +170,12 @@ test.describe('Spec §5 Global search and tags', () => {
     const dialog = await openSearch(page)
     await dialog.getByRole('button', { name: '#food' }).click()
     await expect(dialog.getByTestId('search-result')).toHaveCount(1)
-    await expect(dialog.getByTestId('search-result')).toContainText('Luigi’s')
+    await expect(dialog.getByTestId('search-result')).toContainText('Book café table')
     await dialog.getByRole('searchbox', { name: 'Search everything' }).fill('cafe')
     await expect(dialog.getByTestId('search-result')).toHaveCount(1)
   })
 
-  test('tags can be added to a task, and to a quest', async ({ page }) => {
+  test('tags can be added to a task', async ({ page }) => {
     server.seed('tasks', [{ id: 'aaaaaaaa-0000-4000-8000-000000000001', title: 'Pay rent', due_date: '2026-11-10', priority: 1, status: 'open', source: 'manual' }])
     await open(page, '/tasks')
     await page.getByRole('button', { name: /^Pay rent/ }).click()

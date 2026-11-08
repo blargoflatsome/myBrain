@@ -240,8 +240,13 @@ Merged and live.
 - Tests: `src/feedback-round-2.test.ts`, `e2e/feedback-round-2.spec.ts`, `supabase/tests/rls_notifications.sql`; updated Vault, Capture, journal and accessibility tests. Vitest 270, Playwright 477.
 - User said yes to remembering people already invited (next section).
 
-## Remembered people (branch `remember-people`)
+## Remembered people (done, PR #26)
 - The invite form suggests people I've invited before by email or phone (up to 5, matching name, email or phone; once per person, latest name; not ones already on the event). From my own invitations on the device; no database change. `rememberedPeople` / `matchRemembered` in `src/events/contacts.ts`. Tests: `src/events/remembered.test.ts`, `e2e/feedback-round-2.spec.ts`. Vitest 272, Playwright 479.
+
+## Feedback round 3 (branch `feedback-round-3`)
+- Habits: start date + every week / every 2 weeks / every month (user's choice: by the start date's day); `habit_on()` on the server, `isScheduled`/`onMonthDay` in the app; habit editor and Capture form. Events start at the next whole hour (All day was hiding the time boxes). Tags only on tasks, habits, routines (old links deleted, user's choice); search finds habits and routines. Journal Earlier 3 per page; save status under each box. Focus timer (Pomodoro): `src/focus/timer.ts`, `stores/focus.ts`, `FocusTimer.vue`, design by Claude for the user to react to.
+- Migration `20261107050000_round_3.sql`. Dev migrated; 18 SQL files pass.
+- Tests: `src/feedback-round-3.test.ts`, `e2e/feedback-round-3.spec.ts`, `supabase/tests/rls_round_3.sql`; tag and Vault tests updated. Vitest 280, Playwright 513.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

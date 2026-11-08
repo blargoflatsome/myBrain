@@ -11,6 +11,11 @@
         {{ m.editor.title }}
         <input v-model="title" maxlength="500" required :class="field">
       </label>
+      <label class="flex flex-col gap-1 text-sm text-muted">
+        {{ m.editor.startDate }}
+        <input v-model="startDate" type="date" :min="earliestStart" required :class="field">
+      </label>
+      <HowOften v-model="weekInterval" v-model:monthly="monthly" :start-date="startDate" />
       <TimeInput v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.editor.timer }}
@@ -20,7 +25,7 @@
         </select>
         <span class="text-xs">{{ m.editor.timerHint }}</span>
       </label>
-      <fieldset class="flex flex-col gap-2">
+      <fieldset v-if="!monthly" class="flex flex-col gap-2">
         <legend class="mb-1 text-sm text-muted">{{ m.editor.weekdays }}</legend>
         <div class="flex flex-wrap gap-1.5" role="group" :aria-label="m.editor.weekdays">
           <button
@@ -35,7 +40,7 @@
           </button>
         </div>
       </fieldset>
-      <HowOften v-model="weekInterval" />
+      <TagInput v-model="tags.names.value" />
       <label class="flex items-start gap-3">
         <input v-model="isPrivate" type="checkbox" class="mt-1 size-5 accent-[var(--accent)]">
         <span>
@@ -80,6 +85,9 @@ import { ALL_WEEKDAYS } from '@/habits/rules'
 import { messages } from '@/messages'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { dayChip, dialogBox, field } from '@/ui/styles'
+import TagInput from '@/components/TagInput.vue'
+import { useItemTags } from '@/composables/useItemTags'
+import { deviceTimeZone, todayIn } from '@/tasks/days'
 
 const props = defineProps<{ habit: HabitRow | null; isNew?: boolean }>()
 const emit = defineEmits<{ save: [HabitRow]; delete: [HabitRow]; close: [] }>()
@@ -92,6 +100,9 @@ const notifyTime = ref('')
 const timer = ref<number | null>(null)
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
 const weekInterval = ref(1)
+const monthly = ref(false)
+const startDate = ref('')
+const tags = useItemTags('habit', computed(() => props.habit?.id))
 const isPrivate = ref(false)
 const isPriority = ref(false)
 const timerOptions = [15, 30, 60, 120, 180, 240]
@@ -105,6 +116,8 @@ watch(
     timer.value = h.timer_minutes ?? null
     weekdays.value = [...h.weekdays]
     weekInterval.value = h.week_interval ?? 1
+    monthly.value = !!h.monthly
+    startDate.value = h.start_date
     isPrivate.value = h.is_private
     isPriority.value = !!h.is_priority
     dialog.value?.showModal()
@@ -123,8 +136,16 @@ function toggleDay(d: number) {
   weekdays.value = has ? weekdays.value.filter((x) => x !== d) : [...weekdays.value, d].sort()
 }
 
+// A habit starts today or later (an earlier start would count days already gone as missed); an existing habit
+// can keep the start date it has.
+const earliestStart = computed(() => {
+  const today = todayIn(deviceTimeZone())
+  return props.habit && !props.isNew && props.habit.start_date < today ? props.habit.start_date : today
+})
+
 function save() {
   if (!props.habit || !title.value.trim()) return
+  void tags.save(props.habit.id)
   emit('save', {
     ...props.habit,
     title: title.value.trim(),
@@ -132,6 +153,8 @@ function save() {
     timer_minutes: notifyTime.value ? timer.value : null,
     weekdays: weekdays.value,
     week_interval: weekInterval.value,
+    monthly: monthly.value,
+    start_date: startDate.value || props.habit.start_date,
     is_private: isPrivate.value,
     is_priority: isPriority.value,
   })

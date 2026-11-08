@@ -171,6 +171,26 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'Post It editing')
     })
 
+    test('Focus timer, full screen and minimized', async ({ page }) => {
+      await page.goto('/')
+      await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
+      const menu = page.getByRole('button', { name: 'Menu' })
+      if (await menu.isVisible()) await menu.click()
+      await page.getByTestId('focus-open').click()
+      await expect(page.getByRole('dialog', { name: 'Focus timer' })).toBeVisible()
+      await scan(page, 'Focus timer')
+      await page.getByRole('button', { name: 'Minimize' }).click()
+      await expect(page.getByTestId('focus-pill')).toBeVisible()
+      await scan(page, 'Focus timer pill')
+    })
+
+    test('Habit editor with start date and monthly', async ({ page }) => {
+      await page.goto('/habits')
+      await page.getByRole('button', { name: '+ New habit' }).click()
+      await page.getByRole('dialog', { name: 'New habit' }).getByRole('radio', { name: /Every month/ }).click()
+      await scan(page, 'Habit editor monthly')
+    })
+
     test('Journal full screen writing', async ({ page }) => {
       await page.goto('/journal')
       await page.getByRole('toolbar', { name: 'Formatting: How the day went' }).getByRole('button', { name: 'Full screen' }).click()

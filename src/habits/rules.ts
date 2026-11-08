@@ -13,7 +13,16 @@ export function weekdayOf(date: string): number {
 }
 
 export function isScheduled(habit: HabitRow, date: string): boolean {
-  return date >= habit.start_date && habit.weekdays.includes(weekdayOf(date)) && onWeek(habit.start_date, habit.week_interval, date)
+  if (date < habit.start_date) return false
+  if (habit.monthly) return onMonthDay(habit.start_date, date)
+  return habit.weekdays.includes(weekdayOf(date)) && onWeek(habit.start_date, habit.week_interval, date)
+}
+
+/** Every month on the start date's day; a 29th-31st falls on the last day of a shorter month (SPEC §5 Habits). */
+export function onMonthDay(startDate: string, date: string): boolean {
+  const [y, m, d] = date.split('-').map(Number)
+  const lastDay = new Date(Date.UTC(y!, m!, 0)).getUTCDate()
+  return d === Math.min(Number(startDate.slice(8, 10)), lastDay)
 }
 
 /** Offset of a timezone from UTC at a moment, in milliseconds. */

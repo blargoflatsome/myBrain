@@ -31,6 +31,10 @@ export interface CaptureInput {
   habit?: {
     weekdays: number[]
     weekInterval: number
+    /** Every month on the start date's day (SPEC §5 Habits). */
+    monthly?: boolean
+    /** Today or later; today when not given. */
+    startDate?: string | null
     notifyTime: string | null
     timerMinutes: number | null
     isPrivate: boolean
@@ -112,6 +116,8 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
           ...row,
           weekdays: h?.weekdays.length ? [...h.weekdays].sort() : row.weekdays,
           week_interval: h?.weekInterval ?? 1,
+          monthly: !!h?.monthly,
+          start_date: h?.startDate && h.startDate > row.start_date ? h.startDate : row.start_date,
           notify_time: h?.notifyTime || null,
           // A timer needs a reminder time (SPEC §5 Habits).
           timer_minutes: h?.notifyTime && h.timerMinutes ? h.timerMinutes : null,

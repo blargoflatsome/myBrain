@@ -107,23 +107,16 @@ test.describe('Spec §5 Journal: tomorrow and better than yesterday', () => {
     expect(writing).toBeLessThan(tomorrow)
   })
 
-  test('Earlier entries show their tags across the top, and formatted tomorrow answers', async ({ page }) => {
+  test('Earlier entries show formatted tomorrow answers, and no tags', async ({ page }) => {
     server.seed('journal_entries', [
       { id: 'j-9', date: '2026-11-09', body: '<p>Fine day</p>', tomorrow: '<p><strong>Sleep early</strong></p>', better_than_yesterday: true, stats: {}, auto: false, stats_final: true },
     ])
-    server.seed('tags', [{ id: 't1', name: 'work' }, { id: 't2', name: 'family' }])
-    server.seed('item_tags', [
-      { id: 'it1', item_type: 'journal_entry', item_id: 'j-9', tag_id: 't1' },
-      { id: 'it2', item_type: 'journal_entry', item_id: 'j-9', tag_id: 't2' },
-    ])
     await open(page, '/journal')
     const entry = page.getByTestId('journal-entry-2026-11-09')
-    await expect(entry.getByTestId('journal-entry-tag')).toHaveText(['#family', '#work'])
     await expect(entry.getByTestId('journal-tomorrow').locator('strong')).toHaveText('Sleep early')
-    const tagsTop = (await entry.getByTestId('journal-entry-tags').boundingBox())!.y
-    const bodyTop = (await entry.getByTestId('journal-body').boundingBox())!.y
-    expect(tagsTop).toBeLessThan(bodyTop)
+    await expect(page.getByRole('combobox', { name: 'Add a tag' })).toHaveCount(0)
   })
+
 
   test('"Was today better than yesterday?" is answered Yes or No, and tapping again clears it', async ({ page }) => {
     await open(page, '/journal')

@@ -1,9 +1,12 @@
 // Search (SPEC §5 Global search and tags): runs on the device's copy of my data, so it is instant and works offline.
-import type { EventRow, ItemTagRow, JournalEntryRow, QuestRow, TaggedType, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import type { EventRow, HabitRow, ItemTagRow, JournalEntryRow, QuestRow, RoutineRow, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { plainText } from '@/journal/body'
 
+/** Everything search finds; only tasks, habits and routines carry tags. */
+export type SearchType = 'task' | 'habit' | 'routine' | 'event' | 'journal_entry' | 'vault_item' | 'quest'
+
 export interface SearchDoc {
-  type: TaggedType
+  type: SearchType
   id: string
   title: string
   /** The searchable words (title, notes, writing), as typed. */
@@ -30,6 +33,8 @@ export interface SearchData {
   journal: JournalEntryRow[]
   quests: QuestRow[]
   events: EventRow[]
+  habits: HabitRow[]
+  routines: RoutineRow[]
   itemTags: ItemTagRow[]
 }
 
@@ -42,7 +47,7 @@ export function searchDocs(data: SearchData): SearchDoc[] {
     if (!tagsByItem.has(key)) tagsByItem.set(key, new Set())
     tagsByItem.get(key)!.add(it.tag_id)
   }
-  const doc = (type: TaggedType, id: string, title: string, body: string, updatedAt: string | undefined, extra: Partial<SearchDoc> = {}): SearchDoc => ({
+  const doc = (type: SearchType, id: string, title: string, body: string, updatedAt: string | undefined, extra: Partial<SearchDoc> = {}): SearchDoc => ({
     type,
     id,
     title,
@@ -63,6 +68,8 @@ export function searchDocs(data: SearchData): SearchDoc[] {
       .map((j) => doc('journal_entry', j.id, j.date, [plainText(j.body), plainText(j.tomorrow ?? '')].filter(Boolean).join('\n'), j.updated_at, { date: j.date })),
     ...data.quests.filter((q) => !q.deleted_at).map((q) => doc('quest', q.id, q.title, q.details ?? '', q.updated_at)),
     ...data.events.filter((e) => !e.deleted_at).map((e) => doc('event', e.id, e.title, e.notes ?? '', e.updated_at, { date: e.start_date })),
+    ...data.habits.filter((h) => !h.deleted_at).map((h) => doc('habit', h.id, h.title, '', h.updated_at)),
+    ...data.routines.filter((r) => !r.deleted_at).map((r) => doc('routine', r.id, r.title, '', r.updated_at)),
   ]
 }
 
@@ -91,4 +98,4 @@ export function snippet(doc: SearchDoc, query: string, size = 90): string {
   return `…${piece}${start + size < text.length ? '…' : ''}`
 }
 
-export const RESULT_ORDER: TaggedType[] = ['task', 'event', 'journal_entry', 'vault_item', 'quest']
+export const RESULT_ORDER: SearchType[] = ['task', 'habit', 'routine', 'event', 'journal_entry', 'vault_item', 'quest']

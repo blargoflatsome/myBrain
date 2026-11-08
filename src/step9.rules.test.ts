@@ -123,7 +123,9 @@ describe('Spec §5 Global search', () => {
     journal: [{ id: 'j1', date: '2026-11-09', body: '<p>Met Sam at the <strong>cafe</strong>.</p>', stats: {}, stats_final: true, auto: false, updated_at: '2026-11-09', deleted_at: null }],
     quests: [{ id: 'q1', title: 'Learn to bake', status: 'open', updated_at: '2026-11-01', deleted_at: null }],
     events: [{ ...newEvent(UID, '2026-11-12', '10:00', 'e1'), title: 'Dentist', notes: 'bring card', updated_at: '2026-11-03' }],
-    itemTags: [{ id: 'it1', tag_id: 'tag-food', item_type: 'vault_item', item_id: 'v1', deleted_at: null }],
+    habits: [],
+    routines: [],
+    itemTags: [{ id: 'it1', tag_id: 'tag-food', item_type: 'task', item_id: 't1', deleted_at: null }],
   })
 
   it('matches every word, ignoring case and accents, across tasks, vault, journal, quests and events', () => {
@@ -135,9 +137,9 @@ describe('Spec §5 Global search', () => {
     expect(search(docs, '')).toEqual([])
   })
 
-  it('results can be filtered by tag, and a tag alone lists everything with it', () => {
-    expect(search(docs, 'cafe', ['tag-food']).map((d) => d.id)).toEqual(['v1'])
-    expect(search(docs, '', ['tag-food']).map((d) => d.id)).toEqual(['v1'])
+  it('results can be filtered by tag (tags are on tasks, habits and routines), and a tag alone lists everything with it', () => {
+    expect(search(docs, 'cafe', ['tag-food']).map((d) => d.id)).toEqual(['t1'])
+    expect(search(docs, '', ['tag-food']).map((d) => d.id)).toEqual(['t1'])
   })
 
   it('a result shows the words around what was found, without formatting', () => {

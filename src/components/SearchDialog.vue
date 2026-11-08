@@ -67,9 +67,9 @@ import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
 import { useBrainStore } from '@/stores/brain'
 import { useSearchStore } from '@/stores/search'
 import { useLiveQuery } from '@/composables/useLiveQuery'
-import { RESULT_ORDER, search, searchDocs, snippet, type SearchDoc } from '@/search/search'
+import { RESULT_ORDER, type SearchDoc, type SearchType, search, searchDocs, snippet } from '@/search/search'
 import { messages } from '@/messages'
-import type { TaggedType, TagRow } from '@/sync/types'
+import type { TagRow } from '@/sync/types'
 import { shortDayWithYear } from '@/ui/dates'
 import { live } from '@/sync/live'
 
@@ -95,6 +95,8 @@ const docs = useLiveQuery<SearchDoc[]>(
       journal: await db.journal_entries.toArray(),
       quests: await db.quests.toArray(),
       events: await db.events.toArray(),
+      habits: await db.habits.toArray(),
+      routines: await db.routines.toArray(),
       itemTags: await db.item_tags.toArray(),
     })
   },
@@ -139,8 +141,10 @@ function contextOf(doc: SearchDoc) {
   return ''
 }
 
-const targets: Record<TaggedType, (d: SearchDoc) => RouteLocationRaw> = {
+const targets: Record<SearchType, (d: SearchDoc) => RouteLocationRaw> = {
   task: (d) => ({ name: 'home', query: { task: d.id } }),
+  habit: (d) => ({ name: 'habits', query: { habit: d.id } }),
+  routine: (d) => ({ name: 'routines', query: { routine: d.id } }),
   event: (d) => ({ name: 'calendar', query: { date: d.date ?? undefined, event: d.id } }),
   journal_entry: (d) => ({ name: 'journal', query: { date: d.date ?? undefined } }),
   vault_item: (d) => ({ name: 'vault', query: { bucket: d.bucketId, item: d.id } }),

@@ -1,4 +1,10 @@
 // Every piece of wording the app says to the user lives here, in the "past you" voice (SPEC §2 Voice and tone).
+/** 1st, 2nd, 3rd, 4th, 11th, 12th, 13th, 21st... */
+function ordinal(n: number): string {
+  const teen = n % 100 >= 11 && n % 100 <= 13
+  return `${n}${teen ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th'}`
+}
+
 export const messages = {
   appName: 'My Brain',
   signIn: {
@@ -160,6 +166,7 @@ export const messages = {
       timerHint: "Starts at the reminder time. Without a timer it's due by midnight.",
       timerNone: 'No timer',
       timerOptions: { 15: '15 min', 30: '30 min', 60: '1 hour', 120: '2 hours', 180: '3 hours', 240: '4 hours' } as Record<number, string>,
+      startDate: 'Starts on',
       weekdays: 'Repeats on',
       private: 'Private',
       privateHint: 'Never shown on your Account page or to anyone else.',
@@ -319,6 +326,8 @@ export const messages = {
     label: 'How often',
     weekly: 'Every week',
     biweekly: 'Every 2 weeks',
+    monthly: 'Every month',
+    monthlyOn: (day: number) => `Every month on the ${ordinal(day)}`,
   },
   welcome: {
     heading: 'One more thing',
@@ -521,6 +530,22 @@ export const messages = {
     poweredBy: 'Sent with My Brain',
     privacy: 'Privacy',
   },
+  focus: {
+    menu: 'Focus timer',
+    heading: 'Focus timer',
+    phase: { work: 'Time to work', short: 'Short break', long: 'Long break' },
+    phaseShort: { work: 'Work', short: 'Break', long: 'Long break' },
+    nowPhase: { work: 'Time to work.', short: 'Time for a short break.', long: 'Time for a long break.' },
+    notify: { work: 'Past you set a timer: time to work.', short: 'Past you set a timer: time for a short break.', long: 'Past you set a timer: time for a long break.' },
+    round: (n: number) => `Round ${n} of 4`,
+    timeLeft: (time: string) => `${time} left`,
+    pause: 'Pause',
+    resume: 'Resume',
+    skip: 'Skip',
+    minimize: 'Minimize',
+    close: 'Stop and close the timer',
+    openPill: (phase: string, time: string) => `Focus timer: ${phase}, ${time} left. Open`,
+  },
   notificationsToday: {
     heading: 'Today’s notifications',
     empty: 'Nothing from past you yet today.',
@@ -667,8 +692,8 @@ export const messages = {
     noResults: "Past you didn't leave anything matching that.",
     hint: 'Search tasks, journal, The Vault, quests and events. Pick a tag to see everything with it.',
     tagsLabel: 'Filter by tag',
-    types: { task: 'Tasks', event: 'Events', journal_entry: 'Journal', vault_item: 'The Vault', quest: 'Quests' },
-    type: { task: 'Task', event: 'Event', journal_entry: 'Journal', vault_item: 'Vault', quest: 'Quest' },
+    types: { task: 'Tasks', habit: 'Habits', routine: 'Routines', event: 'Events', journal_entry: 'Journal', vault_item: 'The Vault', quest: 'Quests' },
+    type: { task: 'Task', habit: 'Habit', routine: 'Routine', event: 'Event', journal_entry: 'Journal', vault_item: 'Vault', quest: 'Quest' },
   },
   calendar: {
     heading: 'Calendar',

@@ -76,7 +76,7 @@ begin
   exception when unique_violation then null;
   end;
   begin
-    insert into public.item_tags (user_id, tag_id, item_type, item_id) values (alice, bob_tag, 'event', dentist);
+    insert into public.item_tags (user_id, tag_id, item_type, item_id) values (alice, bob_tag, 'task', dentist);
     raise exception 'FAIL: Spec §8: I cannot use someone else''s tag';
   exception when foreign_key_violation then null;
   end;
