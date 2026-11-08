@@ -130,6 +130,11 @@ export function calendarItems(
   return items
 }
 
+/** The next whole hour from now ("14:00" at 1:20 pm), for a new event's start; 23:00 at the latest. */
+export function nextWholeHour(now: Date = new Date()): string {
+  return `${String(Math.min(now.getHours() + 1, 23)).padStart(2, '0')}:00`
+}
+
 /** A new event: one hour from the chosen time (or the next whole hour), or all day when a day is chosen. */
 export function newEvent(userId: string, date: string, time: string | null, id: string = crypto.randomUUID()): EventRow {
   if (!time) {

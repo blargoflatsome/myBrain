@@ -78,6 +78,7 @@
         </div>
         <p v-if="stepRows.some((r) => r.habitId)" class="text-xs text-muted">{{ m.editor.habitHint }}</p>
       </fieldset>
+      <TagInput v-model="tags.names.value" />
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
@@ -103,6 +104,8 @@ import TimeInput from '@/components/TimeInput.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HowOften from '@/components/HowOften.vue'
+import TagInput from '@/components/TagInput.vue'
+import { useItemTags } from '@/composables/useItemTags'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { arrowStep, useDragSort } from '@/composables/useDragSort'
 import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
@@ -124,6 +127,7 @@ const notifyTime = ref('')
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
 const anytime = ref(false)
 const weekInterval = ref(1)
+const tags = useItemTags('routine', computed(() => props.routine?.id))
 const stepRows = ref<{ key: string; id?: string; title: string; habitId?: string | null }[]>([])
 
 // My habits, for habit steps.
@@ -208,6 +212,7 @@ function toggleDay(d: number) {
 
 function save() {
   if (!props.routine || !title.value.trim()) return
+  void tags.save(props.routine.id)
   emit(
     'save',
     {

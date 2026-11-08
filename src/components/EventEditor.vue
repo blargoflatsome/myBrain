@@ -48,7 +48,6 @@
         {{ m.editor.notes }}
         <textarea v-model="notes" maxlength="20000" rows="2" :class="[field, 'py-2']" />
       </label>
-      <TagInput v-model="tags.names.value" />
       <EventPeople
         v-if="event && !event.cancelled_at"
         v-model="people"
@@ -92,14 +91,12 @@
 
 <script setup lang="ts">
 // SPEC §5 Calendar and reminders: add or edit a personal event: title, start and end (or all day), repeat,
-// reminder, notes, tags. Delete asks first; deleting a repeating event deletes the whole series.
+// reminder, notes. Delete asks first; deleting a repeating event deletes the whole series.
 import TimeInput from '@/components/TimeInput.vue'
 import { computed, ref, watch } from 'vue'
-import TagInput from '@/components/TagInput.vue'
 import EventPeople from '@/components/EventPeople.vue'
 import type { PersonToInvite } from '@/events/sharing'
-import { useItemTags } from '@/composables/useItemTags'
-import { eventProblem, REMINDERS, REPEATS } from '@/events/rules'
+import { eventProblem, nextWholeHour, REMINDERS, REPEATS } from '@/events/rules'
 import { messages } from '@/messages'
 import type { EventRepeat, EventRow } from '@/sync/types'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -118,10 +115,15 @@ const startTime = ref('09:00')
 const endDate = ref('')
 const endTime = ref('10:00')
 const repeat = ref<EventRepeat>('never')
+// Turning All day off fills in a time, so the time boxes are never empty (SPEC §5 Calendar).
+watch(allDay, (on) => {
+  if (on || startTime.value) return
+  startTime.value = nextWholeHour()
+  endTime.value = `${String(Math.min(Number(startTime.value.slice(0, 2)) + 1, 23)).padStart(2, '0')}:${startTime.value === '23:00' ? '59' : '00'}`
+})
 const reminder = ref<number | null>(null)
 const notes = ref('')
 const error = ref('')
-const tags = useItemTags('event', computed(() => props.event?.id))
 // People to invite when saving (SPEC §5 Shared events).
 const people = ref<PersonToInvite[]>([])
 function useSuggestion(s: { date: string; start: string; end: string }) {
@@ -180,7 +182,6 @@ async function save() {
     error.value = problem === 'title' ? m.editor.titleError : m.editor.endError
     return
   }
-  await tags.save(row.id)
   emit('save', row, people.value)
 }
 function confirmDelete() {

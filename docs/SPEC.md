@@ -95,7 +95,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 - **push_subscriptions:** user id, device label, push endpoint and keys, last_seen. One per device (phone, laptop, Pi); remove subscriptions that the push service reports as invalid.
 - **device_pairings:** user id, device name, limited device token (stored hashed), permissions, created_at, revoked_at. Used for the Pi display (see section 9).
-- **tags / item_tags:** user-defined tags (a name, unique per user ignoring case) attached to tasks, vault items, journal entries, quests, and events.
+- **tags / item_tags:** user-defined tags (a name, unique per user ignoring case) attached to tasks, habits and routines.
 - **Search:** runs on the device's own copy of my data (see Global search and tags).
 
 ## 5. Phase 1 features and rules
@@ -129,9 +129,10 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Carry-over is calculated from each task's due date and today's date in my timezone when the list is displayed (and by a server-side job for notifications), not by a counter that only runs while the app is open. It stays correct when the app was closed or offline, or when I travel across timezones. `carry_over_count` is derived the same way. Test daylight saving changes and timezone changes.
 
 ### Habits
-- Fields: title, notify time, timer (time window to complete), the weekdays it repeats on (default every day), how often (**every week** or **every 2 weeks**, default every week), private.
+- Fields: title, **start date** (today or later, default today), notify time, timer (time window to complete), how often (**every week**, **every 2 weeks** or **every month**, default every week), the weekdays it repeats on for weekly and every-2-weeks habits (default every day), private, tags.
+- **How often:** every week and every 2 weeks use the chosen weekdays, and every 2 weeks counts from the week of the start date (so two habits on the same weekday, starting a week apart, alternate: Recycling one Thursday, Trash the next). **Every month** repeats on the start date's day of the month (the 12th); in a shorter month, a 29th–31st falls on the month's last day. The habit editor and Capture's habit form both have these.
 - **Timer** starts at the notify time: notify 8:00 am with a 2-hour timer means done by 10:00 am. With no timer (or no notify time) the habit is due by midnight. **On the day a habit is created it is always due by midnight**, so it is never missed the moment it is saved; the timer applies from the next day. A timer needs a notify time. A habit can be completed any time before its deadline, and a completion can be undone until then.
-- **Weekdays:** a habit only counts on its chosen weekdays (and, if it repeats every 2 weeks, only in every other week, counted from the week it started; weeks run Sunday to Saturday). Days it isn't scheduled neither extend nor break the streak. A habit's history starts on the day it was created.
+- **Scheduled days:** a habit only counts on its scheduled days (its chosen weekdays, in every other week if it repeats every 2 weeks, counted from the week it starts; weeks run Sunday to Saturday; or its day of the month if monthly), and never before its start date. Days it isn't scheduled neither extend nor break the streak. A habit's history starts on its start date.
 - Track a streak of scheduled days in a row. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on the Habits page and the Dashboard (see the Account page section below).
 
 - The Habits page displays this line, worded exactly: "You are only in competition with yourself." It keeps the focus on beating my own best streak.
@@ -188,10 +189,10 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - End-of-day check-in: write how the day went. New tasks (for tomorrow or any day) are added with the Capture button, which opens over the Journal and keeps my writing; there is no separate "Add a task for tomorrow" button.
 - The writing is formatted text: bold, italic, underline, strikethrough, headings, bulleted and numbered lists, checklists, quotes and links. The writing area is large, and can be opened full screen for easier typing.
 - One entry per day. Each entry summarizes that day's activity.
-- **Save status** (like Google Docs): next to the day's heading, a small status always shows where my writing stands: "Saving…" while I type and it's being stored, "✓ Saved" once it's stored and uploaded, and "Saved on this device, will sync when online" when it's waiting for a connection. The same status shows while editing an earlier entry.
+- **Save status** (like Google Docs): next to the day's heading, a small status always shows where my writing stands: "Saving…" while I type and it's being stored, "✓ Saved" once it's stored and uploaded, and "Saved on this device, will sync when online" when it's waiting for a connection. The same status shows while editing an earlier entry, and also just below each writing box (the day's writing and "How to make tomorrow better?"), so it's visible on a phone wherever I'm typing.
 - The order on the page: the day's stats, then **"Was today better than yesterday?"** with **Yes** and **No** to choose (or leave unanswered; tapping the chosen answer again clears it), then the writing ("Tell me about it"), then **"How to make tomorrow better?"**, then tags. The answer can be changed later, including on past entries.
 - **"How to make tomorrow better?"** is its own box, formatted like the main writing (same editor and toolbar), saved as I type, and editable later like the rest of the entry.
-- Past entries ("Earlier") show their tags across the top.
+- Past entries ("Earlier") are shown 3 days per page, newest first, with the shared page control.
 - The day's stats are added to the entry automatically:
   - tasks done (x of y due that day),
   - habits kept (x of y scheduled that day),
@@ -218,8 +219,16 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 ### Global search and tags
 - Search opens as a window over the current page (like Capture), from a Search item in the menu and a search button in the phone header. It searches tasks, journal entries, vault items, quests, and events by title, notes and writing. Results are grouped by type, show what type each item is, and tapping one opens it where it lives (the task editor, the vault item, the quest, the journal day, or the event).
 - Search runs on the copy of my data stored on the device, so it is instant and works offline. It ignores case and accents and matches every word I type, anywhere in the text.
-- Tags can be added to tasks, vault items, journal entries, quests, and events, by typing a tag name (existing tags are suggested). Results can be filtered by one or more tags; choosing a tag with no search words lists everything with that tag.
+- Tags can be added to **tasks, habits and routines** only, by typing a tag name (existing tags are suggested). Search also finds habits and routines by title. Results can be filtered by one or more tags; choosing a tag with no search words lists everything with that tag.
 - Search only ever covers my own data.
+
+### Focus timer (Pomodoro)
+- **Focus timer** in the menu opens a full-screen timer: a black screen with only the time counting down and a line saying what to do now, **"Time to work"**, **"Short break"** or **"Long break"**, plus the round ("Round 2 of 4").
+- Standard Pomodoro: 25 minutes of work, then a 5-minute break; every 4th break is 15 minutes. It runs until I stop it.
+- Controls: **Pause / Resume**, **Skip** (to the next part), **Minimize**, and an **✕** in the top right corner that stops and closes it.
+- **Minimized**, it keeps going as a small pill in the bottom-left corner of every page showing the part and time left (for example "Work · 18:42"); tapping it opens the full screen again. It keeps time across pages, reloads and app switches (it works from the start and end times, not a ticking counter).
+- When a part ends: a soft chime, a short vibration on phones, and, if I'm in another app, a notification ("Past you set a timer: time for a short break."). On a phone that's asleep the alert may only come when I open the app again.
+- While the full screen is showing, the screen is kept awake. The timer lives on this device only (it isn't synced).
 
 ### Random Quest (boredom buster)
 - A bucket of projects I want to do, each with details, estimated time, and energy level.
@@ -245,6 +254,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 - **People I've invited before are remembered.** When I type in the email-or-phone or name box, up to 5 people I've invited before (by email or phone) who match what I typed (name, email or phone, ignoring case and phone formatting) are suggested; tapping one adds them, so I only type someone's details once. Each person appears once (the same email or phone number), with the name I used most recently. People already on this event aren't suggested. A web app can't read the whole contact list, so this replaces a "sync contacts" button; the suggestions come from my own invitations already on the device, so they work offline and need nothing new stored.
 - **Inviting from my phone's contacts** shows what happened at every step: each person picked appears under "To invite (when you save)"; a contact with no phone number or email, or a picker that fails, says so; after saving, a message says the invitations are ready and the sharing window opens to send each one from my email or messaging app (the app doesn't send texts or emails itself yet, see Phase 2); when I finish, a message says how many I shared. Invited people then show in the event with their answer.
+- **A new event starts at a time:** "+ New event", or tapping a day, starts a timed event at the next whole hour, lasting an hour; tapping a time in the week or day view starts it there. **All day** is a switch I turn on when I want it. Turning All day off on an existing event fills in that next-hour time so the time boxes are never empty.
 ### Accounts and contact info
 - At signup, every user provides an email address and a phone number. Google sign-in supplies the email; the phone number is entered in a short "one more thing" step after the first sign-in (existing accounts see it once too). Phone numbers start as unverified, because verifying them needs an SMS service; verification is added with the SMS decision in Phase 2.
 - Each user chooses how they want to receive event notifications: email, text, or both. Until automatic texting exists (Phase 2), "text" is sent as a push notification in the app, plus email if I chose both; the setting explains this.
@@ -501,6 +511,7 @@ Before building, walk me through creating each account below. Ask me for the cre
 - 2026-11-07 — Post It icons (user): Done became an X in the note's top right corner (delete, with Undo); Edit became a pencil icon in the bottom left; Make a task was removed.
 - 2026-11-07 — Yesterday block (user): renamed "How past you did yesterday"; on wide screens it sits left of the Post Its (Post Its stay first for screen readers and on narrow screens).
 - 2026-11-07 — Long text rule (user): test user-typed text with long lines and paragraphs. Found and fixed: favorite bucket cards and the tilted Post Its underneath pushed the Dashboard sideways on phones; long unbroken text now wraps anywhere (overflow-wrap: anywhere).
+- 2026-11-07 — Feedback round 3 (user): habits get a start date and every week / every 2 weeks / every month (by the start date's day; user's choice); new events start at a time by default (the All day default hid the time boxes); tags only on tasks, habits and routines, existing tag links on journal entries, Vault items, quests and events deleted (user's choice), habits and routines added to search; journal Earlier entries 3 days per page (user's choice); save status also under each journal box; Focus (Pomodoro) timer, design by Claude for the user to react to (full-screen black timer, minimized pill bottom left).
 - 2026-11-07 — Remembered people (user said yes): instead of syncing contacts (browsers can't read the whole list), the invite form suggests people I've invited before, from my own invitations on the device.
 - 2026-11-07 — Feedback round 2 (user): journal save status next to the heading, like Google Docs (user's choice of three); clearer feedback when inviting from phone contacts; app updates take over without a restart (the user's phone was still on an older version without "Every 2 weeks" for events); Quest page redesign, sorted easiest first, 10 per page; a reusable page control for long lists; Vault buckets always favorites first then A to Z (drag ordering removed, user's OK); Today's notifications box on the Dashboard (every reminder and event news sent today, 5 per page, clear one or all, deleted at midnight). Asked: whether to remember people already invited instead of syncing all contacts (browsers can't read the whole contact list).
 - 2026-11-07 — Code review and coding standards (user): `docs/CODING_STANDARDS.md` added for the user to review and tweak; templates come before scripts in .vue files (enforced by ESLint). Review moved repeated code into shared places (`src/ui/styles.ts`, `src/ui/dates.ts`, `src/sync/live.ts`, `ConfirmDialog.vue`), removed dead code (the old Journal Capture preset, an unused invite helper) and comments that only restated the code, and made the formatting editor load on first use (initial download 702 kB to 373 kB).

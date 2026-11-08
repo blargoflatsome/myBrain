@@ -8,6 +8,8 @@
       @update:model-value="onInput"
       @blur="save"
     />
+    <!-- Also right under the box, so it's visible on a phone while typing here (SPEC §5 Journal). -->
+    <SaveStatus :busy="busy" :has-saved="!!entry?.tomorrow" test-id="save-status-tomorrow" />
   </div>
 </template>
 
@@ -15,6 +17,7 @@
 // SPEC §5 Journal: "How to make tomorrow better?", formatted like the main writing, saved as I type.
 import { defineAsyncComponent, onScopeDispose, ref } from 'vue'
 import { useBrainStore } from '@/stores/brain'
+import SaveStatus from '@/components/SaveStatus.vue'
 import { onPageHide } from '@/composables/usePageHide'
 import { normalizeBody } from '@/journal/body'
 import { messages } from '@/messages'
@@ -30,10 +33,12 @@ const brain = useBrainStore()
 const m = messages.journal
 
 const draft = ref<string | null>(null)
+const busy = ref(false)
 let timer: ReturnType<typeof setTimeout> | undefined
 function onInput(value: string) {
   draft.value = value
   emit('busy', true)
+  busy.value = true
   clearTimeout(timer)
   timer = setTimeout(save, 800)
 }
@@ -43,6 +48,7 @@ async function save() {
   const value = normalizeBody(draft.value)
   if ((props.entry?.tomorrow ?? '') !== value) await brain.saveJournalFields(props.date, { tomorrow: value })
   emit('busy', false)
+  busy.value = false
 }
 onPageHide(() => void save())
 onScopeDispose(() => void save())

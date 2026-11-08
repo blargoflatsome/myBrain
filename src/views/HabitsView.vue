@@ -84,6 +84,7 @@ import { dayStatus, deadline, dueByMidnight, isScheduled, newHabit, streaks } fr
 import { messages } from '@/messages'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
 import { live } from '@/sync/live'
+import { useRoute, useRouter } from 'vue-router'
 
 const brain = useBrainStore()
 const auth = useAuthStore()
@@ -147,6 +148,20 @@ function edit(h: HabitRow) {
   isNew.value = false
   editing.value = h
 }
+// Opened with ?habit=<id> (from search): open that habit's editor.
+const route = useRoute()
+const router = useRouter()
+watch(
+  [() => route.query.habit, habits],
+  ([id]) => {
+    if (typeof id !== 'string') return
+    const found = habits.value.find((x) => x.id === id && !x.deleted_at)
+    if (!found) return
+    edit(found)
+    void router.replace({ query: {} })
+  },
+  { immediate: true },
+)
 async function save(h: HabitRow) {
   await brain.saveHabit(h)
   editing.value = null

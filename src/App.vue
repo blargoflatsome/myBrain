@@ -50,6 +50,14 @@
               </RouterLink>
             </li>
           </ul>
+          <button
+            type="button"
+            class="mt-1 flex min-h-12 items-center rounded-xl px-3 text-base text-muted hover:bg-surface"
+            data-testid="focus-open"
+            @click="openFocus"
+          >
+            {{ messages.focus.menu }}
+          </button>
           <div v-if="wide" class="mt-auto px-3 py-4">
             <SyncIndicator />
           </div>
@@ -99,6 +107,7 @@
 
     <!-- SPEC §5: full-screen reminder for due priority habits and tasks, on every screen. -->
     <PriorityReminder v-if="showChrome" />
+    <FocusTimer v-if="showChrome" />
   </div>
 </template>
 
@@ -107,6 +116,8 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import SyncIndicator from '@/components/SyncIndicator.vue'
 import PriorityReminder from '@/components/PriorityReminder.vue'
+import FocusTimer from '@/components/FocusTimer.vue'
+import { useFocusStore } from '@/stores/focus'
 import CaptureDialog from '@/components/CaptureDialog.vue'
 import SearchDialog from '@/components/SearchDialog.vue'
 import { useSearchStore } from '@/stores/search'
@@ -174,6 +185,12 @@ const inboxCount = useLiveQuery(
 
 const showChrome = computed(() => !route.meta.public)
 
+// SPEC §5 Focus timer: starts (or reopens) the full-screen timer.
+const focus = useFocusStore()
+function openFocus() {
+  menuOpen.value = false
+  focus.start()
+}
 const navItems = [
   { to: '/', label: messages.nav.dashboard },
   { to: '/tasks', label: messages.nav.home },

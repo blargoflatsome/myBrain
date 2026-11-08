@@ -59,8 +59,8 @@
 
 <script setup lang="ts">
 // SPEC §5 Routines: the list of routines, today's progress, and completion stats.
-import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import RoutineEditor from '@/components/RoutineEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -119,6 +119,20 @@ function edit(r: RoutineRow) {
   isNew.value = false
   editing.value = r
 }
+// Opened with ?routine=<id> (from search): open that routine's editor.
+const route = useRoute()
+const router = useRouter()
+watch(
+  [() => route.query.routine, routines],
+  ([id]) => {
+    if (typeof id !== 'string') return
+    const found = routines.value.find((x) => x.id === id && !x.deleted_at)
+    if (!found) return
+    edit(found)
+    void router.replace({ query: {} })
+  },
+  { immediate: true },
+)
 async function save(r: RoutineRow, s: { id?: string; title: string; habitId?: string | null }[]) {
   await brain.saveRoutine(r, s)
   editing.value = null

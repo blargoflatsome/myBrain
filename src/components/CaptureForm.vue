@@ -125,7 +125,12 @@
 
       <!-- Habit: the full habit form (SPEC §5 Quick capture) -->
       <template v-if="type === 'habit'">
-        <fieldset class="flex flex-col gap-2">
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ h.editor.startDate }}
+          <input v-model="habitStart" type="date" :min="habitToday" :class="fieldOnPage">
+        </label>
+        <HowOften v-model="habitInterval" v-model:monthly="habitMonthly" :start-date="habitStart" />
+        <fieldset v-if="!habitMonthly" class="flex flex-col gap-2">
           <legend class="mb-1 text-sm text-muted">{{ h.editor.weekdays }}</legend>
           <div class="flex flex-wrap gap-1.5" role="group" :aria-label="h.editor.weekdays">
             <button
@@ -140,7 +145,6 @@
             </button>
           </div>
         </fieldset>
-        <HowOften v-model="habitInterval" />
         <div class="grid grid-cols-2 gap-3">
           <TimeInput v-model="habitTime" :label="h.editor.notifyTime" :input-class="fieldOnPage" />
           <label class="flex flex-col gap-1 text-sm text-muted">
@@ -196,6 +200,7 @@ import TimeInput from '@/components/TimeInput.vue'
 import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HowOften from '@/components/HowOften.vue'
+import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_POST_IT_COLOR, POST_IT_COLORS } from '@/postits/rules'
 import { plainText, toEditorHtml } from '@/journal/body'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -290,6 +295,9 @@ async function choose(d: Destination) {
 // Habit (SPEC §5 Quick capture: the full habit form).
 const habitDays = ref<number[]>([0, 1, 2, 3, 4, 5, 6])
 const habitInterval = ref(1)
+const habitMonthly = ref(false)
+const habitToday = todayIn(deviceTimeZone())
+const habitStart = ref(habitToday)
 const habitTime = ref('')
 const habitTimer = ref('')
 const habitPrivate = ref(false)
@@ -305,6 +313,8 @@ function reset() {
   postColor.value = DEFAULT_POST_IT_COLOR
   habitDays.value = [0, 1, 2, 3, 4, 5, 6]
   habitInterval.value = 1
+  habitMonthly.value = false
+  habitStart.value = habitToday
   habitTime.value = ''
   habitTimer.value = ''
   habitPrivate.value = false
@@ -384,6 +394,8 @@ async function save() {
       habit: {
         weekdays: habitDays.value,
         weekInterval: habitInterval.value,
+        monthly: habitMonthly.value,
+        startDate: habitStart.value,
         notifyTime: habitTime.value || null,
         timerMinutes: habitTimer.value ? Number(habitTimer.value) : null,
         isPrivate: habitPrivate.value,

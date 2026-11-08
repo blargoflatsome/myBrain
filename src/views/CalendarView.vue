@@ -66,7 +66,7 @@ import { supabase } from '@/lib/supabase'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { calendarItems, newEvent, type CalendarItem } from '@/events/rules'
+import { calendarItems, newEvent, nextWholeHour, type CalendarItem } from '@/events/rules'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import type { EventInviteRow, EventRow } from '@/sync/types'
@@ -154,9 +154,10 @@ function changeView(name: ViewName) {
 // ---------- Events ----------
 const editing = ref<EventRow | null>(null)
 const isNew = ref(false)
+// A new event starts at a time (the next whole hour, or the time tapped); All day is something I turn on (SPEC §5).
 function startNew(date: string, time: string | null) {
   isNew.value = true
-  editing.value = newEvent(brain.userId ?? '', date, time)
+  editing.value = newEvent(brain.userId ?? '', date, time ?? nextWholeHour())
 }
 // Invitations I received (SPEC §5): my own invite rows, read-only.
 const myInvites = useLiveQuery<EventInviteRow[]>(async () => (brain.db ? brain.db.event_invites.toArray() : []), [], [() => brain.db])

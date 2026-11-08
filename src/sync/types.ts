@@ -143,7 +143,8 @@ export interface TagRow extends BaseRow {
   name: string
 }
 
-export type TaggedType = 'task' | 'vault_item' | 'journal_entry' | 'quest' | 'event'
+/** Tags go on tasks, habits and routines only (SPEC §5 Global search and tags). */
+export type TaggedType = 'task' | 'habit' | 'routine'
 
 export interface ItemTagRow extends BaseRow {
   tag_id: string
@@ -173,6 +174,8 @@ export interface InboxRow extends BaseRow {
 export interface HabitRow extends BaseRow {
   /** 1 = every week, 2 = every 2 weeks (counted from the week it started). */
   week_interval?: number
+  /** Every month on the start date's day of the month (SPEC §5 Habits). */
+  monthly?: boolean
   title: string
   /** 'HH:MM' or 'HH:MM:SS' local time; null = no reminder. */
   notify_time?: string | null

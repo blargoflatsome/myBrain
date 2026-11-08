@@ -47,7 +47,6 @@
           <option v-for="b in buckets" :key="b.id" :value="b.id">{{ b.name }}</option>
         </select>
       </label>
-      <TagInput v-model="tags.names.value" />
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.itemEditor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.itemEditor.close }}</button>
@@ -69,10 +68,8 @@
 </template>
 
 <script setup lang="ts">
-// SPEC §5 The Vault: edit an item: title, notes, star rating, link or address, bucket, tags. Delete asks first.
-import { computed, ref, watch } from 'vue'
-import TagInput from '@/components/TagInput.vue'
-import { useItemTags } from '@/composables/useItemTags'
+// SPEC §5 The Vault: edit an item: title, notes, star rating, link or address, bucket. Delete asks first.
+import { ref, watch } from 'vue'
 import { clampRating } from '@/vault/rules'
 import { messages } from '@/messages'
 import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
@@ -90,7 +87,6 @@ const notes = ref('')
 const rating = ref<number | null>(null)
 const link = ref('')
 const bucketId = ref('')
-const tags = useItemTags('vault_item', computed(() => props.item?.id))
 
 watch(
   () => props.item,
@@ -107,7 +103,6 @@ watch(
 
 async function save() {
   if (!props.item || !title.value.trim()) return
-  await tags.save(props.item.id)
   emit('save', {
     ...props.item,
     title: title.value.trim(),
