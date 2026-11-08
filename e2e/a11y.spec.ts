@@ -130,7 +130,9 @@ for (const scheme of ['light', 'dark'] as const) {
 
     test('Capture window, with the Habit form', async ({ page }) => {
       await page.goto('/habits')
+      await expect(page.getByRole('heading', { name: 'Habits', level: 1 })).toBeVisible()
       await page.getByRole('button', { name: '+ Capture' }).click()
+      await expect(page.getByRole('group', { name: 'What are you capturing?' })).toBeVisible()
       await scan(page, 'Capture types')
       await page.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Habit', exact: true }).click()
       await scan(page, 'Capture habit')
@@ -151,12 +153,15 @@ for (const scheme of ['light', 'dark'] as const) {
 
     test('New habit, routine and event windows', async ({ page }) => {
       await page.goto('/habits')
+      await expect(page.getByRole('heading', { name: 'Habits', level: 1 })).toBeVisible()
       await page.getByRole('button', { name: '+ New habit' }).click()
       await scan(page, 'New habit')
       await page.goto('/routines')
+      await expect(page.getByRole('heading', { name: 'Routines', level: 1 })).toBeVisible()
       await page.getByRole('button', { name: /New routine/ }).click()
       await scan(page, 'New routine')
       await page.goto('/calendar')
+      await expect(page.getByRole('heading', { name: 'Calendar', level: 1 })).toBeVisible()
       await page.getByRole('button', { name: '+ New event' }).click()
       await scan(page, 'New event')
     })
@@ -326,6 +331,7 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
 
   test('the Capture window traps Tab, and Escape returns focus to the Capture button', async ({ page }) => {
     await page.goto('/habits')
+    await expect(page.getByRole('heading', { name: 'Habits', level: 1 })).toBeVisible()
     const open = page.getByRole('button', { name: '+ Capture' })
     await open.focus()
     await page.keyboard.press('Enter')

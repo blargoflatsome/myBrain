@@ -159,8 +159,12 @@ export function clearLostContactPick() {
   lostPick = null
 }
 
-/** People picked from the phone's contacts; `skipped` counts picked contacts with no email or phone number. */
-export async function pickContacts(event: string | null = null): Promise<{ people: PersonToInvite[]; skipped: number }> {
+/**
+ * People picked from the phone's contacts; `skipped` counts picked contacts with no email or phone number.
+ * `blocked` means Chrome answered "nobody" while its contacts screen was still covering the app: on some phones
+ * (Chrome 157 with Samsung's contact list, 2026-11) it answers the moment that screen opens, before anyone is picked.
+ */
+export async function pickContacts(event: string | null = null): Promise<PickedContacts> {
   contactPickerOpen = true
   notePicking({ at: Date.now(), event })
   try {
@@ -172,11 +176,17 @@ export async function pickContacts(event: string | null = null): Promise<{ peopl
   }
 }
 
-async function selectContacts(): Promise<{ people: PersonToInvite[]; skipped: number }> {
+export interface PickedContacts {
+  people: PersonToInvite[]
+  skipped: number
+  blocked: boolean
+}
+
+async function selectContacts(): Promise<PickedContacts> {
   const contacts = (navigator as unknown as { contacts: { select(p: string[], o: { multiple: boolean }): Promise<{ name?: string[]; email?: string[]; tel?: string[] }[]> } }).contacts
   const picked = await contacts.select(['name', 'email', 'tel'], { multiple: true })
   const people = picked
     .map((c) => ({ name: c.name?.[0], email: c.email?.[0], phone: c.email?.[0] ? undefined : c.tel?.[0] }))
     .filter((p) => p.email || p.phone)
-  return { people, skipped: picked.length - people.length }
+  return { people, skipped: picked.length - people.length, blocked: !picked.length && document.visibilityState === 'hidden' }
 }
