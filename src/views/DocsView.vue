@@ -94,7 +94,7 @@
       <ul>
         <li>On <em>Calendar</em>, press <em>+ New event</em> or tap a day or time. A new event starts at the next whole hour; tick <em>All day</em> if it doesn't have a time.</li>
         <li>Choose how it repeats (every day, weekdays, every week, every 2 weeks, every month, every year) and when to be reminded.</li>
-        <li><strong>Invite people</strong> under <em>People</em>: find someone on My Brain by name, or add an email address or phone number. On a phone you can <em>Pick from contacts</em>. People you've invited before are suggested as you type.</li>
+        <li><strong>Invite people</strong> under <em>People</em>: find someone on My Brain by name, or add an email address or phone number. On a phone you can <em>Pick from contacts</em>: pick one person and their details fill the boxes, ready for <em>Add</em>; pick several and they're all added at once. People you've invited before are suggested as you type.</li>
         <li>Press <em>Save</em>, and a window helps you send each invitation from your messaging or email app, one person at a time. Guests answer Yes, Maybe or No from their private link, no account needed, and can add the event to their own calendar.</li>
         <li>When you pick a time, friends on My Brain who share their availability show as free or busy, with suggested times when everyone's free. Set your own unavailable times on the Account page.</li>
         <li>Plans changed? <em>Cancel and notify</em> lets everyone know, with a personal message.</li>

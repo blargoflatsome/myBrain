@@ -447,6 +447,8 @@ export const messages = {
       `Added ${n} ${n === 1 ? 'person' : 'people'}.${skipped ? ` ${skipped} ${skipped === 1 ? 'contact has' : 'contacts have'} no phone number or email.` : ''} They’ll be invited when you save.`,
     noUsableContacts: 'Those contacts have no phone number or email, so they can’t be invited.',
     contactsFailed: 'Couldn’t open your contacts. You can type an email or phone number instead.',
+    noContactPicked: 'No contact was picked. Try again, or type an email or phone number.',
+    filledIn: (name: string) => `${name}’s details are filled in. Press Add to invite them.`,
     ready: (n: number) => `Invitations ready for ${n} ${n === 1 ? 'person' : 'people'}. Send each one from the next window.`,
     inApp: (n: number) => `${n} ${n === 1 ? 'person uses' : 'people use'} My Brain and will see the invitation there.`,
     shared: (n: number, total: number) =>

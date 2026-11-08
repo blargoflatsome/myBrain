@@ -122,8 +122,21 @@ export function shareHref(t: Pick<ShareTarget, 'email' | 'phone' | 'subject' | '
 
 /** Pick people from my phone's contacts, where the browser allows it (Chrome on Android). */
 export const canPickContacts = () => typeof navigator !== 'undefined' && 'contacts' in navigator && 'ContactsManager' in window
+/** True while the phone's contact picker is open (it covers the app, and Android may send "back" to the open window). */
+export let contactPickerOpen = false
+
 /** People picked from the phone's contacts; `skipped` counts picked contacts with no email or phone number. */
 export async function pickContacts(): Promise<{ people: PersonToInvite[]; skipped: number }> {
+  contactPickerOpen = true
+  try {
+    return await selectContacts()
+  } finally {
+    // Android delivers the "back" from closing the picker just after it returns; ignore it for a moment.
+    setTimeout(() => (contactPickerOpen = false), 1000)
+  }
+}
+
+async function selectContacts(): Promise<{ people: PersonToInvite[]; skipped: number }> {
   const contacts = (navigator as unknown as { contacts: { select(p: string[], o: { multiple: boolean }): Promise<{ name?: string[]; email?: string[]; tel?: string[] }[]> } }).contacts
   const picked = await contacts.select(['name', 'email', 'tel'], { multiple: true })
   const people = picked
