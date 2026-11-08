@@ -275,7 +275,8 @@ Merged and live.
 - Part 3 (so far): migration `20261108040000_connect_from_people_and_guests.sql` (`people_with_accounts`, `guest_connect_offer`, `guest_connect_with_host`); Connect buttons on saved people (Account, Contacts window) and on the guest page. `rls_connect_part3.sql`; 22 SQL files pass on dev.
 - Part 3 (done): who's going — migration `20261108050000_event_attendees.sql` (`events.show_guests`, `event_invites.visible`, `event_attendees`, `connect_via_event`, `set_event_visibility`); list with Connect in the invitee window, host checkbox. `rls_event_attendees.sql`; 23 SQL files pass on dev.
 - Part 4 (done, except "Just this date" for repeating events): migration `20261108060000_guest_links.sql` (link lifetime, `guest_invite.passed`, `guest_claim_status`/`claim_guest_invite`, `link_invites_between` on connect, `event_changed`, 'update' message kind); guest page passed/sign-up/claim/accept-as, host New link (existing `new_invite_link`), Let everyone know. `rls_guest_links.sql`, `e2e/guest-links.spec.ts`; 24 SQL files pass on dev. Found and fixed: saved times (19:00) vs stored (19:00:00) would have asked on every save.
-- Next parts (not started):  my people, attendees and guest invites; guest page and edge cases; scheduling for connections. Push for connection requests comes with a later part.
+- Part 5 (done): migration `20261108070000_scheduling_for_connections.sql` (`free_busy` only for connections); availability card, share setting, free/busy and suggested times restored from before PR #35, now for connections. `rls_scheduling.sql`; 25 SQL files pass on dev.
+- Not built: "Just this date" answers for repeating events; push for connection requests.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

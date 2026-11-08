@@ -78,7 +78,7 @@ const groups: { heading: string; features: Feature[] }[] = [
     features: [
       { icon: '📅', title: 'Calendar', text: 'Month, week and day views with your events, dated tasks and priority tasks together. Events repeat daily, weekly, every 2 weeks, monthly or yearly, with reminders.' },
       { icon: '✉️', title: 'Invitations', text: 'Invite people by email or phone. Guests answer from a private link without an account, and you can let everyone know if plans change.' },
-      { icon: '🤝', title: 'Connections', text: 'Connect with people you know by their email or phone number. No one can find you unless they already know how to reach you. Connections get your invitations right in their app.' },
+      { icon: '🤝', title: 'Connections', text: 'Connect with people you know by their email or phone number. No one can find you unless they already know how to reach you. Connections get your invitations right in their app, and you can see when they’re free before picking a time.' },
       { icon: '🙋', title: 'Your people', text: 'Type a guest’s email or phone once. When you save the event they join your people, so next time you pick them from your Contacts. You can also add people ahead of time from your Account page.' },
     ],
   },

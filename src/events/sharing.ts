@@ -1,5 +1,6 @@
 // Shared events (SPEC §5 Shared events, Cancelling): calls to the server functions, answer links, and the
 // one-at-a-time sharing flow (messaging app or email app) until automatic texts and emails exist.
+import type { FreeBusyRow } from '@/events/availability'
 import { supabase } from '@/lib/supabase'
 import type { EventRow, InviteResponse } from '@/sync/types'
 
@@ -48,6 +49,8 @@ export const invitePeople = (event: string, people: PersonToInvite[]) => list<Ne
 export const uninvite = (invite: string) => call<void>('uninvite', { invite })
 export const respondToInvite = (invite: string, answer: 'yes' | 'maybe' | 'no') => call<void>('respond_to_invite', { invite, answer })
 export const eventPeople = (event: string) => list<EventPerson>('event_people', { event })
+/** Connections' free or busy times (SPEC §10 Connections: scheduling). */
+export const freeBusy = (people: string[]) => list<FreeBusyRow>('free_busy', { people })
 export interface Recipient {
   invite_id: string
   name: string | null

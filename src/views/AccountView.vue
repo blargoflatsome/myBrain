@@ -32,6 +32,8 @@
 
     <EventSettings />
 
+    <AvailabilityCard />
+
     <section class="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-4" aria-labelledby="account-connections">
       <h2 id="account-connections" class="text-lg font-semibold">{{ messages.connections.heading }}</h2>
       <p class="text-sm text-muted">{{ messages.connections.intro }}</p>
@@ -161,6 +163,7 @@ import { messages } from '@/messages'
 import NotificationSettings from '@/components/NotificationSettings.vue'
 import EventSettings from '@/components/EventSettings.vue'
 import MyPeople from '@/components/MyPeople.vue'
+import AvailabilityCard from '@/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
 import { field } from '@/ui/styles'
 

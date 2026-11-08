@@ -20,6 +20,10 @@
         </div>
         <span class="text-xs text-muted">{{ w.notifyHint }}</span>
       </fieldset>
+      <label class="flex items-center justify-between gap-4">
+        <span><span class="font-medium">{{ m.shareAvailability }}</span><span class="block text-xs text-muted">{{ m.shareAvailabilityHint }}</span></span>
+        <input v-model="shareAvailability" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+      </label>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.dropoutMessage }}
         <textarea v-model="dropoutMessage" rows="3" :class="[field, 'py-2']" />
@@ -57,6 +61,7 @@ const loaded = ref(false)
 const phone = ref('')
 const phoneVerified = ref(false)
 const notify = ref<Notify>('email')
+const shareAvailability = ref(true)
 const dropoutMessage = ref('')
 const cancelMessage = ref('')
 const notice = ref('')
@@ -65,13 +70,14 @@ const error = ref('')
 onMounted(async () => {
   const { data } = await supabase
     .from('profiles')
-    .select('phone, phone_verified, event_notify_method, cancel_dropout_message, cancel_event_message')
+    .select('phone, phone_verified, event_notify_method, share_availability, cancel_dropout_message, cancel_event_message')
     .eq('user_id', auth.user?.id ?? '')
     .maybeSingle()
   if (!data) return
   phone.value = data.phone ?? ''
   phoneVerified.value = !!data.phone_verified
   notify.value = (data.event_notify_method as Notify) ?? 'email'
+  shareAvailability.value = data.share_availability ?? true
   dropoutMessage.value = data.cancel_dropout_message ?? ''
   cancelMessage.value = data.cancel_event_message ?? ''
   loaded.value = true
@@ -89,6 +95,7 @@ async function save() {
     .update({
       phone: phone.value.trim() || null,
       event_notify_method: notify.value,
+      share_availability: shareAvailability.value,
       cancel_dropout_message: dropoutMessage.value.trim() || undefined,
       cancel_event_message: cancelMessage.value.trim() || undefined,
     })

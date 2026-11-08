@@ -47,18 +47,60 @@ test.describe('Spec §5 Accounts and contact info', () => {
     expect(server.written('profiles').at(-1)).toMatchObject({ phone: '+1 (555) 010-2222', event_notify_method: 'both' })
   })
 
-  test('event settings: phone and my two cancellation messages (finding me by name and free/busy wait for Phase 2)', async ({ page }) => {
+  test('event settings: phone, shared free/busy, and my two cancellation messages (finding me by name is gone)', async ({ page }) => {
     await open(page, '/account')
     const card = page.getByTestId('event-settings')
     await expect(card.getByLabel('When I cancel an event I made')).toHaveValue(/I have to cancel \{\{event\}\}/)
-    await expect(card.getByRole('checkbox')).toHaveCount(0)
+    await card.getByRole('checkbox', { name: /Share when I’m free or busy/ }).uncheck()
     await card.getByLabel('When I drop out of an event').fill('Sorry {{name}}, can’t make {{event}}.')
     await card.getByRole('button', { name: 'Save event settings' }).click()
     await expect(card.getByRole('status')).toHaveText('Saved.')
-    expect(server.written('profiles').at(-1)).toMatchObject({ cancel_dropout_message: 'Sorry {{name}}, can’t make {{event}}.' })
+    expect(server.written('profiles').at(-1)).toMatchObject({ share_availability: false, cancel_dropout_message: 'Sorry {{name}}, can’t make {{event}}.' })
     // Left as it was (Phase 2 brings the setting back).
     expect(server.written('profiles').at(-1)).toMatchObject({ findable: true })
-    await expect(page.getByTestId('availability')).toHaveCount(0)
+    await expect(page.getByTestId('availability')).toBeVisible()
+  })
+})
+
+test.describe('Spec §10 Connections, scheduling: availability for connections', () => {
+  test('weekly unavailable times and one-off days are saved', async ({ page }) => {
+    await open(page, '/account')
+    const card = page.getByTestId('availability')
+    await card.getByRole('button', { name: '+ Add a weekly time' }).click()
+    await card.getByLabel('Day').selectOption({ label: 'Tue' })
+    await card.getByLabel('From').fill('09:00')
+    await card.getByLabel('Until').fill('17:00')
+    await card.getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(card.getByTestId('availability-rule')).toContainText('Tue · 9:00 am – 5:00 pm')
+    await expect.poll(() => server.written('availability_rules').at(-1)).toMatchObject({ weekday: 2, start_time: '09:00', end_time: '17:00' })
+
+    await card.getByRole('button', { name: '+ Add a one-off day' }).click()
+    await card.getByLabel('Date').fill('2026-11-20')
+    await card.getByLabel('Note (only you see it)').fill('Dentist')
+    await card.getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(card.getByTestId('availability-exception')).toContainText('All day')
+    await expect.poll(() => server.written('availability_exceptions').at(-1)).toMatchObject({ date: '2026-11-20', start_time: null, kind: 'unavailable' })
+  })
+
+  test('inviting a connection shows whether they are free and suggests times when everyone is', async ({ page }) => {
+    server.seed('events', [calendarEvent()])
+    server.rpcResults.my_connections = [{ friend_id: 'bob-id', display_name: 'Bob Baker', avatar_url: null, since: '2026-11-01T00:00:00Z' }]
+    // Bob is unavailable Tuesdays 6 pm to 11 pm.
+    server.rpcResults.free_busy = [
+      { user_id: 'bob-id', timezone: 'America/New_York', kind: 'rule', weekday: 2, start_date: null, start_time: '18:00:00', end_date: null, end_time: '23:00:00', repeat: null, busy: true },
+    ]
+    await open(page, '/calendar?date=2026-11-10&event=' + EVENT)
+    const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    await dialog.getByRole('button', { name: 'Contacts' }).click()
+    const contacts = page.getByRole('dialog', { name: 'Your people' })
+    await contacts.getByRole('button', { name: 'Add Bob Baker' }).click()
+    await contacts.getByRole('button', { name: 'Done' }).click()
+    await expect(dialog.getByTestId('person-availability')).toHaveText(/busy/)
+    const suggestions = dialog.getByTestId('suggested-times').getByRole('button')
+    await expect(suggestions).toHaveCount(3)
+    await suggestions.first().click()
+    await expect(dialog.getByLabel('Starts Time')).not.toHaveValue('19:00')
+    await expect(dialog.getByTestId('person-availability')).toHaveText(/free/)
   })
 })
 

@@ -57,6 +57,11 @@
         v-model="people"
         :event-id="event.id"
         :is-new="isNew"
+        :start-date="startDate"
+        :start-time="allDay ? null : startTime"
+        :end-date="endDate || startDate"
+        :end-time="allDay ? null : endTime"
+        @suggest="useSuggestion"
       />
       <p v-if="event?.cancelled_at" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ messages.invites.cancelledNote }}</p>
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
@@ -128,6 +133,14 @@ const notes = ref('')
 const error = ref('')
 // People to invite when saving (SPEC §5 Shared events).
 const people = ref<PersonToInvite[]>([])
+// A suggested time when everyone's free (SPEC §10 Connections: scheduling).
+function useSuggestion(s: { date: string; start: string; end: string }) {
+  allDay.value = false
+  startDate.value = s.date
+  endDate.value = s.date
+  startTime.value = s.start
+  endTime.value = s.end
+}
 
 watch(
   () => props.event,

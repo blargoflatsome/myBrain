@@ -16,6 +16,7 @@
       <li><strong>About guests you invite:</strong> the name, email address or phone number you typed, and their answer.</li>
       <li><strong>Your people:</strong> the name, email address or phone number of guests you've invited by email or phone, saved so you can invite them again. Only you can see them; you can edit or remove them on the Account page, and Delete my data removes them.</li>
       <li><strong>Connections:</strong> who you're connected with, connection requests you sent (the email or phone you typed) and received, and anyone you blocked. A request never tells you whether an address belongs to an account.</li>
+      <li><strong>Availability:</strong> your weekly and one-off unavailable times. Only your connections can see when you're free or busy, never what your plans are, and you can turn this off.</li>
     </ul>
 
     <h2>Who can see it</h2>
