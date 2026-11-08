@@ -85,6 +85,36 @@ test.describe('Spec §5 Calendar: inviting shows what happened at every step', (
   })
 })
 
+test.describe('Spec §5 Calendar: people I have invited before are remembered', () => {
+  test('typing suggests past people; tapping one adds them; people already on the event are not suggested', async ({ page }) => {
+    const other = 'eeeeeeee-0000-4000-8000-000000000002'
+    server.seed('events', [
+      { id: EVENT, title: 'Birthday party', notes: null, start_date: '2026-11-10', start_time: '19:00:00', end_date: '2026-11-10', end_time: '22:00:00', repeat: 'never', reminder_minutes: null },
+      { id: other, title: 'Old dinner', notes: null, start_date: '2026-11-01', start_time: '19:00:00', end_date: '2026-11-01', end_time: '21:00:00', repeat: 'never', reminder_minutes: null },
+    ])
+    server.seed('event_invites', [
+      { id: 'old-carol', event_id: other, name: 'Carol', email: 'carol@example.com', phone: null, response: 'yes', created_at: '2026-10-30T12:00:00Z' },
+      { id: 'old-dan', event_id: other, name: 'Dan', email: null, phone: '(555) 010-3000', response: 'yes', created_at: '2026-10-30T12:00:00Z' },
+    ])
+    await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
+    const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    const suggestions = dialog.getByTestId('remembered-people')
+    await expect(suggestions).toHaveCount(0)
+    await dialog.getByLabel('Email or phone number').fill('car')
+    await expect(suggestions.getByRole('button')).toHaveText([/Invite Carol\s*carol@example\.com/])
+    await suggestions.getByRole('button', { name: /Invite Carol/ }).click()
+    await expect(dialog.getByTestId('pending-person')).toHaveText([/^Carol/])
+    await expect(dialog.getByLabel('Email or phone number')).toHaveValue('')
+    await expect(dialog.getByTestId('people-status')).toHaveText('Added Carol. They’ll be invited when you save.')
+    // Carol is on the event now, so only Dan is suggested; a phone number matches whatever its formatting.
+    await dialog.getByLabel('Their name (optional)').fill('a')
+    await expect(suggestions.getByRole('button')).toHaveText([/Invite Dan/])
+    await dialog.getByLabel('Their name (optional)').fill('')
+    await dialog.getByLabel('Email or phone number').fill('555-0103')
+    await expect(suggestions.getByRole('button')).toHaveText([/Invite Dan/])
+  })
+})
+
 test.describe('Spec §5 Random Quest: calmer page, sorted by effort, in pages', () => {
   test('the list is easiest first, 10 per page, with page controls', async ({ page }) => {
     const levels = ['medicated', 'needs_setup', 'fun', 'ugh']
