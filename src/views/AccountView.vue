@@ -34,8 +34,6 @@
 
     <MyPeople />
 
-    <AvailabilityCard />
-
     <section class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4" data-testid="data-export">
       <div>
         <h2 class="text-lg font-semibold">{{ messages.dataExport.heading }}</h2>
@@ -157,7 +155,6 @@ import { messages } from '@/messages'
 import NotificationSettings from '@/components/NotificationSettings.vue'
 import EventSettings from '@/components/EventSettings.vue'
 import MyPeople from '@/components/MyPeople.vue'
-import AvailabilityCard from '@/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
 import { field } from '@/ui/styles'
 

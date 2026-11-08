@@ -55,7 +55,7 @@ test.describe('Spec §5 Calendar, my people: type someone once, then pick them f
     await expect.poll(() => server.written('people')).toEqual([expect.objectContaining({ id: 'pe-dan', name: 'Dan Smith', phone: '(555) 010-3000' })])
   })
 
-  test('the event lists my people A to Z with an Add button each; people already invited aren’t listed', async ({ page }) => {
+  test('Contacts opens my people A to Z; Add keeps the window open with Undo; people already invited show as Invited', async ({ page }) => {
     server.seed('people', [
       person('pe-1', 'Frank', 'frank@example.com', null),
       person('pe-2', 'allie Hannah', null, '(509) 434-8303'),
@@ -64,43 +64,62 @@ test.describe('Spec §5 Calendar, my people: type someone once, then pick them f
     ])
     server.rpcResults.event_people = [{ invite_id: 'inv-carol', name: 'Carol', email: 'carol@example.com', phone: null, response: 'yes', is_me: false }]
     const dialog = await openEvent(page)
-    const list = dialog.getByTestId('my-people')
-    await expect(list.getByRole('heading', { name: 'Your people' })).toBeVisible()
-    await expect(list.getByTestId('my-person')).toHaveText([/^allie Hannah · \(509\) 434-8303/, /^bob@example\.com/, /^Frank · frank@example\.com/])
-    await list.getByRole('button', { name: 'Add allie Hannah' }).click()
+    await expect(dialog.getByTestId('my-person')).toHaveCount(0)
+    await dialog.getByRole('button', { name: 'Contacts' }).click()
+    const contacts = page.getByRole('dialog', { name: 'Your people' })
+    await expect(contacts.getByTestId('contact')).toHaveText([/^allie Hannah · \(509\) 434-8303/, /^bob@example\.com/, /^Carol · carol@example\.com\s*Invited/, /^Frank · frank@example\.com/])
+    await contacts.getByRole('button', { name: 'Add allie Hannah' }).click()
+    await contacts.getByRole('button', { name: 'Add Frank' }).click()
+    await expect(contacts.getByTestId('contact').filter({ hasText: 'Frank' })).toContainText('Added')
+    await contacts.getByRole('button', { name: 'Undo adding Frank' }).click()
+    await expect(contacts.getByRole('button', { name: 'Add Frank' })).toBeVisible()
+    await contacts.getByRole('button', { name: 'Done' }).click()
+    await expect(contacts).toBeHidden()
     await expect(dialog.getByTestId('pending-person')).toHaveText([/^allie Hannah/])
-    await expect(dialog.getByTestId('people-status')).toHaveText('Added allie Hannah. They’ll be invited when you save.')
-    // Waiting to be invited, so no longer listed.
-    await expect(list.getByTestId('my-person')).toHaveText([/^bob@example\.com/, /^Frank/])
+    // Focus goes back to the Contacts button when the window closes.
+    await expect(dialog.getByRole('button', { name: 'Contacts' })).toBeFocused()
   })
 
-  test('typing in the boxes filters the list by name, email or phone digits', async ({ page }) => {
+  test('the Contacts search filters by name, email or phone digits as I type', async ({ page }) => {
     server.seed('people', [person('pe-1', 'Frank', 'frank@example.com', null), person('pe-2', 'Allie Hannah', null, '(509) 434-8303')])
     const dialog = await openEvent(page)
-    const people = dialog.getByTestId('my-people').getByTestId('my-person')
-    await dialog.getByLabel('Their name (optional)').fill('HANN')
-    await expect(people).toHaveText([/^Allie Hannah/])
-    await dialog.getByLabel('Their name (optional)').fill('')
-    await dialog.getByLabel('Email or phone number').fill('434-83')
-    await expect(people).toHaveText([/^Allie Hannah/])
-    await dialog.getByLabel('Email or phone number').fill('zed@example.com')
-    await expect(people).toHaveCount(0)
-    await expect(dialog.getByTestId('my-people')).toContainText('No one in your people matches. Press Add to invite them.')
+    await dialog.getByRole('button', { name: 'Contacts' }).click()
+    const contacts = page.getByRole('dialog', { name: 'Your people' })
+    const search = contacts.getByLabel('Search your people')
+    await search.fill('HANN')
+    await expect(contacts.getByTestId('contact')).toHaveText([/^Allie Hannah/])
+    await search.fill('434-83')
+    await expect(contacts.getByTestId('contact')).toHaveText([/^Allie Hannah/])
+    await search.fill('zed')
+    await expect(contacts.getByTestId('contact')).toHaveCount(0)
+    await expect(contacts).toContainText('No one matches.')
+  })
+
+  test('typing in the form only adds; it doesn’t search my people', async ({ page }) => {
+    server.seed('people', [person('pe-1', 'Frank', 'frank@example.com', null)])
+    const dialog = await openEvent(page)
+    await dialog.getByLabel('Email or phone number').fill('fra')
+    await expect(dialog.getByText('Frank')).toHaveCount(0)
+    await dialog.getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(dialog.getByTestId('people-error')).toHaveText('Add an email address or a phone number.')
   })
 
   test('a long list comes 10 to a page', async ({ page }) => {
     server.seed('people', Array.from({ length: 12 }, (_, i) => person(`pe-${i}`, `Person ${String(i).padStart(2, '0')}`, null, `555010${1000 + i}`)))
     const dialog = await openEvent(page)
-    const people = dialog.getByTestId('my-people').getByTestId('my-person')
-    await expect(people).toHaveCount(10)
-    await dialog.getByRole('navigation', { name: 'Your people' }).getByRole('button', { name: /Next/ }).click()
-    await expect(people).toHaveText([/^Person 10/, /^Person 11/])
+    await dialog.getByRole('button', { name: 'Contacts' }).click()
+    const contacts = page.getByRole('dialog', { name: 'Your people' })
+    await expect(contacts.getByTestId('contact')).toHaveCount(10)
+    await contacts.getByRole('navigation', { name: 'Your people' }).getByRole('button', { name: /Next/ }).click()
+    await expect(contacts.getByTestId('contact')).toHaveText([/^Person 10/, /^Person 11/])
   })
 
-  test('with nobody saved yet there is no list', async ({ page }) => {
+  test('with nobody saved yet, Contacts says how to add people; there is no name search', async ({ page }) => {
     const dialog = await openEvent(page)
-    await expect(dialog.getByTestId('my-people')).toHaveCount(0)
+    await expect(dialog.getByLabel('Find people by name')).toHaveCount(0)
     await expect(dialog.getByRole('button', { name: 'Pick from contacts' })).toHaveCount(0)
+    await dialog.getByRole('button', { name: 'Contacts' }).click()
+    await expect(page.getByRole('dialog', { name: 'Your people' })).toContainText('No one saved yet.')
   })
 })
 
@@ -141,7 +160,8 @@ test.describe('Spec §5 Calendar, my people: fixed or removed on the Account pag
     await expect(section.getByTestId('saved-person')).toHaveText([/^Grace · \(555\) 010-5000/])
     await expect.poll(() => server.written('people').at(-1)).toMatchObject({ name: 'Grace', email: null, phone: '(555) 010-5000', deleted_at: null })
     await page.goto(`/calendar?date=2026-11-10&event=${EVENT}`)
-    await expect(page.getByRole('dialog', { name: 'Edit event' }).getByTestId('my-person')).toHaveText([/^Grace/])
+    await page.getByRole('dialog', { name: 'Edit event' }).getByRole('button', { name: 'Contacts' }).click()
+    await expect(page.getByRole('dialog', { name: 'Your people' }).getByTestId('contact')).toHaveText([/^Grace/])
   })
 
   test('adding someone already saved with that email or phone says so instead of saving them twice', async ({ page }) => {
@@ -183,8 +203,13 @@ test.describe('Spec §5 Calendar, my people: fixed or removed on the Account pag
     await page.setViewportSize({ width: 320, height: 700 })
     server.seed('people', [person('pe-long', LONG_LINE, LONG_EMAIL, null)])
     const dialog = await openEvent(page)
-    await expect(dialog.getByTestId('my-person')).toHaveCount(1)
+    await dialog.getByRole('button', { name: 'Contacts' }).click()
+    const contacts = page.getByRole('dialog', { name: 'Your people' })
+    await expect(contacts.getByTestId('contact')).toHaveCount(1)
     const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    expect(await contacts.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0)
+    await contacts.getByRole('button', { name: /^Add / }).click()
+    await contacts.getByRole('button', { name: 'Done' }).click()
     expect(await dialog.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0)
     await page.goto('/account')
     await expect(page.getByTestId('saved-person')).toHaveCount(1)

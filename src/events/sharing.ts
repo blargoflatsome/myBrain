@@ -2,7 +2,6 @@
 // one-at-a-time sharing flow (messaging app or email app) until automatic texts and emails exist.
 import { supabase } from '@/lib/supabase'
 import type { EventRow, InviteResponse } from '@/sync/types'
-import type { FreeBusyRow } from '@/events/availability'
 
 export interface PersonToInvite {
   /** Found by name search. */
@@ -35,11 +34,6 @@ export interface EventPerson {
   response: InviteResponse
   is_me: boolean
 }
-export interface FoundPerson {
-  user_id: string
-  display_name: string | null
-  avatar_url: string | null
-}
 
 async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.rpc(fn, args)
@@ -50,7 +44,6 @@ async function list<T>(fn: string, args: Record<string, unknown>): Promise<T[]> 
   return (await call<T[] | null>(fn, args)) ?? []
 }
 
-export const searchPeople = (q: string) => list<FoundPerson>('search_people', { q })
 export const invitePeople = (event: string, people: PersonToInvite[]) => list<NewInvite>('invite_people', { event, people })
 export const uninvite = (invite: string) => call<void>('uninvite', { invite })
 export const respondToInvite = (invite: string, answer: 'yes' | 'maybe' | 'no') => call<void>('respond_to_invite', { invite, answer })
@@ -66,7 +59,6 @@ export const messageEvent = (event: string, audience: 'host' | 'everyone', messa
 export const cancelEvent = (event: string) => list<Recipient>('cancel_event', { event })
 export const dropOut = (event: string) => call<void>('drop_out', { event })
 export const markShared = (invites: string[], kind: 'invite' | 'message' | 'cancel') => call<void>('mark_shared', { invites, msg_kind: kind })
-export const freeBusy = (people: string[]) => list<FreeBusyRow>('free_busy', { people })
 
 export interface GuestInvite {
   host_name: string | null
