@@ -8,10 +8,17 @@
         <span class="min-w-0 [overflow-wrap:anywhere]">{{ p.name || p.email || p.phone }}</span>
         <span class="flex shrink-0 items-center gap-1">
           <span class="text-muted">{{ m.responses[p.response] }}</span>
+          <button v-if="p.email || p.phone" type="button" class="min-h-9 rounded-lg px-2 text-sm underline" :aria-label="c.newLinkLabel(p.name || p.email || p.phone || '')" @click="newLink(p)">{{ c.newLink }}</button>
           <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(p.name || p.email || p.phone || '')" @click="remove(p)">✕</button>
         </span>
       </li>
     </ul>
+
+    <div v-if="fresh" class="flex flex-col gap-2 rounded-xl bg-bg p-3 text-sm" role="status" data-testid="new-guest-link">
+      <span>{{ c.newLinkReady(fresh.name) }}</span>
+      <span class="[overflow-wrap:anywhere]">{{ fresh.link }}</span>
+      <a v-if="fresh.href" :href="fresh.href" class="min-h-11 self-start rounded-xl border border-line px-4 py-2.5">{{ c.sendNewLink }}</a>
+    </div>
 
     <h3 v-if="pending.length" id="people-to-invite" class="text-sm font-medium">{{ m.toInvite }}</h3>
     <ul v-if="pending.length" class="flex flex-col gap-1" aria-labelledby="people-to-invite">
@@ -47,8 +54,8 @@ import { computed, ref, watch } from 'vue'
 import ContactsDialog from '@/components/ContactsDialog.vue'
 import { contactKey, parseContact } from '@/events/contacts'
 import { personLabel } from '@/events/people'
-import type { Connection } from '@/events/connections'
-import { eventPeople, uninvite, type EventPerson, type PersonToInvite } from '@/events/sharing'
+import { newInviteLink, type Connection } from '@/events/connections'
+import { eventPeople, inviteLink, shareHref, uninvite, type EventPerson, type PersonToInvite } from '@/events/sharing'
 import { useBrainStore } from '@/stores/brain'
 import { messages } from '@/messages'
 import type { PersonRow } from '@/sync/types'
@@ -57,6 +64,7 @@ import { fieldCompact } from '@/ui/styles'
 const props = defineProps<{ eventId: string; isNew: boolean; modelValue: PersonToInvite[] }>()
 const emit = defineEmits<{ 'update:modelValue': [PersonToInvite[]] }>()
 const m = messages.invites
+const c = messages.connections
 const brain = useBrainStore()
 
 // ---------- Already invited (from the server; names and answers) ----------
@@ -70,6 +78,15 @@ async function remove(p: EventPerson) {
   await uninvite(p.invite_id)
   await loadInvited()
   await brain.refresh(['event_invites'])
+}
+
+// A guest whose link was forwarded or lost gets a new one; the old one stops working (SPEC §10 Connections).
+const fresh = ref<{ name: string; link: string; href: string | null } | null>(null)
+async function newLink(p: EventPerson) {
+  const token = await newInviteLink(p.invite_id)
+  const link = inviteLink(p.invite_id, token)
+  const body = c.newLinkBody(link)
+  fresh.value = { name: p.name || p.email || p.phone || '', link, href: shareHref({ email: p.email, phone: p.phone, subject: body, body }) }
 }
 
 // ---------- Adding people ----------

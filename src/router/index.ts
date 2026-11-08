@@ -1,4 +1,4 @@
-import { safeNext } from '@/security/redirect'
+import { rememberReturn, takeReturn } from '@/router/returnTo'
 import { createRouter, createWebHistory } from 'vue-router'
 import { messages } from '@/messages'
 import DashboardView from '@/views/DashboardView.vue'
@@ -50,24 +50,6 @@ export const router = createRouter({
 router.afterEach((to) => {
   document.title = messages.pageTitle(messages.pageTitles[String(to.name)])
 })
-
-const RETURN_KEY = 'my-brain:after-sign-in'
-function rememberReturn(path: string) {
-  try {
-    sessionStorage.setItem(RETURN_KEY, path)
-  } catch {
-    // Storage blocked: sign-in just lands on the home page.
-  }
-}
-function takeReturn(): string | null {
-  try {
-    const path = sessionStorage.getItem(RETURN_KEY)
-    sessionStorage.removeItem(RETURN_KEY)
-    return path ? safeNext(path) : null
-  } catch {
-    return null
-  }
-}
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()

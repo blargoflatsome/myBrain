@@ -58,7 +58,7 @@ export interface Recipient {
 export const messageEvent = (event: string, audience: 'host' | 'everyone', message: string) => list<Recipient>('message_event', { event, audience, message })
 export const cancelEvent = (event: string) => list<Recipient>('cancel_event', { event })
 export const dropOut = (event: string) => call<void>('drop_out', { event })
-export const markShared = (invites: string[], kind: 'invite' | 'message' | 'cancel') => call<void>('mark_shared', { invites, msg_kind: kind })
+export const markShared = (invites: string[], kind: 'invite' | 'message' | 'cancel' | 'update') => call<void>('mark_shared', { invites, msg_kind: kind })
 
 export interface GuestInvite {
   host_name: string | null
@@ -73,6 +73,8 @@ export interface GuestInvite {
   timezone: string
   response: InviteResponse
   cancelled: boolean
+  /** The event ended over 30 days ago (or a year after the last answer, for a repeating event): read-only. */
+  passed?: boolean
 }
 export async function guestInvite(invite: string, token: string): Promise<GuestInvite | null> {
   const rows = await list<GuestInvite>('guest_invite', { invite, token })

@@ -39,6 +39,15 @@
     <EventEditor :event="editing" :is-new="isNew" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="editing = null" />
     <InvitedEventDialog :event="viewing" :invite="viewingInvite" @drop-out="startDropOut" @close="viewing = null" />
     <CancelEventDialog :event="cancelling" :mode="cancelMode" @done="cancelled" @close="cancelling = null" />
+    <ConfirmDialog
+      ref="confirmNotify"
+      :heading="cm.letEveryoneKnow.heading"
+      :body="cm.letEveryoneKnow.body"
+      :confirm-label="cm.letEveryoneKnow.confirm"
+      :keep-label="cm.letEveryoneKnow.keep"
+      @confirm="notifyChange"
+      @close="changedEvent = null"
+    />
     <ShareFlow v-if="shareTargets.length" :targets="shareTargets" :kind="shareKind" @done="shared" />
   </main>
 </template>
@@ -60,6 +69,8 @@ import type { CalendarOptions, DateClickInfo, DatesSetInfo, EventClickInfo } fro
 import EventEditor from '@/components/EventEditor.vue'
 import InvitedEventDialog from '@/components/InvitedEventDialog.vue'
 import CancelEventDialog from '@/components/CancelEventDialog.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { eventChanged } from '@/events/connections'
 import ShareFlow from '@/components/ShareFlow.vue'
 import { invitePeople, inviteLink, inviteMessage, type PersonToInvite, type ShareTarget } from '@/events/sharing'
 import { supabase } from '@/lib/supabase'
@@ -184,13 +195,45 @@ function shared(sent: number) {
   shareTargets.value = []
 }
 const shareTargets = ref<ShareTarget[]>([])
-const shareKind = ref<'invite' | 'cancel'>('invite')
+const shareKind = ref<'invite' | 'cancel' | 'update'>('invite')
 async function myName() {
   const { data } = await supabase.from('profiles').select('display_name').eq('user_id', brain.userId ?? '').maybeSingle()
   return data?.display_name || 'A friend'
 }
+// Changing the date or time of an event people are invited to offers to let them know (SPEC §10 Connections).
+const cm = messages.connections
+const confirmNotify = ref<InstanceType<typeof ConfirmDialog> | null>(null)
+const changedEvent = ref<EventRow | null>(null)
+// Times come back from the server as 19:00:00 and from the editor as 19:00.
+const when = (x: EventRow) => [x.start_date, x.start_time?.slice(0, 5), x.end_date, x.end_time?.slice(0, 5), x.repeat].join('|')
+async function offerChangeNotice(before: EventRow | undefined, e: EventRow) {
+  if (!before || when(before) === when(e) || !brain.db) return
+  const invites = await brain.db.event_invites.where('event_id').equals(e.id).toArray()
+  if (!invites.some((i) => !i.deleted_at && i.response !== 'no' && i.response !== 'dropped')) return
+  changedEvent.value = e
+  confirmNotify.value?.open()
+}
+async function notifyChange() {
+  const e = changedEvent.value
+  confirmNotify.value?.close()
+  if (!e) return
+  if (!brain.online) return (inviteError.value = messages.invites.offline)
+  try {
+    const recipients = await eventChanged(e.id)
+    const targets = recipients.map((r) => ({ inviteId: r.invite_id, name: r.name, email: r.email, phone: r.phone, subject: `${e.title} has changed`, body: r.body }))
+    if (targets.length) {
+      shareKind.value = 'update'
+      shareTargets.value = targets
+    }
+  } catch (err) {
+    inviteError.value = messages.invites.failed(err instanceof Error ? err.message : String(err))
+  }
+}
+
 async function saveEvent(e: EventRow, people: PersonToInvite[] = []) {
+  const before = isNew.value ? undefined : events.value.find((x) => x.id === e.id)
   await brain.saveEvent(e)
+  void offerChangeNotice(before, e)
   // Everyone I typed joins my people, to pick from next time (SPEC §5 Calendar).
   await brain.savePeople(people)
   editing.value = null

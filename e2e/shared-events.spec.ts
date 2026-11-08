@@ -213,7 +213,7 @@ test.describe('Spec §5 Guests answer without an account', () => {
   test('a link that no longer works says so', async ({ page }) => {
     server.rpcResults.guest_invite = []
     await open(page, '/rsvp/inv-x/bad')
-    await expect(page.getByTestId('guest-invalid')).toContainText('no longer works')
+    await expect(page.getByTestId('guest-invalid')).toContainText('no longer available')
   })
 })
 
