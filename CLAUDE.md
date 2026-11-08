@@ -1,6 +1,6 @@
 # My Brain — Claude Code rules
 
-**Start every session by reading this file, [docs/SPEC.md](docs/SPEC.md) (the source of truth), and [PROGRESS.md](PROGRESS.md).**
+**Start every session by reading this file, [docs/SPEC.md](docs/SPEC.md) (the source of truth), [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md) (how code is written), and [PROGRESS.md](PROGRESS.md).**
 
 ## Key rules (full list: SPEC "How to work")
 - Spec first: propose spec changes and get the user's OK before building something new or different. Update `docs/SPEC.md` in the same change as the code.

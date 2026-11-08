@@ -1,3 +1,23 @@
+<template>
+  <dialog
+    ref="dialog"
+    :aria-label="messages.capture.windowLabel"
+    class="m-0 h-dvh max-h-none w-full max-w-none bg-bg p-0 text-ink backdrop:bg-black/50 md:m-auto md:h-auto md:max-h-[90dvh] md:max-w-xl md:rounded-2xl md:border md:border-line"
+    data-testid="capture-dialog"
+    @close="capture.close()"
+  >
+    <div class="flex flex-col gap-3 px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div class="-mx-4 flex items-center justify-between border-b border-line px-4 pb-3">
+        <span class="text-sm font-medium text-muted">{{ messages.capture.windowLabel }}</span>
+        <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="capture.close()">
+          {{ messages.capture.close }}
+        </button>
+      </div>
+      <CaptureForm v-if="capture.isOpen" :key="capture.opened" />
+    </div>
+  </dialog>
+</template>
+
 <script setup lang="ts">
 // SPEC §5 Quick capture: the Capture window, over the current page. Full screen on a phone, centred on wider screens.
 import { nextTick, ref, watch } from 'vue'
@@ -21,23 +41,3 @@ watch(
 // Moving to another page closes it.
 watch(() => route.fullPath, () => capture.close())
 </script>
-
-<template>
-  <dialog
-    ref="dialog"
-    :aria-label="messages.capture.windowLabel"
-    class="m-0 h-dvh max-h-none w-full max-w-none bg-bg p-0 text-ink backdrop:bg-black/50 md:m-auto md:h-auto md:max-h-[90dvh] md:max-w-xl md:rounded-2xl md:border md:border-line"
-    data-testid="capture-dialog"
-    @close="capture.close()"
-  >
-    <div class="flex flex-col gap-3 px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-      <div class="-mx-4 flex items-center justify-between border-b border-line px-4 pb-3">
-        <span class="text-sm font-medium text-muted">{{ messages.capture.windowLabel }}</span>
-        <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="capture.close()">
-          {{ messages.capture.close }}
-        </button>
-      </div>
-      <CaptureForm v-if="capture.isOpen" :key="capture.opened" :preset="capture.preset" />
-    </div>
-  </dialog>
-</template>

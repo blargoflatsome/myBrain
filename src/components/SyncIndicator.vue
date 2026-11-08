@@ -1,3 +1,10 @@
+<template>
+  <p class="flex items-center gap-2 text-xs text-muted" role="status" aria-live="polite" data-testid="sync-indicator">
+    <span class="size-2 rounded-full" :class="view.dot" aria-hidden="true" />
+    {{ view.text }}
+  </p>
+</template>
+
 <script setup lang="ts">
 // SPEC §7: a small online/offline/syncing indicator.
 import { computed } from 'vue'
@@ -17,10 +24,3 @@ const view = computed(() => {
   return { dot: 'bg-emerald-500', text: messages.sync.online }
 })
 </script>
-
-<template>
-  <p class="flex items-center gap-2 text-xs text-muted" role="status" aria-live="polite" data-testid="sync-indicator">
-    <span class="size-2 rounded-full" :class="view.dot" aria-hidden="true" />
-    {{ view.text }}
-  </p>
-</template>

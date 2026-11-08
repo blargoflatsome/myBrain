@@ -1,10 +1,91 @@
+<template>
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
+    <div>
+      <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
+      <p class="text-muted italic">{{ m.subtitle }}</p>
+    </div>
+
+    <section class="flex flex-col gap-4 rounded-2xl border border-line p-4" data-testid="journal-today">
+      <h2 class="text-lg font-semibold">{{ m.today }} · {{ shortDay(today) }}</h2>
+      <JournalStatsCard v-if="todayStats" :stats="todayStats" />
+      <JournalBetter :key="today" :date="today" :entry="todayEntry" />
+
+      <RichTextEditor
+        :model-value="draftOf(today, todayEntry)"
+        :label="m.writeLabel"
+        :placeholder="m.writePlaceholder"
+        min-height="18rem"
+        @update:model-value="onInput(today, $event)"
+        @blur="save(today)"
+      />
+      <p v-if="savedDate === today" class="text-sm text-muted" role="status">{{ m.saved }}</p>
+      <JournalTomorrow :key="today" :date="today" :entry="todayEntry" />
+      <EntryTags v-if="brain.userId" type="journal_entry" :item-id="entryIdFor(brain.userId, today)" />
+    </section>
+
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold">{{ m.olderHeading }}</h2>
+      <p v-if="!earlier.length" class="text-muted">{{ m.empty }}</p>
+      <article
+        v-for="e in earlier"
+        :key="e.id"
+        class="flex flex-col gap-3 rounded-2xl border bg-surface p-4"
+        :class="highlight === e.date ? 'border-accent' : 'border-line'"
+        :data-testid="`journal-entry-${e.date}`"
+      >
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="font-semibold">{{ shortDay(e.date) }}</h3>
+          <button
+            v-if="editingDate !== e.date"
+            type="button"
+            class="min-h-11 rounded-xl border border-line px-3 text-sm"
+            @click="editingDate = e.date"
+          >
+            {{ m.edit }}
+          </button>
+        </div>
+        <ul v-if="tagsFor(e.id).length" class="flex flex-wrap gap-1.5" :aria-label="m.tagsLabel" data-testid="journal-entry-tags">
+          <li v-for="t in tagsFor(e.id)" :key="t.id" class="rounded-full bg-bg px-2.5 py-1 text-sm" data-testid="journal-entry-tag">#{{ t.name }}</li>
+        </ul>
+        <JournalStatsCard v-if="hasStats(e.stats)" :stats="e.stats" />
+        <p v-if="editingDate !== e.date && e.better_than_yesterday != null" class="text-sm text-muted" data-testid="journal-better">
+          {{ e.better_than_yesterday ? `✓ ${m.betterYes}` : m.betterNo }}
+        </p>
+        <template v-if="editingDate === e.date">
+          <JournalBetter :date="e.date" :entry="e" />
+          <RichTextEditor
+            :model-value="draftOf(e.date, e)"
+            :label="m.writeLabel"
+            :placeholder="m.writePlaceholder"
+            min-height="12rem"
+            @update:model-value="onInput(e.date, $event)"
+          />
+          <JournalTomorrow :date="e.date" :entry="e" />
+          <EntryTags type="journal_entry" :item-id="e.id" />
+          <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="finishEditing(e.date)">
+            {{ m.done }}
+          </button>
+        </template>
+        <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
+        <div v-else-if="e.body.trim()" class="rich" data-testid="journal-body" v-html="cleanHtml(e.body)" />
+        <p v-else-if="e.auto" class="text-sm text-muted italic">{{ m.autoNote }}</p>
+        <div v-if="editingDate !== e.date && e.tomorrow?.trim()" class="flex flex-col gap-1 text-sm" data-testid="journal-tomorrow">
+          <span class="font-medium">{{ m.tomorrowLabel }}</span>
+          <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
+          <div class="rich" v-html="cleanHtml(e.tomorrow)" />
+        </div>
+      </article>
+    </section>
+  </main>
+</template>
+
 <script setup lang="ts">
 // SPEC §5 Journal: end-of-day check-in with the day's stats, formatted writing (full screen if wanted), and every
 // past entry, always editable. Tasks for tomorrow are added with Capture, like anywhere else.
-import { computed, nextTick, onScopeDispose, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import JournalStatsCard from '@/components/JournalStatsCard.vue'
-import RichTextEditor from '@/components/RichTextEditor.vue'
 import EntryTags from '@/components/EntryTags.vue'
 import JournalBetter from '@/components/JournalBetter.vue'
 import JournalTomorrow from '@/components/JournalTomorrow.vue'
@@ -17,6 +98,11 @@ import { entryIdFor, hadActivity, hasStats } from '@/journal/stats'
 import { cleanHtml } from '@/journal/body'
 import { messages } from '@/messages'
 import type { ItemTagRow, JournalEntryRow, JournalStats, TagRow } from '@/sync/types'
+import { shortDay } from '@/ui/dates'
+import { live } from '@/sync/live'
+
+// The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
+const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
 
 const brain = useBrainStore()
 const m = messages.journal
@@ -28,7 +114,7 @@ const tick = setInterval(() => (now.value = new Date()), 60_000)
 onScopeDispose(() => clearInterval(tick))
 
 const entries = useLiveQuery<JournalEntryRow[]>(
-  async () => (brain.db ? (await brain.db.journal_entries.toArray()).filter((e) => !e.deleted_at) : []),
+  async () => (brain.db ? live(await brain.db.journal_entries.toArray()) : []),
   [],
   [() => brain.db],
 )
@@ -112,91 +198,4 @@ async function finishEditing(date: string) {
   editingDate.value = null
 }
 
-
-function dayLabel(date: string) {
-  const [y, mo, d] = date.split('-').map(Number)
-  return new Date(Date.UTC(y!, mo! - 1, d!)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
-}
 </script>
-
-<template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
-    <div>
-      <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted italic">{{ m.subtitle }}</p>
-    </div>
-
-    <section class="flex flex-col gap-4 rounded-2xl border border-line p-4" data-testid="journal-today">
-      <h2 class="text-lg font-semibold">{{ m.today }} · {{ dayLabel(today) }}</h2>
-      <JournalStatsCard v-if="todayStats" :stats="todayStats" />
-      <JournalBetter :key="today" :date="today" :entry="todayEntry" />
-
-      <RichTextEditor
-        :model-value="draftOf(today, todayEntry)"
-        :label="m.writeLabel"
-        :placeholder="m.writePlaceholder"
-        min-height="18rem"
-        @update:model-value="onInput(today, $event)"
-        @blur="save(today)"
-      />
-      <p v-if="savedDate === today" class="text-sm text-muted" role="status">{{ m.saved }}</p>
-      <JournalTomorrow :key="today" :date="today" :entry="todayEntry" />
-      <EntryTags v-if="brain.userId" type="journal_entry" :item-id="entryIdFor(brain.userId, today)" />
-    </section>
-
-
-    <section class="flex flex-col gap-3">
-      <h2 class="text-lg font-semibold">{{ m.olderHeading }}</h2>
-      <p v-if="!earlier.length" class="text-muted">{{ m.empty }}</p>
-      <article
-        v-for="e in earlier"
-        :key="e.id"
-        class="flex flex-col gap-3 rounded-2xl border bg-surface p-4"
-        :class="highlight === e.date ? 'border-accent' : 'border-line'"
-        :data-testid="`journal-entry-${e.date}`"
-      >
-        <div class="flex items-center justify-between gap-2">
-          <h3 class="font-semibold">{{ dayLabel(e.date) }}</h3>
-          <button
-            v-if="editingDate !== e.date"
-            type="button"
-            class="min-h-11 rounded-xl border border-line px-3 text-sm"
-            @click="editingDate = e.date"
-          >
-            {{ m.edit }}
-          </button>
-        </div>
-        <ul v-if="tagsFor(e.id).length" class="flex flex-wrap gap-1.5" :aria-label="m.tagsLabel" data-testid="journal-entry-tags">
-          <li v-for="t in tagsFor(e.id)" :key="t.id" class="rounded-full bg-bg px-2.5 py-1 text-sm" data-testid="journal-entry-tag">#{{ t.name }}</li>
-        </ul>
-        <JournalStatsCard v-if="hasStats(e.stats)" :stats="e.stats" />
-        <p v-if="editingDate !== e.date && e.better_than_yesterday != null" class="text-sm text-muted" data-testid="journal-better">
-          {{ e.better_than_yesterday ? `✓ ${m.betterYes}` : m.betterNo }}
-        </p>
-        <template v-if="editingDate === e.date">
-          <JournalBetter :date="e.date" :entry="e" />
-          <RichTextEditor
-            :model-value="draftOf(e.date, e)"
-            :label="m.writeLabel"
-            :placeholder="m.writePlaceholder"
-            min-height="12rem"
-            @update:model-value="onInput(e.date, $event)"
-          />
-          <JournalTomorrow :date="e.date" :entry="e" />
-          <EntryTags type="journal_entry" :item-id="e.id" />
-          <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="finishEditing(e.date)">
-            {{ m.done }}
-          </button>
-        </template>
-        <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
-        <div v-else-if="e.body.trim()" class="rich" data-testid="journal-body" v-html="cleanHtml(e.body)" />
-        <p v-else-if="e.auto" class="text-sm text-muted italic">{{ m.autoNote }}</p>
-        <div v-if="editingDate !== e.date && e.tomorrow?.trim()" class="flex flex-col gap-1 text-sm" data-testid="journal-tomorrow">
-          <span class="font-medium">{{ m.tomorrowLabel }}</span>
-          <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
-          <div class="rich" v-html="cleanHtml(e.tomorrow)" />
-        </div>
-      </article>
-    </section>
-  </main>
-</template>

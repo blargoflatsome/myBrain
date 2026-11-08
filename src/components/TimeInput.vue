@@ -1,3 +1,64 @@
+<template>
+  <div class="relative flex flex-col gap-1">
+    <label :for="id" :class="labelClass">{{ label }}</label>
+    <input
+      v-if="touch"
+      :id="id"
+      type="time"
+      :value="value"
+      :required="required"
+      :aria-label="ariaLabel"
+      :class="inputClass"
+      @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+    >
+    <template v-else>
+      <input
+        :id="id"
+        type="text"
+        role="combobox"
+        inputmode="numeric"
+        autocomplete="off"
+        :value="text"
+        :required="required"
+        :aria-label="ariaLabel"
+        aria-autocomplete="list"
+        :aria-expanded="open"
+        :aria-controls="listId"
+        :aria-activedescendant="open && active ? optionId(active) : undefined"
+        :placeholder="messages.timeInput.placeholder"
+        :class="inputClass"
+        @input="onInput"
+        @click="open ? (open = false) : showList()"
+        @keydown="onKeydown"
+        @blur="commit"
+      >
+      <ul
+        v-show="open"
+        :id="listId"
+        ref="list"
+        role="listbox"
+        :aria-label="messages.timeInput.listLabel"
+        class="absolute top-full right-0 left-0 z-20 mt-1 max-h-60 overflow-y-auto rounded-xl border border-control bg-surface p-1 text-base text-ink shadow-lg"
+        @mousedown.prevent
+      >
+        <li
+          v-for="t in QUARTER_HOURS"
+          :id="optionId(t)"
+          :key="t"
+          role="option"
+          :aria-selected="t === value"
+          class="flex min-h-10 cursor-pointer items-center rounded-lg px-3"
+          :class="[t === active ? 'bg-accent text-accent-ink' : 'hover:bg-bg', t === value && t !== active ? 'font-semibold' : '']"
+          @click="choose(t)"
+          @mousemove="active = t"
+        >
+          {{ formatTime(t) }}
+        </li>
+      </ul>
+    </template>
+  </div>
+</template>
+
 <script setup lang="ts">
 // SPEC §5 Time fields. On a computer: type a time ("8", "830", "6pm") or pick from a list every 15 minutes, like
 // Google Calendar (an accessible combobox). On a phone or tablet: the device's own time picker.
@@ -107,64 +168,3 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 </script>
-
-<template>
-  <div class="relative flex flex-col gap-1">
-    <label :for="id" :class="labelClass">{{ label }}</label>
-    <input
-      v-if="touch"
-      :id="id"
-      type="time"
-      :value="value"
-      :required="required"
-      :aria-label="ariaLabel"
-      :class="inputClass"
-      @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-    >
-    <template v-else>
-      <input
-        :id="id"
-        type="text"
-        role="combobox"
-        inputmode="numeric"
-        autocomplete="off"
-        :value="text"
-        :required="required"
-        :aria-label="ariaLabel"
-        aria-autocomplete="list"
-        :aria-expanded="open"
-        :aria-controls="listId"
-        :aria-activedescendant="open && active ? optionId(active) : undefined"
-        :placeholder="messages.timeInput.placeholder"
-        :class="inputClass"
-        @input="onInput"
-        @click="open ? (open = false) : showList()"
-        @keydown="onKeydown"
-        @blur="commit"
-      >
-      <ul
-        v-show="open"
-        :id="listId"
-        ref="list"
-        role="listbox"
-        :aria-label="messages.timeInput.listLabel"
-        class="absolute top-full right-0 left-0 z-20 mt-1 max-h-60 overflow-y-auto rounded-xl border border-control bg-surface p-1 text-base text-ink shadow-lg"
-        @mousedown.prevent
-      >
-        <li
-          v-for="t in QUARTER_HOURS"
-          :id="optionId(t)"
-          :key="t"
-          role="option"
-          :aria-selected="t === value"
-          class="flex min-h-10 cursor-pointer items-center rounded-lg px-3"
-          :class="[t === active ? 'bg-accent text-accent-ink' : 'hover:bg-bg', t === value && t !== active ? 'font-semibold' : '']"
-          @click="choose(t)"
-          @mousemove="active = t"
-        >
-          {{ formatTime(t) }}
-        </li>
-      </ul>
-    </template>
-  </div>
-</template>

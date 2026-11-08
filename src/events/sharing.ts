@@ -53,7 +53,6 @@ async function list<T>(fn: string, args: Record<string, unknown>): Promise<T[]> 
 export const searchPeople = (q: string) => list<FoundPerson>('search_people', { q })
 export const invitePeople = (event: string, people: PersonToInvite[]) => list<NewInvite>('invite_people', { event, people })
 export const uninvite = (invite: string) => call<void>('uninvite', { invite })
-export const newInviteLink = (invite: string) => call<string>('new_invite_link', { invite })
 export const respondToInvite = (invite: string, answer: 'yes' | 'maybe' | 'no') => call<void>('respond_to_invite', { invite, answer })
 export const eventPeople = (event: string) => list<EventPerson>('event_people', { event })
 export interface Recipient {

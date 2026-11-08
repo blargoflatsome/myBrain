@@ -1,3 +1,62 @@
+<template>
+  <fieldset class="flex flex-col gap-3 rounded-xl border border-line p-3" data-testid="event-people">
+    <legend class="px-1 text-sm font-medium">{{ m.people }}</legend>
+    <p class="-mt-1 text-xs text-muted">{{ m.peopleHint }} {{ m.limit }}</p>
+
+    <ul v-if="invited.length" class="flex flex-col gap-1" :aria-label="m.invited">
+      <li v-for="p in invited" :key="p.invite_id" class="flex items-center justify-between gap-2 text-sm" data-testid="invited-person">
+        <span class="truncate">{{ p.name || p.email || p.phone }}</span>
+        <span class="flex shrink-0 items-center gap-1">
+          <span class="text-muted">{{ m.responses[p.response] }}</span>
+          <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(p.name || p.email || p.phone || '')" @click="remove(p)">✕</button>
+        </span>
+      </li>
+    </ul>
+
+    <ul v-if="pending.length" class="flex flex-col gap-1" :aria-label="m.toInvite">
+      <li v-for="(p, i) in pending" :key="p.user_id ?? p.email ?? p.phone" class="flex items-center justify-between gap-2 text-sm" data-testid="pending-person">
+        <span class="truncate">
+          {{ p.name || p.email || p.phone }}
+          <span v-if="p.user_id && slot" :class="conflicts.includes(p) ? 'text-danger' : 'text-accent'" data-testid="person-availability">
+            · {{ conflicts.includes(p) ? m.busy : m.free }}
+          </span>
+        </span>
+        <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(p.name || p.email || p.phone || '')" @click="drop(i)">✕</button>
+      </li>
+    </ul>
+    <div v-if="suggestions.length" class="flex flex-col gap-1" data-testid="suggested-times">
+      <span class="text-xs text-muted">{{ m.everyoneFree }}</span>
+      <div class="flex flex-wrap gap-1.5">
+        <button v-for="s in suggestions" :key="s.start" type="button" class="min-h-9 rounded-full border border-accent px-3 text-sm" @click="pick(s)">{{ slotLabel(s) }}</button>
+      </div>
+    </div>
+
+    <label class="flex flex-col gap-1 text-sm text-muted">
+      {{ m.search }}
+      <input v-model="query" :class="fieldCompact" autocomplete="off" :placeholder="m.searchHint">
+    </label>
+    <ul v-if="found.length" class="flex flex-col gap-1">
+      <li v-for="p in found" :key="p.user_id">
+        <button type="button" class="flex min-h-11 w-full items-center gap-2 rounded-xl px-2 text-left hover:bg-bg" @click="addFound(p)">
+          <img v-if="p.avatar_url" :src="p.avatar_url" alt="" class="size-7 rounded-full" referrerpolicy="no-referrer">
+          <span>{{ m.addFound(p.display_name || '') }}</span>
+        </button>
+      </li>
+    </ul>
+    <p v-else-if="searched" class="text-xs text-muted">{{ m.noMatches }}</p>
+
+    <div class="grid grid-cols-2 gap-2">
+      <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contact }}<input v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
+      <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contactName }}<input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
+    </div>
+    <p v-if="contactError" class="text-sm text-danger" role="alert">{{ contactError }}</p>
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="addContact">{{ m.addContact }}</button>
+      <button v-if="canPickContacts()" type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="fromContacts">{{ m.pickContacts }}</button>
+    </div>
+  </fieldset>
+</template>
+
 <script setup lang="ts">
 // SPEC §5 Shared events and Availability: invite people by name, email, phone or from my contacts; see who's
 // invited and their answers; for people found by name, see who is free and get suggested times.
@@ -9,6 +68,7 @@ import { zonedTime } from '@/habits/rules'
 import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
 import { useBrainStore } from '@/stores/brain'
 import { messages } from '@/messages'
+import { fieldCompact } from '@/ui/styles'
 
 const props = defineProps<{
   eventId: string
@@ -111,64 +171,4 @@ function pick(s: Interval) {
 }
 const slotLabel = (s: Interval) =>
   new Date(s.start).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: tz })
-const field = 'min-h-11 w-full rounded-xl border border-line bg-bg px-3 text-base text-ink'
 </script>
-
-<template>
-  <fieldset class="flex flex-col gap-3 rounded-xl border border-line p-3" data-testid="event-people">
-    <legend class="px-1 text-sm font-medium">{{ m.people }}</legend>
-    <p class="-mt-1 text-xs text-muted">{{ m.peopleHint }} {{ m.limit }}</p>
-
-    <ul v-if="invited.length" class="flex flex-col gap-1" :aria-label="m.invited">
-      <li v-for="p in invited" :key="p.invite_id" class="flex items-center justify-between gap-2 text-sm" data-testid="invited-person">
-        <span class="truncate">{{ p.name || p.email || p.phone }}</span>
-        <span class="flex shrink-0 items-center gap-1">
-          <span class="text-muted">{{ m.responses[p.response] }}</span>
-          <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(p.name || p.email || p.phone || '')" @click="remove(p)">✕</button>
-        </span>
-      </li>
-    </ul>
-
-    <ul v-if="pending.length" class="flex flex-col gap-1" :aria-label="m.toInvite">
-      <li v-for="(p, i) in pending" :key="p.user_id ?? p.email ?? p.phone" class="flex items-center justify-between gap-2 text-sm" data-testid="pending-person">
-        <span class="truncate">
-          {{ p.name || p.email || p.phone }}
-          <span v-if="p.user_id && slot" :class="conflicts.includes(p) ? 'text-danger' : 'text-accent'" data-testid="person-availability">
-            · {{ conflicts.includes(p) ? m.busy : m.free }}
-          </span>
-        </span>
-        <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(p.name || p.email || p.phone || '')" @click="drop(i)">✕</button>
-      </li>
-    </ul>
-    <div v-if="suggestions.length" class="flex flex-col gap-1" data-testid="suggested-times">
-      <span class="text-xs text-muted">{{ m.everyoneFree }}</span>
-      <div class="flex flex-wrap gap-1.5">
-        <button v-for="s in suggestions" :key="s.start" type="button" class="min-h-9 rounded-full border border-accent px-3 text-sm" @click="pick(s)">{{ slotLabel(s) }}</button>
-      </div>
-    </div>
-
-    <label class="flex flex-col gap-1 text-sm text-muted">
-      {{ m.search }}
-      <input v-model="query" :class="field" autocomplete="off" :placeholder="m.searchHint">
-    </label>
-    <ul v-if="found.length" class="flex flex-col gap-1">
-      <li v-for="p in found" :key="p.user_id">
-        <button type="button" class="flex min-h-11 w-full items-center gap-2 rounded-xl px-2 text-left hover:bg-bg" @click="addFound(p)">
-          <img v-if="p.avatar_url" :src="p.avatar_url" alt="" class="size-7 rounded-full" referrerpolicy="no-referrer">
-          <span>{{ m.addFound(p.display_name || '') }}</span>
-        </button>
-      </li>
-    </ul>
-    <p v-else-if="searched" class="text-xs text-muted">{{ m.noMatches }}</p>
-
-    <div class="grid grid-cols-2 gap-2">
-      <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contact }}<input v-model="contact" :class="field" autocomplete="off" @keydown.enter.prevent="addContact"></label>
-      <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contactName }}<input v-model="contactName" :class="field" autocomplete="off" @keydown.enter.prevent="addContact"></label>
-    </div>
-    <p v-if="contactError" class="text-sm text-danger" role="alert">{{ contactError }}</p>
-    <div class="flex flex-wrap gap-2">
-      <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="addContact">{{ m.addContact }}</button>
-      <button v-if="canPickContacts()" type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="fromContacts">{{ m.pickContacts }}</button>
-    </div>
-  </fieldset>
-</template>

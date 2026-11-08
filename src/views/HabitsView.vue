@@ -1,94 +1,3 @@
-<script setup lang="ts">
-// SPEC §5 Habits: today's habits with their timer deadlines, streaks and best streaks.
-import { computed, onScopeDispose, ref, watch } from 'vue'
-import HabitEditor from '@/components/HabitEditor.vue'
-import { useBrainStore } from '@/stores/brain'
-import { useAuthStore } from '@/stores/auth'
-import { useLiveQuery } from '@/composables/useLiveQuery'
-import { useToday } from '@/composables/useToday'
-import { dayStatus, deadline, dueByMidnight, isScheduled, newHabit, streaks } from '@/habits/rules'
-import { messages } from '@/messages'
-import type { HabitLogRow, HabitRow } from '@/sync/types'
-
-const brain = useBrainStore()
-const auth = useAuthStore()
-const m = messages.habits
-const { today, timeZone } = useToday()
-
-const habits = useLiveQuery<HabitRow[]>(
-  async () => (brain.db ? (await brain.db.habits.toArray()).filter((h) => !h.deleted_at) : []),
-  [],
-  [() => brain.db],
-)
-const logs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
-
-// A clock that ticks each minute, so a timer running out shows as missed without a reload.
-const now = ref(new Date())
-const tick = setInterval(() => (now.value = new Date()), 60_000)
-onScopeDispose(() => clearInterval(tick))
-
-// Record misses and refresh cached streaks whenever habits, the day or the minute changes.
-watch(
-  [() => habits.value.map((h) => h.id).join(), today, now, () => brain.habitsReady],
-  async () => {
-    for (const h of habits.value) await brain.refreshHabit(h, now.value, timeZone.value)
-  },
-  { immediate: true },
-)
-
-const scheduledToday = computed(() => habits.value.filter((h) => isScheduled(h, today.value)))
-const notToday = computed(() => habits.value.filter((h) => !isScheduled(h, today.value)))
-
-/** Streaks straight from the logs, so they are right even before the cached numbers are refreshed. */
-function streakOf(h: HabitRow) {
-  return streaks(h, logs.value, now.value, timeZone.value)
-}
-
-function status(h: HabitRow) {
-  return dayStatus(h, today.value, logs.value, now.value, timeZone.value)
-}
-function dueText(h: HabitRow) {
-  if (dueByMidnight(h, today.value)) return m.dueToday
-  const time = new Date(deadline(h, today.value, timeZone.value)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-  return m.dueBy(time)
-}
-
-const celebrated = ref<string | null>(null)
-async function toggle(h: HabitRow) {
-  const before = streakOf(h).best
-  const kind = await brain.toggleHabit(h, new Date(), timeZone.value)
-  now.value = new Date()
-  const after = streaks(h, (await brain.db?.habit_logs.toArray()) ?? [], now.value, timeZone.value).best
-  celebrated.value = kind === 'complete' && after > before && before > 0 ? h.id : null
-}
-
-const editing = ref<HabitRow | null>(null)
-const isNew = ref(false)
-function startNew() {
-  isNew.value = true
-  editing.value = newHabit('', auth.user?.id ?? '', timeZone.value)
-}
-function edit(h: HabitRow) {
-  isNew.value = false
-  editing.value = h
-}
-async function save(h: HabitRow) {
-  await brain.saveHabit(h)
-  editing.value = null
-}
-async function remove(h: HabitRow) {
-  await brain.deleteHabit(h.id)
-  editing.value = null
-}
-
-const ring = {
-  completed: 'border-accent bg-accent text-accent-ink',
-  missed: 'border-danger text-danger',
-  open: 'border-muted',
-  not_scheduled: 'border-line',
-} as const
-</script>
-
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
     <div>
@@ -162,3 +71,95 @@ const ring = {
     <HabitEditor :habit="editing" :is-new="isNew" @save="save" @delete="remove" @close="editing = null" />
   </main>
 </template>
+
+<script setup lang="ts">
+// SPEC §5 Habits: today's habits with their timer deadlines, streaks and best streaks.
+import { computed, onScopeDispose, ref, watch } from 'vue'
+import HabitEditor from '@/components/HabitEditor.vue'
+import { useBrainStore } from '@/stores/brain'
+import { useAuthStore } from '@/stores/auth'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { useToday } from '@/composables/useToday'
+import { dayStatus, deadline, dueByMidnight, isScheduled, newHabit, streaks } from '@/habits/rules'
+import { messages } from '@/messages'
+import type { HabitLogRow, HabitRow } from '@/sync/types'
+import { live } from '@/sync/live'
+
+const brain = useBrainStore()
+const auth = useAuthStore()
+const m = messages.habits
+const { today, timeZone } = useToday()
+
+const habits = useLiveQuery<HabitRow[]>(
+  async () => (brain.db ? live(await brain.db.habits.toArray()) : []),
+  [],
+  [() => brain.db],
+)
+const logs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
+
+// A clock that ticks each minute, so a timer running out shows as missed without a reload.
+const now = ref(new Date())
+const tick = setInterval(() => (now.value = new Date()), 60_000)
+onScopeDispose(() => clearInterval(tick))
+
+// Record misses and refresh cached streaks whenever habits, the day or the minute changes.
+watch(
+  [() => habits.value.map((h) => h.id).join(), today, now, () => brain.habitsReady],
+  async () => {
+    for (const h of habits.value) await brain.refreshHabit(h, now.value, timeZone.value)
+  },
+  { immediate: true },
+)
+
+const scheduledToday = computed(() => habits.value.filter((h) => isScheduled(h, today.value)))
+const notToday = computed(() => habits.value.filter((h) => !isScheduled(h, today.value)))
+
+/** Streaks straight from the logs, so they are right even before the cached numbers are refreshed. */
+function streakOf(h: HabitRow) {
+  return streaks(h, logs.value, now.value, timeZone.value)
+}
+
+function status(h: HabitRow) {
+  return dayStatus(h, today.value, logs.value, now.value, timeZone.value)
+}
+function dueText(h: HabitRow) {
+  if (dueByMidnight(h, today.value)) return m.dueToday
+  const time = new Date(deadline(h, today.value, timeZone.value)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  return m.dueBy(time)
+}
+
+const celebrated = ref<string | null>(null)
+async function toggle(h: HabitRow) {
+  const before = streakOf(h).best
+  const kind = await brain.toggleHabit(h, new Date(), timeZone.value)
+  now.value = new Date()
+  const after = streaks(h, (await brain.db?.habit_logs.toArray()) ?? [], now.value, timeZone.value).best
+  celebrated.value = kind === 'complete' && after > before && before > 0 ? h.id : null
+}
+
+const editing = ref<HabitRow | null>(null)
+const isNew = ref(false)
+function startNew() {
+  isNew.value = true
+  editing.value = newHabit('', auth.user?.id ?? '', timeZone.value)
+}
+function edit(h: HabitRow) {
+  isNew.value = false
+  editing.value = h
+}
+async function save(h: HabitRow) {
+  await brain.saveHabit(h)
+  editing.value = null
+}
+async function remove(h: HabitRow) {
+  await brain.deleteHabit(h.id)
+  editing.value = null
+}
+
+const ring = {
+  completed: 'border-accent bg-accent text-accent-ink',
+  missed: 'border-danger text-danger',
+  open: 'border-muted',
+  not_scheduled: 'border-line',
+} as const
+</script>

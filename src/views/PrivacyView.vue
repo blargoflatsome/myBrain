@@ -1,10 +1,3 @@
-<script setup lang="ts">
-// SPEC §8: privacy policy, in plain language, drafted from how the app actually works. A starting point to review,
-// not legal advice.
-import { RouterLink } from 'vue-router'
-import { messages } from '@/messages'
-</script>
-
 <template>
   <main class="legal mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pt-8 pb-16">
     <RouterLink to="/" class="text-sm text-muted underline">← {{ messages.legal.back }}</RouterLink>
@@ -51,6 +44,13 @@ import { messages } from '@/messages'
     <p>If this policy changes, the date at the top changes too. Questions: contact the person who runs this app (contact details to be added).</p>
   </main>
 </template>
+
+<script setup lang="ts">
+// SPEC §8: privacy policy, in plain language, drafted from how the app actually works. A starting point to review,
+// not legal advice.
+import { RouterLink } from 'vue-router'
+import { messages } from '@/messages'
+</script>
 
 <style scoped>
 .legal h2 {

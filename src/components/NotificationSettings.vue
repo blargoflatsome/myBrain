@@ -1,3 +1,83 @@
+<template>
+  <section class="flex flex-col rounded-2xl border border-line bg-surface p-4" data-testid="notification-settings">
+    <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
+
+    <div class="divide-y divide-line">
+      <div class="flex flex-col gap-1 py-4">
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <div class="font-medium">{{ m.webPush }}</div>
+            <p class="text-xs text-muted">{{ m.webPushHint }}</p>
+          </div>
+          <button
+            type="button"
+            class="min-h-11 shrink-0 rounded-xl border px-3 text-sm"
+            :class="pushOn ? 'border-accent bg-accent font-semibold text-accent-ink' : 'border-line'"
+            :aria-pressed="pushOn"
+            @click="togglePush"
+          >
+            {{ pushOn ? m.webPushOn : m.webPushOff }}
+          </button>
+        </div>
+        <p v-if="pushError" class="text-sm text-danger" role="alert">{{ pushError }}</p>
+      </div>
+
+      <template v-if="loaded">
+        <div class="flex flex-col gap-3 py-4">
+          <label class="flex items-center justify-between gap-4">
+            <span>
+              <span class="font-medium">{{ m.ntfy }}</span>
+              <span class="block text-xs text-muted">{{ m.ntfyHint }}</span>
+            </span>
+            <input v-model="notifyNtfy" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+          </label>
+          <div v-if="notifyNtfy" class="flex flex-col gap-1">
+            <label class="flex flex-col gap-1 text-sm text-muted">
+              {{ m.ntfyTopic }}
+              <input v-model="topic" :class="field" autocomplete="off" spellcheck="false">
+            </label>
+            <span class="text-xs text-muted">{{ m.ntfyTopicHint }}</span>
+            <button type="button" class="mt-1 min-h-11 self-start rounded-xl border border-line px-3 text-sm" @click="makeTopic">{{ m.ntfyMake }}</button>
+          </div>
+        </div>
+
+        <fieldset class="flex flex-col gap-3 py-4">
+          <legend class="contents">
+            <span class="font-medium">{{ m.quietHours }}</span>
+          </legend>
+          <p class="-mt-2 text-xs text-muted">{{ m.quietHint }}</p>
+          <div class="grid grid-cols-2 gap-3">
+            <TimeInput v-model="quietStart" :label="m.quietStart" :input-class="field" />
+            <TimeInput v-model="quietEnd" :label="m.quietEnd" :input-class="field" />
+          </div>
+          <label class="flex items-center justify-between gap-4 text-sm">
+            {{ m.priorityQuiet }}
+            <input v-model="priorityRings" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+          </label>
+        </fieldset>
+
+        <fieldset class="flex flex-col gap-3 py-4" data-testid="journal-reminder">
+          <legend class="contents">
+            <span class="font-medium">{{ m.journalReminder }}</span>
+          </legend>
+          <p class="-mt-2 text-xs text-muted">{{ m.journalReminderHint }}</p>
+          <label class="flex items-center justify-between gap-4 text-sm">
+            {{ m.journalOff }}
+            <input v-model="journalOff" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+          </label>
+          <TimeInput v-if="!journalOff" v-model="journalTime" :label="m.journalTime" :input-class="field" />
+        </fieldset>
+      </template>
+    </div>
+
+    <div v-if="loaded" class="flex flex-wrap items-center gap-3 border-t border-line pt-4">
+      <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="save">{{ m.save }}</button>
+      <button type="button" class="min-h-11 rounded-xl border border-line px-4 text-sm" @click="test">{{ m.test }}</button>
+      <p v-if="notice" class="text-sm text-muted" role="status">{{ notice }}</p>
+    </div>
+  </section>
+</template>
+
 <script setup lang="ts">
 import { isPushEndpoint } from '@/notifications/pushEndpoints'
 // SPEC §6: Web Push and/or ntfy, quiet hours, and whether priority reminders ring during them.
@@ -6,6 +86,7 @@ import { onMounted, ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { messages } from '@/messages'
+import { field } from '@/ui/styles'
 
 const auth = useAuthStore()
 const m = messages.notifications
@@ -121,89 +202,4 @@ async function test() {
   notice.value = m.testSent
 }
 
-const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-base text-ink'
 </script>
-
-<template>
-  <section class="flex flex-col rounded-2xl border border-line bg-surface p-4" data-testid="notification-settings">
-    <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
-
-    <div class="divide-y divide-line">
-      <!-- This device -->
-      <div class="flex flex-col gap-1 py-4">
-        <div class="flex items-center justify-between gap-4">
-          <div>
-            <div class="font-medium">{{ m.webPush }}</div>
-            <p class="text-xs text-muted">{{ m.webPushHint }}</p>
-          </div>
-          <button
-            type="button"
-            class="min-h-11 shrink-0 rounded-xl border px-3 text-sm"
-            :class="pushOn ? 'border-accent bg-accent font-semibold text-accent-ink' : 'border-line'"
-            :aria-pressed="pushOn"
-            @click="togglePush"
-          >
-            {{ pushOn ? m.webPushOn : m.webPushOff }}
-          </button>
-        </div>
-        <p v-if="pushError" class="text-sm text-danger" role="alert">{{ pushError }}</p>
-      </div>
-
-      <template v-if="loaded">
-        <!-- ntfy backup -->
-        <div class="flex flex-col gap-3 py-4">
-          <label class="flex items-center justify-between gap-4">
-            <span>
-              <span class="font-medium">{{ m.ntfy }}</span>
-              <span class="block text-xs text-muted">{{ m.ntfyHint }}</span>
-            </span>
-            <input v-model="notifyNtfy" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
-          </label>
-          <div v-if="notifyNtfy" class="flex flex-col gap-1">
-            <label class="flex flex-col gap-1 text-sm text-muted">
-              {{ m.ntfyTopic }}
-              <input v-model="topic" :class="field" autocomplete="off" spellcheck="false">
-            </label>
-            <span class="text-xs text-muted">{{ m.ntfyTopicHint }}</span>
-            <button type="button" class="mt-1 min-h-11 self-start rounded-xl border border-line px-3 text-sm" @click="makeTopic">{{ m.ntfyMake }}</button>
-          </div>
-        </div>
-
-        <!-- Quiet hours -->
-        <fieldset class="flex flex-col gap-3 py-4">
-          <legend class="contents">
-            <span class="font-medium">{{ m.quietHours }}</span>
-          </legend>
-          <p class="-mt-2 text-xs text-muted">{{ m.quietHint }}</p>
-          <div class="grid grid-cols-2 gap-3">
-            <TimeInput v-model="quietStart" :label="m.quietStart" :input-class="field" />
-            <TimeInput v-model="quietEnd" :label="m.quietEnd" :input-class="field" />
-          </div>
-          <label class="flex items-center justify-between gap-4 text-sm">
-            {{ m.priorityQuiet }}
-            <input v-model="priorityRings" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
-          </label>
-        </fieldset>
-
-        <!-- Journal reminder -->
-        <fieldset class="flex flex-col gap-3 py-4" data-testid="journal-reminder">
-          <legend class="contents">
-            <span class="font-medium">{{ m.journalReminder }}</span>
-          </legend>
-          <p class="-mt-2 text-xs text-muted">{{ m.journalReminderHint }}</p>
-          <label class="flex items-center justify-between gap-4 text-sm">
-            {{ m.journalOff }}
-            <input v-model="journalOff" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
-          </label>
-          <TimeInput v-if="!journalOff" v-model="journalTime" :label="m.journalTime" :input-class="field" />
-        </fieldset>
-      </template>
-    </div>
-
-    <div v-if="loaded" class="flex flex-wrap items-center gap-3 border-t border-line pt-4">
-      <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="save">{{ m.save }}</button>
-      <button type="button" class="min-h-11 rounded-xl border border-line px-4 text-sm" @click="test">{{ m.test }}</button>
-      <p v-if="notice" class="text-sm text-muted" role="status">{{ notice }}</p>
-    </div>
-  </section>
-</template>

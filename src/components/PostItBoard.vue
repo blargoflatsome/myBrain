@@ -1,147 +1,3 @@
-<script setup lang="ts">
-// SPEC §5 Dashboard: Post Its at the top, like sticky notes taped to the page. Several sit in a stack, newest on top,
-// shown one at a time (never automatic): Previous / Next on a computer; swipe or tap a dot on a phone; arrow keys.
-// On the note shown: an edit icon (bottom left) to edit in place, and an X (top right) that deletes it, with Undo.
-import { computed, nextTick, onScopeDispose, ref, watch } from 'vue'
-import RichTextEditor from '@/components/RichTextEditor.vue'
-import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
-import { boardOrder, POST_IT_COLORS } from '@/postits/rules'
-import { cleanHtml, plainText } from '@/journal/body'
-import { messages } from '@/messages'
-import type { PostItColor, PostItRow } from '@/sync/types'
-
-const brain = useBrainStore()
-const m = messages.postIts
-
-const notes = useLiveQuery<PostItRow[]>(async () => (brain.db ? boardOrder(await brain.db.post_its.toArray()) : []), [], [() => brain.db])
-
-// ---------- Which note is shown ----------
-const index = ref(0)
-const followId = ref<string | null>(null)
-const current = computed(() => notes.value[index.value] ?? null)
-/** The notes peeking out underneath (up to two), drawn in their own colors. */
-const under = computed(() => [1, 2].map((k) => notes.value[index.value + k]).filter((n): n is PostItRow => !!n))
-watch(notes, (list) => {
-  // Keep showing the same note after a change (an edit, a move, Undo); otherwise stay in range.
-  if (followId.value) {
-    const at = list.findIndex((n) => n.id === followId.value)
-    if (at >= 0) index.value = at
-  }
-  if (index.value > list.length - 1) index.value = Math.max(0, list.length - 1)
-})
-const announcement = ref('')
-function go(step: -1 | 1) {
-  const fromArrow = (document.activeElement as HTMLElement | null)?.dataset.testid
-  show_(index.value + step)
-  // At either end one arrow goes away: keep focus on the other one rather than losing it.
-  if (fromArrow === 'postit-prev' || fromArrow === 'postit-next') {
-    void nextTick(() => {
-      const same = document.querySelector<HTMLElement>(`[data-testid="${fromArrow}"]`)
-      const other = document.querySelector<HTMLElement>(`[data-testid="${fromArrow === 'postit-prev' ? 'postit-next' : 'postit-prev'}"]`)
-      ;(same ?? other)?.focus()
-    })
-  }
-}
-/** Show the note at this place in the stack (the dots on a phone jump straight to one). */
-function show_(to: number) {
-  if (to < 0 || to >= notes.value.length || to === index.value) return
-  editingId.value = null
-  index.value = to
-  followId.value = notes.value[to]!.id
-  announcement.value = m.position(to + 1, notes.value.length)
-}
-function onKeydown(event: KeyboardEvent) {
-  const target = event.target as HTMLElement
-  if (editingId.value || target.closest('[contenteditable="true"], input, textarea, [role="radiogroup"]')) return
-  if (event.key === 'ArrowLeft') go(-1)
-  else if (event.key === 'ArrowRight') go(1)
-  else return
-  event.preventDefault()
-}
-// Swipe on a touch screen.
-let swipeX: number | null = null
-function onPointerDown(event: PointerEvent) {
-  swipeX = event.pointerType === 'touch' && !editingId.value ? event.clientX : null
-}
-function onPointerCancel() {
-  swipeX = null
-}
-function onPointerUp(event: PointerEvent) {
-  if (swipeX === null) return
-  const dx = event.clientX - swipeX
-  swipeX = null
-  if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1)
-}
-
-// ---------- Editing in place ----------
-const editingId = ref<string | null>(null)
-const draft = ref('')
-const draftColor = ref<PostItColor>('yellow')
-const editError = ref('')
-function startEdit(n: PostItRow) {
-  editingId.value = n.id
-  followId.value = n.id
-  draft.value = n.body
-  draftColor.value = n.color
-  editError.value = ''
-}
-async function saveEdit(n: PostItRow) {
-  if (!plainText(draft.value)) {
-    editError.value = m.emptyError
-    return
-  }
-  await brain.savePostIt({ ...n, body: draft.value, color: draftColor.value })
-  editingId.value = null
-  await focusAction('edit')
-}
-async function cancelEdit() {
-  editingId.value = null
-  await focusAction('edit')
-}
-async function focusAction(action: string) {
-  await nextTick()
-  document.querySelector<HTMLElement>(`[data-testid="dash-postits"] [data-action="${action}"]`)?.focus()
-}
-
-// ---------- Delete (with Undo) ----------
-const notice = ref('')
-const undoId = ref<string | null>(null)
-let noticeTimer: ReturnType<typeof setTimeout> | undefined
-function show(text: string, undo: string | null) {
-  notice.value = text
-  undoId.value = undo
-  clearTimeout(noticeTimer)
-  noticeTimer = setTimeout(() => {
-    notice.value = ''
-    undoId.value = null
-  }, 10_000)
-}
-onScopeDispose(() => clearTimeout(noticeTimer))
-async function deleteNote(n: PostItRow) {
-  followId.value = null
-  await brain.removePostIt(n.id)
-  show(m.removed, n.id)
-  await nextTick()
-  document.querySelector<HTMLElement>('[data-testid="postit-undo"]')?.focus()
-}
-async function undo() {
-  if (!undoId.value) return
-  followId.value = undoId.value
-  await brain.restorePostIt(undoId.value)
-  notice.value = ''
-  undoId.value = null
-  await focusAction('delete')
-}
-
-const btn = 'min-h-11 rounded-xl border border-current/30 px-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-40'
-// Hidden until the mouse is over the stack or the keyboard reaches an arrow (so keyboard users always find them).
-const arrow =
-  'absolute top-1/2 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-3xl leading-none text-ink shadow-md opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 md:flex'
-// Small round icon buttons on the paper (44 px to tap), in the note's own ink colour.
-const icon = 'flex size-11 items-center justify-center rounded-full opacity-70 hover:bg-black/10 hover:opacity-100 focus-visible:opacity-100'
-</script>
-
 <template>
   <section
     v-if="notes.length || notice"
@@ -267,3 +123,148 @@ const icon = 'flex size-11 items-center justify-center rounded-full opacity-70 h
     </div>
   </section>
 </template>
+
+<script setup lang="ts">
+// SPEC §5 Dashboard: Post Its at the top, like sticky notes taped to the page. Several sit in a stack, newest on top,
+// shown one at a time (never automatic): Previous / Next on a computer; swipe or tap a dot on a phone; arrow keys.
+// On the note shown: an edit icon (bottom left) to edit in place, and an X (top right) that deletes it, with Undo.
+import { computed, defineAsyncComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
+import { useBrainStore } from '@/stores/brain'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { boardOrder, POST_IT_COLORS } from '@/postits/rules'
+import { cleanHtml, plainText } from '@/journal/body'
+import { messages } from '@/messages'
+import type { PostItColor, PostItRow } from '@/sync/types'
+
+// The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
+const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
+
+const brain = useBrainStore()
+const m = messages.postIts
+
+const notes = useLiveQuery<PostItRow[]>(async () => (brain.db ? boardOrder(await brain.db.post_its.toArray()) : []), [], [() => brain.db])
+
+// ---------- Which note is shown ----------
+const index = ref(0)
+const followId = ref<string | null>(null)
+const current = computed(() => notes.value[index.value] ?? null)
+/** The notes peeking out underneath (up to two), drawn in their own colors. */
+const under = computed(() => [1, 2].map((k) => notes.value[index.value + k]).filter((n): n is PostItRow => !!n))
+watch(notes, (list) => {
+  // Keep showing the same note after a change (an edit, a move, Undo); otherwise stay in range.
+  if (followId.value) {
+    const at = list.findIndex((n) => n.id === followId.value)
+    if (at >= 0) index.value = at
+  }
+  if (index.value > list.length - 1) index.value = Math.max(0, list.length - 1)
+})
+const announcement = ref('')
+function go(step: -1 | 1) {
+  const fromArrow = (document.activeElement as HTMLElement | null)?.dataset.testid
+  show_(index.value + step)
+  // At either end one arrow goes away: keep focus on the other one rather than losing it.
+  if (fromArrow === 'postit-prev' || fromArrow === 'postit-next') {
+    void nextTick(() => {
+      const same = document.querySelector<HTMLElement>(`[data-testid="${fromArrow}"]`)
+      const other = document.querySelector<HTMLElement>(`[data-testid="${fromArrow === 'postit-prev' ? 'postit-next' : 'postit-prev'}"]`)
+      ;(same ?? other)?.focus()
+    })
+  }
+}
+/** Show the note at this place in the stack (the dots on a phone jump straight to one). */
+function show_(to: number) {
+  if (to < 0 || to >= notes.value.length || to === index.value) return
+  editingId.value = null
+  index.value = to
+  followId.value = notes.value[to]!.id
+  announcement.value = m.position(to + 1, notes.value.length)
+}
+function onKeydown(event: KeyboardEvent) {
+  const target = event.target as HTMLElement
+  if (editingId.value || target.closest('[contenteditable="true"], input, textarea, [role="radiogroup"]')) return
+  if (event.key === 'ArrowLeft') go(-1)
+  else if (event.key === 'ArrowRight') go(1)
+  else return
+  event.preventDefault()
+}
+let swipeX: number | null = null
+function onPointerDown(event: PointerEvent) {
+  swipeX = event.pointerType === 'touch' && !editingId.value ? event.clientX : null
+}
+function onPointerCancel() {
+  swipeX = null
+}
+function onPointerUp(event: PointerEvent) {
+  if (swipeX === null) return
+  const dx = event.clientX - swipeX
+  swipeX = null
+  if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1)
+}
+
+// ---------- Editing in place ----------
+const editingId = ref<string | null>(null)
+const draft = ref('')
+const draftColor = ref<PostItColor>('yellow')
+const editError = ref('')
+function startEdit(n: PostItRow) {
+  editingId.value = n.id
+  followId.value = n.id
+  draft.value = n.body
+  draftColor.value = n.color
+  editError.value = ''
+}
+async function saveEdit(n: PostItRow) {
+  if (!plainText(draft.value)) {
+    editError.value = m.emptyError
+    return
+  }
+  await brain.savePostIt({ ...n, body: draft.value, color: draftColor.value })
+  editingId.value = null
+  await focusAction('edit')
+}
+async function cancelEdit() {
+  editingId.value = null
+  await focusAction('edit')
+}
+async function focusAction(action: string) {
+  await nextTick()
+  document.querySelector<HTMLElement>(`[data-testid="dash-postits"] [data-action="${action}"]`)?.focus()
+}
+
+// ---------- Delete (with Undo) ----------
+const notice = ref('')
+const undoId = ref<string | null>(null)
+let noticeTimer: ReturnType<typeof setTimeout> | undefined
+function show(text: string, undo: string | null) {
+  notice.value = text
+  undoId.value = undo
+  clearTimeout(noticeTimer)
+  noticeTimer = setTimeout(() => {
+    notice.value = ''
+    undoId.value = null
+  }, 10_000)
+}
+onScopeDispose(() => clearTimeout(noticeTimer))
+async function deleteNote(n: PostItRow) {
+  followId.value = null
+  await brain.removePostIt(n.id)
+  show(m.removed, n.id)
+  await nextTick()
+  document.querySelector<HTMLElement>('[data-testid="postit-undo"]')?.focus()
+}
+async function undo() {
+  if (!undoId.value) return
+  followId.value = undoId.value
+  await brain.restorePostIt(undoId.value)
+  notice.value = ''
+  undoId.value = null
+  await focusAction('delete')
+}
+
+const btn = 'min-h-11 rounded-xl border border-current/30 px-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-40'
+// Hidden until the mouse is over the stack or the keyboard reaches an arrow (so keyboard users always find them).
+const arrow =
+  'absolute top-1/2 z-10 hidden size-12 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-3xl leading-none text-ink shadow-md opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 md:flex'
+// Small round icon buttons on the paper (44 px to tap), in the note's own ink colour.
+const icon = 'flex size-11 items-center justify-center rounded-full opacity-70 hover:bg-black/10 hover:opacity-100 focus-visible:opacity-100'
+</script>

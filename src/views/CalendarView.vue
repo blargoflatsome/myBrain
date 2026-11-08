@@ -1,3 +1,47 @@
+<template>
+  <main class="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pt-6 pb-28">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
+      <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="startNew(range.from <= today && today <= range.to ? today : range.from, null)">
+        {{ m.newEvent }}
+      </button>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-1">
+        <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line" :aria-label="m.previous" @click="api()?.prev()">‹</button>
+        <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="api()?.today()">{{ m.today }}</button>
+        <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line" :aria-label="m.next" @click="api()?.next()">›</button>
+        <h2 class="ml-2 text-lg font-semibold" data-testid="calendar-title">{{ title }}</h2>
+      </div>
+      <div class="flex rounded-xl border border-line p-1" role="group" :aria-label="m.heading">
+        <button
+          v-for="v in views"
+          :key="v.name"
+          type="button"
+          class="min-h-9 rounded-lg px-3 text-sm"
+          :class="view === v.name ? 'bg-accent font-semibold text-accent-ink' : 'text-muted'"
+          :aria-pressed="view === v.name"
+          @click="changeView(v.name)"
+        >
+          {{ v.label }}
+        </button>
+      </div>
+    </div>
+
+    <div class="cal-wrap rounded-2xl border border-line bg-surface p-2">
+      <FullCalendar ref="calendar" :options="options" />
+    </div>
+    <p v-if="emptyDay" class="text-muted" data-testid="calendar-empty">{{ m.emptyDay }}</p>
+
+    <p v-if="inviteError" class="text-sm text-danger" role="alert">{{ inviteError }}</p>
+    <EventEditor :event="editing" :is-new="isNew" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="editing = null" />
+    <InvitedEventDialog :event="viewing" :invite="viewingInvite" @drop-out="startDropOut" @close="viewing = null" />
+    <CancelEventDialog :event="cancelling" :mode="cancelMode" @done="cancelled" @close="cancelling = null" />
+    <ShareFlow v-if="shareTargets.length" :targets="shareTargets" :kind="shareKind" @done="shareTargets = []" />
+  </main>
+</template>
+
 <script setup lang="ts">
 // SPEC §5 Calendar and reminders: month, week and day views of my dated tasks, priority tasks and events.
 // Tap a day or time (or "+ New event") to add an event; tap an item to open it.
@@ -25,6 +69,7 @@ import { calendarItems, newEvent, type CalendarItem } from '@/events/rules'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import type { EventInviteRow, EventRow } from '@/sync/types'
+import { live } from '@/sync/live'
 
 const brain = useBrainStore()
 const route = useRoute()
@@ -44,7 +89,7 @@ const view = ref<ViewName>(window.matchMedia('(min-width: 768px)').matches ? 'da
 const title = ref('')
 const range = ref<{ from: string; to: string }>({ from: today.value, to: today.value })
 
-const events = useLiveQuery<EventRow[]>(async () => (brain.db ? (await brain.db.events.toArray()).filter((e) => !e.deleted_at) : []), [], [() => brain.db])
+const events = useLiveQuery<EventRow[]>(async () => (brain.db ? live(await brain.db.events.toArray()) : []), [], [() => brain.db])
 const items = useLiveQuery<CalendarItem[]>(
   async () => {
     const db = brain.db
@@ -198,47 +243,3 @@ onMounted(() => {
   if (typeof route.query.date === 'string') api()?.gotoDate(route.query.date)
 })
 </script>
-
-<template>
-  <main class="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pt-6 pb-28">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="startNew(range.from <= today && today <= range.to ? today : range.from, null)">
-        {{ m.newEvent }}
-      </button>
-    </div>
-
-    <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-1">
-        <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line" :aria-label="m.previous" @click="api()?.prev()">‹</button>
-        <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="api()?.today()">{{ m.today }}</button>
-        <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line" :aria-label="m.next" @click="api()?.next()">›</button>
-        <h2 class="ml-2 text-lg font-semibold" data-testid="calendar-title">{{ title }}</h2>
-      </div>
-      <div class="flex rounded-xl border border-line p-1" role="group" :aria-label="m.heading">
-        <button
-          v-for="v in views"
-          :key="v.name"
-          type="button"
-          class="min-h-9 rounded-lg px-3 text-sm"
-          :class="view === v.name ? 'bg-accent font-semibold text-accent-ink' : 'text-muted'"
-          :aria-pressed="view === v.name"
-          @click="changeView(v.name)"
-        >
-          {{ v.label }}
-        </button>
-      </div>
-    </div>
-
-    <div class="cal-wrap rounded-2xl border border-line bg-surface p-2">
-      <FullCalendar ref="calendar" :options="options" />
-    </div>
-    <p v-if="emptyDay" class="text-muted" data-testid="calendar-empty">{{ m.emptyDay }}</p>
-
-    <p v-if="inviteError" class="text-sm text-danger" role="alert">{{ inviteError }}</p>
-    <EventEditor :event="editing" :is-new="isNew" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="editing = null" />
-    <InvitedEventDialog :event="viewing" :invite="viewingInvite" @drop-out="startDropOut" @close="viewing = null" />
-    <CancelEventDialog :event="cancelling" :mode="cancelMode" @done="cancelled" @close="cancelling = null" />
-    <ShareFlow v-if="shareTargets.length" :targets="shareTargets" :kind="shareKind" @done="shareTargets = []" />
-  </main>
-</template>

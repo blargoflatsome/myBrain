@@ -36,8 +36,6 @@ export interface CaptureInput {
     isPrivate: boolean
     isPriority: boolean
   }
-  /** Task only: where it was added from. Capture by default; 'journal' when opened from the Journal (SPEC §5 Journal). */
-  source?: 'capture' | 'journal'
 }
 
 export type CaptureRecord =
@@ -86,7 +84,7 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
           due_date: input.dueDate || null,
           priority: input.priority ?? DEFAULT_TASK_PRIORITY,
           status: 'open',
-          source: input.source ?? 'capture',
+          source: 'capture',
         },
       }
     case 'vault':

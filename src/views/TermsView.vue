@@ -1,9 +1,3 @@
-<script setup lang="ts">
-// SPEC §8: terms of service, in plain language. A starting point to review, not legal advice.
-import { RouterLink } from 'vue-router'
-import { messages } from '@/messages'
-</script>
-
 <template>
   <main class="legal mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pt-8 pb-16">
     <RouterLink to="/" class="text-sm text-muted underline">← {{ messages.legal.back }}</RouterLink>
@@ -33,6 +27,12 @@ import { messages } from '@/messages'
     <p>These terms may change; the date at the top shows the latest version. Accounts that break these terms may be removed.</p>
   </main>
 </template>
+
+<script setup lang="ts">
+// SPEC §8: terms of service, in plain language. A starting point to review, not legal advice.
+import { RouterLink } from 'vue-router'
+import { messages } from '@/messages'
+</script>
 
 <style scoped>
 .legal h2 {

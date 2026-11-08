@@ -1,20 +1,3 @@
-<script setup lang="ts">
-// One task (SPEC §5 Tasks): cross off, priority dot, carry-over in red, Cancel/Edit after two carry-overs.
-import { computed } from 'vue'
-import type { TaskRow } from '@/sync/types'
-import { carryOverCount, priorityKey } from '@/tasks/rules'
-import { messages } from '@/messages'
-
-const props = defineProps<{ task: TaskRow; today: string }>()
-const emit = defineEmits<{ toggle: []; edit: []; cancel: [] }>()
-const m = messages.tasks
-
-const carried = computed(() => carryOverCount(props.task, props.today))
-const done = computed(() => props.task.status === 'done')
-const priority = computed(() => priorityKey(props.task.priority))
-const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' } as const
-</script>
-
 <template>
   <li class="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3" :data-testid="`task-${task.id}`">
     <div class="flex items-start gap-3">
@@ -43,7 +26,7 @@ const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' }
       </button>
     </div>
     <p v-if="carried === 1" class="text-sm text-muted">{{ m.carriedOnce }}</p>
-    <template v-else-if="carried >= 2">
+    <template v-else-if="needsDecision(task, today)">
       <p class="text-sm text-muted">{{ m.carriedMany(carried) }}</p>
       <div class="flex gap-2">
         <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm font-medium" @click="emit('edit')">
@@ -56,3 +39,20 @@ const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' }
     </template>
   </li>
 </template>
+
+<script setup lang="ts">
+// One task (SPEC §5 Tasks): cross off, priority dot, carry-over in red, Cancel/Edit after two carry-overs.
+import { computed } from 'vue'
+import type { TaskRow } from '@/sync/types'
+import { carryOverCount, needsDecision, priorityKey } from '@/tasks/rules'
+import { messages } from '@/messages'
+
+const props = defineProps<{ task: TaskRow; today: string }>()
+const emit = defineEmits<{ toggle: []; edit: []; cancel: [] }>()
+const m = messages.tasks
+
+const carried = computed(() => carryOverCount(props.task, props.today))
+const done = computed(() => props.task.status === 'done')
+const priority = computed(() => priorityKey(props.task.priority))
+const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' } as const
+</script>

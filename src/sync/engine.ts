@@ -1,5 +1,5 @@
 import type { LocalDb, OutboxEntry } from './db'
-import { NetworkError, SYNC_TABLES, type Remote, type RowTypes, type SyncStatus, type SyncTable } from './types'
+import { NetworkError, READ_ONLY_TABLES, SYNC_TABLES, type Remote, type RowTypes, type SyncStatus, type SyncTable } from './types'
 
 /**
  * Offline-first sync (SPEC §7).
@@ -10,6 +10,11 @@ import { NetworkError, SYNC_TABLES, type Remote, type RowTypes, type SyncStatus,
  * - Conflicts: the last edit to reach the server wins (the server sets updated_at). A row with
  *   changes still queued on this device is not overwritten by a pull until those changes upload.
  */
+/** Some tables only change through server functions (invitations); the device never writes them directly. */
+function assertWritable(table: SyncTable) {
+  if (READ_ONLY_TABLES.includes(table)) throw new Error(`${table} is read-only on this device`)
+}
+
 export class SyncEngine {
   private flushing: Promise<void> | null = null
   private flushAgain = false
@@ -24,6 +29,7 @@ export class SyncEngine {
 
   /** Save a row on the device and queue it for upload. Resolves once it is safely stored locally. */
   async save<T extends SyncTable>(table: T, input: RowTypes[T]): Promise<RowTypes[T]> {
+    assertWritable(table)
     // Store a plain copy: rows coming from the screens can be Vue reactive proxies (for example a habit's
     // weekdays list), which IndexedDB cannot store. Rows are plain JSON, so this copy is exact.
     const row = JSON.parse(JSON.stringify(input)) as RowTypes[T]
@@ -42,6 +48,7 @@ export class SyncEngine {
    * Returns false when nothing needed changing.
    */
   async patch<T extends SyncTable>(table: T, id: string, change: (row: RowTypes[T]) => Partial<RowTypes[T]> | null): Promise<boolean> {
+    assertWritable(table)
     let changed = false
     await this.db.transaction('rw', [this.db.rows(table), this.db.outbox], async () => {
       const current = await this.db.rows(table).get(id)

@@ -1,74 +1,3 @@
-<script setup lang="ts">
-// SPEC §5 Routines: the list of routines, today's progress, and completion stats.
-import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import RoutineEditor from '@/components/RoutineEditor.vue'
-import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
-import { useToday } from '@/composables/useToday'
-import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, isScheduled, percent, routineStats, runState, stepsForDay } from '@/routines/rules'
-import { messages } from '@/messages'
-import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
-
-const brain = useBrainStore()
-const m = messages.routines
-const { today } = useToday()
-
-const routines = useLiveQuery<RoutineRow[]>(
-  async () => (brain.db ? (await brain.db.routines.toArray()).filter((r) => !r.deleted_at) : []),
-  [],
-  [() => brain.db],
-)
-const steps = useLiveQuery<RoutineStepRow[]>(async () => (brain.db ? brain.db.routine_steps.toArray() : []), [], [() => brain.db])
-const runs = useLiveQuery<RoutineRunRow[]>(async () => (brain.db ? brain.db.routine_runs.toArray() : []), [], [() => brain.db])
-const logs = useLiveQuery<RoutineStepLogRow[]>(async () => (brain.db ? brain.db.routine_step_logs.toArray() : []), [], [() => brain.db])
-
-const habits = useLiveQuery<HabitRow[]>(async () => (brain.db ? brain.db.habits.toArray() : []), [], [() => brain.db])
-const habitLogs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
-
-const rows = computed(() =>
-  routines.value.map((r) => {
-    const s = stepsForDay(activeSteps(steps.value, r.id), habits.value, today.value)
-    const state = runState(s, currentRun(r, runs.value, today.value), logs.value, habitDoneStepIds(s, habitLogs.value, today.value))
-    const stats = routineStats(r, steps.value, runs.value, logs.value, today.value, habits.value)
-    const anytime = isAnytime(r)
-    // A run-anytime routine can always be started (SPEC §5 Routines).
-    return { routine: r, steps: s, state, stats, anytime, scheduled: anytime || isScheduled(r, today.value) }
-  }),
-)
-
-function statusText(row: (typeof rows.value)[number]) {
-  if (!row.steps.length) return m.noSteps
-  if (row.anytime) return row.state.started ? m.progress(row.state.done, row.state.total) : m.anytime
-  if (!row.scheduled) return m.notToday
-  if (row.state.finished) return m.doneToday
-  if (row.state.started) return m.progress(row.state.done, row.state.total)
-  return m.notStarted
-}
-
-const expanded = ref<string | null>(null)
-const editing = ref<RoutineRow | null>(null)
-const isNew = ref(false)
-const editingSteps = computed(() => (editing.value ? activeSteps(steps.value, editing.value.id) : []))
-
-function startNew() {
-  isNew.value = true
-  editing.value = brain.newRoutine()
-}
-function edit(r: RoutineRow) {
-  isNew.value = false
-  editing.value = r
-}
-async function save(r: RoutineRow, s: { id?: string; title: string; habitId?: string | null }[]) {
-  await brain.saveRoutine(r, s)
-  editing.value = null
-}
-async function remove(r: RoutineRow) {
-  await brain.deleteRoutine(r.id)
-  editing.value = null
-}
-</script>
-
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
     <div>
@@ -127,3 +56,75 @@ async function remove(r: RoutineRow) {
     <RoutineEditor :routine="editing" :steps="editingSteps" :is-new="isNew" @save="save" @delete="remove" @close="editing = null" />
   </main>
 </template>
+
+<script setup lang="ts">
+// SPEC §5 Routines: the list of routines, today's progress, and completion stats.
+import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
+import RoutineEditor from '@/components/RoutineEditor.vue'
+import { useBrainStore } from '@/stores/brain'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { useToday } from '@/composables/useToday'
+import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, isScheduled, percent, routineStats, runState, stepsForDay } from '@/routines/rules'
+import { messages } from '@/messages'
+import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
+import { live } from '@/sync/live'
+
+const brain = useBrainStore()
+const m = messages.routines
+const { today } = useToday()
+
+const routines = useLiveQuery<RoutineRow[]>(
+  async () => (brain.db ? live(await brain.db.routines.toArray()) : []),
+  [],
+  [() => brain.db],
+)
+const steps = useLiveQuery<RoutineStepRow[]>(async () => (brain.db ? brain.db.routine_steps.toArray() : []), [], [() => brain.db])
+const runs = useLiveQuery<RoutineRunRow[]>(async () => (brain.db ? brain.db.routine_runs.toArray() : []), [], [() => brain.db])
+const logs = useLiveQuery<RoutineStepLogRow[]>(async () => (brain.db ? brain.db.routine_step_logs.toArray() : []), [], [() => brain.db])
+
+const habits = useLiveQuery<HabitRow[]>(async () => (brain.db ? brain.db.habits.toArray() : []), [], [() => brain.db])
+const habitLogs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
+
+const rows = computed(() =>
+  routines.value.map((r) => {
+    const s = stepsForDay(activeSteps(steps.value, r.id), habits.value, today.value)
+    const state = runState(s, currentRun(r, runs.value, today.value), logs.value, habitDoneStepIds(s, habitLogs.value, today.value))
+    const stats = routineStats(r, steps.value, runs.value, logs.value, today.value, habits.value)
+    const anytime = isAnytime(r)
+    // A run-anytime routine can always be started (SPEC §5 Routines).
+    return { routine: r, steps: s, state, stats, anytime, scheduled: anytime || isScheduled(r, today.value) }
+  }),
+)
+
+function statusText(row: (typeof rows.value)[number]) {
+  if (!row.steps.length) return m.noSteps
+  if (row.anytime) return row.state.started ? m.progress(row.state.done, row.state.total) : m.anytime
+  if (!row.scheduled) return m.notToday
+  if (row.state.finished) return m.doneToday
+  if (row.state.started) return m.progress(row.state.done, row.state.total)
+  return m.notStarted
+}
+
+const expanded = ref<string | null>(null)
+const editing = ref<RoutineRow | null>(null)
+const isNew = ref(false)
+const editingSteps = computed(() => (editing.value ? activeSteps(steps.value, editing.value.id) : []))
+
+function startNew() {
+  isNew.value = true
+  editing.value = brain.newRoutine()
+}
+function edit(r: RoutineRow) {
+  isNew.value = false
+  editing.value = r
+}
+async function save(r: RoutineRow, s: { id?: string; title: string; habitId?: string | null }[]) {
+  await brain.saveRoutine(r, s)
+  editing.value = null
+}
+async function remove(r: RoutineRow) {
+  await brain.deleteRoutine(r.id)
+  editing.value = null
+}
+</script>
