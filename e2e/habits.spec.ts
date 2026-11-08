@@ -232,7 +232,8 @@ test.describe('Spec §5 Account page', () => {
     await confirm.click()
     await expect(page).toHaveURL(/\/sign-in/)
     await expect(page.getByRole('status')).toHaveText('Your account and all of its data have been deleted.')
-    expect(server.rpcCalls).toEqual(['delete_my_account'])
+    // Only reads besides the deletion (the Account page also checks which saved people use My Brain).
+    expect(server.rpcCalls.filter((c) => c !== 'people_with_accounts')).toEqual(['delete_my_account'])
     // This device's copy is gone too.
     const names = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name))
     expect(names.filter((n) => n?.startsWith('my-brain-'))).toEqual([])
@@ -245,7 +246,7 @@ test.describe('Spec §5 Account page', () => {
     await dialog.getByRole('button', { name: 'Keep my account' }).click()
     await expect(dialog).toBeHidden()
     await expect(page).toHaveURL(/\/account$/)
-    expect(server.rpcCalls).toEqual([])
+    expect(server.rpcCalls.filter((c) => c !== 'people_with_accounts')).toEqual([])
   })
 
   test('Spec §9: if deletion fails, I am told and stay signed in', async ({ page }) => {

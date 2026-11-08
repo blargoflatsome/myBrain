@@ -66,3 +66,17 @@ export const linkUrl = (token: string, origin: string = window.location.origin) 
 export const peopleWithAccounts = async () => new Set((await list<{ person_id: string }>('people_with_accounts')).map((r) => r.person_id))
 export const guestConnectOffer = (invite: string, token: string) => call<boolean | null>('guest_connect_offer', { invite, token })
 export const guestConnectWithHost = (invite: string, token: string) => call<void>('guest_connect_with_host', { invite, token })
+
+// ---------- Part 3: who's going ----------
+export interface Attendee {
+  /** Null for a guest without an account (shown by first name only). */
+  user_id: string | null
+  display_name: string
+  avatar_url: string | null
+  is_host: boolean
+  connected: boolean
+  can_connect: boolean
+}
+export const eventAttendees = (event: string) => list<Attendee>('event_attendees', { event })
+export const connectViaEvent = (event: string, friend: string) => call<void>('connect_via_event', { event, friend })
+export const setEventVisibility = (invite: string, show: boolean) => call<void>('set_event_visibility', { invite, show })

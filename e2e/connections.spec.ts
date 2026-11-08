@@ -175,3 +175,39 @@ test.describe('Spec §10 Connections: connect from my people and from a guest in
     expect(rpc('guest_connect_with_host')[0]?.args).toMatchObject({ invite: 'inv-carol', token: 'tok-carol' })
   })
 })
+
+test.describe('Spec §10 Connections: who’s going', () => {
+  const event = { id: EVENT, user_id: 'host-id', title: 'Birthday party', notes: null, start_date: '2026-11-10', start_time: '19:00:00', end_date: '2026-11-10', end_time: '22:00:00', repeat: 'never', reminder_minutes: null, cancelled_at: null }
+
+  test('an invitee sees who else is going, can connect with them, and can hide themselves', async ({ page }) => {
+    server.seed('events', [event])
+    server.seed('event_invites', [{ id: 'inv-me', user_id: 'host-id', event_id: EVENT, host_name: 'Alice Able', name: 'Test Person', response: 'yes', visible: true }])
+    server.rpcResults.event_attendees = [
+      { user_id: 'host-id', display_name: 'Alice Able', avatar_url: null, is_host: true, connected: true, can_connect: false },
+      { user_id: BOB, display_name: 'Bob Baker', avatar_url: null, is_host: false, connected: false, can_connect: true },
+      { user_id: null, display_name: 'Dan', avatar_url: null, is_host: false, connected: false, can_connect: false },
+    ]
+    await open(page, '/calendar?date=2026-11-10')
+    await page.getByRole('button', { name: 'Day', exact: true }).click()
+    await page.locator('.cal-wrap').getByText('Birthday party').first().click()
+    const dialog = page.getByTestId('invited-event')
+    const going = dialog.getByTestId('whos-going')
+    await expect(going.getByTestId('attendee')).toHaveText([/^Alice Able · host\s*Connected/, /^Bob Baker\s*Connect/, /^Dan$/])
+    await going.getByRole('button', { name: 'Connect with Bob Baker' }).click()
+    await expect(going.getByTestId('attendee-status')).toHaveText('Request sent to Bob Baker. They’ll need to accept.')
+    expect(rpc('connect_via_event')[0]?.args).toMatchObject({ event: EVENT, friend: BOB })
+    await dialog.getByRole('checkbox', { name: /Show me to other guests/ }).uncheck()
+    await expect.poll(() => rpc('set_event_visibility')[0]?.args).toMatchObject({ invite: 'inv-me', show: false })
+  })
+
+  test('the host chooses whether guests can see who’s going', async ({ page }) => {
+    server.seed('events', [{ ...event, user_id: undefined }])
+    await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
+    const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    const box = dialog.getByRole('checkbox', { name: /Guests can see who’s going/ })
+    await expect(box).toBeChecked()
+    await box.uncheck()
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    await expect.poll(() => server.written('events').at(-1)).toMatchObject({ id: EVENT, show_guests: false })
+  })
+})

@@ -44,6 +44,10 @@
         </select>
         <span v-if="allDay && reminder !== null" class="text-xs">{{ m.editor.reminderAllDay }}</span>
       </label>
+      <label class="flex items-center justify-between gap-4 text-sm">
+        <span><span class="font-medium">{{ c.showGuests }}</span><span class="block text-xs text-muted">{{ c.showGuestsHint }}</span></span>
+        <input v-model="showGuests" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+      </label>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.editor.notes }}
         <textarea v-model="notes" maxlength="20000" rows="2" :class="[field, 'py-2']" />
@@ -100,6 +104,9 @@ import { field } from '@/ui/styles'
 const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
 const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow]; close: []; cancel: [EventRow] }>()
 const m = messages.calendar
+const c = messages.connections
+// Whether attendees see who else is going (SPEC §10 Connections).
+const showGuests = ref(true)
 
 const dialog = ref<HTMLDialogElement | null>(null)
 const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
@@ -134,6 +141,7 @@ watch(
     endTime.value = e.end_time?.slice(0, 5) ?? '10:00'
     repeat.value = e.repeat
     reminder.value = e.reminder_minutes
+    showGuests.value = e.show_guests ?? true
     notes.value = e.notes ?? ''
     error.value = ''
     people.value = []
@@ -157,6 +165,7 @@ const draft = computed<EventRow | null>(() =>
         end_time: allDay.value ? null : endTime.value,
         repeat: repeat.value,
         reminder_minutes: reminder.value,
+        show_guests: showGuests.value,
         notes: notes.value.trim() || null,
       }
     : null,
