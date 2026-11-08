@@ -7,6 +7,7 @@
 - Don't guess: if the spec is silent or unclear, ask, then write the answer into the spec (and log it under Decisions).
 - Every feature gets Vitest and/or Playwright tests named after the spec rule they prove. Anything that shows text people type is tested with long text too: a long sentence, a paragraph, and an unbroken string like a pasted link (shared samples in `e2e/a11y.spec.ts`, checked at 320 px wide). Run the full suite before calling a step done and after every change. Mock the clock for anything time-dependent.
 - Update `PROGRESS.md` at the end of each session.
+- Whenever functionality is added, changed or removed, update the public **Features** page (`src/views/FeaturesView.vue`) and **Docs** page (`src/views/DocsView.vue`) in the same change, so they always describe the app as it is.
 - Secrets live only in `.env.local` (gitignored) and Netlify env vars. Only the Supabase anon key may reach the browser. Ask for each credential when first needed.
 - Every table: `id, user_id, created_at, updated_at (server-set), deleted_at`, with RLS.
 - All user-facing wording in the "past you" voice, kept in one messages file.
