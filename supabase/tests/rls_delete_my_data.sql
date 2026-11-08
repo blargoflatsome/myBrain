@@ -41,6 +41,8 @@ begin
   insert into public.events (user_id, title, start_date, end_date) values (bob, 'Bob''s BBQ', '2026-11-22', '2026-11-22') returning id into bobs_event;
   update public.profiles set notify_ntfy = true, ntfy_topic = 'mybrain-0123456789abcdef', cancel_event_message = 'Custom {{name}}' where user_id = alice;
 
+  -- Alice and Bob are connected, so they can invite each other in the app (SPEC §10 Connections).
+  insert into public.connections (user_id, friend_id) values (alice, bob), (bob, alice);
   execute 'set local role authenticated';
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
   perform public.invite_people(shared_event, '[{"name":"Carol","email":"carol@test.invalid"}]'::jsonb);

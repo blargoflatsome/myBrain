@@ -264,9 +264,19 @@ Merged and live.
 - Migration `20261108010000_people.sql` (table, RLS, Realtime, one-time import of everyone already invited by email/phone, delete_my_data part). Dev migrated; 19 SQL files pass. Prod: applied right before merge.
 - Tests: `src/events/people.test.ts`, `e2e/my-people.spec.ts`, `supabase/tests/rls_people.sql`; delete-my-data and accessibility tests updated. Vitest 284, Playwright 547.
 
-## Contacts window (branch `contacts-window`)
+## Contacts window (done, PR #35)
 - The People section has a **Contacts** button that opens `ContactsDialog.vue`: my people A–Z, search as you type, Add per person (stays open; Added with Undo; already invited shows Invited), Done. The typing form only adds. Finding My Brain users by name moves to Phase 2 (people need to match first), and with it the availability schedule, free/busy checks, suggested times, and the findable and share-availability settings (screens and client code removed; tables and server functions kept). Docs, Features and Privacy updated.
 - Tests: `e2e/my-people.spec.ts` rewritten for the window, Contacts window added to the accessibility scans, availability/name-search tests removed. Vitest 281, Playwright 545.
+
+## Connections, part 1 (branch `connections`, includes the spec from PR #36)
+- Migration `20261108020000_connections.sql`: `connection_requests`, `connections`, `connection_blocks` (functions only, no direct access); `request_connection` (same answer whatever is typed, 20 a day), `incoming_connection_requests`, `sent_connection_requests`, `answer_connection_request` (accept/decline/block), `cancel_connection_request`, `my_connections`, `remove_connection`; `invite_people` now invites only connections in the app (typed addresses of anyone else are guests); Delete my data part. Dev migrated; 20 SQL files pass (`rls_connections.sql`; two older tests now connect their users first). Prod: before merge.
+- App: `/connections` page (`ConnectionsView.vue`, `src/events/connections.ts`), link on Account, connections first in the Contacts window ("On My Brain"). Tests: `e2e/connections.spec.ts`, a11y scan. Vitest 281, Playwright 559 (one known journal flake).
+- Part 2 (same branch): migration `20261108030000_connect_links.sql` (`connect_links`, code tries; create/list/cancel/preview/use; only hashes stored), `/connect/:token` page, Make a link and Have a code? on the Connections page, return to the link after sign-in. `rls_connect_links.sql`; 21 SQL files pass on dev.
+- Part 3 (so far): migration `20261108040000_connect_from_people_and_guests.sql` (`people_with_accounts`, `guest_connect_offer`, `guest_connect_with_host`); Connect buttons on saved people (Account, Contacts window) and on the guest page. `rls_connect_part3.sql`; 22 SQL files pass on dev.
+- Part 3 (done): who's going — migration `20261108050000_event_attendees.sql` (`events.show_guests`, `event_invites.visible`, `event_attendees`, `connect_via_event`, `set_event_visibility`); list with Connect in the invitee window, host checkbox. `rls_event_attendees.sql`; 23 SQL files pass on dev.
+- Part 4 (done, except "Just this date" for repeating events): migration `20261108060000_guest_links.sql` (link lifetime, `guest_invite.passed`, `guest_claim_status`/`claim_guest_invite`, `link_invites_between` on connect, `event_changed`, 'update' message kind); guest page passed/sign-up/claim/accept-as, host New link (existing `new_invite_link`), Let everyone know. `rls_guest_links.sql`, `e2e/guest-links.spec.ts`; 24 SQL files pass on dev. Found and fixed: saved times (19:00) vs stored (19:00:00) would have asked on every save.
+- Part 5 (done): migration `20261108070000_scheduling_for_connections.sql` (`free_busy` only for connections); availability card, share setting, free/busy and suggested times restored from before PR #35, now for connections. `rls_scheduling.sql`; 25 SQL files pass on dev.
+- Not built: "Just this date" answers for repeating events; push for connection requests.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

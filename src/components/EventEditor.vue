@@ -44,6 +44,10 @@
         </select>
         <span v-if="allDay && reminder !== null" class="text-xs">{{ m.editor.reminderAllDay }}</span>
       </label>
+      <label class="flex items-center justify-between gap-4 text-sm">
+        <span><span class="font-medium">{{ c.showGuests }}</span><span class="block text-xs text-muted">{{ c.showGuestsHint }}</span></span>
+        <input v-model="showGuests" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+      </label>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.editor.notes }}
         <textarea v-model="notes" maxlength="20000" rows="2" :class="[field, 'py-2']" />
@@ -53,6 +57,11 @@
         v-model="people"
         :event-id="event.id"
         :is-new="isNew"
+        :start-date="startDate"
+        :start-time="allDay ? null : startTime"
+        :end-date="endDate || startDate"
+        :end-time="allDay ? null : endTime"
+        @suggest="useSuggestion"
       />
       <p v-if="event?.cancelled_at" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ messages.invites.cancelledNote }}</p>
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
@@ -100,6 +109,9 @@ import { field } from '@/ui/styles'
 const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
 const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow]; close: []; cancel: [EventRow] }>()
 const m = messages.calendar
+const c = messages.connections
+// Whether attendees see who else is going (SPEC §10 Connections).
+const showGuests = ref(true)
 
 const dialog = ref<HTMLDialogElement | null>(null)
 const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
@@ -121,6 +133,14 @@ const notes = ref('')
 const error = ref('')
 // People to invite when saving (SPEC §5 Shared events).
 const people = ref<PersonToInvite[]>([])
+// A suggested time when everyone's free (SPEC §10 Connections: scheduling).
+function useSuggestion(s: { date: string; start: string; end: string }) {
+  allDay.value = false
+  startDate.value = s.date
+  endDate.value = s.date
+  startTime.value = s.start
+  endTime.value = s.end
+}
 
 watch(
   () => props.event,
@@ -134,6 +154,7 @@ watch(
     endTime.value = e.end_time?.slice(0, 5) ?? '10:00'
     repeat.value = e.repeat
     reminder.value = e.reminder_minutes
+    showGuests.value = e.show_guests ?? true
     notes.value = e.notes ?? ''
     error.value = ''
     people.value = []
@@ -157,6 +178,7 @@ const draft = computed<EventRow | null>(() =>
         end_time: allDay.value ? null : endTime.value,
         repeat: repeat.value,
         reminder_minutes: reminder.value,
+        show_guests: showGuests.value,
         notes: notes.value.trim() || null,
       }
     : null,

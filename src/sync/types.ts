@@ -116,6 +116,8 @@ export interface EventRow extends BaseRow {
   reminder_minutes: number | null
   /** Set when the creator cancelled it for everyone (SPEC §5 Cancelling). */
   cancelled_at?: string | null
+  /** Whether attendees can see who else is going (SPEC §10 Connections); on by default. */
+  show_guests?: boolean
 }
 
 export type InviteResponse = 'pending' | 'yes' | 'maybe' | 'no' | 'dropped'
@@ -128,6 +130,8 @@ export interface EventInviteRow extends BaseRow {
   email?: string | null
   phone?: string | null
   response: InviteResponse
+  /** Whether this attendee shows to the event's other attendees (SPEC §10 Connections). */
+  visible?: boolean
   responded_at?: string | null
 }
 

@@ -11,7 +11,19 @@
       </div>
 
       <p v-if="data.cancelled" class="rounded-xl bg-surface p-4 font-medium" role="status">{{ m.cancelled }}</p>
+      <p v-else-if="data.passed" class="rounded-xl bg-surface p-4 font-medium" role="status" data-testid="guest-passed">{{ m.passed }}</p>
+      <div v-else-if="claim === 'claimed'" class="flex flex-col gap-2 rounded-2xl border border-accent p-4" role="status" data-testid="guest-claimed">
+        <p>{{ m.claimed }}</p>
+        <RouterLink :to="`/calendar?date=${data.start_date}`" class="min-h-11 self-start rounded-xl bg-accent px-4 py-2.5 font-semibold text-accent-ink">{{ m.openCalendar }}</RouterLink>
+      </div>
       <template v-else>
+        <div v-if="claim === 'ask'" class="flex flex-col gap-2 rounded-2xl border border-accent p-4" data-testid="guest-accept-as">
+          <p>{{ m.acceptAs(myName) }}</p>
+          <span class="flex flex-wrap gap-2">
+            <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="acceptAsMe">{{ m.acceptAsButton }}</button>
+            <button type="button" class="min-h-11 rounded-xl border border-line px-4" @click="claim = 'none'">{{ m.stayGuest }}</button>
+          </span>
+        </div>
         <div class="flex flex-col gap-3 rounded-2xl border border-line p-4">
           <p class="font-medium">{{ data.guest_name ? m.hi(data.guest_name) : '' }} {{ m.going }}</p>
           <div class="flex gap-2" role="group" :aria-label="m.going">
@@ -22,10 +34,20 @@
           <p v-if="thanks" class="text-sm" role="status">{{ thanks }}</p>
           <p v-else-if="data.response !== 'pending'" class="text-sm text-muted">{{ m.yourAnswer(m.answers[data.response]) }}</p>
         </div>
+        <div v-if="offer && data.response !== 'pending' && data.response !== 'no'" class="flex flex-col gap-2 rounded-2xl border border-accent p-4" data-testid="guest-connect">
+          <p>{{ m.connectOffer(host) }}</p>
+          <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="connectHost">{{ m.connect }}</button>
+        </div>
+        <p v-if="connectNote" class="text-sm" role="status" data-testid="guest-connect-sent">{{ connectNote }}</p>
         <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" @click="addToCalendar">📅 {{ m.addToCalendar }}</button>
       </template>
 
-      <form class="flex flex-col gap-2" @submit.prevent="send">
+      <div v-if="!signedIn && !data.passed && !data.cancelled" class="flex flex-col gap-2 rounded-2xl bg-surface p-4" data-testid="guest-sign-up">
+        <p class="text-sm">{{ m.signUp }}</p>
+        <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" @click="signUp">{{ m.signUpButton }}</button>
+      </div>
+
+      <form v-if="!data.passed && claim !== 'claimed'" class="flex flex-col gap-2" @submit.prevent="send">
         <label class="flex flex-col gap-1 text-sm text-muted">
           {{ m.message(host) }}
           <textarea v-model="message" rows="3" maxlength="2000" class="rounded-xl border border-line bg-surface px-3 py-2 text-base text-ink" :placeholder="m.messagePlaceholder" />
@@ -49,7 +71,10 @@
 // SPEC §5 Shared events: the public page a guest opens from their private link. No account needed: see the event,
 // answer Yes / Maybe / No, message the host, add it to a calendar, or stop the emails.
 import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { rememberReturn } from '@/router/returnTo'
+import { claimGuestInvite, guestClaimStatus, guestConnectOffer, guestConnectWithHost, type ClaimStatus } from '@/events/connections'
+import { useAuthStore } from '@/stores/auth'
 import { guestInvite, guestMessage, guestOptOut, guestRespond, whenText, type GuestInvite } from '@/events/sharing'
 import { downloadIcs } from '@/events/ics'
 import { messages } from '@/messages'
@@ -70,6 +95,7 @@ const stopped = ref(false)
 onMounted(async () => {
   try {
     data.value = await guestInvite(invite.value, token.value)
+    void checkOffer()
     state.value = data.value ? 'ready' : 'invalid'
   } catch {
     state.value = 'invalid'
@@ -77,6 +103,36 @@ onMounted(async () => {
 })
 
 const host = computed(() => data.value?.host_name || 'Someone')
+// An account holder invited as a guest can ask to connect with the host (SPEC §10 Connections); the host still accepts.
+const auth = useAuthStore()
+const offer = ref(false)
+const connectNote = ref('')
+async function checkOffer() {
+  await auth.init()
+  signedIn.value = auth.isSignedIn
+  if (!auth.isSignedIn) return
+  claim.value = await guestClaimStatus(invite.value, token.value).catch(() => 'none' as const)
+  // The invited email is this account's: the invitation moves in on its own (SPEC §10 Connections).
+  if (claim.value === 'match' && (await claimGuestInvite(invite.value, token.value).catch(() => false))) claim.value = 'claimed'
+  offer.value = !!(await guestConnectOffer(invite.value, token.value).catch(() => false))
+}
+// Signed in, or not (then the page offers to create an account and come back).
+const signedIn = ref(false)
+const claim = ref<ClaimStatus>('none')
+const router = useRouter()
+const myName = computed(() => String((auth.user?.user_metadata as { full_name?: string } | undefined)?.full_name ?? 'you'))
+function signUp() {
+  rememberReturn(route.fullPath)
+  void router.push('/sign-in')
+}
+async function acceptAsMe() {
+  if (await claimGuestInvite(invite.value, token.value).catch(() => false)) claim.value = 'claimed'
+}
+async function connectHost() {
+  await guestConnectWithHost(invite.value, token.value)
+  offer.value = false
+  connectNote.value = m.connectSent(host.value)
+}
 async function answer(a: 'yes' | 'maybe' | 'no') {
   error.value = ''
   try {

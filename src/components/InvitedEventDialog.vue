@@ -23,6 +23,21 @@
             <button type="button" :class="choice(answer === 'no')" :aria-pressed="answer === 'no'" @click="respond('no')">{{ m.no }}</button>
           </div>
         </div>
+        <section v-if="attendees.length" class="flex flex-col gap-2" aria-labelledby="whos-going" data-testid="whos-going">
+          <h3 id="whos-going" class="text-sm font-medium">{{ c.whosGoing }}</h3>
+          <ul class="flex flex-col gap-1">
+            <li v-for="(a, i) in attendees" :key="a.user_id ?? `guest-${i}`" class="flex min-w-0 items-center justify-between gap-2 text-sm" data-testid="attendee">
+              <span class="min-w-0 [overflow-wrap:anywhere]">{{ a.display_name }}<span v-if="a.is_host" class="text-muted"> · {{ c.host }}</span></span>
+              <button v-if="a.user_id && a.can_connect" type="button" class="min-h-11 shrink-0 rounded-xl border border-accent px-3" :aria-label="c.connectPersonLabel(a.display_name)" @click="connectTo(a)">{{ c.connectPerson }}</button>
+              <span v-else-if="a.connected" class="shrink-0 text-muted">{{ c.connected }}</span>
+            </li>
+          </ul>
+          <p class="text-sm text-muted" role="status" data-testid="attendee-status">{{ attendeeStatus }}</p>
+        </section>
+        <label class="flex items-center justify-between gap-4 text-sm">
+          <span><span class="font-medium">{{ c.showMe }}</span><span class="block text-xs text-muted">{{ c.showMeHint }}</span></span>
+          <input v-model="showMe" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]" @change="saveShowMe">
+        </label>
         <form class="flex flex-col gap-2" @submit.prevent="send">
           <span class="text-sm font-medium">{{ m.message }}</span>
           <div class="flex gap-2 text-sm" role="radiogroup" :aria-label="m.message">
@@ -50,6 +65,7 @@
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { messageEvent, respondToInvite, whenText } from '@/events/sharing'
+import { connectViaEvent, eventAttendees, setEventVisibility, type Attendee } from '@/events/connections'
 import { messages } from '@/messages'
 import type { EventInviteRow, EventRow } from '@/sync/types'
 import { choice } from '@/ui/styles'
@@ -57,6 +73,7 @@ import { choice } from '@/ui/styles'
 const props = defineProps<{ event: EventRow | null; invite: EventInviteRow | null }>()
 const emit = defineEmits<{ close: []; dropOut: [EventRow] }>()
 const m = messages.invites
+const c = messages.connections
 const brain = useBrainStore()
 
 const dialog = ref<HTMLDialogElement | null>(null)
@@ -80,9 +97,31 @@ watch(
     text.value = ''
     notice.value = ''
     error.value = ''
+    showMe.value = props.invite?.visible ?? true
+    attendeeStatus.value = ''
+    void loadAttendees()
     dialog.value?.showModal()
   },
 )
+
+// Who's going (SPEC §10 Connections): other attendees with Connect, and whether I show to them.
+const attendees = ref<Attendee[]>([])
+const attendeeStatus = ref('')
+const showMe = ref(true)
+async function loadAttendees() {
+  attendees.value = []
+  if (!props.event || !brain.online) return
+  attendees.value = await eventAttendees(props.event.id).catch(() => [])
+}
+async function connectTo(a: Attendee) {
+  if (!props.event || !a.user_id) return
+  await connectViaEvent(props.event.id, a.user_id)
+  attendeeStatus.value = c.requestSent(a.display_name)
+  await loadAttendees()
+}
+async function saveShowMe() {
+  if (props.invite) await setEventVisibility(props.invite.id, showMe.value).catch(() => {})
+}
 const cancelled = computed(() => !!props.event?.cancelled_at)
 const dropped = computed(() => answer.value === 'dropped')
 

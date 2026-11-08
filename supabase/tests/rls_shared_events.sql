@@ -36,6 +36,8 @@ begin
     values (gen_random_uuid(), alice, 'Picnic', '2026-11-21', '12:00', '2026-11-21', '14:00') returning id into picnic;
 
   -- ===== As Alice (the host) =====
+  -- Alice and Bob are connected, so they can invite each other in the app (SPEC §10 Connections).
+  insert into public.connections (user_id, friend_id) values (alice, bob), (bob, alice);
   execute 'set local role authenticated';
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
 

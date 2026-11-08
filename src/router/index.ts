@@ -1,3 +1,4 @@
+import { rememberReturn, takeReturn } from '@/router/returnTo'
 import { createRouter, createWebHistory } from 'vue-router'
 import { messages } from '@/messages'
 import DashboardView from '@/views/DashboardView.vue'
@@ -23,6 +24,8 @@ export const routes = [
   { path: '/calendar', name: 'calendar', component: () => import('@/views/CalendarView.vue') },
   { path: '/habits', name: 'habits', component: () => import('@/views/HabitsView.vue') },
   { path: '/account', name: 'account', component: () => import('@/views/AccountView.vue') },
+  { path: '/connections', name: 'connections', component: () => import('@/views/ConnectionsView.vue') },
+  { path: '/connect/:token', name: 'connect', component: () => import('@/views/ConnectLinkView.vue'), meta: { returnAfterSignIn: true } },
   // The page was called Profile before; old links still work.
   { path: '/profile', redirect: '/account' },
   { path: '/quests', name: 'quests', component: () => import('@/views/QuestsView.vue') },
@@ -51,5 +54,11 @@ router.afterEach((to) => {
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
   await auth.init()
+  // A connect link opened before signing in comes back after sign-in (SPEC §10 Connections).
+  if (!auth.isSignedIn && to.meta.returnAfterSignIn) rememberReturn(to.fullPath)
+  if (auth.isSignedIn) {
+    const back = takeReturn()
+    if (back && back !== to.fullPath) return back
+  }
   return authRedirect(to, auth.isSignedIn)
 })

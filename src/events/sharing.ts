@@ -1,5 +1,6 @@
 // Shared events (SPEC §5 Shared events, Cancelling): calls to the server functions, answer links, and the
 // one-at-a-time sharing flow (messaging app or email app) until automatic texts and emails exist.
+import type { FreeBusyRow } from '@/events/availability'
 import { supabase } from '@/lib/supabase'
 import type { EventRow, InviteResponse } from '@/sync/types'
 
@@ -48,6 +49,8 @@ export const invitePeople = (event: string, people: PersonToInvite[]) => list<Ne
 export const uninvite = (invite: string) => call<void>('uninvite', { invite })
 export const respondToInvite = (invite: string, answer: 'yes' | 'maybe' | 'no') => call<void>('respond_to_invite', { invite, answer })
 export const eventPeople = (event: string) => list<EventPerson>('event_people', { event })
+/** Connections' free or busy times (SPEC §10 Connections: scheduling). */
+export const freeBusy = (people: string[]) => list<FreeBusyRow>('free_busy', { people })
 export interface Recipient {
   invite_id: string
   name: string | null
@@ -58,7 +61,7 @@ export interface Recipient {
 export const messageEvent = (event: string, audience: 'host' | 'everyone', message: string) => list<Recipient>('message_event', { event, audience, message })
 export const cancelEvent = (event: string) => list<Recipient>('cancel_event', { event })
 export const dropOut = (event: string) => call<void>('drop_out', { event })
-export const markShared = (invites: string[], kind: 'invite' | 'message' | 'cancel') => call<void>('mark_shared', { invites, msg_kind: kind })
+export const markShared = (invites: string[], kind: 'invite' | 'message' | 'cancel' | 'update') => call<void>('mark_shared', { invites, msg_kind: kind })
 
 export interface GuestInvite {
   host_name: string | null
@@ -73,6 +76,8 @@ export interface GuestInvite {
   timezone: string
   response: InviteResponse
   cancelled: boolean
+  /** The event ended over 30 days ago (or a year after the last answer, for a repeating event): read-only. */
+  passed?: boolean
 }
 export async function guestInvite(invite: string, token: string): Promise<GuestInvite | null> {
   const rows = await list<GuestInvite>('guest_invite', { invite, token })

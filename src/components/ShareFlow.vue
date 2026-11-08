@@ -40,7 +40,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { markShared, shareHref, type ShareTarget } from '@/events/sharing'
 import { messages } from '@/messages'
 
-const props = defineProps<{ targets: ShareTarget[]; kind: 'invite' | 'message' | 'cancel' }>()
+const props = defineProps<{ targets: ShareTarget[]; kind: 'invite' | 'message' | 'cancel' | 'update' }>()
 /** done: how many messages I said I sent. */
 const emit = defineEmits<{ done: [sent: number] }>()
 const m = messages.share
