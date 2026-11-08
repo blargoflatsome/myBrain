@@ -36,7 +36,7 @@
 
     <p v-if="inviteError" class="text-sm text-danger" role="alert">{{ inviteError }}</p>
     <p v-if="inviteNotice" class="rounded-xl border border-line bg-surface p-3 text-sm" role="status" data-testid="invite-notice">{{ inviteNotice }}</p>
-    <EventEditor :event="editing" :is-new="isNew" :start-people="startPeople" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="closeEditor" />
+    <EventEditor :event="editing" :is-new="isNew" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="editing = null" />
     <InvitedEventDialog :event="viewing" :invite="viewingInvite" @drop-out="startDropOut" @close="viewing = null" />
     <CancelEventDialog :event="cancelling" :mode="cancelMode" @done="cancelled" @close="cancelling = null" />
     <ShareFlow v-if="shareTargets.length" :targets="shareTargets" :kind="shareKind" @done="shared" />
@@ -61,14 +61,13 @@ import EventEditor from '@/components/EventEditor.vue'
 import InvitedEventDialog from '@/components/InvitedEventDialog.vue'
 import CancelEventDialog from '@/components/CancelEventDialog.vue'
 import ShareFlow from '@/components/ShareFlow.vue'
-import { clearLostContactPick, invitePeople, inviteLink, inviteMessage, lostContactPick, type PersonToInvite, type ShareTarget } from '@/events/sharing'
+import { invitePeople, inviteLink, inviteMessage, type PersonToInvite, type ShareTarget } from '@/events/sharing'
 import { supabase } from '@/lib/supabase'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { calendarItems, newEvent, nextWholeHour, type CalendarItem } from '@/events/rules'
 import { addDays } from '@/tasks/days'
-import { takeReadyToInvite } from '@/events/readyToInvite'
 import { messages } from '@/messages'
 import type { EventInviteRow, EventRow } from '@/sync/types'
 import { live } from '@/sync/live'
@@ -155,12 +154,6 @@ function changeView(name: ViewName) {
 // ---------- Events ----------
 const editing = ref<EventRow | null>(null)
 const isNew = ref(false)
-// People shared from my contacts, ready to invite in the event I chose for them (SPEC §5 Calendar).
-const startPeople = ref<PersonToInvite[]>([])
-function closeEditor() {
-  editing.value = null
-  startPeople.value = []
-}
 // A new event starts at a time (the next whole hour, or the time tapped); All day is something I turn on (SPEC §5).
 function startNew(date: string, time: string | null) {
   isNew.value = true
@@ -198,6 +191,8 @@ async function myName() {
 }
 async function saveEvent(e: EventRow, people: PersonToInvite[] = []) {
   await brain.saveEvent(e)
+  // Everyone I typed joins my people, to pick from next time (SPEC §5 Calendar).
+  await brain.savePeople(people)
   editing.value = null
   inviteError.value = ''
   inviteNotice.value = ''
@@ -245,36 +240,18 @@ async function deleteEvent(e: EventRow) {
   editing.value = null
 }
 
-// The phone closed the app while I was picking a contact (SPEC §5 Calendar): reopen that event, where it's
-// explained, or say so here if the event wasn't saved yet.
-const lostPick = lostContactPick()
-if (lostPick?.event) void router.replace({ query: { ...route.query, event: lostPick.event } })
-else if (lostPick) {
-  inviteNotice.value = messages.invites.contactPickLost
-  clearLostContactPick()
-}
-
 // Opened with ?date= (a reminder or search) and maybe ?event= (search): go there and open the event.
 watch(
   [() => route.query.event, events],
   ([id]) => {
     if (typeof id !== 'string' || editing.value) return
     if (events.value.some((e) => e.id === id)) {
-      if (route.query.invite === '1') startPeople.value = takeReadyToInvite()
       openEvent(id)
       void router.replace({ query: { date: route.query.date } })
     }
   },
   { immediate: true },
 )
-// Sharing a contact chose "New event": open a new event with them ready to invite (once the editor is on the page,
-// so it sees the event arrive).
-onMounted(() => {
-  if (route.query.new !== '1' || editing.value) return
-  if (route.query.invite === '1') startPeople.value = takeReadyToInvite()
-  startNew(typeof route.query.date === 'string' ? route.query.date : today.value, null)
-  void router.replace({ query: { date: route.query.date } })
-})
 onMounted(() => {
   if (typeof route.query.date === 'string') api()?.gotoDate(route.query.date)
 })

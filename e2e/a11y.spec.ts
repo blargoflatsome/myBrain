@@ -26,6 +26,7 @@ ${LONG_WORD}`, due_date: day, priority: 2, status: 'open', source: 'manual', cre
   server.seed('routine_steps', [{ id: '00000003-0000-4000-8000-000000000003', routine_id: RID, position: 2, title: LONG_WORD, start_date: '2026-11-01' }])
   server.seed('quests', [{ id: 'q-long', title: LONG_LINE, details: `${PARAGRAPH} ${LONG_WORD}`, energy: 'meh', minutes: 60, completed_at: null }])
   server.seed('inbox', [{ id: 'i-long', body: `${PARAGRAPH} ${LONG_WORD}`, created_at: '2026-11-09T13:00:00Z' }])
+  server.seed('people', [{ id: 'pe-long', name: LONG_LINE, email: 'areallylongemailaddressthatsomeonetypedwithoutanybreaksatall@example.com', phone: null }])
   server.seed('journal_entries', [
     { id: 'j8', date: '2026-11-08', body: `<p>${PARAGRAPH}</p><p>${LONG_WORD}</p>`, tomorrow: `<p>${LONG_WORD}</p>`, better_than_yesterday: false, stats: {}, auto: false, stats_final: true },
   ])
@@ -103,7 +104,6 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Vault bucket', '/vault?bucket=b1', (p) => expect(p.getByText('Dune')).toBeVisible()],
   ['Calendar', '/calendar', (p) => expect(p.locator('.cal-wrap').getByText('pay rent').first()).toBeVisible()],
   ['Account', '/account', (p) => expect(p.getByRole('heading', { name: 'Your profile', level: 2 })).toBeVisible()],
-  ['Invite from a shared contact (nothing shared)', '/invite-contact', (p) => expect(p.getByTestId('share-problem')).toBeVisible()],
   ['Capture page', '/capture', (p) => expect(p.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()],
   ['Privacy', '/privacy', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
   ['Features', '/features', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],

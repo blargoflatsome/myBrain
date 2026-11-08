@@ -190,7 +190,6 @@ Merged and live.
 - WCAG 2.2 AA (SPEC §2, CLAUDE.md): `e2e/a11y.spec.ts` runs axe on every page and main window in light and dark, plus reflow at 320 px, titles, skip link, focus ring, tap-to-move and page announcements. Fixed everything it and a manual review found (see SPEC §14 2026-11-07).
 - Part 3 (user): removed the Journal's Add a task for tomorrow button; focus trapped in every window and returned on close (`src/a11y/focus.ts`, phone menu included); tests prove focus escapes without it.
 - Tests: Vitest 205, Playwright 417 (3 skipped, phone-only/desktop-only).
-- Next: Google Calendar sync (check Google's sensitive-scope/verification rules first, then plan and ask).
 
 ## Dashboard: yesterday (done, PR #17)
 - "Do better today than past you did yesterday" at the top of the Dashboard: yesterday's habits kept, routines finished, tasks done (x of y), and each routine's steps done; says so when nothing was scheduled (user's choices, SPEC §5 Dashboard). No database change.
@@ -257,8 +256,13 @@ Merged and live.
 ## Pick from contacts follow-ups (done, PRs #30, #32)
 - #30: the app says when the phone closed it while picking (reopens the event) or when no contact arrives within 4 seconds. #32: a test page on the user's phone (draft PR #31, preview only, kept for re-testing) showed Chrome 157 with Samsung's contact list answering an empty list the moment the list opens; the app now says Chrome blocked it. Bug report text given to the user to file with Chrome. Flaky accessibility checks steadied (they opened windows before the page was ready). Seen in tests only, not fixed: opening the Capture window in the first moment after a page loads can let Tab reach the + Capture button behind it.
 
-## Share a contact into My Brain (branch `share-contact`)
-- The share target is now a POST that takes contact files (vCard); the service worker (`src/sw.ts`, `src/share/target.ts`) sends text and links to Capture as before and keeps a contact file in Cache Storage (up to an hour) for `/invite-contact`. That screen (`InviteContactView.vue`) reads names, first email, first phone (`src/events/vcard.ts`, vCard 2.1/3/4), lists my upcoming events (10 per page) and New event; the chosen event opens with them under "To invite". No database change. Tests: `src/events/vcard.test.ts`, `src/share/target.test.ts`, `e2e/share-contact.spec.ts` (a real share through the service worker), accessibility scan of the new page. Vitest 295, Playwright 563. Not yet tried on the phone: whether Samsung Contacts lists My Brain for contact files.
+## Share a contact into My Brain (done, PR #33, then removed)
+- Worked once the phone's app registration was refreshed, but the user found it an awful experience; removed in the next change along with Pick from contacts.
+
+## My people (branch `saved-people`)
+- Pick from contacts and sharing a contact in are gone (code, tests, share target back to GET /capture). Guests are typed once; saving the event saves them to **my people** (new `people` table, Dexie v10, synced; same email/phone = same person, new name replaces old). The event's People section lists my people A–Z, 10 per page, filtered by what I type, with Add buttons; already invited or waiting people aren't listed. Account page has a People section to add (duplicates flagged), edit or remove (confirmation). Replaces the remembered-people suggestions. Delete my data has a "Your people" part. Privacy page mentions it.
+- Migration `20261108010000_people.sql` (table, RLS, Realtime, one-time import of everyone already invited by email/phone, delete_my_data part). Dev migrated; 19 SQL files pass. Prod: applied right before merge.
+- Tests: `src/events/people.test.ts`, `e2e/my-people.spec.ts`, `supabase/tests/rls_people.sql`; delete-my-data and accessibility tests updated. Vitest 284, Playwright 547.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

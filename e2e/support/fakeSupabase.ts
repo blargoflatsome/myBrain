@@ -20,6 +20,7 @@ export class FakeSupabase {
   readonly tables: Record<string, Map<string, Row>> = {
     tasks: new Map(),
     post_its: new Map(),
+    people: new Map(),
     notifications: new Map(),
     vault_buckets: new Map(),
     vault_items: new Map(),

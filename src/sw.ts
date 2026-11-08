@@ -2,7 +2,6 @@
 // Service worker (SPEC §3, §6): offline app shell, plus Web Push notifications that open the right screen.
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
-import { keepSharedContacts, routeShare, SHARE_PATH } from './share/target'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -12,24 +11,6 @@ self.addEventListener('activate', () => self.clients.claim())
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//] }))
-
-// Things shared from other apps arrive here (SPEC §3 PWA): a contact file waits for the invite screen, and text or
-// a link goes to Capture.
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url)
-  if (event.request.method !== 'POST' || url.origin !== self.location.origin || url.pathname !== SHARE_PATH) return
-  event.respondWith(
-    (async () => {
-      let to = '/capture'
-      try {
-        to = await routeShare(await event.request.formData(), (text) => keepSharedContacts(text))
-      } catch {
-        // An unreadable share still opens the app.
-      }
-      return Response.redirect(new URL(to, self.location.origin).href, 303)
-    })(),
-  )
-})
 
 interface PushPayload {
   title: string

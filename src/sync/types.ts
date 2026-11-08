@@ -24,6 +24,7 @@ export const SYNC_TABLES = [
   'availability_exceptions',
   'post_its',
   'notifications',
+  'people',
 ] as const
 
 /** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
@@ -70,6 +71,13 @@ export interface PostItRow extends BaseRow {
   color: PostItColor
   /** Lowest first; a new note goes in front. */
   position: number
+}
+
+/** My people (SPEC §5 Calendar): someone I've invited by email or phone, saved to invite again. */
+export interface PersonRow extends BaseRow {
+  name: string | null
+  email: string | null
+  phone: string | null
 }
 
 export interface VaultBucketRow extends BaseRow {
@@ -291,6 +299,7 @@ export interface JournalEntryRow extends BaseRow {
 export interface RowTypes {
   notifications: NotificationRow
   post_its: PostItRow
+  people: PersonRow
   tasks: TaskRow
   vault_buckets: VaultBucketRow
   vault_items: VaultItemRow

@@ -3,7 +3,6 @@
     ref="dialog"
     class="m-auto max-h-[92dvh] w-[min(100%-2rem,32rem)] rounded-2xl border border-line bg-surface p-0 text-ink backdrop:bg-black/40"
     :aria-label="isNew ? m.editor.newHeading : m.editor.heading"
-    @cancel="onCancel"
     @close="emit('close')"
   >
     <form class="flex flex-col gap-4 p-5" novalidate @submit.prevent="save">
@@ -96,15 +95,14 @@
 import TimeInput from '@/components/TimeInput.vue'
 import { computed, ref, watch } from 'vue'
 import EventPeople from '@/components/EventPeople.vue'
-import { contactPickerOpen, type PersonToInvite } from '@/events/sharing'
+import type { PersonToInvite } from '@/events/sharing'
 import { eventProblem, nextWholeHour, REMINDERS, REPEATS } from '@/events/rules'
 import { messages } from '@/messages'
 import type { EventRepeat, EventRow } from '@/sync/types'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { field } from '@/ui/styles'
 
-// startPeople: people already chosen to invite, e.g. shared from my contacts (SPEC §5 Calendar).
-const props = defineProps<{ event: EventRow | null; isNew: boolean; startPeople?: PersonToInvite[] }>()
+const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
 const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow]; close: []; cancel: [EventRow] }>()
 const m = messages.calendar
 
@@ -128,10 +126,6 @@ const notes = ref('')
 const error = ref('')
 // People to invite when saving (SPEC §5 Shared events).
 const people = ref<PersonToInvite[]>([])
-// Closing the phone's contact picker can send "back" to this window; that must not close it and lose the form.
-function onCancel(event: Event) {
-  if (contactPickerOpen) event.preventDefault()
-}
 function useSuggestion(s: { date: string; start: string; end: string }) {
   allDay.value = false
   startDate.value = s.date
@@ -154,7 +148,7 @@ watch(
     reminder.value = e.reminder_minutes
     notes.value = e.notes ?? ''
     error.value = ''
-    people.value = props.startPeople?.length ? [...props.startPeople] : []
+    people.value = []
     dialog.value?.showModal()
   },
 )

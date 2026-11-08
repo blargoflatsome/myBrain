@@ -16,7 +16,10 @@ import type { AvailabilityExceptionRow, AvailabilityRuleRow, EventRow, JournalEn
 import { tagChanges } from '@/tags/rules'
 import { normalizeBody } from '@/journal/body'
 import { frontPosition } from '@/postits/rules'
-import type { PostItColor, PostItRow } from '@/sync/types'
+import type { PersonRow, PostItColor, PostItRow } from '@/sync/types'
+import { peopleToSave } from '@/events/people'
+import type { PersonToInvite } from '@/events/sharing'
+import { live } from '@/sync/live'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
@@ -453,6 +456,21 @@ export const useBrainStore = defineStore('brain', () => {
     await requireReady().engine.patch('post_its', id, () => ({ deleted_at: null }))
   }
 
+  // ---------- My people (SPEC §5 Calendar) ----------
+  /** Saving an event saves everyone I typed to my people (a new name replaces the old one). */
+  async function savePeople(typed: PersonToInvite[]) {
+    const { engine: e, uid, local } = requireReady()
+    const { add, rename } = peopleToSave(live(await local.people.toArray()), typed)
+    for (const r of rename) await e.patch('people', r.id, () => ({ name: r.name }))
+    for (const p of add) await e.save('people', { id: crypto.randomUUID(), user_id: uid, name: p.name ?? null, email: p.email ?? null, phone: p.phone ?? null, deleted_at: null })
+  }
+  async function savePerson(row: PersonRow) {
+    return requireReady().engine.save('people', row)
+  }
+  async function removePerson(id: string) {
+    await requireReady().engine.remove('people', id)
+  }
+
   // ---------- The Vault (SPEC §5 The Vault) ----------
   async function saveBucket(row: VaultBucketRow) {
     const { engine: e, uid } = requireReady()
@@ -593,6 +611,9 @@ export const useBrainStore = defineStore('brain', () => {
     deleteBucket,
     addVaultItem,
     addPostIt,
+    savePeople,
+    savePerson,
+    removePerson,
     clearNotification,
     clearNotifications,
     savePostIt,

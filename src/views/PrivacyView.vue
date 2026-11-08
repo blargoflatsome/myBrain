@@ -14,6 +14,7 @@
       <li><strong>For notifications:</strong> a notification address for each device you turn them on for, and your ntfy topic if you use ntfy.</li>
       <li><strong>Messages about events:</strong> a log of invitations, answers, messages and cancellations sent to people (who, how, when, and whether it worked).</li>
       <li><strong>About guests you invite:</strong> the name, email address or phone number you typed, and their answer.</li>
+      <li><strong>Your people:</strong> the name, email address or phone number of guests you've invited by email or phone, saved so you can invite them again. Only you can see them; you can edit or remove them on the Account page, and Delete my data removes them.</li>
     </ul>
 
     <h2>Who can see it</h2>
