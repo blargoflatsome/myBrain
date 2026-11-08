@@ -59,7 +59,7 @@ test.describe('Spec §10 Connections: ask, answer, remove', () => {
 
   test('the Account page links to Connections', async ({ page }) => {
     await open(page, '/account')
-    await page.getByRole('link', { name: 'Connections' }).click()
+    await page.locator('#content').getByRole('link', { name: 'Connections' }).click()
     await expect(page).toHaveURL(/\/connections$/)
   })
 })

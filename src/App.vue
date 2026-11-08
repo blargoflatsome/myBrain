@@ -8,62 +8,56 @@
       @click.prevent="skipToContent"
     >{{ messages.skipToContent }}</a>
     <p class="sr-only" aria-live="polite" data-testid="page-announcement">{{ pageAnnouncement }}</p>
-    <!-- Left navigation, text only. Always visible from tablet width up; a slide-out menu on phones. -->
-    <template v-if="showChrome">
-      <div v-if="menuOpen" class="fixed inset-0 z-30 bg-black/40 md:hidden" aria-hidden="true" @click="menuOpen = false" />
-      <!-- On a phone the open menu is a window (dialog); the navigation inside keeps its landmark. -->
-      <div
-        id="main-nav"
-        ref="nav"
-        :role="menuModal ? 'dialog' : undefined"
-        :aria-modal="menuModal ? 'true' : undefined"
-        :aria-label="menuModal ? messages.nav.menu : undefined"
-        class="fixed inset-y-0 left-0 z-40 w-56 border-r border-line bg-bg md:sticky md:top-0 md:z-auto md:block md:h-dvh"
-        :class="menuOpen ? 'block' : 'hidden'"
-        @keydown.esc="menuModal && closeMenu()"
-      >
-        <nav
-          :aria-label="messages.nav.label"
-          class="flex h-full flex-col px-3 pt-4 pb-[env(safe-area-inset-bottom)]"
+    <!-- SPEC §2 Navigation: on wide screens, the side menu (the four main places, then More). Phones use the bottom tabs. -->
+    <div v-if="showChrome && wide" class="sticky top-0 h-dvh w-56 shrink-0 border-r border-line bg-bg">
+      <nav :aria-label="messages.nav.label" class="flex h-full flex-col overflow-y-auto px-3 pt-4 pb-[env(safe-area-inset-bottom)]">
+        <RouterLink to="/" class="mb-4 px-3 text-lg font-bold">{{ messages.appName }}</RouterLink>
+        <button
+          type="button"
+          class="mb-2 flex min-h-12 items-center gap-2 rounded-xl border border-line px-3 text-base text-muted hover:bg-surface"
+          @click="searchWindow.open()"
         >
-          <RouterLink to="/" class="mb-4 px-3 text-lg font-bold">{{ messages.appName }}</RouterLink>
-          <button
-            type="button"
-            class="mb-2 flex min-h-12 items-center gap-2 rounded-xl border border-line px-3 text-base text-muted hover:bg-surface"
-            @click="searchWindow.open()"
-          >
-            <span aria-hidden="true">⌕</span>{{ messages.nav.search }}
-          </button>
-          <ul class="flex flex-col gap-1">
-            <li v-for="item in navItems" :key="item.to">
-              <RouterLink
-                :to="item.to"
-                class="flex min-h-12 items-center justify-between rounded-xl px-3 text-base text-muted hover:bg-surface"
-                exact-active-class="!bg-surface !text-ink font-semibold"
-              >
-                {{ item.label }}
-                <span
-                  v-if="item.to === '/orphans' && inboxCount"
-                  class="rounded-full bg-accent px-2 text-xs text-accent-ink"
-                  data-testid="inbox-count"
-                >{{ inboxCount }}</span>
-              </RouterLink>
-            </li>
-          </ul>
-          <button
-            type="button"
-            class="mt-1 flex min-h-12 items-center rounded-xl px-3 text-base text-muted hover:bg-surface"
-            data-testid="focus-open"
-            @click="openFocus"
-          >
-            {{ messages.focus.menu }}
-          </button>
-          <div v-if="wide" class="mt-auto px-3 py-4">
-            <SyncIndicator />
-          </div>
-        </nav>
-      </div>
-    </template>
+          <span aria-hidden="true">⌕</span>{{ messages.nav.search }}
+        </button>
+        <ul class="flex flex-col gap-1">
+          <li v-for="item in MAIN_NAV" :key="item.to">
+            <RouterLink :to="item.to" class="flex min-h-12 items-center rounded-xl px-3 text-base text-muted hover:bg-surface" active-class="!bg-surface !text-ink font-semibold">
+              {{ item.label }}
+            </RouterLink>
+          </li>
+        </ul>
+        <button
+          type="button"
+          class="mt-1 flex min-h-12 items-center justify-between rounded-xl px-3 text-base text-muted hover:bg-surface"
+          :aria-expanded="moreOpen"
+          aria-controls="nav-more"
+          data-testid="nav-more"
+          @click="toggleMore"
+        >
+          <span>{{ messages.nav.more }}</span>
+          <span class="flex items-center gap-2">
+            <span v-if="inboxCount && !moreOpen" class="rounded-full bg-accent px-2 text-xs text-accent-ink" aria-hidden="true">{{ inboxCount }}</span>
+            <span aria-hidden="true">{{ moreOpen ? '▴' : '▾' }}</span>
+          </span>
+        </button>
+        <ul v-show="moreOpen" id="nav-more" class="flex flex-col gap-1 pl-2">
+          <li v-for="item in MORE_NAV" :key="item.to">
+            <RouterLink :to="item.to" class="flex min-h-12 items-center justify-between rounded-xl px-3 text-base text-muted hover:bg-surface" exact-active-class="!bg-surface !text-ink font-semibold">
+              {{ item.label }}
+              <span v-if="item.to === '/orphans' && inboxCount" class="rounded-full bg-accent px-2 text-xs text-accent-ink" data-testid="inbox-count">{{ inboxCount }}</span>
+            </RouterLink>
+          </li>
+          <li>
+            <button type="button" class="flex min-h-12 w-full items-center rounded-xl px-3 text-left text-base text-muted hover:bg-surface" data-testid="focus-open" @click="openFocus">
+              {{ messages.focus.menu }}
+            </button>
+          </li>
+        </ul>
+        <div class="mt-auto px-3 py-4">
+          <SyncIndicator />
+        </div>
+      </nav>
+    </div>
 
     <div class="flex min-h-dvh min-w-0 flex-1 flex-col">
       <!-- SPEC §6 In-app alerts: the bell sits in the top right corner on wide screens (in the header on phones). -->
@@ -71,17 +65,7 @@
       <AlertBanner v-if="showChrome" />
       <header v-if="showChrome" class="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur md:hidden">
         <div class="flex items-center justify-between gap-3 px-4 py-3">
-          <button
-            ref="menuButton"
-            type="button"
-            class="min-h-11 rounded-xl border border-line px-3 text-sm font-medium"
-            aria-controls="main-nav"
-            :aria-expanded="menuOpen"
-            @click="menuOpen = !menuOpen"
-          >
-            {{ messages.nav.menu }}
-          </button>
-          <RouterLink to="/" class="font-bold">{{ messages.appName }}</RouterLink>
+          <RouterLink to="/" class="flex min-h-11 items-center font-bold">{{ messages.appName }}</RouterLink>
           <div class="flex items-center gap-2">
             <SyncIndicator v-if="!wide" />
             <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line text-lg" :aria-label="messages.search.open" @click="searchWindow.open()">
@@ -92,7 +76,8 @@
         </div>
       </header>
 
-      <div id="content" class="flex flex-1 flex-col">
+      <!-- On phones, room for the bottom tabs so nothing is hidden behind them. -->
+      <div id="content" class="flex flex-1 flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
         <RouterView class="flex-1" />
       </div>
     </div>
@@ -101,11 +86,12 @@
     <button
       v-if="showChrome && route.name !== 'capture'"
       type="button"
-      class="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-20 flex min-h-14 items-center rounded-full bg-accent px-6 text-lg font-semibold text-accent-ink shadow-lg"
+      class="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 flex min-h-14 md:bottom-[max(1rem,env(safe-area-inset-bottom))] items-center rounded-full bg-accent px-6 text-lg font-semibold text-accent-ink shadow-lg"
       @click="capture.open()"
     >
       + {{ messages.capture.openButton }}
     </button>
+    <BottomTabs v-if="showChrome" :inbox-count="inboxCount" @focus="openFocus" />
     <CaptureDialog v-if="showChrome" />
     <SearchDialog v-if="showChrome" />
 
@@ -116,9 +102,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import AlertsBell from '@/components/AlertsBell.vue'
 import AlertBanner from '@/components/AlertBanner.vue'
+import BottomTabs from '@/components/BottomTabs.vue'
+import { MAIN_NAV, MORE_NAV, inMore } from '@/ui/nav'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import SyncIndicator from '@/components/SyncIndicator.vue'
 import PriorityReminder from '@/components/PriorityReminder.vue'
@@ -194,41 +182,34 @@ const showChrome = computed(() => !route.meta.public)
 // SPEC §5 Focus timer: starts (or reopens) the full-screen timer.
 const focus = useFocusStore()
 function openFocus() {
-  menuOpen.value = false
   focus.start()
 }
-const navItems = [
-  { to: '/', label: messages.nav.dashboard },
-  { to: '/tasks', label: messages.nav.home },
-  { to: '/habits', label: messages.nav.habits },
-  { to: '/routines', label: messages.nav.routines },
-  { to: '/journal', label: messages.nav.journal },
-  { to: '/calendar', label: messages.nav.calendar },
-  { to: '/vault', label: messages.nav.vault },
-  { to: '/quests', label: messages.nav.quests },
-  { to: '/orphans', label: messages.nav.inbox },
-  { to: '/account', label: messages.nav.account },
-  { to: '/docs', label: messages.nav.help },
-]
 
-// Phone: the menu slides out from the left. Wider screens: it is always shown on the left.
+// Wide screens: More opens or closes the rest of the menu; remembered on this device, and open on its own pages.
 const wide = useWideScreen()
-const menuOpen = ref(false)
-watch(() => route.fullPath, () => (menuOpen.value = false))
-// On a phone the open menu is a window (SPEC §2): focus moves into it, stays inside, and Escape closes it,
-// returning focus to the Menu button.
-const menuButton = ref<HTMLButtonElement | null>(null)
-const nav = ref<HTMLElement | null>(null)
-const menuModal = computed(() => menuOpen.value && !wide.value)
-watch(menuModal, async (open, was) => {
-  await nextTick()
-  if (open) nav.value?.querySelector<HTMLElement>('a[href], button')?.focus()
-  else if (was && nav.value?.contains(document.activeElement)) menuButton.value?.focus()
-})
-function closeMenu() {
-  menuOpen.value = false
-  menuButton.value?.focus()
+const MORE_KEY = 'my-brain:nav-more'
+const moreOpen = ref(readMore() || inMore(route.path))
+function readMore() {
+  try {
+    return localStorage.getItem(MORE_KEY) === 'open'
+  } catch {
+    return false
+  }
 }
+function toggleMore() {
+  moreOpen.value = !moreOpen.value
+  try {
+    localStorage.setItem(MORE_KEY, moreOpen.value ? 'open' : 'closed')
+  } catch {
+    // Storage blocked: it just won't be remembered.
+  }
+}
+watch(
+  () => route.path,
+  (path) => {
+    if (inMore(path)) moreOpen.value = true
+  },
+)
 
 // Screen readers hear the new page's name after moving to another page (WCAG 4.1.3), without moving focus.
 const pageAnnouncement = ref('')

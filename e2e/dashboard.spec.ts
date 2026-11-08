@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { goTo, mainNav } from './support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 pm.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -108,9 +109,11 @@ test.describe('Spec §5 Dashboard', () => {
   test('the app opens on the Dashboard, the first item in the menu', async ({ page }) => {
     await open(page)
     await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
-    const menu = page.getByRole('button', { name: 'Menu' })
-    if (await menu.isVisible()) await menu.click()
-    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link').nth(1)).toHaveText('Dashboard')
+    // The Dashboard is home: "My Brain" goes there, and it isn't a tab or menu item of its own.
+    await expect(mainNav(page).getByRole('link', { name: 'Dashboard' })).toHaveCount(0)
+    await page.goto('/tasks')
+    await goTo(page, 'Dashboard')
+    await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
   })
 
   test('habit stats: streaks for every habit, most missed, longest current, best ever, oldest', async ({ page }) => {

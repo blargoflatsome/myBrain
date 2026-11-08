@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { FakeSupabase } from './support/fakeSupabase'
+import { goTo, openMore } from './support/nav'
 
 // SPEC §2: every screen meets WCAG 2.2 Level AA. axe checks every page and the main windows, in light and dark.
 // What axe can't check (keyboard order, meaning, zoom and reflow) is reviewed by hand and covered by other tests.
@@ -194,9 +195,8 @@ for (const scheme of ['light', 'dark'] as const) {
     test('Focus timer, full screen and minimized', async ({ page }) => {
       await page.goto('/')
       await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
-      const menu = page.getByRole('button', { name: 'Menu' })
-      if (await menu.isVisible()) await menu.click()
-      await page.getByTestId('focus-open').click()
+      await openMore(page)
+      await page.getByTestId('focus-open').locator('visible=true').click()
       await expect(page.getByRole('dialog', { name: 'Focus timer' })).toBeVisible()
       await scan(page, 'Focus timer')
       await page.getByRole('button', { name: 'Minimize' }).click()
@@ -313,9 +313,7 @@ test.describe('Spec §2 WCAG 2.2 AA: by hand checks made automatic', () => {
     await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
     await page.goto('/journal')
     await expect(page.getByRole('heading', { name: 'Journal', level: 1 })).toBeVisible()
-    const menu = page.getByRole('button', { name: 'Menu' })
-    if (await menu.isVisible()) await menu.click()
-    await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Habits' }).click()
+    await goTo(page, 'Habits')
     await expect(page.getByTestId('page-announcement')).toHaveText('Habits')
   })
 })
@@ -397,18 +395,18 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
     await tabsStayInside(page, dialog, 15)
   })
 
-  test('on a phone the open menu traps Tab, and Escape closes it and returns focus to Menu', async ({ page }, info) => {
-    test.skip(info.project.name !== 'android-phone', 'the menu is a window only on a phone')
+  test('on a phone the More panel traps Tab, and Escape closes it and returns focus to More', async ({ page }, info) => {
+    test.skip(info.project.name !== 'android-phone', 'the More panel is a window only on a phone')
     await page.goto('/tasks')
-    const menu = page.getByRole('button', { name: 'Menu' })
-    await menu.click()
-    const nav = page.getByRole('dialog', { name: 'Menu' })
-    await expect(nav).toBeVisible()
-    await expect(nav.getByRole('link').first()).toBeFocused()
-    await tabsStayInside(page, nav)
+    await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
+    const more = page.getByTestId('bottom-tabs').getByRole('button', { name: /^More/ })
+    await more.click()
+    const sheet = page.getByRole('dialog', { name: 'More' })
+    await expect(sheet).toBeVisible()
+    await tabsStayInside(page, sheet)
     await page.keyboard.press('Escape')
-    await expect(nav).toBeHidden()
-    await expect(menu).toBeFocused()
+    await expect(sheet).toBeHidden()
+    await expect(more).toBeFocused()
   })
 })
 

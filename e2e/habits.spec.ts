@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
-import { goTo } from './support/nav'
+import { goTo, openMore } from './support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -214,10 +214,9 @@ test.describe('Spec §5 Account page', () => {
   test('the page is called Account, and the old Profile address still opens it', async ({ page }) => {
     await open(page, '/profile')
     await expect(page).toHaveURL(/\/account$/)
-    const menu = page.getByRole('button', { name: 'Menu' })
-    if (await menu.isVisible()) await menu.click()
-    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Account' })).toHaveCount(1)
-    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Profile' })).toHaveCount(0)
+    await openMore(page)
+    await expect(page.getByRole('link', { name: 'Account' }).locator('visible=true')).toHaveCount(1)
+    await expect(page.getByRole('link', { name: 'Profile' })).toHaveCount(0)
   })
 
   test('Spec §9: Delete My Account confirms first, then deletes everything and signs me out', async ({ page }) => {
@@ -281,41 +280,48 @@ test.describe('Navigation', () => {
       await goTo(page, name)
       await expect(page).toHaveURL(url)
     }
-    const menu = page.getByRole('button', { name: 'Menu' })
-    if (await menu.isVisible()) await menu.click()
-    await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link')).toHaveText([
-      'My Brain',
-      'Dashboard',
-      'Tasks',
-      'Habits',
-      'Routines',
-      'Journal',
-      'Calendar',
-      'The Vault',
-      'Quests',
-      'Orphans',
-      'Account',
-      'Help',
-    ])
+    // The four main places, then everything else under More (SPEC §2 Navigation).
+    const main = page.locator('nav[aria-label="Main"]:visible').getByRole('link')
+    await expect(main.filter({ hasText: /^(Tasks|Habits|Calendar|The Vault)$/ })).toHaveText(['Tasks', 'Habits', 'Calendar', 'The Vault'])
+    await openMore(page)
+    const sheet = page.getByRole('dialog', { name: 'More' })
+    const moreLinks = (await sheet.isVisible()) ? sheet.getByRole('link') : page.locator('#nav-more').getByRole('link')
+    await expect(moreLinks).toHaveText(['Routines', 'Journal', 'Quests', /^Orphans/, 'Connections', 'Account', 'Help'])
   })
 
-  test('on a phone the menu is closed until Menu is tapped, and closes after choosing a page', async ({ page }, info) => {
+  test('on a phone, tabs along the bottom: Tasks, Habits, Calendar, The Vault and More; More opens the rest', async ({ page }, info) => {
     test.skip(info.project.name !== 'android-phone', 'phone-only behaviour')
     await open(page, '/')
-    const nav = page.getByRole('navigation', { name: 'Main' })
-    await expect(nav).toBeHidden()
-    await page.getByRole('button', { name: 'Menu' }).click()
-    await expect(nav).toBeVisible()
-    await nav.getByRole('link', { name: 'Habits' }).click()
+    const tabs = page.getByTestId('bottom-tabs')
+    await expect(tabs.getByRole('link')).toHaveText(['Tasks', 'Habits', 'Calendar', 'The Vault'])
+    const box = await tabs.boundingBox()
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeGreaterThanOrEqual((page.viewportSize()?.height ?? 0) - 1)
+    await tabs.getByRole('link', { name: 'Habits' }).click()
     await expect(page).toHaveURL(/\/habits$/)
-    await expect(nav).toBeHidden()
+    await expect(tabs.getByRole('link', { name: 'Habits' })).toHaveAttribute('aria-current', 'page')
+    await tabs.getByRole('button', { name: /^More/ }).click()
+    const sheet = page.getByRole('dialog', { name: 'More' })
+    await sheet.getByRole('link', { name: 'Journal' }).click()
+    await expect(page).toHaveURL(/\/journal$/)
+    await expect(sheet).toBeHidden()
+    await expect(tabs.getByRole('button', { name: /^More/ })).toHaveAttribute('aria-current', 'page')
+    // There's no Menu button any more.
+    await expect(page.getByRole('button', { name: 'Menu' })).toHaveCount(0)
   })
 
   test('on a wider screen the menu is always shown on the left', async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop-chromium', 'desktop-only behaviour')
     await open(page, '/')
-    await expect(page.getByRole('button', { name: 'Menu' })).toBeHidden()
-    const box = await page.getByRole('navigation', { name: 'Main' }).boundingBox()
+    await expect(page.getByTestId('bottom-tabs')).toBeHidden()
+    const nav = page.locator('nav[aria-label="Main"]:visible')
+    const box = await nav.boundingBox()
     expect(box?.x).toBe(0)
+    // More opens the rest right there, and stays as I left it.
+    const more = nav.getByRole('button', { name: /^More/ })
+    await expect(more).toHaveAttribute('aria-expanded', 'false')
+    await more.click()
+    await expect(page.locator('#nav-more').getByRole('link', { name: 'Journal' })).toBeVisible()
+    await page.reload()
+    await expect(page.locator('nav[aria-label="Main"]:visible').getByRole('button', { name: /^More/ })).toHaveAttribute('aria-expanded', 'true')
   })
 })
