@@ -10,7 +10,7 @@ test.describe('Spec §5 Features and Docs pages (signed out)', () => {
     await expect(page).toHaveTitle('Features · My Brain')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('A second brain for busy, wandering minds')
     // A brief summary of every feature.
-    for (const name of ['Quick capture', 'Tasks', 'Priority tasks', 'Habits and streaks', 'Routines', 'Journal', 'Calendar', 'Invitations', 'The Vault', 'Random Quest', 'Orphans', 'Post Its', 'Dashboard', 'Focus timer', 'Search and tags', 'Reminders that reach you']) {
+    for (const name of ['Quick capture', 'Tasks', 'Priority tasks', 'Habits and streaks', 'Routines', 'Journal', 'Calendar', 'Invitations', 'Invite from your contacts', 'The Vault', 'Random Quest', 'Orphans', 'Post Its', 'Dashboard', 'Focus timer', 'Search and tags', 'Reminders that reach you']) {
       await expect(page.getByTestId('feature').filter({ has: page.getByRole('heading', { name, exact: false }) }).first()).toBeVisible()
     }
     await page.getByRole('link', { name: 'How it works' }).click()

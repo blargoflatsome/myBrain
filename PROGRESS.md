@@ -254,6 +254,12 @@ Merged and live.
 ## Pick from contacts fix (done, PR #29)
 - User bug report: on the phone, picking a contact never filled the form. Cause: Android's "back" as the picker closes closed the event window. The event window now ignores "back" while picking and for a second after (`contactPickerOpen` in `src/events/sharing.ts`). One contact fills the boxes ready for Add; several are all added (only the last was kept before); nothing picked says so; messages scroll into view. Tests: `e2e/contact-picker.spec.ts` (stand-in phone picker that hides the page and sends "back"). Vitest 280, Playwright 539. Not yet tried on a real phone.
 
+## Pick from contacts follow-ups (done, PRs #30, #32)
+- #30: the app says when the phone closed it while picking (reopens the event) or when no contact arrives within 4 seconds. #32: a test page on the user's phone (draft PR #31, preview only, kept for re-testing) showed Chrome 157 with Samsung's contact list answering an empty list the moment the list opens; the app now says Chrome blocked it. Bug report text given to the user to file with Chrome. Flaky accessibility checks steadied (they opened windows before the page was ready). Seen in tests only, not fixed: opening the Capture window in the first moment after a page loads can let Tab reach the + Capture button behind it.
+
+## Share a contact into My Brain (branch `share-contact`)
+- The share target is now a POST that takes contact files (vCard); the service worker (`src/sw.ts`, `src/share/target.ts`) sends text and links to Capture as before and keeps a contact file in Cache Storage (up to an hour) for `/invite-contact`. That screen (`InviteContactView.vue`) reads names, first email, first phone (`src/events/vcard.ts`, vCard 2.1/3/4), lists my upcoming events (10 per page) and New event; the chosen event opens with them under "To invite". No database change. Tests: `src/events/vcard.test.ts`, `src/share/target.test.ts`, `e2e/share-contact.spec.ts` (a real share through the service worker), accessibility scan of the new page. Vitest 295, Playwright 563. Not yet tried on the phone: whether Samsung Contacts lists My Brain for contact files.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).
