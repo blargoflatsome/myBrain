@@ -438,6 +438,9 @@ export const messages = {
     },
     manage: 'Connections',
     onMyBrain: 'On My Brain',
+    connectPerson: 'Connect',
+    connectPersonLabel: (name: string) => `Connect with ${name}`,
+    requestSent: (name: string) => `Request sent to ${name}. They’ll need to accept.`,
     linkSection: 'Share a connect link',
     linkHint: 'Send it to someone you know, or read them the code. It works for 24 hours, for one person, and connects you straight away.',
     makeLink: 'Make a link',
@@ -575,6 +578,9 @@ export const messages = {
     failed: (why: string) => `Couldn’t cancel: ${why}`,
   },
   guest: {
+    connectOffer: (host: string) => `You’re on My Brain too. Connect with ${host}, so you can invite each other in the app?`,
+    connect: 'Connect',
+    connectSent: (host: string) => `Request sent. ${host} will need to accept.`,
     // Public page for guests without an account. Written plainly, not in the "past you" voice.
     loading: 'Loading the invitation…',
     invalid: 'This invitation link no longer works. Ask the person who invited you for a new one.',

@@ -133,3 +133,45 @@ test.describe('Spec §10 Connections: links and codes', () => {
     await expect(page.getByTestId('link-problem')).toHaveText('This link no longer works. It may have expired, been used, or been cancelled.')
   })
 })
+
+test.describe('Spec §10 Connections: connect from my people and from a guest invitation', () => {
+  test('saved people who have accounts show Connect on the Account page; it sends them a request', async ({ page }) => {
+    server.seed('people', [{ id: 'pe-carol', name: 'Carol', email: 'carol@example.com', phone: null }, { id: 'pe-dan', name: 'Dan', email: null, phone: '5550103000' }])
+    server.rpcResults.people_with_accounts = [{ person_id: 'pe-carol' }]
+    await open(page, '/account')
+    const section = page.getByTestId('my-people-settings')
+    await expect(section.getByRole('button', { name: 'Connect with Carol' })).toBeVisible()
+    await expect(section.getByRole('button', { name: 'Connect with Dan' })).toHaveCount(0)
+    server.rpcResults.people_with_accounts = []
+    await section.getByRole('button', { name: 'Connect with Carol' }).click()
+    await expect(section.getByTestId('people-notice')).toHaveText('Request sent to Carol. They’ll need to accept.')
+    expect(rpc('request_connection')[0]?.args).toMatchObject({ contact: 'carol@example.com' })
+    await expect(section.getByRole('button', { name: 'Connect with Carol' })).toHaveCount(0)
+  })
+
+  test('the Contacts window shows Connect on saved people who have accounts', async ({ page }) => {
+    server.seed('events', [{ id: EVENT, title: 'Birthday party', notes: null, start_date: '2026-11-10', start_time: '19:00:00', end_date: '2026-11-10', end_time: '22:00:00', repeat: 'never', reminder_minutes: null, cancelled_at: null }])
+    server.seed('people', [{ id: 'pe-carol', name: 'Carol', email: 'carol@example.com', phone: null }])
+    server.rpcResults.people_with_accounts = [{ person_id: 'pe-carol' }]
+    await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
+    await page.getByRole('dialog', { name: 'Edit event' }).getByRole('button', { name: 'Contacts' }).click()
+    const contacts = page.getByRole('dialog', { name: 'Your people' })
+    await contacts.getByRole('button', { name: 'Connect with Carol' }).click()
+    await expect(contacts.getByTestId('contacts-status')).toHaveText('Request sent to Carol. They’ll need to accept.')
+  })
+
+  test('a signed-in account holder who answers a guest invitation is offered to connect with the host', async ({ page }) => {
+    server.rpcResults.guest_invite = [{ host_name: 'Alice Able', guest_name: 'Carol', title: 'Birthday party', notes: null, start_date: '2026-11-10', start_time: '19:00:00', end_date: '2026-11-10', end_time: '22:00:00', repeat: 'never', timezone: 'America/New_York', response: 'pending', cancelled: false }]
+    server.rpcResults.guest_connect_offer = true
+    await open(page, '/rsvp/inv-carol/tok-carol')
+    await expect(page.getByRole('heading', { name: 'Birthday party' })).toBeVisible()
+    // Only after answering Yes or Maybe.
+    await expect(page.getByTestId('guest-connect')).toHaveCount(0)
+    server.rpcResults.guest_invite = [{ ...(server.rpcResults.guest_invite as Record<string, unknown>[])[0], response: 'yes' }]
+    await page.getByRole('button', { name: 'Yes' }).click()
+    await expect(page.getByTestId('guest-connect')).toContainText('Connect with Alice Able')
+    await page.getByTestId('guest-connect').getByRole('button', { name: 'Connect' }).click()
+    await expect(page.getByTestId('guest-connect-sent')).toHaveText('Request sent. Alice Able will need to accept.')
+    expect(rpc('guest_connect_with_host')[0]?.args).toMatchObject({ invite: 'inv-carol', token: 'tok-carol' })
+  })
+})

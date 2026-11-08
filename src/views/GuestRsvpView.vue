@@ -22,6 +22,11 @@
           <p v-if="thanks" class="text-sm" role="status">{{ thanks }}</p>
           <p v-else-if="data.response !== 'pending'" class="text-sm text-muted">{{ m.yourAnswer(m.answers[data.response]) }}</p>
         </div>
+        <div v-if="offer && data.response !== 'pending' && data.response !== 'no'" class="flex flex-col gap-2 rounded-2xl border border-accent p-4" data-testid="guest-connect">
+          <p>{{ m.connectOffer(host) }}</p>
+          <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="connectHost">{{ m.connect }}</button>
+        </div>
+        <p v-if="connectNote" class="text-sm" role="status" data-testid="guest-connect-sent">{{ connectNote }}</p>
         <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" @click="addToCalendar">📅 {{ m.addToCalendar }}</button>
       </template>
 
@@ -50,6 +55,8 @@
 // answer Yes / Maybe / No, message the host, add it to a calendar, or stop the emails.
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { guestConnectOffer, guestConnectWithHost } from '@/events/connections'
+import { useAuthStore } from '@/stores/auth'
 import { guestInvite, guestMessage, guestOptOut, guestRespond, whenText, type GuestInvite } from '@/events/sharing'
 import { downloadIcs } from '@/events/ics'
 import { messages } from '@/messages'
@@ -70,6 +77,7 @@ const stopped = ref(false)
 onMounted(async () => {
   try {
     data.value = await guestInvite(invite.value, token.value)
+    void checkOffer()
     state.value = data.value ? 'ready' : 'invalid'
   } catch {
     state.value = 'invalid'
@@ -77,6 +85,20 @@ onMounted(async () => {
 })
 
 const host = computed(() => data.value?.host_name || 'Someone')
+// An account holder invited as a guest can ask to connect with the host (SPEC §10 Connections); the host still accepts.
+const auth = useAuthStore()
+const offer = ref(false)
+const connectNote = ref('')
+async function checkOffer() {
+  await auth.init()
+  if (!auth.isSignedIn) return
+  offer.value = !!(await guestConnectOffer(invite.value, token.value).catch(() => false))
+}
+async function connectHost() {
+  await guestConnectWithHost(invite.value, token.value)
+  offer.value = false
+  connectNote.value = m.connectSent(host.value)
+}
 async function answer(a: 'yes' | 'maybe' | 'no') {
   error.value = ''
   try {

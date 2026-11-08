@@ -30,6 +30,7 @@
               <span class="font-medium">{{ personLabel(p) }}</span>
               <span v-if="p.name" class="text-muted"> · {{ p.email || p.phone }}</span>
             </span>
+            <button v-if="withAccounts.has(p.id)" type="button" class="min-h-11 shrink-0 rounded-xl border border-accent px-3 text-sm" :aria-label="c.connectPersonLabel(personLabel(p))" @click="connect(p)">{{ c.connectPerson }}</button>
             <span v-if="isInvited(p)" class="shrink-0 text-sm text-muted">{{ m.invited }}</span>
             <span v-else-if="isAdded(p)" class="flex shrink-0 items-center gap-1">
               <span class="text-sm text-accent">✓ {{ m.added }}</span>
@@ -43,6 +44,7 @@
         <PageControls v-model:page="page" :page-count="pageCount" :label="m.heading" />
       </template>
       <p v-else-if="!connections.length" class="text-sm text-muted">{{ m.empty }}</p>
+      <p class="text-sm text-muted" role="status" data-testid="contacts-status">{{ status }}</p>
       <RouterLink to="/connections" class="text-sm text-accent underline">{{ c.manage }}</RouterLink>
       <button type="button" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="dialog?.close()">{{ m.done }}</button>
     </div>
@@ -59,7 +61,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { contactKey } from '@/events/contacts'
 import { matchesPerson, personLabel, sortPeople, uniquePeople } from '@/events/people'
 import type { PersonToInvite } from '@/events/sharing'
-import { myConnections, type Connection } from '@/events/connections'
+import { myConnections, peopleWithAccounts, requestConnection, type Connection } from '@/events/connections'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { live } from '@/sync/live'
@@ -90,11 +92,22 @@ const connections = ref<Connection[]>([])
 const addedIds = computed(() => new Set(props.pending.map((p) => p.user_id).filter((x): x is string => !!x)))
 const invitedIds = computed(() => new Set(props.invited.map((p) => p.user_id).filter((x): x is string => !!x)))
 
+const withAccounts = ref<Set<string>>(new Set())
+const status = ref('')
+async function connect(p: PersonRow) {
+  if (!p.email) return
+  await requestConnection(p.email)
+  status.value = c.requestSent(personLabel(p))
+  withAccounts.value = await peopleWithAccounts().catch(() => new Set<string>())
+}
+
 const dialog = ref<HTMLDialogElement | null>(null)
 defineExpose({
   open: () => {
     dialog.value?.showModal()
-    if (brain.online) void myConnections().then((list) => (connections.value = list), () => {})
+    if (!brain.online) return
+    void myConnections().then((list) => (connections.value = list), () => {})
+    void peopleWithAccounts().then((ids) => (withAccounts.value = ids), () => {})
   },
 })
 </script>

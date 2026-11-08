@@ -13,7 +13,8 @@
           <span class="font-medium">{{ personLabel(p) }}</span>
           <span v-if="p.name" class="text-muted"> · {{ p.email || p.phone }}</span>
         </span>
-        <span class="flex shrink-0 gap-1">
+        <span class="flex shrink-0 flex-wrap justify-end gap-1">
+          <button v-if="withAccounts.has(p.id)" type="button" class="min-h-11 rounded-xl border border-accent px-3 text-sm" :aria-label="c.connectPersonLabel(personLabel(p))" @click="connect(p)">{{ c.connectPerson }}</button>
           <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" :aria-label="m.editLabel(personLabel(p))" @click="startEdit(p)">{{ m.edit }}</button>
           <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm text-danger" :aria-label="m.removeLabel(personLabel(p))" @click="askRemove(p)">{{ m.remove }}</button>
         </span>
@@ -49,13 +50,14 @@
 
 <script setup lang="ts">
 // SPEC §5 Calendar, my people: on the Account page I can fix a saved person's name, email or phone, or remove them.
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { contactKey, isEmail, isPhone } from '@/events/contacts'
 import { personLabel, sortPeople } from '@/events/people'
+import { peopleWithAccounts, requestConnection } from '@/events/connections'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { live } from '@/sync/live'
@@ -63,6 +65,7 @@ import type { PersonRow } from '@/sync/types'
 import { dialogBox, field, secondaryButton } from '@/ui/styles'
 
 const m = messages.myPeople
+const c = messages.connections
 const brain = useBrainStore()
 const rows = useLiveQuery<PersonRow[]>(async () => (brain.db ? live(await brain.db.people.toArray()) : []), [], [() => brain.db])
 const people = computed(() => sortPeople(rows.value))
@@ -106,6 +109,19 @@ async function saveEdit() {
   await brain.savePerson(row)
   if (adding.value) notice.value = m.addedNotice(personLabel(row))
   editor.value?.close()
+}
+
+// Saved people who have accounts show Connect (SPEC §10 Connections).
+const withAccounts = ref<Set<string>>(new Set())
+async function loadAccounts() {
+  if (brain.online) withAccounts.value = await peopleWithAccounts().catch(() => new Set<string>())
+}
+onMounted(loadAccounts)
+async function connect(p: PersonRow) {
+  if (!p.email) return
+  await requestConnection(p.email)
+  notice.value = c.requestSent(personLabel(p))
+  await loadAccounts()
 }
 
 const confirmRemove = ref<InstanceType<typeof ConfirmDialog> | null>(null)

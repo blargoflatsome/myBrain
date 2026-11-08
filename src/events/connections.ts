@@ -60,3 +60,9 @@ export const previewLink = async (k: LinkKey) => (await call<LinkOwner[] | null>
 /** Connects us; returns their name, or null if the link or code no longer works. */
 export const useLink = (k: LinkKey) => call<string | null>('use_connect_link', { token: k.token ?? null, code: k.code ?? null })
 export const linkUrl = (token: string, origin: string = window.location.origin) => `${origin}/connect/${token}`
+
+// ---------- Part 3: connect from my people and from a guest invitation ----------
+/** Ids of my saved people whose email belongs to an account I'm not connected with (they show Connect). */
+export const peopleWithAccounts = async () => new Set((await list<{ person_id: string }>('people_with_accounts')).map((r) => r.person_id))
+export const guestConnectOffer = (invite: string, token: string) => call<boolean | null>('guest_connect_offer', { invite, token })
+export const guestConnectWithHost = (invite: string, token: string) => call<void>('guest_connect_with_host', { invite, token })
