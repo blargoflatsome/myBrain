@@ -24,6 +24,10 @@ registerSW({
   },
 })
 
+// SPEC §10 Phase 3: ask the browser to keep this device's data for good (Safari can otherwise clear it after weeks
+// unopened; anything synced would come back, but changes not yet uploaded wouldn't).
+void navigator.storage?.persist?.().catch(() => false)
+
 // SPEC §2: windows keep focus inside while open and give it back when they close.
 installModalFocus()
 

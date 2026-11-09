@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { isPhone } from './support/devices'
 import { goTo } from './support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
@@ -63,7 +64,7 @@ test.describe('Spec §5 Post It', () => {
     // Notes stay newest first: there is no reordering.
     await expect(page.getByRole('button', { name: /Move (earlier|later)/ })).toHaveCount(0)
 
-    if (info.project.name === 'android-phone') {
+    if (isPhone(info)) {
       // Phone: no Previous / Next; a dot per note, tap one to show it.
       await expect(page.getByRole('button', { name: 'Previous' })).toBeHidden()
       await expect(page.getByRole('button', { name: 'Next' })).toBeHidden()
@@ -123,7 +124,7 @@ test.describe('Spec §5 Post It', () => {
 
 
   test('on a computer the arrows sit beside the stack and appear on mouse over or keyboard focus', async ({ page }, info) => {
-    test.skip(info.project.name === 'android-phone', 'computer only')
+    test.skip(isPhone(info), 'computer only')
     server.seed('post_its', [
       { id: 'p1', body: '<p>Top</p>', color: 'yellow', position: 0 },
       { id: 'p2', body: '<p>Next one</p>', color: 'pink', position: 1 },

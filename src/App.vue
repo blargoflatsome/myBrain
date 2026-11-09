@@ -63,7 +63,7 @@
       <!-- SPEC §6 In-app alerts: the bell sits in the top right corner on wide screens (in the header on phones). -->
       <div v-if="showChrome && wide" class="fixed top-3 right-4 z-20"><AlertsBell /></div>
       <AlertBanner v-if="showChrome" />
-      <header v-if="showChrome" class="sticky top-0 z-10 border-b border-line bg-bg/90 backdrop-blur md:hidden">
+      <header v-if="showChrome" class="sticky top-0 z-10 border-b border-line bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur md:hidden">
         <div class="flex items-center justify-between gap-3 px-4 py-3">
           <RouterLink to="/" class="flex min-h-11 items-center font-bold">{{ messages.appName }}</RouterLink>
           <div class="flex items-center gap-2">

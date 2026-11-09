@@ -22,7 +22,7 @@ test.describe('Spec §5 Features and Docs pages (signed out)', () => {
   test('the Docs page has a contents list and the Work and Personal tags example', async ({ page }) => {
     await page.goto('/docs')
     const contents = page.getByRole('navigation', { name: 'Contents' })
-    await expect(contents.getByRole('link')).toHaveCount(13)
+    await expect(contents.getByRole('link')).toHaveCount(14)
     await contents.getByRole('link', { name: /Search and tags/ }).click()
     await expect(page).toHaveURL(/#tags$/)
     const tags = page.locator('#tags')

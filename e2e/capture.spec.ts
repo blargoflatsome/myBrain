@@ -204,6 +204,7 @@ test.describe('Spec §2/§5/§7: capture works offline and syncs later', () => {
   })
 
   test('the installed app opens with no connection (service worker)', async ({ page, context }) => {
+    test.skip(test.info().project.name === 'iphone', 'service workers are off in the iPhone test profile')
     await page.goto('/capture')
     await page.evaluate(() => navigator.serviceWorker.ready)
     await context.setOffline(true)

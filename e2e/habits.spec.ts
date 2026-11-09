@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { isPhone } from './support/devices'
 import { goTo, openMore } from './support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
@@ -290,7 +291,7 @@ test.describe('Navigation', () => {
   })
 
   test('on a phone, tabs along the bottom: Tasks, Habits, Calendar, The Vault and More; More opens the rest', async ({ page }, info) => {
-    test.skip(info.project.name !== 'android-phone', 'phone-only behaviour')
+    test.skip(!isPhone(info), 'phone-only behaviour')
     await open(page, '/')
     const tabs = page.getByTestId('bottom-tabs')
     await expect(tabs.getByRole('link')).toHaveText(['Tasks', 'Habits', 'Calendar', 'The Vault'])

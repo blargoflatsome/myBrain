@@ -99,7 +99,7 @@ const groups: { heading: string; features: Feature[] }[] = [
   {
     heading: 'Yours, everywhere',
     features: [
-      { icon: '📱', title: 'Works on every device', text: 'Install it on your phone or computer like an app. It works offline and syncs everything across your devices when you’re back online.' },
+      { icon: '📱', title: 'Works on every device', text: 'Install it on your Android phone, iPhone or computer like an app. It works offline and syncs everything across your devices when you’re back online.' },
       { icon: '🔒', title: 'Private by design', text: 'Your data is yours: no ads, no trackers, no selling. Download it all or delete it any time, and protected by strict security from day one.' },
       { icon: '♿', title: 'Made for everyone', text: 'Built to WCAG 2.2 AA accessibility, with full keyboard and screen reader support, light and dark mode, and calm, readable design.' },
     ],

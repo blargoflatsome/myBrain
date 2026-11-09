@@ -2,6 +2,7 @@
 // one-at-a-time sharing flow (messaging app or email app) until automatic texts and emails exist.
 import type { FreeBusyRow } from '@/events/availability'
 import { supabase } from '@/lib/supabase'
+import { isIOS } from '@/ui/device'
 import type { EventRow, InviteResponse } from '@/sync/types'
 
 export interface PersonToInvite {
@@ -111,8 +112,9 @@ export function inviteMessage(host: string, guest: string | null, e: Pick<EventR
 }
 
 /** Open my messaging app (texts) or email app with one person's message ready. */
-export function shareHref(t: Pick<ShareTarget, 'email' | 'phone' | 'subject' | 'body'>): string | null {
-  if (t.phone) return `sms:${t.phone.replace(/[^\d+]/g, '')}?body=${encodeURIComponent(t.body)}`
+export function shareHref(t: Pick<ShareTarget, 'email' | 'phone' | 'subject' | 'body'>, ios: boolean = isIOS()): string | null {
+  // iPhones only fill in the text when the link is written sms:NUMBER&body= (SPEC §10 Phase 3).
+  if (t.phone) return `sms:${t.phone.replace(/[^\d+]/g, '')}${ios ? '&' : '?'}body=${encodeURIComponent(t.body)}`
   if (t.email) return `mailto:${encodeURIComponent(t.email)}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}`
   return null
 }

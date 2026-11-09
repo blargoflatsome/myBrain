@@ -925,6 +925,7 @@ export const messages = {
     webPushOff: 'Off for this device',
     webPushBlocked: 'Notifications are blocked for this site. Allow them in your browser settings, then try again.',
     webPushUnsupported: "This browser can't receive push notifications. Try Chrome, or install My Brain to your home screen.",
+    webPushIphone: 'On an iPhone, add My Brain to your Home Screen first (Share, then Add to Home Screen), open it from there, and turn this on.',
     ntfy: 'Also send to the ntfy app',
     ntfyHint: 'A free backup that can ring louder for priority reminders. Install ntfy from the Play Store and subscribe to your topic below.',
     ntfyTopic: 'Your private ntfy topic',

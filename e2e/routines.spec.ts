@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { isSafari } from './support/devices'
 import { dragHandle } from './support/drag'
 
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -113,6 +114,7 @@ test.describe('Spec §5 Routines: list and stats', () => {
   })
 
   test('a new routine has a title, reminder, weekdays and ordered steps', async ({ page }) => {
+    test.skip(isSafari(test.info()), 'sorting by mouse drag; on a touch iPhone, tap to move is tested instead')
     await open(page, '/routines')
     await expect(page.getByText("Past you hasn't set up any routines yet.")).toBeVisible()
     await page.getByRole('button', { name: '+ New routine' }).click()

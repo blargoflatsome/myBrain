@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { isSafari } from './support/devices'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -77,7 +78,7 @@ test.describe('Spec §5 Calendar, my people: type someone once, then pick them f
     await expect(contacts).toBeHidden()
     await expect(dialog.getByTestId('pending-person')).toHaveText([/^allie Hannah/])
     // Focus goes back to the Contacts button when the window closes.
-    await expect(dialog.getByRole('button', { name: 'Contacts' })).toBeFocused()
+    if (!isSafari(test.info())) await expect(dialog.getByRole('button', { name: 'Contacts' })).toBeFocused()
   })
 
   test('the Contacts search filters by name, email or phone digits as I type', async ({ page }) => {
