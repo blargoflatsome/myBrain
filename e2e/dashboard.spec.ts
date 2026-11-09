@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
+import { isPhone } from './support/devices'
 import { goTo, mainNav } from './support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 pm.
@@ -72,7 +73,7 @@ test.describe('Spec §5 Dashboard', () => {
   })
 
   test('on a wide screen, How past you did yesterday sits to the left of the Post Its; on a narrower one, below them', async ({ page }, info) => {
-    test.skip(info.project.name === 'android-phone', 'computer widths')
+    test.skip(isPhone(info), 'computer widths')
     server.seed('post_its', [{ id: 'p1', body: '<p>Call the vet</p>', color: 'yellow', position: 0 }])
     await page.setViewportSize({ width: 1440, height: 900 })
     await open(page)
@@ -93,7 +94,7 @@ test.describe('Spec §5 Dashboard', () => {
   })
 
   test('without Post Its, How past you did yesterday takes the full width on a wide screen', async ({ page }, info) => {
-    test.skip(info.project.name === 'android-phone', 'computer widths')
+    test.skip(isPhone(info), 'computer widths')
     await page.setViewportSize({ width: 1440, height: 900 })
     await open(page)
     const top = (await page.getByTestId('dash-top').boundingBox())!

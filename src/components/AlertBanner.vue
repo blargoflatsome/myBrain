@@ -1,5 +1,5 @@
 <template>
-  <div class="pointer-events-none fixed inset-x-0 top-2 z-50 flex justify-center px-3" aria-live="polite" role="status">
+  <div class="pointer-events-none fixed inset-x-0 top-[max(0.5rem,env(safe-area-inset-top))] z-50 flex justify-center px-3" aria-live="polite" role="status">
     <div
       v-if="current"
       class="pointer-events-auto flex w-full max-w-md items-start gap-2 rounded-2xl border border-accent bg-surface p-3 text-ink shadow-lg"

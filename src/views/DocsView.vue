@@ -19,10 +19,20 @@
       <h2 id="getting-started-h">Getting started</h2>
       <ol>
         <li><strong>Sign in with Google.</strong> The first time, you'll be asked for a phone number (used only for events) and how you'd like to hear about invitations.</li>
-        <li><strong>Install it.</strong> On an Android phone in Chrome, open the ⋮ menu and choose <em>Install app</em> (or <em>Add to Home screen</em>). On a computer, use the install icon at the right of the address bar. Installed, it opens like any app and works offline.</li>
+        <li><strong>Install it.</strong> On an Android phone in Chrome, open the ⋮ menu and choose <em>Install app</em> (on an iPhone, see <a href="#iphone">On an iPhone</a> below) (or <em>Add to Home screen</em>). On a computer, use the install icon at the right of the address bar. Installed, it opens like any app and works offline.</li>
         <li><strong>Turn on reminders.</strong> Go to <em>Account → Reminders</em> and switch on <em>Notifications on this device</em>, once on each device. Press <em>Send a test</em> to check. Set <em>Quiet hours</em> if you don't want ordinary reminders at night.</li>
         <li><strong>Look around the Dashboard.</strong> It's the first page you see and shows everything at a glance.</li>
         <li><strong>Getting around.</strong> On a phone, the tabs along the bottom go to <em>Tasks</em>, <em>Habits</em>, <em>Calendar</em> and <em>The Vault</em>; <em>More</em> has everything else (Routines, Journal, Quests, Orphans, Focus timer, Connections, Account, Help). On a computer they're in the side menu, with <em>More</em> opening the rest. Tap <em>My Brain</em> at the top to go back to the Dashboard.</li>
+      </ol>
+    </section>
+
+    <section id="iphone" aria-labelledby="iphone-h">
+      <h2 id="iphone-h">On an iPhone</h2>
+      <ol>
+        <li><strong>Add it to your Home Screen.</strong> Open My Brain in Safari, tap <em>Share</em>, then <em>Add to Home Screen</em>. Open it from the new icon from then on; it opens full-screen like an app.</li>
+        <li><strong>Sign in inside the app.</strong> The Home Screen app keeps its own sign-in, separate from Safari, so sign in once more there.</li>
+        <li><strong>Turn on reminders there.</strong> In the Home Screen app, go to <em>Account → Reminders</em> and turn on <em>Notifications on this device</em> (iPhones only allow this for apps on the Home Screen, iOS 16.4 or later). The bell in the app shows alerts either way, and the ntfy app works on iPhone too.</li>
+        <li><strong>Good to know:</strong> sharing text from other apps into My Brain isn't possible on iPhone; paste it into <em>Capture</em> instead. Priority reminders arrive as normal notifications rather than taking over the screen.</li>
       </ol>
     </section>
 
@@ -182,6 +192,7 @@ import { RouterLink } from 'vue-router'
 
 const sections = [
   { id: 'getting-started', title: 'Getting started' },
+  { id: 'iphone', title: 'On an iPhone' },
   { id: 'daily-rhythm', title: 'A simple daily rhythm' },
   { id: 'capture', title: 'Capture' },
   { id: 'tasks', title: 'Tasks and priority tasks' },

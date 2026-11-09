@@ -289,8 +289,13 @@ Merged and live.
 ## Navigation: bottom tabs (done, PR #40)
 - Phones: bottom tab bar (Tasks, Habits, Calendar, The Vault, More); More opens a bottom panel with the rest (Routines, Journal, Quests, Orphans, Focus timer, Connections, Account, Help). No Menu button. Wide screens: side menu with the four and a More section that opens/closes (remembered, opens on its pages). Dashboard via My Brain. `BottomTabs.vue`, `src/ui/nav.ts`; Capture and the Focus pill sit above the tabs. Tests' `goTo` helper now uses tabs/More.
 
-## Account page tidy-up (branch `account-layout`)
+## Account page tidy-up (done, PR #41)
 - Accordion groups (`AccountGroup.vue`, native details/summary): Your profile (open by default), Reminders, Events (settings + availability side by side), People, Your data, Account; open groups remembered per device; page wider; shorter hints. Tests start with all groups open via the fake server (`openAccountGroups`); `e2e/account-layout.spec.ts` checks the real defaults and side-by-side layout. Vitest 285, Playwright 606.
+
+## iPhone support, Phase 3 (branch `iphone`)
+- Stays a web app. Browser tests now also run as an iPhone (Playwright WebKit "iPhone 14", service workers off there because WebKit sends service-worker requests past the stand-in server); CI installs WebKit too. Fixed for iPhone: text links (`sms:NUMBER&body=`), full-screen Home Screen tags and safe-area padding, persistent storage request, an iPhone-specific Reminders message when not installed. Docs "On an iPhone" section; Features mentions iPhone. Tests skipped on iPhone only where they don't apply (mouse hover/drag, Tab to links, Chrome-only touch, long clock fast-forwards that take over a minute on WebKit).
+- Still to check on a real iPhone (user): Google sign-in returning to the installed app, voice capture, push reminders arriving.
+- Vitest 286, Playwright 898 (3 profiles).
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

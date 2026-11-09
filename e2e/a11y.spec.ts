@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { FakeSupabase } from './support/fakeSupabase'
+import { isPhone, isSafari } from './support/devices'
 import { goTo, openMore } from './support/nav'
 
 // SPEC §2: every screen meets WCAG 2.2 Level AA. axe checks every page and the main windows, in light and dark.
@@ -274,7 +275,8 @@ test.describe('Spec §2 WCAG 2.2 AA: by hand checks made automatic', () => {
     await expect(page).toHaveTitle('The Vault · My Brain')
   })
 
-  test('a Skip to content link is the first thing the keyboard reaches, and jumps past the menu (2.4.1)', async ({ page }) => {
+  test('a Skip to content link is the first thing the keyboard reaches, and jumps past the menu (2.4.1)', async ({ page }, info) => {
+    test.skip(isSafari(info), 'Safari only Tabs to links with Option+Tab, a Safari setting')
     await page.goto('/journal')
     await expect(page.getByRole('heading', { name: 'Journal', level: 1 })).toBeVisible()
     await page.keyboard.press('Tab')
@@ -396,7 +398,7 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
   })
 
   test('on a phone the More panel traps Tab, and Escape closes it and returns focus to More', async ({ page }, info) => {
-    test.skip(info.project.name !== 'android-phone', 'the More panel is a window only on a phone')
+    test.skip(!isPhone(info) || isSafari(info), 'the More panel is a window only on a phone; Safari Tabs to links only with Option+Tab')
     await page.goto('/tasks')
     await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
     const more = page.getByTestId('bottom-tabs').getByRole('button', { name: /^More/ })
@@ -418,7 +420,7 @@ test.describe('Spec §5 Time fields: type or pick (computer); the device picker 
   })
 
   test('on a phone the device time picker is used', async ({ page }, info) => {
-    test.skip(info.project.name !== 'android-phone', 'phone only')
+    test.skip(!isPhone(info), 'phone only')
     await page.goto('/habits')
     await page.getByRole('button', { name: '+ New habit' }).click()
     await expect(page.getByLabel('Reminder time (optional)')).toHaveAttribute('type', 'time')
@@ -426,7 +428,7 @@ test.describe('Spec §5 Time fields: type or pick (computer); the device picker 
 
   test.describe('on a computer', () => {
     test.beforeEach(({}, info) => {
-      test.skip(info.project.name === 'android-phone', 'computer only')
+      test.skip(isPhone(info), 'computer only')
     })
     const openEditor = async (page: Page) => {
       await page.goto('/habits')

@@ -78,6 +78,7 @@
 
 <script setup lang="ts">
 import { isPushEndpoint } from '@/notifications/pushEndpoints'
+import { isInstalled, isIOS } from '@/ui/device'
 // SPEC §6: Web Push and/or ntfy, quiet hours, and whether priority reminders ring during them.
 import TimeInput from '@/components/TimeInput.vue'
 import { onMounted, ref } from 'vue'
@@ -135,7 +136,7 @@ onMounted(async () => {
 /** Turn notifications on or off for this device: one push subscription per device (SPEC §6). */
 async function togglePush() {
   pushError.value = ''
-  if (!supported || !VAPID) return (pushError.value = m.webPushUnsupported)
+  if (!supported || !VAPID) return (pushError.value = isIOS() && !isInstalled() ? m.webPushIphone : m.webPushUnsupported)
   const reg = await navigator.serviceWorker.ready
   const existing = await reg.pushManager.getSubscription()
   if (existing) {

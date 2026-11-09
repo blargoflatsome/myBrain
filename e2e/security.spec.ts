@@ -48,6 +48,8 @@ test.describe('Spec §8 Security headers', () => {
   })
 
   test('nothing the app needs is blocked by the policy, on any page', async ({ page }) => {
+    // Visits every page; Safari's engine is slower at it.
+    test.slow()
     const violations = watchCsp(page)
     server.seed('events', [{ id: 'e1', title: 'Dentist', notes: null, start_date: '2026-11-10', start_time: '15:00:00', end_date: '2026-11-10', end_time: '16:00:00', repeat: 'never', reminder_minutes: null }])
     server.seed('post_its', [{ id: 'p1', body: '<p>Note</p>', color: 'yellow', position: 0 }])

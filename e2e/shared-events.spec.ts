@@ -135,7 +135,7 @@ test.describe('Spec §5 Shared events and invitations', () => {
     await expect(share.getByTestId('share-open')).toHaveAttribute('href', /^mailto:carol%40example\.com\?subject=Test%20Person%20invited%20you%20to%20Birthday%20party/)
     await share.getByRole('button', { name: 'Sent it, next' }).click()
     await expect(share.getByTestId('share-progress')).toHaveText('2 of 2')
-    await expect(share.getByTestId('share-open')).toHaveAttribute('href', /^sms:5550103000\?body=.*rsvp%2Finv-dan%2Ftok-dan/)
+    await expect(share.getByTestId('share-open')).toHaveAttribute('href', /^sms:5550103000[?&]body=.*rsvp%2Finv-dan%2Ftok-dan/)
     await share.getByRole('button', { name: 'Sent it, next' }).click()
     await share.getByRole('button', { name: 'All done' }).click()
     await expect.poll(() => rpc('mark_shared')[0]?.args).toEqual({ invites: ['inv-carol', 'inv-dan'], msg_kind: 'invite' })
