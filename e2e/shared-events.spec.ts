@@ -242,7 +242,8 @@ test.describe('Spec §5 Guests answer without an account', () => {
 
     const download = page.waitForEvent('download')
     await page.getByRole('button', { name: /Add to my calendar/ }).click()
-    expect((await download).suggestedFilename()).toBe('Birthday party.ics')
+    // WebKit on Linux swaps spaces in a downloaded file's name for underscores; the app names it "Birthday party.ics".
+    expect((await download).suggestedFilename()).toMatch(/^Birthday[ _]party\.ics$/)
 
     await page.getByLabel('Message Alice Able').fill('Running late!')
     await page.getByRole('button', { name: 'Send' }).click()
