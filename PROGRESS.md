@@ -43,8 +43,8 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 ## Check mark fix (merged via PR, branch `fix-check-mark`)
 - Chosen options showed "✓�a0" before their name: the `.choice-on::before` rule in `style.css` had a null character where `\00a0` should be (since feedback round 4). Now `'\2713\00a0'`; test in `e2e/capture.spec.ts` checks the drawn mark. Priority fix: only that test was run (desktop and iPhone), at the user's request.
 
-## Trophies section, empty bell, perfect-day re-check (branch `trophies-section`, not merged)
-- Trophies has its own Dashboard section (3 newest badges, See all trophies); the yesterday box lists badges earned yesterday. The bell with no alerts shows a fading "All caught up." The perfect-day check reruns after each visit's first download. No migration. Quick checks pass; full review not run yet.
+## Trophies section, empty bell, perfect-day re-check (merged via PR #51, branch `trophies-section`)
+- Trophies has its own Dashboard section (3 newest badges, See all trophies); the yesterday box lists badges earned yesterday. The bell with no alerts shows a fading "All caught up." The perfect-day check reruns after each visit's first download. No migration. Full review: 721/722; the one iPhone my-people failure passed 3/3 alone. Note: `test:all` hangs after the last test on this machine; check the log and end the leftover processes.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
