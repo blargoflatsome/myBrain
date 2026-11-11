@@ -171,6 +171,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'Contacts window')
       await page.goto('/tasks')
       await expect(page.getByRole('heading', { name: 'Tasks', level: 1 })).toBeVisible()
+      await expect(page.getByTestId('alerts-bell').first()).toHaveAccessibleName(/Alerts, \d+ new/)
       await page.getByTestId('alerts-bell').first().click()
       await expect(page.getByRole('dialog', { name: 'Alerts' })).toBeVisible()
       await scan(page, 'Alerts window')

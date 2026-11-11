@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 // SPEC §6 In-app alerts: the bell in the header with how many alerts I haven't dealt with; it opens them all, newest
-// first, 5 per page. Tapping one takes me where I deal with it and counts it as seen; ✕ or Clear all clears them.
+// first, 5 per page (with none, a short "All caught up" message instead). Tapping one takes me where I deal with it and counts it as seen; ✕ or Clear all clears them.
 import CloseX from '@/components/CloseX.vue'
 import { momentLabel } from '@/ui/dates'
 import { ref } from 'vue'
@@ -57,12 +57,14 @@ import { useAlerts } from '@/composables/useAlerts'
 import { usePagination } from '@/composables/usePagination'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
+import { useCelebrateStore } from '@/stores/celebrate'
 import type { NotificationRow } from '@/sync/types'
 import { dialogBox } from '@/ui/styles'
 
 const m = messages.alerts
 const brain = useBrainStore()
 const router = useRouter()
+const celebrate = useCelebrateStore()
 const { alerts, unread } = useAlerts()
 const { page, pageCount, pageItems } = usePagination(alerts, 5)
 
@@ -73,6 +75,8 @@ const announcement = ref('')
 // The list is only built while it's open.
 const listOpen = ref(false)
 function openList() {
+  // Nothing waiting: a short "All caught up" that fades by itself, instead of an empty list.
+  if (!alerts.value.length) return celebrate.say(m.empty)
   listOpen.value = true
   page.value = 1
   announcement.value = ''

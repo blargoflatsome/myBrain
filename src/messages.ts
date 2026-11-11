@@ -779,7 +779,7 @@ export const messages = {
     heading: 'Alerts',
     bellLabel: (n: number) => `Alerts, ${n} new`,
     bellLabelNone: 'Alerts',
-    empty: 'Nothing from past you in the last 7 days.',
+    empty: 'All caught up.',
     new: 'New',
     clearAll: 'Clear all',
     clear: (title: string) => `Clear: ${title}`,

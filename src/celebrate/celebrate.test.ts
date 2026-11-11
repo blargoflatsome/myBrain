@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { newHabit } from '@/habits/rules'
 import type { HabitLogRow, TaskRow } from '@/sync/types'
@@ -178,5 +178,28 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     expect(alerts[0]).toMatchObject({ title: 'Yesterday was a perfect day', url: '/habits', local_date: '2026-11-06' })
     expect((await brain.db!.badges.toArray()).map((b) => b.kind)).toEqual(['first_habit'])
     expect(celebrate.message).toBeNull()
+  })
+
+  it('habits ticked on another device: yesterday is checked again once this session’s download finishes', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-06T08:00:00Z') })
+    try {
+      const brain = useBrainStore()
+      brain.start(UID, remote)
+      await settle()
+      const h = { ...habit(), user_id: UID }
+      await brain.db!.habits.put(h)
+      const celebrate = useCelebrateStore()
+      celebrate.start()
+      brain.habitsReady = true
+      await settle()
+      const perfect = async () => (await brain.db!.notifications.toArray()).filter((n) => n.kind === 'perfect_day')
+      expect(await perfect()).toHaveLength(0)
+      await brain.db!.habit_logs.put({ ...done(h.id, '2026-11-05'), user_id: UID })
+      brain.syncedCount++
+      await settle()
+      expect(await perfect()).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
