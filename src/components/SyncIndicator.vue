@@ -1,5 +1,5 @@
 <template>
-  <p class="flex items-center gap-2 text-xs text-muted" :class="compact && 'min-h-11 min-w-6 justify-center'" :title="compact ? view.text : undefined" role="status" aria-live="polite" data-testid="sync-indicator">
+  <p class="flex items-center gap-2 text-xs text-muted" :class="compact && 'min-h-10 min-w-5 justify-center'" :title="compact ? view.text : undefined" role="status" aria-live="polite" data-testid="sync-indicator">
     <span class="size-2.5 shrink-0 rounded-full" :class="view.dot" aria-hidden="true" />
     <span :class="compact && 'sr-only'">{{ view.text }}</span>
   </p>

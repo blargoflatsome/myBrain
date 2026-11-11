@@ -31,6 +31,14 @@
       </section>
     </AccountGroup>
 
+    <!-- SPEC §5 Account page: Sign out on its own right under Your profile, always visible and away from the delete buttons. -->
+    <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" :aria-label="messages.signOut.button" data-testid="sign-out">
+      <p class="min-w-0 text-sm text-muted">{{ g.signOutHint }}</p>
+      <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-4 font-medium" @click="signOut">
+        {{ messages.signOut.button }}
+      </button>
+    </section>
+
     <AccountGroup id="reminders" :title="messages.notifications.heading" :summary="g.reminders">
       <NotificationSettings />
     </AccountGroup>
@@ -73,18 +81,12 @@
     </AccountGroup>
 
     <AccountGroup id="account" :title="g.accountTitle" :summary="g.account">
-      <div class="grid gap-4 sm:grid-cols-2">
-        <section class="flex flex-col gap-2 rounded-xl border border-line p-4" :aria-label="messages.signOut.button">
-          <p class="text-sm text-muted">{{ g.signOutHint }}</p>
-          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-line px-4" @click="signOut">{{ messages.signOut.button }}</button>
-        </section>
-        <section class="flex flex-col gap-2 rounded-xl border border-danger/40 p-4" data-testid="delete-account" :aria-label="m.deleteHeading">
-          <p class="text-sm text-muted">{{ m.deleteHint }}</p>
-          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askDelete">
-            {{ m.deleteButton }}
-          </button>
-        </section>
-      </div>
+      <section class="flex flex-col gap-2 rounded-xl border border-danger/40 p-4" data-testid="delete-account" :aria-label="m.deleteHeading">
+        <p class="text-sm text-muted">{{ m.deleteHint }}</p>
+        <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askDelete">
+          {{ m.deleteButton }}
+        </button>
+      </section>
     </AccountGroup>
 
     <p class="flex flex-wrap justify-center gap-4 text-sm">

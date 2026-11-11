@@ -46,3 +46,21 @@ test.describe('Spec §5 Account page: grouped into sections that open and close'
     expect((b?.x ?? 0) > (a?.x ?? 0)).toBe(true)
   })
 })
+
+test.describe('Spec §5 Account page: Sign out right under Your profile', () => {
+  test('Sign out is visible with every group closed, right after Your profile and away from Delete account', async ({ page }) => {
+    const server = new FakeSupabase()
+    server.openAccountGroups = false
+    await server.install(page)
+    await page.goto('/account')
+    const signOut = page.getByTestId('sign-out')
+    await expect(signOut.getByRole('button', { name: 'Sign out' })).toBeVisible()
+    await page.getByTestId('account-group-account').locator('summary').click()
+    await expect(page.getByTestId('account-group-account').getByRole('button', { name: 'Sign out' })).toHaveCount(0)
+    // It comes straight after the Your profile group.
+    const next = await page.getByTestId('account-group-profile').evaluate((el) => el.nextElementSibling?.getAttribute('data-testid'))
+    expect(next).toBe('sign-out')
+    await signOut.getByRole('button', { name: 'Sign out' }).click()
+    await expect(page).toHaveURL(/\/sign-in$/)
+  })
+})
