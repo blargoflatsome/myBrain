@@ -35,6 +35,11 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 ## Targeted phone tests (merged via PR, branch `phone-tests`)
 - Android and iPhone run only device-sensitive browser tests: whole files in `PHONE_FILES` (`playwright.config.ts`) plus `@phone` tags (SPEC §3, DECISIONS 2026-11-11). `npm run test:all` passes: 671 browser runs (was 967), 3.8 min (was 4.4).
 
+## Celebrations (branch `celebrations`, not merged)
+- SPEC §5 Celebrations and §2 (no sounds; Focus chime stays). Event hook `src/celebrate/bus.ts` (the data store says what was finished), rules in `src/celebrate/rules.ts`, `stores/celebrate.ts` (level, confetti, messages, badges, next-day alert), `CelebrationLayer.vue`, styles at the end of `style.css` (`html[data-celebrate]`). Screens: task check draws in, habit ring and streak bounce, routine progress bar and finished badge, Capture button pulse, journal glow and Saved stamp, Focus ripple and today's total, Orphans all sorted, Trophies in Dashboard More stats, Celebrations setting under Your profile.
+- Migration `20261111010000_celebrations.sql` (badges table, profiles.celebrations). Dev migrated; `npm run test:db` passes (27 files, new `rls_badges.sql`). Prod not migrated yet (do it right before merging).
+- Tests: `src/celebrate/celebrate.test.ts`, `e2e/celebrations.spec.ts`; `e2e/capture.spec.ts` now expects the Orphans all-sorted message. Quick checks pass (Vitest 334, desktop browser tests pass). Wording in `messages.celebrations` is plain, so the user can add their own jokes.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).

@@ -26,6 +26,7 @@ export class FakeSupabase {
     vault_items: new Map(),
     quests: new Map(),
     quest_logs: new Map(),
+    badges: new Map(),
     inbox: new Map(),
     habits: new Map(),
     habit_logs: new Map(),
@@ -68,6 +69,7 @@ export class FakeSupabase {
       cancel_dropout_message: "Hi {{name}}, I'm sorry, but I can't make it to {{event}} on {{date}} at {{time}}. Sorry for the short notice!",
       cancel_event_message: "Hi {{name}}, I'm sorry, but I have to cancel {{event}} on {{date}} at {{time}}. Sorry for the short notice!",
       timezone: 'UTC',
+      celebrations: 'full',
       deleted_at: null,
     })
   }

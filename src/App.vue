@@ -67,6 +67,9 @@
       v-if="showChrome && route.name !== 'capture'"
       type="button"
       class="fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 flex min-h-14 md:bottom-[max(1rem,env(safe-area-inset-bottom))] items-center rounded-full bg-accent px-6 text-lg font-semibold text-accent-ink shadow-lg"
+      :class="{ 'capture-pulse': pulsing }"
+      data-testid="capture-button"
+      :data-pulsing="pulsing || undefined"
       @click="capture.open()"
     >
       + {{ messages.capture.openButton }}
@@ -79,6 +82,7 @@
     <PriorityReminder v-if="showChrome" />
     <UndoBar v-if="showChrome" />
     <FocusTimer v-if="showChrome" />
+    <CelebrationLayer v-if="showChrome" />
   </div>
 </template>
 
@@ -93,6 +97,8 @@ import { MAIN_NAV, MORE_NAV, inMore } from '@/ui/nav'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import PriorityReminder from '@/components/PriorityReminder.vue'
 import FocusTimer from '@/components/FocusTimer.vue'
+import CelebrationLayer from '@/components/CelebrationLayer.vue'
+import { useCelebrateStore } from '@/stores/celebrate'
 import { useFocusStore } from '@/stores/focus'
 import CaptureDialog from '@/components/CaptureDialog.vue'
 import SearchDialog from '@/components/SearchDialog.vue'
@@ -114,6 +120,22 @@ const auth = useAuthStore()
 const brain = useBrainStore()
 const capture = useCaptureStore()
 const searchWindow = useSearchStore()
+const celebrate = useCelebrateStore()
+celebrate.start()
+
+// SPEC §5 Celebrations: after a capture is saved, the Capture button gives one soft pulse (once its window is closed,
+// so it can be seen).
+const pulsing = ref(false)
+let pulseDue = false
+function pulse() {
+  pulseDue = false
+  if (celebrate.level === 'off') return
+  pulsing.value = false
+  requestAnimationFrame(() => (pulsing.value = true))
+  setTimeout(() => (pulsing.value = false), 900)
+}
+watch(() => celebrate.captureSaved, () => (capture.isOpen ? (pulseDue = true) : pulse()))
+watch(() => capture.isOpen, (open) => !open && pulseDue && pulse())
 
 // SPEC §8 Delete my data: if my data was deleted on another device, clear this device's copy and download again.
 let lastResetCheck = 0
@@ -140,10 +162,12 @@ watch(
     void checkDataReset()
     void supabase
       .from('profiles')
-      .select('phone')
+      .select('phone, celebrations')
       .eq('user_id', id)
       .maybeSingle()
       .then(async ({ data, error }) => {
+        // SPEC §5 Celebrations: my setting follows me to this device.
+        if (data?.celebrations) celebrate.setSetting(data.celebrations)
         if (error || !data || data.phone) return
         await router.isReady()
         if (route.meta.public || route.name === 'welcome') return

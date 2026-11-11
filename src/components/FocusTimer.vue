@@ -15,6 +15,9 @@
     <p class="text-2xl font-semibold" data-testid="focus-phase">{{ m.phase[focus.state.phase] }}</p>
     <p class="text-[min(28vw,10rem)] leading-none font-bold tabular-nums" data-testid="focus-time" role="timer" :aria-label="m.timeLeft(time)">{{ time }}</p>
     <p class="text-base text-white/70" data-testid="focus-round">{{ m.round(focus.state.round) }}</p>
+    <!-- SPEC §5 Celebrations: after a work part, a soft ripple and how much I've focused today. -->
+    <span v-if="rippling" :key="rippleKey" class="celebrate-ripple pointer-events-none absolute top-1/2 left-1/2 -mt-32 -ml-32 size-64 rounded-full border-4 border-done" aria-hidden="true" />
+    <p v-if="focusedToday" class="text-base font-semibold text-done" data-testid="focus-today">{{ messages.celebrations.focusToday(focusedToday) }}</p>
     <div class="mt-4 flex flex-wrap justify-center gap-3">
       <button type="button" :class="pill" data-testid="focus-pause" @click="focus.togglePause()">{{ paused ? m.resume : m.pause }}</button>
       <button type="button" :class="pill" @click="focus.skipPart()">{{ m.skip }}</button>
@@ -44,6 +47,7 @@ import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useFocusStore } from '@/stores/focus'
 import { clock, remainingMs } from '@/focus/timer'
 import { messages } from '@/messages'
+import { achieved } from '@/celebrate/bus'
 
 const focus = useFocusStore()
 const m = messages.focus
@@ -67,10 +71,23 @@ onScopeDispose(() => {
   document.removeEventListener('visibilitychange', onVisible)
 })
 
+// Minutes of focus finished today, shown once there are some.
+const focusedToday = ref(Math.round(focus.focusToday() / 60_000))
+const rippling = ref(false)
+const rippleKey = ref(0)
+
 // When a part ends: a soft chime, a short vibration, and a notification if I'm in another app.
 function partEnded() {
   const next = focus.state!.phase
   announcement.value = m.nowPhase[next]
+  if (focus.workEnded) {
+    focusedToday.value = Math.round(focus.focusToday() / 60_000)
+    announcement.value = `${messages.celebrations.focusDone} ${m.nowPhase[next]}`
+    rippling.value = true
+    rippleKey.value++
+    setTimeout(() => (rippling.value = false), 1500)
+    achieved({ kind: 'focus' })
+  }
   chime()
   navigator.vibrate?.([200, 100, 200])
   if (document.visibilityState === 'hidden' && 'Notification' in window && Notification.permission === 'granted') {

@@ -218,6 +218,38 @@
               </div>
             </div>
           </section>
+
+          <!-- SPEC §5 Dashboard, Trophies: badges earned (and those still to get), and perfect days. -->
+          <section :class="card" data-testid="dash-trophies">
+            <div class="flex flex-wrap items-baseline justify-between gap-x-3">
+              <h2 class="text-lg font-semibold">{{ t.heading }}</h2>
+              <span class="text-sm text-muted">{{ t.count(trophies.earned.size, BADGES.length) }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="text-sm text-muted">{{ t.perfectDaysHint }}</span>
+              <span :class="bigNumber" data-testid="dash-perfect-days">{{ t.perfectDays(trophies.perfect) }}</span>
+            </div>
+            <ul class="grid gap-2 sm:grid-cols-2">
+              <li
+                v-for="kind in BADGES"
+                :key="kind"
+                class="flex items-center gap-3 rounded-xl border p-3"
+                :class="trophies.earned.has(kind) ? 'border-line' : 'border-dashed border-line text-muted'"
+                :data-testid="`badge-${kind}`"
+                :data-earned="trophies.earned.has(kind) || undefined"
+              >
+                <span
+                  class="flex size-10 shrink-0 items-center justify-center rounded-full"
+                  :class="trophies.earned.has(kind) ? 'bg-done text-bg' : 'border border-dashed border-muted text-muted'"
+                  aria-hidden="true"
+                ><AppIcon name="trophy" size="size-5" /></span>
+                <span class="flex min-w-0 flex-col">
+                  <span class="font-medium break-words">{{ cm.badges[kind] }}</span>
+                  <span class="text-xs text-muted">{{ trophies.earned.has(kind) ? t.earnedOn(dateWithYear(trophies.earned.get(kind)!)) : t.notYet }}</span>
+                </span>
+              </li>
+            </ul>
+          </section>
         </div>
       </details>
     </template>
@@ -247,11 +279,13 @@ import {
   yesterdaySummary,
   type Period,
 } from '@/dashboard/stats'
-import { addDays } from '@/tasks/days'
+import { addDays, todayIn } from '@/tasks/days'
 import { percent } from '@/routines/rules'
 import { messages } from '@/messages'
 import { dateWithYear } from '@/ui/dates'
 import { bigNumber, card, smallNumber } from '@/ui/styles'
+import { BADGES, perfectDays, type BadgeKind } from '@/celebrate/rules'
+import { live } from '@/sync/live'
 
 const brain = useBrainStore()
 const m = messages.dashboard
@@ -275,6 +309,21 @@ function onMoreToggle(event: Event) {
   }
 }
 const { today, timeZone } = useToday()
+const cm = messages.celebrations
+const t = cm.trophies
+
+// Trophies (SPEC §5 Celebrations): the day each badge was earned, in my time zone, and how many perfect days.
+const trophies = useLiveQuery(
+  async () => {
+    if (!brain.db) return { earned: new Map<BadgeKind, string>(), perfect: 0 }
+    const earned = new Map<BadgeKind, string>()
+    for (const b of live(await brain.db.badges.toArray())) earned.set(b.kind as BadgeKind, todayIn(timeZone.value, new Date(b.earned_at)))
+    const perfect = perfectDays(await brain.db.habits.toArray(), await brain.db.habit_logs.toArray(), today.value)
+    return { earned, perfect }
+  },
+  { earned: new Map<BadgeKind, string>(), perfect: 0 },
+  [() => brain.db, today],
+)
 
 // The period is remembered on this device (a convenience; the default is This year).
 const saved = (() => {

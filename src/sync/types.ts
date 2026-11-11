@@ -26,6 +26,7 @@ export const SYNC_TABLES = [
   'notifications',
   'people',
   'quest_logs',
+  'badges',
 ] as const
 
 /** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
@@ -193,6 +194,12 @@ export interface QuestLogRow extends BaseRow {
   completed_at: string
 }
 
+/** A badge earned the first time I did something (SPEC §5 Celebrations). One per kind. */
+export interface BadgeRow extends BaseRow {
+  kind: string
+  earned_at: string
+}
+
 export interface InboxRow extends BaseRow {
   body: string
 }
@@ -319,6 +326,7 @@ export interface RowTypes {
   post_its: PostItRow
   people: PersonRow
   quest_logs: QuestLogRow
+  badges: BadgeRow
   tasks: TaskRow
   vault_buckets: VaultBucketRow
   vault_items: VaultItemRow

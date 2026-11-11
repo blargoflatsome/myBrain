@@ -31,6 +31,7 @@ export class LocalDb extends Dexie {
   priority_tasks!: Table<RowTypes['priority_tasks'], string>
   priority_task_logs!: Table<RowTypes['priority_task_logs'], string>
   quest_logs!: Table<RowTypes['quest_logs'], string>
+  badges!: Table<RowTypes['badges'], string>
   reminder_state!: Table<RowTypes['reminder_state'], string>
   journal_entries!: Table<RowTypes['journal_entries'], string>
   events!: Table<RowTypes['events'], string>
@@ -105,6 +106,10 @@ export class LocalDb extends Dexie {
     // Quests can be done again and again: each completion is logged.
     this.version(11).stores({
       quest_logs: 'id, updated_at, quest_id, date',
+    })
+    // Badges earned (SPEC §5 Celebrations).
+    this.version(12).stores({
+      badges: 'id, updated_at, kind',
     })
   }
 
