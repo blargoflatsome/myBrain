@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
   await server.install(page)
 })
 
-test.describe('Spec §5 Habits: start date and how often', () => {
+test.describe('Spec §5 Habits: start date and how often', { tag: '@phone' }, () => {
   test('Recycling: every other Thursday from Nov 12, reminder at 3 pm', async ({ page }) => {
     await open(page, '/habits')
     await page.getByRole('button', { name: '+ New habit' }).click()
@@ -130,7 +130,7 @@ test.describe('Spec §5 Journal: pages of 3 days, and a save status under each b
   })
 })
 
-test.describe('Spec §5 Focus timer', () => {
+test.describe('Spec §5 Focus timer', { tag: '@phone' }, () => {
   async function openTimer(page: Page) {
     await page.getByTestId('focus-open').locator('visible=true').click()
     return page.getByRole('dialog', { name: 'Focus timer' })

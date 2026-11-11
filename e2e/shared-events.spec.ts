@@ -106,7 +106,7 @@ test.describe('Spec §10 Connections, scheduling: availability for connections',
 })
 
 test.describe('Spec §5 Shared events and invitations', () => {
-  test('inviting by email and phone: the invitations go out, and guests are messaged one at a time with their link', async ({ page }) => {
+  test('inviting by email and phone: the invitations go out, and guests are messaged one at a time with their link', { tag: '@phone' }, async ({ page }) => {
     server.seed('events', [calendarEvent()])
     server.rpcResults.invite_people = [
       { invite_id: 'inv-carol', name: 'Carol', email: 'carol@example.com', phone: null, token: 'tok-carol' },

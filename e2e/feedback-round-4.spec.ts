@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
   await server.install(page)
 })
 
-test.describe('Spec §2 Windows: a close ✕ top right, and a click outside closes', () => {
+test.describe('Spec §2 Windows: a close ✕ top right, and a click outside closes', { tag: '@phone' }, () => {
   test.beforeEach(() => {
     server.seed('tasks', [{ id: 't1', title: 'pay rent', notes: null, due_date: DAY, priority: 1, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:01Z' }])
   })
@@ -217,7 +217,7 @@ test.describe('Spec §5 Dashboard: quests done yesterday', () => {
   })
 })
 
-test.describe('Spec §5 Calendar: month first, read-only window with Edit', () => {
+test.describe('Spec §5 Calendar: month first, read-only window with Edit', { tag: '@phone' }, () => {
   test.beforeEach(() => {
     server.seed('tasks', [{ id: 't1', title: LONG_LINE, notes: `<p>${LONG_WORD}</p>`, due_date: '2026-11-12', priority: 3, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:01Z' }])
     server.seed('events', [{ id: 'e1', title: 'Dinner', notes: '<p>Bring <em>wine</em></p>', start_date: '2026-11-13', start_time: '19:00', end_date: '2026-11-13', end_time: '21:00', repeat: 'never', reminder_minutes: 60 }])

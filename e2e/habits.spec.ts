@@ -254,7 +254,7 @@ test.describe('Spec §5 Account page', () => {
   })
 })
 
-test.describe('Navigation', () => {
+test.describe('Navigation', { tag: '@phone' }, () => {
   test('the left menu reaches Dashboard, Tasks, Habits, Quests and Orphans (Account from the header), with text labels only', async ({ page }) => {
     await open(page, '/')
     for (const [name, url] of [
