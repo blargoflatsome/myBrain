@@ -125,6 +125,11 @@ watch(
   async (open) => {
     await nextTick()
     if (open && !dialog.value?.open) {
+      if (store.startTag) {
+        query.value = ''
+        chosenTags.value = [store.startTag]
+        store.startTag = null
+      }
       dialog.value?.showModal()
       box.value?.focus()
       box.value?.select()

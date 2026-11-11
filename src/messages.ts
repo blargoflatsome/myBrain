@@ -569,6 +569,9 @@ export const messages = {
     people: 'Connections and your saved people',
     connectionsHint: 'People you’re connected with on My Brain',
     openConnections: 'Open Connections',
+    tagsTitle: 'Tags',
+    tagsHint: 'Rename, merge or delete your tags',
+    openTags: 'Open Tags',
     data: 'Download or delete your data',
     accountTitle: 'Account',
     account: 'Delete your account',
@@ -918,6 +921,41 @@ export const messages = {
     openLink: 'Open link',
     openMap: 'Open in maps',
   },
+  /** SPEC §5 Tags page. */
+  tagsPage: {
+    heading: 'Tags',
+    intro: 'Rename, merge or delete tags. Tap a tag to see everything on it.',
+    empty: "Past you hasn't made any tags yet. Add them on tasks, habits and routines.",
+    counts: (c: { task: number; habit: number; routine: number }) => {
+      const parts = [
+        c.task && `${c.task} ${c.task === 1 ? 'task' : 'tasks'}`,
+        c.habit && `${c.habit} ${c.habit === 1 ? 'habit' : 'habits'}`,
+        c.routine && `${c.routine} ${c.routine === 1 ? 'routine' : 'routines'}`,
+      ].filter(Boolean)
+      return parts.length ? parts.join(' · ') : 'Not on anything'
+    },
+    showItems: 'Show everything tagged',
+    edit: 'Edit',
+    editLabel: (name: string) => `Edit #${name}`,
+    editor: {
+      heading: 'Edit tag',
+      name: 'Name',
+      save: 'Save tag',
+      close: 'Close',
+      merge: 'Merge into another tag',
+      mergeHint: (name: string) => `Everything tagged #${name} moves to the tag you pick, and #${name} goes away.`,
+      mergeChoose: 'Choose a tag',
+      mergeButton: 'Merge',
+      delete: 'Delete tag',
+      deleteHint: 'It comes off every item. The items stay.',
+      clash: (name: string) => `There's already a tag called #${name}. Merge them?`,
+      clashYes: 'Merge them',
+      clashNo: 'Keep editing',
+    },
+    renamed: (from: string, to: string) => `Renamed #${from} to #${to}`,
+    merged: (from: string, into: string) => `Merged #${from} into #${into}`,
+    deleted: (name: string) => `Deleted #${name}`,
+  },
   search: {
     open: 'Search',
     windowLabel: 'Search',
@@ -1083,6 +1121,7 @@ export const messages = {
   pageTitles: {
     dashboard: 'Dashboard',
     connections: 'Connections',
+    tags: 'Tags',
     home: 'Tasks',
     capture: 'Capture',
     routines: 'Routines',

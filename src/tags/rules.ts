@@ -92,3 +92,67 @@ export function tagChanges(
   const remove = current.filter((it) => !wantedIds.has(it.tag_id))
   return { newTags, add, remove }
 }
+
+// ---------- Tags page (SPEC §5 Tags page) ----------
+
+export interface TagUse {
+  tag: TagRow
+  counts: Record<TaggedType, number>
+  total: number
+}
+
+/** Every live tag A to Z with how many live tasks, habits and routines it is on. */
+export function tagUsage(tags: TagRow[], itemTags: ItemTagRow[], liveItemIds: Record<TaggedType, Set<string>>): TagUse[] {
+  const uses = new Map<string, TagUse>()
+  for (const tag of tags) if (!tag.deleted_at) uses.set(tag.id, { tag, counts: { task: 0, habit: 0, routine: 0 }, total: 0 })
+  for (const link of itemTags) {
+    const use = uses.get(link.tag_id)
+    if (!use || link.deleted_at || !liveItemIds[link.item_type]?.has(link.item_id)) continue
+    use.counts[link.item_type]++
+    use.total++
+  }
+  return [...uses.values()].sort((a, b) => a.tag.name.localeCompare(b.tag.name, undefined, { sensitivity: 'base' }))
+}
+
+export interface MoveLinks {
+  add: ItemTagRow[]
+  remove: ItemTagRow[]
+}
+
+/**
+ * Moving every item from one tag to another: each live link to `fromId` is taken off, and a link to `intoId` is
+ * added unless the item already has it. New links use the usual made-from-ids id, so a once-removed link comes back.
+ */
+export function moveLinks(userId: string, fromId: string, intoId: string, itemTags: ItemTagRow[]): MoveLinks {
+  const liveLinks = itemTags.filter((it) => !it.deleted_at)
+  const already = new Set(liveLinks.filter((it) => it.tag_id === intoId).map((it) => `${it.item_type}:${it.item_id}`))
+  const remove = liveLinks.filter((it) => it.tag_id === fromId)
+  const add = remove
+    .filter((it) => !already.has(`${it.item_type}:${it.item_id}`))
+    .map((it) => ({ id: itemTagIdFor(it.item_id, intoId), user_id: userId, tag_id: intoId, item_type: it.item_type, item_id: it.item_id, deleted_at: null }))
+  return { add, remove }
+}
+
+export type RenameOutcome =
+  | { kind: 'empty' }
+  | { kind: 'unchanged' }
+  /** Only the capital letters change: same tag, new spelling. */
+  | { kind: 'respell'; name: string }
+  /** Another tag already has the name: offer to merge into it. */
+  | { kind: 'clash'; other: TagRow }
+  /** A new name: a new tag (its id comes from the name) takes over the items, and the old one goes. */
+  | { kind: 'rename'; name: string; newTag: TagRow }
+
+/**
+ * What renaming a tag means. Tag ids come from their names (`tagIdFor`), so a real rename makes the tag for the new
+ * name and moves the items over; keeping the old id would let a later tag with the old name overwrite this one.
+ */
+export function renameOutcome(userId: string, tag: TagRow, typed: string, tags: TagRow[]): RenameOutcome {
+  const name = cleanTagName(typed)
+  if (!name) return { kind: 'empty' }
+  if (name === tag.name) return { kind: 'unchanged' }
+  if (name.toLowerCase() === tag.name.toLowerCase()) return { kind: 'respell', name }
+  const other = tags.find((t) => !t.deleted_at && t.id !== tag.id && t.name.toLowerCase() === name.toLowerCase())
+  if (other) return { kind: 'clash', other }
+  return { kind: 'rename', name, newTag: { id: tagIdFor(userId, name), user_id: userId, name, deleted_at: null } }
+}

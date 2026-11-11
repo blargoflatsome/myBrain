@@ -7,7 +7,7 @@
 - Don't guess: if the spec is silent or unclear, ask, then write the answer into the spec (and log it at the end of `docs/DECISIONS.md`).
 - Every feature gets Vitest and/or Playwright tests named after the spec rule they prove. Anything that shows text people type is tested with long text too: a long sentence, a paragraph, and an unbroken string like a pasted link (shared samples in `e2e/a11y.spec.ts`, checked at 320 px wide). While coding, run the quick checks (`npm run test:quick`) after each change; run the full three-device review (`npm run test:all`, plus `npm run test:db` by the user when migrations changed) **only when the user says to merge**, and merge only if it passes. No screenshots unless the user asks. Mock the clock for anything time-dependent.
 - Update `PROGRESS.md` at the end of each session; keep it short by moving older merged sections to `docs/PROGRESS_ARCHIVE.md`.
-- The public **Features** and **Docs** pages are removed until the app is finished (user, 2026-11-10, to save tokens); they will be written fresh then. Don't maintain them meanwhile.
+- There are no public **Features** or **Docs** pages, and none are planned (user, 2026-11-11). Don't build them.
 - Secrets live only in `.env.local` (gitignored) and Netlify env vars. Only the Supabase anon key may reach the browser. Ask for each credential when first needed.
 - Every table: `id, user_id, created_at, updated_at (server-set), deleted_at`, with RLS.
 - All user-facing wording in the "past you" voice, kept in one messages file.

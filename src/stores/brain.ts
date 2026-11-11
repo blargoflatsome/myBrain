@@ -12,8 +12,8 @@ import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMis
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
-import type { AvailabilityExceptionRow, AvailabilityRuleRow, EventRow, JournalEntryRow, SyncTable, TaggedType, VaultBucketRow, VaultItemRow } from '@/sync/types'
-import { tagChanges } from '@/tags/rules'
+import type { AvailabilityExceptionRow, AvailabilityRuleRow, EventRow, JournalEntryRow, SyncTable, TaggedType, TagRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import { moveLinks, renameOutcome, tagChanges } from '@/tags/rules'
 import { normalizeBody } from '@/journal/body'
 import { frontPosition } from '@/postits/rules'
 import type { PersonRow, PostItColor, PostItRow } from '@/sync/types'
@@ -654,6 +654,51 @@ export const useBrainStore = defineStore('brain', () => {
     for (const link of changes.remove) await e.remove('item_tags', link.id)
   }
 
+  // ---------- Tags page (SPEC §5 Tags page): each change hands back its undo ----------
+  /** Move every item from one tag to another and remove the first tag. */
+  async function mergeTags(fromId: string, intoId: string): Promise<() => Promise<void>> {
+    const { engine: e, uid, local } = requireReady()
+    const { add, remove } = moveLinks(uid, fromId, intoId, await local.item_tags.toArray())
+    for (const link of add) await e.save('item_tags', link)
+    for (const link of remove) await e.remove('item_tags', link.id)
+    await e.remove('tags', fromId)
+    return async () => {
+      await e.patch('tags', fromId, () => ({ deleted_at: null }))
+      for (const link of remove) await e.patch('item_tags', link.id, () => ({ deleted_at: null }))
+      for (const link of add) await e.remove('item_tags', link.id)
+    }
+  }
+  /** Rename a tag everywhere. Returns null when nothing changes, or when another tag has the name (merge instead). */
+  async function renameTag(tag: TagRow, typed: string): Promise<{ undo: () => Promise<void> } | { clash: TagRow } | null> {
+    const { engine: e, uid, local } = requireReady()
+    const outcome = renameOutcome(uid, tag, typed, await local.tags.toArray())
+    if (outcome.kind === 'empty' || outcome.kind === 'unchanged') return null
+    if (outcome.kind === 'clash') return { clash: outcome.other }
+    if (outcome.kind === 'respell') {
+      await e.patch('tags', tag.id, () => ({ name: outcome.name }))
+      return { undo: async () => void (await e.patch('tags', tag.id, () => ({ name: tag.name }))) }
+    }
+    await e.save('tags', outcome.newTag)
+    const undoMove = await mergeTags(tag.id, outcome.newTag.id)
+    return {
+      undo: async () => {
+        await undoMove()
+        await e.remove('tags', outcome.newTag.id)
+      },
+    }
+  }
+  /** Delete a tag: it comes off every item; the items stay. */
+  async function deleteTag(tagId: string): Promise<() => Promise<void>> {
+    const { engine: e, local } = requireReady()
+    const links = (await local.item_tags.toArray()).filter((it) => it.tag_id === tagId && !it.deleted_at)
+    for (const link of links) await e.remove('item_tags', link.id)
+    await e.remove('tags', tagId)
+    return async () => {
+      await e.patch('tags', tagId, () => ({ deleted_at: null }))
+      for (const link of links) await e.patch('item_tags', link.id, () => ({ deleted_at: null }))
+    }
+  }
+
   // ---------- Priority reminders (SPEC §5) ----------
   async function savePriorityTask(row: PriorityTaskRow) {
     const { engine: e, uid } = requireReady()
@@ -725,6 +770,9 @@ export const useBrainStore = defineStore('brain', () => {
     saveEvent,
     deleteEvent,
     saveTags,
+    mergeTags,
+    renameTag,
+    deleteTag,
     journalStats,
     refreshJournal,
     saveJournalBody,

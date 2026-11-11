@@ -124,3 +124,13 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 - Capture's quest form has no More details and more space between its fields. (User.)
 - Habit form: more space between sections, Reminders is a fold-out, Private moved right under the title. (User.) Tags, now the only other optional field, are shown in view.
 - Routine form: more space between sections; the reminder time has no Reminders heading or border. (User.)
+
+## 2026-11-11 Plan trimmed
+- Kept: a push for connection requests, and deciding what a profile shows. Phase 2 keeps email sending, the Tags page, Home Assistant, Alexa/voice and smartwatch. (User.)
+- Dropped for good: "Just this date" answers for repeating events (answers always cover the series), the Features and Docs pages, Type it like you'd say it, automatic texting (SMS gateway or Twilio), the Capacitor Android app, social streaks and leaderboards, and the Raspberry Pi display with device pairing. (User.)
+
+## 2026-11-11 Tags page
+- Built now (moved from Phase 2). Reached from a Tags row on the Account page only, not the menus. (User.)
+- Delete happens straight away with Undo instead of asking first; merge and rename have Undo too. (User picked Undo.)
+- Renaming to a name another tag has offers to merge them. (User.)
+- Claude's call: a rename makes a new tag for the new name and moves the items, because tag ids come from their names; changing only capitals keeps the tag.
