@@ -764,6 +764,9 @@ export const messages = {
       earnedOn: (day: string) => `Earned ${day}`,
       notYet: 'Not yet',
       count: (got: number, total: number) => `${got} of ${total} badges`,
+      seeAll: 'See all trophies',
+      seeFewer: 'Show fewer',
+      yesterday: 'Trophies earned yesterday',
     },
     setting: {
       label: 'Celebrations',
