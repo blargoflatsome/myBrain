@@ -1,6 +1,6 @@
 # My Brain
 
-A personal productivity and "boredom buster" app for capturing everything you need to remember: tasks, habits, routines, a journal, The Vault, and a Random Quest picker. Installable as a PWA on Android, usable on desktop and on a Raspberry Pi touch display.
+A personal productivity and "boredom buster" app for capturing everything you need to remember: tasks, habits, routines, a journal, The Vault, and a Random Quest picker. Installable as a PWA on Android, on an iPhone from the Home Screen, and on desktop.
 
 Live app: https://myadhdbrain.netlify.app (deployed from `main`).
 

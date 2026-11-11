@@ -24,6 +24,7 @@ export const routes = [
   { path: '/calendar', name: 'calendar', component: () => import('@/views/CalendarView.vue') },
   { path: '/habits', name: 'habits', component: () => import('@/views/HabitsView.vue') },
   { path: '/account', name: 'account', component: () => import('@/views/AccountView.vue') },
+  { path: '/tags', name: 'tags', component: () => import('@/views/TagsView.vue') },
   { path: '/connections', name: 'connections', component: () => import('@/views/ConnectionsView.vue') },
   { path: '/connect/:token', name: 'connect', component: () => import('@/views/ConnectLinkView.vue'), meta: { returnAfterSignIn: true } },
   // The page was called Profile before; old links still work.

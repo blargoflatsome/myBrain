@@ -107,6 +107,7 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Calendar', '/calendar', (p) => expect(p.locator('.cal-wrap').getByText('pay rent').first()).toBeVisible()],
   ['Account', '/account', (p) => expect(p.getByRole('heading', { name: 'Your profile', level: 2 })).toBeVisible()],
   ['Connections', '/connections', (p) => expect(p.getByRole('heading', { name: 'Connections', level: 1 })).toBeVisible()],
+  ['Tags', '/tags', (p) => expect(p.getByTestId('tag-row').first()).toBeVisible()],
   ['Capture page', '/capture', (p) => expect(p.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()],
   ['Privacy', '/privacy', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
   ['Terms', '/terms', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],

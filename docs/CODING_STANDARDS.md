@@ -23,8 +23,8 @@ file says *how* the code is written.
   components or modules.
 - Messages that need values are small functions: `deleteItem: (title: string) => \`Delete ${title}\``.
 - Messages to other people (guests, invitees) are written plainly from the user, not in the "past you" voice.
-- Long-form pages (Privacy, Terms, Features, Docs) keep their text in their own page file, written plainly for anyone, since it is a document rather than interface wording.
-- **Features and Docs:** removed until the app is finished (2026-11-10); written fresh then.
+- Long-form pages (Privacy, Terms) keep their text in their own page file, written plainly for anyone, since it is a document rather than interface wording.
+- **Features and Docs:** dropped (2026-11-11); there are none.
 
 ## 3. Where code goes
 

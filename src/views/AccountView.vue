@@ -69,6 +69,15 @@
       <MyPeople />
     </AccountGroup>
 
+    <!-- SPEC §5 Tags page: reached from here. -->
+    <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" aria-labelledby="account-tags" data-testid="account-tags">
+      <span class="min-w-0">
+        <h2 id="account-tags" class="font-semibold">{{ g.tagsTitle }}</h2>
+        <span class="block text-sm text-muted">{{ g.tagsHint }}</span>
+      </span>
+      <RouterLink to="/tags" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openTags }}</RouterLink>
+    </section>
+
     <AccountGroup id="data" :title="messages.dataExport.heading" :summary="g.data">
       <div class="grid gap-4 sm:grid-cols-2" data-testid="data-export">
         <section class="flex flex-col gap-2 rounded-xl border border-line p-4" :aria-label="messages.dataExport.button">
