@@ -191,7 +191,7 @@ test.describe('Spec §5 Global search and tags', () => {
   })
 })
 
-test.describe('Spec §5 Calendar', () => {
+test.describe('Spec §5 Calendar', { tag: '@phone' }, () => {
   function seedCalendar() {
     server.seed('tasks', [{ id: 't1', title: 'Pay rent', due_date: '2026-11-10', priority: 3, status: 'open', source: 'manual' }])
     server.seed('priority_tasks', [{ id: 'p1', title: 'Insulin', reminder_time: '12:00:00', due_date: null, weekdays: [1, 2, 3, 4, 5], start_date: '2026-11-01' }])

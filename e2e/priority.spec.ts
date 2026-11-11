@@ -32,7 +32,7 @@ test.beforeEach(async ({ page }) => {
   await server.install(page)
 })
 
-test.describe('Spec §5: full-screen reminder for priority habits', () => {
+test.describe('Spec §5: full-screen reminder for priority habits', { tag: '@phone' }, () => {
   test('appears at the reminder time on any screen, with the reliability notice', async ({ page }) => {
     seedMeds()
     await open(page, '/quests', '2026-11-10T12:59:00Z') // 7:59 am
@@ -139,7 +139,7 @@ test.describe('Spec §5: priority tasks, one-off or repeating', () => {
   })
 })
 
-test.describe('Spec §6: reminder settings', () => {
+test.describe('Spec §6: reminder settings', { tag: '@phone' }, () => {
   test('ntfy topic, quiet hours and the priority-in-quiet-hours choice are saved to my profile', async ({ page }) => {
     await open(page, '/account', '2026-11-10T12:00:00Z')
     const settings = page.getByTestId('notification-settings')

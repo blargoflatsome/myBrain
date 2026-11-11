@@ -113,7 +113,7 @@ test.describe('Spec §5 Routines: list and stats', () => {
     await expect(page.getByTestId('step-stat').first()).toContainText('1 of 3 done · 1 skipped')
   })
 
-  test('a new routine has a title, reminder, weekdays and ordered steps', async ({ page }) => {
+  test('a new routine has a title, reminder, weekdays and ordered steps', { tag: '@phone' }, async ({ page }) => {
     test.skip(isSafari(test.info()), 'sorting by mouse drag; on a touch iPhone, tap to move is tested instead')
     await open(page, '/routines')
     await expect(page.getByText("Past you hasn't set up any routines yet.")).toBeVisible()

@@ -23,7 +23,7 @@
 - `npm run test:e2e` — Playwright (`e2e/`, desktop + Pixel 7; builds and serves on :4173)
 - `npm run test:quick` — quick checks while coding: types, Vitest, and the browser tests on desktop only (~3 min)
 - `npm run test:e2e:quick` — just the desktop browser tests; add a file name to run one (`npm run test:e2e:quick -- quests`)
-- `npm run test:all` — the full pre-merge review, everything CI runs: lint, types, Vitest, browser tests as desktop, Android and iPhone (~6 min)
+- `npm run test:all` — the full pre-merge review, everything CI runs: lint, types, Vitest, all browser tests on desktop, and the phone-sensitive ones (listed files + `@phone` tag) on Android and iPhone. Tag new tests that depend on screen size, touch or the browser engine with `{ tag: '@phone' }`.
 - `npm run test:db` — SQL rule checks (RLS) against dev; prints ✔/✘ per file. Only the user runs it (it confirms with --yes); ask first.
 - `npm run dev:accounts` — create or reset the dev-only test accounts (Dev Alice, Bob, Carol); password saved to `.env.local`, never printed.
 - `npm run test:flows` — walk the connection and sharing flows against the real dev backend as the test accounts; prints ✔/✘ per step.
