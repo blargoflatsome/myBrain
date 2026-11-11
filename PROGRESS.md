@@ -41,7 +41,7 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Tests: `src/celebrate/celebrate.test.ts`, `e2e/celebrations.spec.ts`; `e2e/capture.spec.ts` now expects the Orphans all-sorted message. Quick checks pass (Vitest 334, desktop browser tests pass). Wording in `messages.celebrations` is plain, so the user can add their own jokes.
 
 ## Check mark fix (merged via PR, branch `fix-check-mark`)
-- Chosen options showed "✓�a0" before their name: the `.choice-on::before` rule in `style.css` had a null character where ` a0` should be (since feedback round 4). Now `'¹3 a0'`; test in `e2e/capture.spec.ts` checks the drawn mark. Priority fix: only that test was run (desktop and iPhone), at the user's request.
+- Chosen options showed "✓�a0" before their name: the `.choice-on::before` rule in `style.css` had a null character where `\00a0` should be (since feedback round 4). Now `'\2713\00a0'`; test in `e2e/capture.spec.ts` checks the drawn mark. Priority fix: only that test was run (desktop and iPhone), at the user's request.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
