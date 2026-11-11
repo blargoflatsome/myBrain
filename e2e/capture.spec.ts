@@ -105,6 +105,9 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
     // Buckets are listed A to Z (favorites would come first); the first one is preselected.
     await expect(buckets.getByRole('button')).toHaveText(['Places to go', 'Restaurant reviews', 'Shopping list', '+ New bucket'])
     await expect(buckets.getByRole('button', { name: 'Places to go' })).toHaveAttribute('aria-pressed', 'true')
+    // SPEC §2 Calm by design: a chosen option shows a check mark and a space before its name, nothing else.
+    const mark = await buckets.getByRole('button', { name: 'Places to go' }).evaluate((el) => getComputedStyle(el, '::before').content)
+    expect(mark).toBe('"✓ "')
     await titleBox(page).fill('Beach day')
     await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Saved to Places to go. Future you will be glad you did.')
