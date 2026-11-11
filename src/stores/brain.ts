@@ -48,6 +48,8 @@ export const useBrainStore = defineStore('brain', () => {
    * session). Misses are only recorded after that, so a fresh device never mistakes "not downloaded yet" for "missed".
    */
   const habitsReady = ref(false)
+  // Counts finished downloads this session, so checks that need my latest data can run again once it's here.
+  const syncedCount = ref(0)
   /** True once this device holds my badges from the server, so a badge I already have is never earned again. */
   const badgesReady = ref(false)
   let cleanup: (() => void) | null = null
@@ -104,8 +106,12 @@ export const useBrainStore = defineStore('brain', () => {
       if (habitsReady.value && (await local.meta.get('downloaded:journal_entries'))) await refreshJournal()
     }
     background(markReady())
-    background(engine.value.sync().then(markReady))
-    window.addEventListener('online', () => background(engine.value?.sync().then(markReady)), { once: true })
+    const synced = async () => {
+      await markReady()
+      syncedCount.value++
+    }
+    background(engine.value.sync().then(synced))
+    window.addEventListener('online', () => background(engine.value?.sync().then(synced)), { once: true })
   }
 
   function stop() {
@@ -732,6 +738,7 @@ export const useBrainStore = defineStore('brain', () => {
     deleteRoutine,
     recordRoutineStep,
     habitsReady,
+    syncedCount,
     badgesReady,
     addHabit,
     saveHabit,

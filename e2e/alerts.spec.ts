@@ -50,9 +50,19 @@ test.describe('Spec §6 In-app alerts: the bell', () => {
     await expect(list).not.toContainText('Too old')
   })
 
+  test('with no alerts, the bell says "All caught up." briefly instead of opening an empty list', async ({ page }) => {
+    await open(page, '/tasks')
+    await page.getByTestId('alerts-bell').first().click()
+    await expect(page.getByTestId('celebration-message')).toHaveText('All caught up.')
+    await expect(page.getByRole('dialog', { name: 'Alerts' })).toHaveCount(0)
+    await page.clock.runFor(5000)
+    await expect(page.getByTestId('celebration-message')).toHaveCount(0)
+  })
+
   test('tapping an alert goes where I deal with it and counts it as seen (one at a time)', async ({ page }) => {
     server.seed('notifications', [note('n1', 'Take meds', '2026-11-10T13:00:00Z'), note('n2', 'Stretch', '2026-11-10T12:00:00Z')])
     await open(page, '/tasks')
+    await expect(page.getByTestId('alerts-bell').first()).toHaveAccessibleName('Alerts, 2 new')
     await page.getByTestId('alerts-bell').first().click()
     await page.getByRole('dialog', { name: 'Alerts' }).getByRole('button', { name: /^New Take meds/ }).click()
     await expect(page).toHaveURL(/\/habits$/)
@@ -63,12 +73,13 @@ test.describe('Spec §6 In-app alerts: the bell', () => {
   test('✕ clears one and Clear all clears them all; with none the count is hidden', async ({ page }) => {
     server.seed('notifications', [note('n1', 'Take meds', '2026-11-10T13:00:00Z'), note('n2', 'Stretch', '2026-11-10T12:00:00Z')])
     await open(page, '/tasks')
+    await expect(page.getByTestId('alerts-bell').first()).toHaveAccessibleName('Alerts, 2 new')
     await page.getByTestId('alerts-bell').first().click()
     const list = page.getByRole('dialog', { name: 'Alerts' })
     await list.getByRole('button', { name: 'Clear: Take meds' }).click()
     await expect(list.getByTestId('alert')).toHaveCount(1)
     await list.getByRole('button', { name: 'Clear all' }).click()
-    await expect(list).toContainText('Nothing from past you in the last 7 days.')
+    await expect(list).toContainText('All caught up.')
     await expect.poll(() => server.written('notifications').filter((n) => n.deleted_at).length).toBe(2)
     await list.getByRole('button', { name: 'Close' }).first().click()
     await expect(page.getByTestId('alerts-count')).toHaveCount(0)

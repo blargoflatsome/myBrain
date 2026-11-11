@@ -27,7 +27,7 @@ async function open(page: Page, path: string, time = NOW) {
 }
 const message = (page: Page) => page.getByTestId('celebration-message')
 // A badge as the app stores it: the same id on every device (SPEC §5 Celebrations).
-const BADGE_NUMBER = { first_task: 1, first_habit: 2 } as const
+const BADGE_NUMBER = { first_task: 1, first_habit: 2, first_routine: 3, first_journal: 4 } as const
 const badge = (kind: keyof typeof BADGE_NUMBER, earned_at = '2026-11-05T15:00:00Z') => ({ id: `${TEST_USER_ID.slice(0, 24)}${String(BADGE_NUMBER[kind]).padStart(12, '0')}`, kind, earned_at })
 
 test.beforeEach(async ({ page }) => {
@@ -156,8 +156,50 @@ test.describe('Spec §5 Dashboard: Trophies', () => {
     const trophies = page.getByTestId('dash-trophies')
     await expect(trophies).toContainText('of 10 badges')
     await expect(trophies.getByTestId('badge-first_task')).toContainText('Earned Nov 5, 2026')
-    await expect(trophies.getByTestId('badge-first_quest')).toContainText('Not yet')
     await expect(trophies.getByTestId('dash-perfect-days')).toHaveText('2 perfect days')
+    await trophies.getByTestId('dash-trophies-more').click()
+    await expect(trophies.getByTestId('badge-first_quest')).toContainText('Not yet')
+  })
+
+  test('Trophies is its own section with my 3 newest badges; See all trophies shows every badge', async ({ page }) => {
+    server.seed('badges', [
+      badge('first_task', '2026-11-02T15:00:00Z'),
+      badge('first_habit', '2026-11-03T15:00:00Z'),
+      badge('first_routine', '2026-11-04T15:00:00Z'),
+      badge('first_journal', '2026-11-05T15:00:00Z'),
+    ])
+    await open(page, '/')
+    const trophies = page.getByTestId('dash-trophies')
+    await expect(trophies).toBeVisible()
+    await expect(page.getByTestId('dash-more').getByTestId('dash-trophies')).toHaveCount(0)
+    const shown = trophies.locator('[data-testid^="badge-"]')
+    await expect(shown).toHaveCount(3)
+    await expect(shown.nth(0)).toHaveAttribute('data-testid', 'badge-first_journal')
+    await expect(shown.nth(2)).toHaveAttribute('data-testid', 'badge-first_habit')
+    const more = trophies.getByTestId('dash-trophies-more')
+    await expect(more).toHaveAttribute('aria-expanded', 'false')
+    await more.click()
+    await expect(shown).toHaveCount(10)
+    await expect(more).toHaveText('Show fewer')
+    await more.click()
+    await expect(shown).toHaveCount(3)
+  })
+
+  test('with fewer than 3 badges, Trophies tops up with ones still to get', async ({ page }) => {
+    await open(page, '/')
+    const shown = page.getByTestId('dash-trophies').locator('[data-testid^="badge-"]')
+    await expect(shown).toHaveCount(3)
+    await expect(shown.first()).toContainText('Not yet')
+  })
+
+  test('"How past you did yesterday" lists the badges I earned yesterday', async ({ page }) => {
+    server.seed('habits', [habit(H1, 'Walk')])
+    server.seed('habit_logs', [log(H1, '2026-11-09')])
+    server.seed('badges', [badge('first_task', '2026-11-05T15:00:00Z'), badge('first_habit', '2026-11-09T15:00:00Z')])
+    await open(page, '/')
+    const earned = page.getByTestId('dash-yesterday').getByTestId('dash-yesterday-trophy')
+    await expect(earned).toHaveCount(1)
+    await expect(earned).toContainText('First habit')
   })
 })
 

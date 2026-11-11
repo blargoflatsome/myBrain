@@ -222,7 +222,8 @@ export const useCelebrateStore = defineStore('celebrate', () => {
       lastDay = day
       void catchUp().catch((err: unknown) => console.error(err))
     }
-    watch([() => brain.habitsReady, () => brain.userId], () => ((lastDay = ''), check()), { immediate: true })
+    // Again once this session's download finishes: habits ticked on another device may only be here now.
+    watch([() => brain.habitsReady, () => brain.userId, () => brain.syncedCount], () => ((lastDay = ''), check()), { immediate: true })
     document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && check())
     setInterval(check, 60_000)
   }
