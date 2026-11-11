@@ -84,7 +84,6 @@ test.describe('Spec §5 Quick capture: Task form', () => {
   test('notes, date and priority are saved', async ({ page }) => {
     await startCapture(page, 'Task')
     await titleBox(page).fill('dentist')
-    await page.getByTestId('capture-more').getByText('More details').click()
     await page.getByRole('textbox', { name: 'Notes (optional)' }).fill('bring insurance card')
     await page.getByLabel('When? (optional)').fill('2026-11-09')
     await page.getByRole('group', { name: 'Priority' }).getByRole('button', { name: 'High' }).click()
@@ -118,7 +117,6 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
     await startCapture(page, 'The Vault')
     await page.getByRole('group', { name: 'Which bucket?' }).getByRole('button', { name: 'Restaurant reviews' }).click()
     await titleBox(page).fill('Thai Garden')
-    await page.getByTestId('capture-more').getByText('More details').click()
     await page.getByRole('textbox', { name: 'Notes (optional)' }).fill('try the green curry')
     await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Saved to Restaurant reviews. Future you will be glad you did.')
@@ -138,10 +136,10 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
 })
 
 test.describe('Spec §5 Quick capture: Quest form', () => {
-  test('shows Title; Details, Energy needed and Time needed are in More details; defaults are Ugh and 30 min', async ({ page }) => {
+  test('shows Title, Energy needed, Time needed and Details all in view (no More details); defaults are Ugh and 30 min', async ({ page }) => {
     await startCapture(page, 'Quest')
-    await expect(page.getByTestId('capture-more')).toContainText('Ugh · 30 min')
-    await page.getByTestId('capture-more').getByText('More details').click()
+    await expect(page.getByTestId('capture-more')).toHaveCount(0)
+    await expect(page.getByText('More details')).toHaveCount(0)
     await expect(page.getByRole('textbox', { name: 'Details (optional)' })).toBeVisible()
     await expect(page.getByRole('group', { name: 'Energy needed' }).getByRole('button', { name: 'Ugh' })).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByRole('group', { name: 'Time needed' }).getByRole('button', { name: '30 min' })).toHaveAttribute('aria-pressed', 'true')
@@ -159,7 +157,6 @@ test.describe('Spec §5 Quick capture: Quest form', () => {
   test('details, energy and time can be changed', async ({ page }) => {
     await startCapture(page, 'Quest')
     await titleBox(page).fill('kayak the river')
-    await page.getByTestId('capture-more').getByText('More details').click()
     await page.getByRole('textbox', { name: 'Details (optional)' }).fill('rent at the dock')
     await page.getByRole('group', { name: 'Energy needed' }).getByRole('button', { name: 'Medicated' }).click()
     await page.getByRole('group', { name: 'Time needed' }).getByRole('button', { name: 'Half a day' }).click()

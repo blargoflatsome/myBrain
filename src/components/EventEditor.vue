@@ -43,8 +43,8 @@
           <span><span class="font-medium">{{ c.showGuests }}</span><span class="block text-xs text-muted">{{ c.showGuestsHint }}</span></span>
           <input v-model="showGuests" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
         </label>
-        <NotesEditor v-model="notes" :label="m.editor.notes" test-id="event-notes" />
       </MoreOptions>
+      <NotesEditor v-model="notes" :label="m.editor.notes" test-id="event-notes" />
       <EventPeople
         v-if="event && !event.cancelled_at"
         v-model="people"

@@ -1,49 +1,5 @@
 <template>
-  <fieldset class="flex flex-col gap-3" data-testid="habit-how-often">
-    <legend class="sr-only">{{ f.howOften }}</legend>
-    <HowOften :model-value="weekInterval" :monthly="monthly" :start-date="startDate" @update:model-value="weekInterval = $event" @update:monthly="monthly = $event" />
-    <div v-if="!monthly" class="flex flex-col gap-1">
-      <span :id="`${uid}-days`" class="text-sm text-muted">{{ m.editor.weekdays }}</span>
-      <div class="flex flex-wrap gap-1.5" role="group" :aria-labelledby="`${uid}-days`">
-        <button
-          v-for="d in ALL_WEEKDAYS"
-          :key="d"
-          type="button"
-          :class="dayChip(weekdays.includes(d))"
-          :aria-pressed="weekdays.includes(d)"
-          @click="toggleDay(d)"
-        >
-          {{ m.weekdayNames[d] }}
-        </button>
-      </div>
-    </div>
-    <DateInput v-model="startDate" :label="m.editor.startDate" :min="minStart" required :input-class="fieldClass" />
-  </fieldset>
-
-  <fieldset class="flex flex-col gap-3 rounded-xl border border-line p-3" data-testid="habit-reminders">
-    <legend class="px-1 text-sm font-medium">{{ f.reminders }}</legend>
-    <p class="-mt-1 text-xs text-muted">{{ m.editor.remindersHint }}</p>
-    <div class="grid gap-3 sm:grid-cols-2">
-      <TimeInput v-model="notifyTime" :label="m.editor.notifyTime" :input-class="fieldClass" />
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.timer }}
-        <select v-model="timer" :disabled="!notifyTime" :class="[fieldClass, 'disabled:opacity-50']">
-          <option :value="null">{{ m.editor.timerNone }}</option>
-          <option v-for="t in TIMER_OPTIONS" :key="t" :value="t">{{ m.editor.timerOptions[t] }}</option>
-        </select>
-      </label>
-    </div>
-    <p class="-mt-1 text-xs text-muted">{{ m.editor.timerHint }}</p>
-    <label class="flex items-start gap-3">
-      <input v-model="isPriority" type="checkbox" class="mt-1 size-5 shrink-0 accent-[var(--accent)]">
-      <span>
-        <span class="font-medium">{{ m.editor.priority }}</span>
-        <span class="block text-sm text-muted">{{ m.editor.priorityHint }}</span>
-      </span>
-    </label>
-  </fieldset>
-
-  <MoreOptions :summary="m.editor.moreSummary" :start-open="moreOpen" test-id="habit-more">
+  <div class="flex flex-col gap-6" data-testid="habit-fields">
     <label class="flex items-start gap-3">
       <input v-model="isPrivate" type="checkbox" class="mt-1 size-5 shrink-0 accent-[var(--accent)]">
       <span>
@@ -51,14 +7,57 @@
         <span class="block text-sm text-muted">{{ m.editor.privateHint }}</span>
       </span>
     </label>
+
+    <fieldset class="flex flex-col gap-4" data-testid="habit-how-often">
+      <legend class="sr-only">{{ f.howOften }}</legend>
+      <HowOften :model-value="weekInterval" :monthly="monthly" :start-date="startDate" @update:model-value="weekInterval = $event" @update:monthly="monthly = $event" />
+      <div v-if="!monthly" class="flex flex-col gap-1">
+        <span :id="`${uid}-days`" class="text-sm text-muted">{{ m.editor.weekdays }}</span>
+        <div class="flex flex-wrap gap-1.5" role="group" :aria-labelledby="`${uid}-days`">
+          <button
+            v-for="d in ALL_WEEKDAYS"
+            :key="d"
+            type="button"
+            :class="dayChip(weekdays.includes(d))"
+            :aria-pressed="weekdays.includes(d)"
+            @click="toggleDay(d)"
+          >
+            {{ m.weekdayNames[d] }}
+          </button>
+        </div>
+      </div>
+      <DateInput v-model="startDate" :label="m.editor.startDate" :min="minStart" required :input-class="fieldClass" />
+    </fieldset>
+
+    <MoreOptions :title="f.reminders" :summary="m.editor.remindersHint" :start-open="remindersOpen" test-id="habit-reminders">
+      <div class="grid gap-4 sm:grid-cols-2">
+        <TimeInput v-model="notifyTime" :label="m.editor.notifyTime" :input-class="fieldClass" />
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ m.editor.timer }}
+          <select v-model="timer" :disabled="!notifyTime" :class="[fieldClass, 'disabled:opacity-50']">
+            <option :value="null">{{ m.editor.timerNone }}</option>
+            <option v-for="t in TIMER_OPTIONS" :key="t" :value="t">{{ m.editor.timerOptions[t] }}</option>
+          </select>
+        </label>
+      </div>
+      <p class="-mt-2 text-xs text-muted">{{ m.editor.timerHint }}</p>
+      <label class="flex items-start gap-3">
+        <input v-model="isPriority" type="checkbox" class="mt-1 size-5 shrink-0 accent-[var(--accent)]">
+        <span>
+          <span class="font-medium">{{ m.editor.priority }}</span>
+          <span class="block text-sm text-muted">{{ m.editor.priorityHint }}</span>
+        </span>
+      </label>
+    </MoreOptions>
+
     <slot name="more" />
-  </MoreOptions>
+  </div>
 </template>
 
 <script setup lang="ts">
-// SPEC §5 Habits and Quick capture: the habit form shared by the habit editor and Capture. How often sits with the
-// days it repeats on and when it starts; reminders (time, timer, Priority) are grouped in their own box; Private and
-// tags are optional, in More details.
+// SPEC §5 Habits and Quick capture: the habit form shared by the habit editor and Capture. Private comes first,
+// right under the title; how often sits with the days it repeats on and when it starts; reminders (time, timer,
+// Priority) fold away in their own Reminders section, open by itself when one is set. Extra room between sections.
 import { useId, watch } from 'vue'
 import HowOften from '@/components/HowOften.vue'
 import TimeInput from '@/components/TimeInput.vue'
@@ -68,7 +67,7 @@ import { ALL_WEEKDAYS } from '@/habits/rules'
 import { messages } from '@/messages'
 import { dayChip } from '@/ui/styles'
 
-defineProps<{ minStart: string; fieldClass: string; moreOpen?: boolean }>()
+defineProps<{ minStart: string; fieldClass: string; remindersOpen?: boolean }>()
 const weekInterval = defineModel<number>('weekInterval', { required: true })
 const monthly = defineModel<boolean>('monthly', { required: true })
 const weekdays = defineModel<number[]>('weekdays', { required: true })

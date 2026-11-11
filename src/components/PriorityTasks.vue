@@ -40,9 +40,7 @@
           <HowOften v-if="mode === 'repeat'" v-model="weekInterval" />
           <DateInput v-else v-model="date" :label="m.editor.date" :min="todayIn(deviceTimeZone())" required :input-class="field" />
         </fieldset>
-        <MoreOptions :summary="m.editor.description" :start-open="!!editing?.description" test-id="priority-more">
-          <NotesEditor v-model="description" :label="m.editor.description" test-id="priority-description" />
-        </MoreOptions>
+        <NotesEditor v-model="description" :label="m.editor.description" test-id="priority-description" />
         <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
         <div class="flex gap-2">
           <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
@@ -78,7 +76,6 @@ import { messages } from '@/messages'
 import type { PriorityTaskRow } from '@/sync/types'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import DateInput from '@/components/DateInput.vue'
-import MoreOptions from '@/components/MoreOptions.vue'
 import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
 import { dayChip, dialogBox, field, rowAction } from '@/ui/styles'

@@ -80,7 +80,6 @@ test.describe('Spec §5 The Vault', () => {
     await page.getByRole('button', { name: 'Bucket settings' }).click()
     const dialog = page.getByRole('dialog', { name: 'Bucket settings' })
     await dialog.getByLabel('Name').fill('Books to read')
-    await dialog.getByTestId('bucket-more').getByText('More details').click()
     await dialog.getByRole('checkbox', { name: /Items can be checked off/ }).check()
     await dialog.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByRole('heading', { name: 'Books to read', level: 1 })).toBeVisible()

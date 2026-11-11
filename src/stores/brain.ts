@@ -310,7 +310,7 @@ export const useBrainStore = defineStore('brain', () => {
       user_id: userId.value ?? undefined,
       title: '',
       notify_time: null,
-      weekdays: [0, 1, 2, 3, 4, 5, 6],
+      weekdays: null, // a new routine runs any time until I give it a schedule (SPEC §5 Routines)
       start_date: todayIn(deviceTimeZone()),
       deleted_at: null,
     }

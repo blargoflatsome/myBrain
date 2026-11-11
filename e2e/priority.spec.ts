@@ -107,7 +107,6 @@ test.describe('Spec §5: priority tasks, one-off or repeating', () => {
     await page.getByRole('button', { name: '+ New priority task' }).click()
     const dialog = page.getByRole('dialog', { name: 'New priority task' })
     await dialog.getByLabel('Title').fill('Insulin before lunch')
-    await dialog.getByTestId('priority-more').getByText('More details').click()
     await dialog.getByRole('textbox', { name: 'Details (optional)' }).fill('Fridge, top shelf')
     await dialog.getByLabel('Reminder time').fill('12:00')
     await dialog.getByRole('group', { name: 'Repeats' }).getByRole('button', { name: 'Sat' }).click()

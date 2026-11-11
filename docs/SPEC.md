@@ -121,9 +121,9 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 ### Quick capture
 - One-tap access from the home screen shortcut and a persistent button in the app. In the app, Capture opens as a window over the page I'm on, so it never takes me away (for example, I can add tasks while writing in my journal); closing it returns me exactly where I was. The home screen shortcut and text shared from other apps open the Capture page.
 - **Choose the type first**, then fill in a form that fits it. Only the title is required; everything else is optional or has a default, and optional details sit in **More details** (see Forms):
-   - **Task:** Title, Date (blank = the Undated list); More details: Notes (formatted), Priority (default Low).
-   - **The Vault:** Bucket (pick one, or make a new one; the first bucket is preselected), Title; More details: Notes (formatted).
-   - **Quest:** Title; More details (its summary shows the current choices): Energy needed (default Ugh), Time needed (default 30 min), Details (formatted).
+   - **Task:** Title, Date (blank = the Undated list), Notes (formatted), Priority (default Low), all in view.
+   - **The Vault:** Bucket (pick one, or make a new one; the first bucket is preselected), Title, Notes (formatted).
+   - **Quest:** Title; then Energy needed (default Ugh), Time needed (default 30 min) and Details (formatted), all in view with extra space between them (no More details).
    - **Habit:** the full habit form, laid out like the habit editor (see Habits).
    - **Post It:** a small formatted text box (the journal's editor, smaller) and a color (yellow by default, or blue or green; pink was removed, and older pink notes still show pink). No title; the note itself is required. It goes to the top of the Dashboard.
    - **Decide later:** just the text, saved to **Orphans**.
@@ -149,7 +149,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 ### Habits
 - Fields: title, **start date** (today or later, default today), notify time, timer (time window to complete), how often (**every week**, **every 2 weeks** or **every month**, default every week), the weekdays it repeats on for weekly and every-2-weeks habits (default every day), private, tags.
-- **Form layout (habit editor and Capture):** Title; then how often with the days it **repeats on** right under it, and the start date; then a bordered **Reminders** box with the reminder time, timer and Priority; then **More details** with Private (and tags in the editor).
+- **Form layout (habit editor and Capture):** Title; Private right under it; then how often with the days it **repeats on** right under it, and the start date; then **Reminders**, a fold-out (like More details) with the reminder time, timer and Priority, open by itself when a reminder time or Priority is set; then tags (editor only). Extra space between these sections. No More details.
 - **How often:** every week and every 2 weeks use the chosen weekdays, and every 2 weeks counts from the week of the start date (so two habits on the same weekday, starting a week apart, alternate: Recycling one Thursday, Trash the next). **Every month** repeats on the start date's day of the month (the 12th); in a shorter month, a 29th–31st falls on the month's last day. The habit editor and Capture's habit form both have these.
 - **Timer** starts at the notify time: notify 8:00 am with a 2-hour timer means done by 10:00 am. With no timer (or no notify time) the habit is due by midnight. **On the day a habit is created it is always due by midnight**, so it is never missed the moment it is saved; the timer applies from the next day. A timer needs a notify time. A habit can be completed any time before its deadline, and a completion can be undone until then.
 - **Scheduled days:** a habit only counts on its scheduled days (its chosen weekdays, in every other week if it repeats every 2 weeks, counted from the week it starts; weeks run Sunday to Saturday; or its day of the month if monthly), and never before its start date. Days it isn't scheduled neither extend nor break the streak. A habit's history starts on its start date.
@@ -173,7 +173,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 ### Routines (chained tasks)
 - A routine is an ordered series of steps with a notify time. In the routine editor, steps are put in order by drag and drop.
-- **Routine form layout:** Title; the steps; **When it runs** (Run anytime, then how often with the days it repeats on right under it, like habits); a bordered **Reminders** box with the reminder time; More details with tags.
+- **Routine form layout:** Title; the steps; **When it runs** (Run anytime, then how often with the days it repeats on right under it, like habits); the reminder time on its own (no Reminders heading or box); tags. Extra space between sections. A new routine starts as **Run anytime**; unticking it gives every day as the starting schedule.
 - Completing a step shows the next step.
 - Track how often I complete the routine overall, and how often I complete each step versus how many times it was possible.
 
@@ -238,7 +238,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - A bucket can be set so its items can be **checked off** (the Shopping list starts that way). Checked items move to the bottom, and "Clear checked" deletes them after confirming.
 
 ### Forms
-- **More details:** every form (Capture, and the task, habit, event, quest, Vault item and priority task editors) keeps the main fields in view and puts optional extras in a **More details** fold-out with a one-line summary of what's inside. It opens by itself when something in it is already filled in, so nothing set is ever hidden. It's a real disclosure control (keyboard and screen readers).
+- **More details:** a form keeps the main fields in view and puts optional extras in a **More details** fold-out with a one-line summary of what's inside. It opens by itself when something in it is already filled in, so nothing set is ever hidden. It's a real disclosure control (keyboard and screen readers). **Never for just one item:** a single optional field is shown in view instead. **Notes are never inside it:** notes, details and descriptions are always in view. So today only the task editor (Priority, tags), event editor (reminder, who's going) and Vault item editor (rating, link, bucket) have one; Capture, the habit, routine, quest, priority task and bucket editors don't.
 - **Formatted notes:** task notes, Vault item notes, quest details, priority task descriptions and event notes use the journal's formatting editor (smaller), like Post Its. Notes written before this show as paragraphs. Formatted notes are cleaned before they're shown (§8); search reads only their words; calendar files (.ics) get them as plain lines.
 - **Dates and times are shown one way everywhere:** a day is "Tue, Nov 10" (the year added only when it isn't this year), a time is the device's way ("3:00 pm" or "15:00"), a day with a time is "Tue, Nov 10 · 3:00 pm", and when something happened (alerts, links) is just the time if today, otherwise the day and time. Messages sent to other people keep their written-out form ("Tuesday, November 10 at 3:00 pm").
 

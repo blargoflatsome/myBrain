@@ -428,6 +428,7 @@ test.describe('Spec §5 Time fields: type or pick (computer); the device picker 
     test.skip(!isPhone(info), 'phone only')
     await page.goto('/habits')
     await page.getByRole('button', { name: '+ New habit' }).click()
+    await page.getByTestId('habit-reminders').locator('summary').click()
     await expect(page.getByLabel('Reminder time (optional)')).toHaveAttribute('type', 'time')
   })
 
@@ -440,6 +441,7 @@ test.describe('Spec §5 Time fields: type or pick (computer); the device picker 
       await page.getByRole('button', { name: '+ New habit' }).click()
       const dialog = page.getByRole('dialog', { name: 'New habit' })
       await dialog.getByLabel('Title').fill('Stretch')
+      await dialog.getByTestId('habit-reminders').locator('summary').click()
       return dialog
     }
 
