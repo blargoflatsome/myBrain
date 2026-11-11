@@ -54,9 +54,9 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Still to build: a push for connection requests; what a profile shows (decide first). Phase 2: email sending (domain + Resend), Home Assistant, Alexa/voice, smartwatch.
 - Dropped: "Just this date" answers, Features and Docs pages, Type it like you'd say it, automatic texting (SMS), Capacitor Android app, social streaks and leaderboards, the Raspberry Pi display. SPEC, CLAUDE.md, CODING_STANDARDS and README updated; DECISIONS 2026-11-11.
 
-## Tags page (branch `tags-page`)
+## Tags page (merged via PR #53, branch `tags-page`)
 - SPEC §5 Tags page: `/tags` (`TagsView.vue`, `TagEditor.vue`), linked from a Tags row on the Account page. Counts per tag (`tagUsage`), rename (`renameOutcome`; real renames make a new tag and move the links), merge (`moveLinks`), delete; each returns an Undo (`renameTag`, `mergeTags`, `deleteTag` in `stores/brain.ts`). Tapping a tag opens Search filtered to it (`search.open(tagId)`). No migration.
-- Tests: `src/tags/tags-page.test.ts`, `e2e/tags.spec.ts`, Tags page in the `e2e/a11y.spec.ts` page list. This branch also carries the plan-trim doc changes.
+- Tests: `src/tags/tags-page.test.ts`, `e2e/tags.spec.ts`, Tags page in the `e2e/a11y.spec.ts` page list. Also carried the plan-trim doc changes. Full review passed (2026-11-11): Vitest 342, Playwright 707.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
