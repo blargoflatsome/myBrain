@@ -12,8 +12,8 @@
         <input v-model="title" maxlength="500" required :class="field">
       </label>
       <DateInput v-model="dueDate" :label="m.editor.date" :hint="m.editor.dateHint" :input-class="field" />
+      <NotesEditor v-model="notes" :label="m.editor.notes" test-id="task-notes" />
       <MoreOptions :summary="m.editor.moreSummary" :start-open="hasExtras" test-id="task-more">
-        <NotesEditor v-model="notes" :label="m.editor.notes" test-id="task-notes" />
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-1 text-sm text-muted">{{ m.priorityLabel }}</legend>
           <div class="grid grid-cols-3 gap-2">

@@ -94,32 +94,29 @@
         <input v-if="addingBucket" v-model="newBucketName" maxlength="200" :aria-label="m.newBucket" :placeholder="m.newBucket" :class="fieldOnPage">
       </fieldset>
 
-      <!-- Task: a date; notes and priority are optional, in More details (SPEC §5 Forms) -->
+      <!-- Task: a date, notes and priority, all optional. Notes are never folded away, and one option alone
+           doesn't need a fold-out (SPEC §5 Forms). -->
       <template v-if="type === 'task'">
         <DateInput v-model="dueDate" :label="m.taskDateLabel" :hint="m.taskDateHint" :input-class="fieldOnPage" />
-        <MoreOptions :summary="m.moreTask" :start-open="sharedNotes" test-id="capture-more">
-          <NotesEditor v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
-          <fieldset class="flex flex-col gap-2">
-            <legend class="mb-1 text-sm text-muted">{{ t.priorityLabel }}</legend>
-            <div class="flex flex-wrap gap-2" role="group" :aria-label="t.priorityLabel">
-              <button
-                v-for="p in [...PRIORITIES].reverse()"
-                :key="p.level"
-                type="button"
-                :class="chip(priority === p.level)"
-                :aria-pressed="priority === p.level"
-                @click="priority = p.level"
-              >
-                <span class="mr-1 inline-block size-2 rounded-full" :class="dot[p.key]" aria-hidden="true" />{{ t.priority[p.key] }}
-              </button>
-            </div>
-          </fieldset>
-        </MoreOptions>
+        <NotesEditor v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
+        <fieldset class="flex flex-col gap-2">
+          <legend class="mb-1 text-sm text-muted">{{ t.priorityLabel }}</legend>
+          <div class="flex flex-wrap gap-2" role="group" :aria-label="t.priorityLabel">
+            <button
+              v-for="p in [...PRIORITIES].reverse()"
+              :key="p.level"
+              type="button"
+              :class="chip(priority === p.level)"
+              :aria-pressed="priority === p.level"
+              @click="priority = p.level"
+            >
+              <span class="mr-1 inline-block size-2 rounded-full" :class="dot[p.key]" aria-hidden="true" />{{ t.priority[p.key] }}
+            </button>
+          </div>
+        </fieldset>
       </template>
 
-      <MoreOptions v-if="type === 'vault'" :summary="m.notesLabel" :start-open="sharedNotes" test-id="capture-more">
-        <NotesEditor v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
-      </MoreOptions>
+      <NotesEditor v-if="type === 'vault'" v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
 
       <!-- Habit: the full habit form (SPEC §5 Quick capture) -->
       <HabitFields
@@ -136,8 +133,8 @@
         :field-class="fieldOnPage"
       />
 
-      <!-- Quest: energy and time (defaults Ugh / 30 min) and details, all optional -->
-      <MoreOptions v-if="type === 'quest'" :summary="`${q.energy[energy]} · ${q.time[time]}`" :start-open="sharedNotes" test-id="capture-more">
+      <!-- Quest: energy and time (defaults Ugh / 30 min) and details, all optional, all in view with extra room -->
+      <div v-if="type === 'quest'" class="flex flex-col gap-6 pt-2" data-testid="capture-quest">
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-1 text-sm text-muted">{{ q.editor.energy }}</legend>
           <div class="flex flex-wrap gap-2" role="group" :aria-label="q.editor.energy">
@@ -155,7 +152,7 @@
           </div>
         </fieldset>
         <NotesEditor v-model="notes" :label="m.detailsLabel" test-id="capture-notes" />
-      </MoreOptions>
+      </div>
 
       <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
       <button type="submit" class="min-h-14 rounded-2xl bg-accent px-4 text-lg font-semibold text-accent-ink" :disabled="saving">
@@ -173,7 +170,6 @@ import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 
 import { useBrainStore } from '@/stores/brain'
 import HabitFields from '@/components/HabitFields.vue'
 import DateInput from '@/components/DateInput.vue'
-import MoreOptions from '@/components/MoreOptions.vue'
 import NotesEditor from '@/components/NotesEditor.vue'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_POST_IT_COLOR, POST_IT_COLORS } from '@/postits/rules'
@@ -224,7 +220,6 @@ const bucketId = ref<string | null>(null)
 const addingBucket = ref(false)
 const newBucketName = ref('')
 const shared = ref('')
-const sharedNotes = ref(false)
 
 const notice = ref('')
 const error = ref('')
@@ -260,8 +255,6 @@ async function choose(d: Destination) {
       const { title: first, rest } = splitTitle(shared.value)
       title.value = first
       notes.value = rest
-      // Shared text in the notes is shown, not folded away.
-      sharedNotes.value = !!rest
     }
   }
   await nextTick()
@@ -300,7 +293,6 @@ function reset() {
   addingBucket.value = false
   newBucketName.value = ''
   shared.value = ''
-  sharedNotes.value = false
   error.value = ''
 }
 

@@ -22,7 +22,7 @@
         v-model:is-private="isPrivate"
         :min-start="earliestStart"
         :field-class="field"
-        :more-open="moreOpen"
+        :reminders-open="remindersOpen"
       >
         <template #more>
           <TagInput v-model="tags.names.value" />
@@ -79,11 +79,8 @@ const startDate = ref('')
 const tags = useItemTags('habit', computed(() => props.habit?.id))
 const isPrivate = ref(false)
 const isPriority = ref(false)
-// More details opens by itself when the habit is private or has tags.
-const moreOpen = ref(false)
-watch(() => tags.names.value.length, (n) => {
-  if (n) moreOpen.value = true
-})
+// Reminders opens by itself when the habit has a reminder time or is a priority, so nothing set is hidden.
+const remindersOpen = ref(false)
 
 watch(
   () => props.habit,
@@ -98,7 +95,7 @@ watch(
     startDate.value = h.start_date
     isPrivate.value = h.is_private
     isPriority.value = !!h.is_priority
-    moreOpen.value = h.is_private || tags.names.value.length > 0
+    remindersOpen.value = !!h.notify_time || !!h.is_priority
     dialog.value?.showModal()
   },
 )

@@ -120,6 +120,7 @@ test.describe('Spec §5 Routines: list and stats', () => {
     await page.getByRole('button', { name: '+ New routine' }).click()
     const dialog = page.getByRole('dialog', { name: 'New routine' })
     await dialog.getByLabel('Title').fill('Evening wind-down')
+    await dialog.getByRole('checkbox', { name: /Run anytime/ }).uncheck()
     await dialog.getByLabel('Reminder time (optional)').fill('21:30')
     await dialog.getByLabel('Step 1', { exact: true }).fill('Phone on charger')
     await dialog.getByRole('button', { name: '+ Add step' }).click()
@@ -267,12 +268,12 @@ test.describe('Spec §5 Routines: run anytime', () => {
     )
   }
 
-  test('a routine can be set to run anytime: no reminder or weekdays', async ({ page }) => {
+  test('a new routine runs anytime by default: no reminder or weekdays', async ({ page }) => {
     await open(page, '/routines')
     await page.getByRole('button', { name: '+ New routine' }).click()
     const dialog = page.getByRole('dialog', { name: 'New routine' })
     await dialog.getByLabel('Title').fill('Clean the garage')
-    await dialog.getByRole('checkbox', { name: /Run anytime/ }).check()
+    await expect(dialog.getByRole('checkbox', { name: /Run anytime/ })).toBeChecked()
     await expect(dialog.getByLabel('Reminder time (optional)')).toHaveCount(0)
     await expect(dialog.getByRole('group', { name: 'Repeats on' })).toHaveCount(0)
     await dialog.getByLabel('Step 1', { exact: true }).fill('Sort tools')

@@ -25,9 +25,7 @@
           <option v-for="t in TIME_BUCKETS" :key="t" :value="t">{{ m.time[t] }}</option>
         </select>
       </label>
-      <MoreOptions :summary="m.editor.moreSummary" :start-open="!!quest?.details" test-id="quest-more">
-        <NotesEditor v-model="details" :label="m.editor.details" test-id="quest-details" />
-      </MoreOptions>
+      <NotesEditor v-model="details" :label="m.editor.details" test-id="quest-details" />
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
@@ -47,7 +45,6 @@ import { ref, watch } from 'vue'
 import type { EnergyLevel, QuestRow, TimeBucket } from '@/sync/types'
 import { ENERGY_LEVELS, TIME_BUCKETS } from '@/quests/picker'
 import { messages } from '@/messages'
-import MoreOptions from '@/components/MoreOptions.vue'
 import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
 import { dialogBox, field } from '@/ui/styles'

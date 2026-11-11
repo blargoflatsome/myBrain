@@ -5,7 +5,7 @@
     :aria-label="isNew ? m.editor.newHeading : m.editor.heading"
     @close="emit('close')"
   >
-    <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
+    <form class="flex flex-col gap-6 p-5" data-testid="routine-form" @submit.prevent="save">
       <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.editor.title }}
@@ -62,7 +62,7 @@
         <p v-if="stepRows.some((r) => r.habitId)" class="text-xs text-muted">{{ m.editor.habitHint }}</p>
       </fieldset>
       <!-- When it runs: how often with the days right under it, like habits (SPEC §5 Routines, §2 Calm by design) -->
-      <fieldset class="flex flex-col gap-3" data-testid="routine-schedule">
+      <fieldset class="flex flex-col gap-5" data-testid="routine-schedule">
         <legend class="mb-1 text-sm font-medium">{{ m.editor.when }}</legend>
         <label class="flex items-center justify-between gap-4">
           <span>
@@ -83,13 +83,8 @@
           </div>
         </template>
       </fieldset>
-      <fieldset v-if="!anytime" class="flex flex-col gap-3 rounded-xl border border-line p-3" data-testid="routine-reminders">
-        <legend class="px-1 text-sm font-medium">{{ messages.forms.reminders }}</legend>
-        <TimeInput v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
-      </fieldset>
-      <MoreOptions :summary="m.editor.moreSummary" :start-open="moreOpen" test-id="routine-more">
-        <TagInput v-model="tags.names.value" />
-      </MoreOptions>
+      <TimeInput v-if="!anytime" v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
+      <TagInput v-model="tags.names.value" />
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
@@ -120,7 +115,6 @@ import { useBrainStore } from '@/stores/brain'
 import HowOften from '@/components/HowOften.vue'
 import TagInput from '@/components/TagInput.vue'
 import { useItemTags } from '@/composables/useItemTags'
-import MoreOptions from '@/components/MoreOptions.vue'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { arrowStep, useDragSort } from '@/composables/useDragSort'
 import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
@@ -145,8 +139,6 @@ const weekInterval = ref(1)
 const uid = useId()
 const tags = useItemTags('routine', computed(() => props.routine?.id))
 // More details opens by itself when the routine has tags.
-const moreOpen = ref(false)
-watch(() => tags.names.value.length, (n) => (moreOpen.value = n > 0))
 const stepRows = ref<{ key: string; id?: string; title: string; habitId?: string | null }[]>([])
 
 // My habits, for habit steps.

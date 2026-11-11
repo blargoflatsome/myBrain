@@ -117,3 +117,10 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 - Trophies moved out of More stats into its own Dashboard section: the 3 newest badges (topped up with ones still to get), with See all trophies. Badges earned yesterday show in "How past you did yesterday". (User.)
 - The bell with no alerts shows a fading "All caught up." message instead of an empty list. (User picked this over doing nothing.)
 - The perfect-day check runs again after each visit's first download, so habits ticked on another device aren't missed.
+
+## 2026-11-11 Form cleanup
+- A new routine defaults to Run anytime. (User.)
+- More details is never used for a single item, and notes are never inside it; those fields are shown in view. (User.)
+- Capture's quest form has no More details and more space between its fields. (User.)
+- Habit form: more space between sections, Reminders is a fold-out, Private moved right under the title. (User.) Tags, now the only other optional field, are shown in view.
+- Routine form: more space between sections; the reminder time has no Reminders heading or border. (User.)

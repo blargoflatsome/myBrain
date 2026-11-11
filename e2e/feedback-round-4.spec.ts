@@ -55,13 +55,13 @@ test.describe('Spec §2 Windows: a close ✕ top right, and a click outside clos
 })
 
 test.describe('Spec §5 Forms: optional details in More details, formatted notes', () => {
-  test('a task editor keeps notes, priority and tags folded away until opened', async ({ page }) => {
+  test('a task editor shows notes in view; only priority and tags are in More details', async ({ page }) => {
     server.seed('tasks', [{ id: 't1', title: 'pay rent', notes: null, due_date: DAY, priority: 1, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:01Z' }])
     await open(page, '/tasks')
     await page.getByText('pay rent').click()
     const dialog = page.getByRole('dialog', { name: 'Edit task' })
-    await expect(dialog.getByRole('textbox', { name: 'Notes' })).toBeHidden()
-    await dialog.getByText('More details').click()
+    await expect(dialog.getByTestId('task-more').getByRole('textbox', { name: 'Notes' })).toHaveCount(0)
+    await expect(dialog.getByTestId('task-more')).toContainText('Priority, tags')
     const notes = dialog.getByRole('textbox', { name: 'Notes' })
     await notes.click()
     await page.keyboard.type('Bring the ')
@@ -82,34 +82,74 @@ test.describe('Spec §5 Forms: optional details in More details, formatted notes
     expect(await noSidewaysScroll(page)).toBe(true)
   })
 
-  test('Capture: a task is just a title and a date until More details is opened', async ({ page }) => {
+  test('Capture: a task shows notes and priority in view, with no More details', async ({ page }) => {
     await open(page, '/capture')
     await page.getByRole('button', { name: 'Task', exact: true }).click()
-    await expect(page.getByRole('group', { name: 'Priority' })).toBeHidden()
+    await expect(page.getByText('More details')).toHaveCount(0)
     await page.getByLabel('Title', { exact: true }).fill('Buy stamps')
-    await page.getByTestId('capture-more').getByText('More details').click()
+    await expect(page.getByRole('textbox', { name: 'Notes (optional)' })).toBeVisible()
     await page.getByRole('group', { name: 'Priority' }).getByRole('button', { name: 'High' }).click()
     await page.getByRole('button', { name: 'Save' }).click()
     await expect.poll(() => lastWrite('tasks')).toMatchObject({ title: 'Buy stamps', priority: 3 })
   })
+
+  test('a form with only one optional extra has no More details: routine and priority task editors, Capture Vault', async ({ page }) => {
+    await open(page, '/routines')
+    await page.getByRole('button', { name: /New routine/ }).click()
+    const routine = page.getByRole('dialog', { name: 'New routine' })
+    await expect(routine.getByRole('combobox', { name: 'Add a tag' })).toBeVisible()
+    await expect(routine.getByText('More details')).toHaveCount(0)
+
+    await open(page, '/tasks')
+    await page.getByRole('tab', { name: 'Priority' }).click()
+    await page.getByRole('button', { name: '+ New priority task' }).click()
+    const priority = page.getByRole('dialog', { name: 'New priority task' })
+    await expect(priority.getByRole('textbox', { name: 'Details (optional)' })).toBeVisible()
+    await expect(priority.getByText('More details')).toHaveCount(0)
+
+    await open(page, '/capture')
+    await page.getByRole('button', { name: 'The Vault', exact: true }).click()
+    await expect(page.getByRole('textbox', { name: 'Notes (optional)' })).toBeVisible()
+    await expect(page.getByText('More details')).toHaveCount(0)
+  })
+
+  test('Capture: a quest shows energy, time and details in view with more room between them', async ({ page }) => {
+    await open(page, '/capture')
+    await page.getByRole('button', { name: 'Quest', exact: true }).click()
+    await expect(page.getByText('More details')).toHaveCount(0)
+    const quest = page.getByTestId('capture-quest')
+    await expect(quest.getByRole('button', { name: 'Ugh' })).toBeVisible()
+    await expect(quest.getByRole('button', { name: '30 min' })).toBeVisible()
+    await expect(quest).toHaveCSS('row-gap', '24px')
+  })
 })
 
 test.describe('Spec §5 Habits: form layout', () => {
-  test('repeats on sits with how often; reminders are grouped in their own box; private is in More details', async ({ page }) => {
+  test('Private sits right under the title; Reminders folds away; no More details; more room between sections', async ({ page }) => {
     await open(page, '/habits')
     await page.getByRole('button', { name: '+ New habit' }).click()
     const dialog = page.getByRole('dialog', { name: 'New habit' })
+    const fields = dialog.getByTestId('habit-fields')
+    await expect(fields).toHaveCSS('row-gap', '24px')
+    await expect(fields.locator(':scope > *').first().getByRole('checkbox', { name: /^Private/ })).toBeVisible()
     const howOften = dialog.getByTestId('habit-how-often')
     await expect(howOften.getByRole('radiogroup', { name: 'How often' })).toBeVisible()
     await expect(howOften.getByRole('group', { name: 'Repeats on' })).toBeVisible()
-    const reminders = dialog.getByRole('group', { name: 'Reminders' })
+    await expect(dialog.getByText('More details')).toHaveCount(0)
+    await expect(dialog.getByRole('combobox', { name: 'Add a tag' })).toBeVisible()
+    const reminders = dialog.getByTestId('habit-reminders')
+    await expect(reminders.getByLabel('Reminder time (optional)')).toBeHidden()
+    await reminders.locator('summary').click()
     await expect(reminders.getByLabel('Reminder time (optional)')).toBeVisible()
     await expect(reminders.getByLabel('Timer')).toBeVisible()
     await expect(reminders.getByLabel(/^Priority/)).toBeVisible()
-    await expect(reminders).toHaveCSS('border-top-style', 'solid')
-    await expect(dialog.getByLabel(/^Private/)).toBeHidden()
-    await dialog.getByTestId('habit-more').getByText('More details').click()
-    await expect(dialog.getByLabel(/^Private/)).toBeVisible()
+  })
+
+  test('Reminders opens by itself when the habit has a reminder time', async ({ page }) => {
+    server.seed('habits', [{ id: 'h1', title: 'Stretch', notify_time: '08:00', timer_minutes: null, weekdays: [4], start_date: '2026-11-01', is_private: false, current_streak: 0, best_streak: 0 }])
+    await open(page, '/habits')
+    await page.getByRole('button', { name: /Stretch/ }).first().click()
+    await expect(page.getByRole('dialog', { name: 'Edit habit' }).getByLabel('Reminder time (optional)')).toBeVisible()
   })
 })
 
