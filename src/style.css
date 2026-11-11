@@ -322,7 +322,7 @@ textarea:focus {
 
 /* A chosen option shows a check mark as well as the soft tint (WCAG 1.4.1: not by colour alone). */
 .choice-on::before {
-  content: '✓ a0';
+  content: '\2713\00a0';
 }
 
 /* SPEC §5 Celebrations. <html data-celebrate> is full, gentle or off (Off shows nothing here). Full moves; Gentle
