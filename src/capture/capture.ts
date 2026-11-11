@@ -2,6 +2,7 @@
 import type { EnergyLevel, HabitRow, InboxRow, QuestRow, TaskRow, TimeBucket, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { newHabit } from '@/habits/rules'
 import { deviceTimeZone } from '@/tasks/days'
+import { toEditorHtml } from '@/journal/body'
 
 export type Destination = 'task' | 'vault' | 'quest' | 'habit' | 'postit' | 'later'
 
@@ -64,7 +65,10 @@ export function fitTitle(text: string, notes?: string | null): { title: string; 
     rest = [title, rest].filter(Boolean).join('\n')
     title = `${title.slice(0, TITLE_MAX - 1).trimEnd()}…`
   }
-  const allNotes = [rest, notes?.trim()].filter(Boolean).join('\n\n')
+  const kept = notes?.trim()
+  // Formatted notes (SPEC §5 Formatted notes) get the rest of the text as paragraphs in front.
+  if (kept?.startsWith('<')) return { title, notes: (rest ? toEditorHtml(rest) : '') + kept }
+  const allNotes = [rest, kept].filter(Boolean).join('\n\n')
   return { title, notes: allNotes || null }
 }
 

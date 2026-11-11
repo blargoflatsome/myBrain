@@ -1,5 +1,5 @@
 <template>
-  <main class="legal mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pt-8 pb-16">
+  <main class="legal mx-auto flex w-full max-w-2xl flex-col gap-8 px-5 pt-8 md:px-8 pb-16">
     <RouterLink to="/" class="text-sm text-muted underline">← {{ messages.legal.back }}</RouterLink>
     <h1 class="text-2xl font-bold">Terms of service</h1>
     <p class="text-sm text-muted">Draft · last updated November 7, 2026</p>

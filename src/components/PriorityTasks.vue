@@ -1,16 +1,22 @@
 <template>
   <section class="flex flex-col gap-3">
-    <p class="text-muted">{{ m.tabIntro }}</p>
-    <button type="button" class="min-h-12 self-start rounded-xl border border-line bg-surface px-4 font-medium" @click="open(null)">{{ m.add }}</button>
-    <p v-if="!sorted.length" class="text-muted">{{ m.empty }}</p>
-    <ul class="flex flex-col gap-2">
-      <li v-for="t in sorted" :key="t.id">
-        <button type="button" class="flex w-full flex-col items-start gap-1 rounded-2xl border border-line bg-surface p-3 text-left" @click="open(t)">
-          <span class="font-medium">⚠ {{ t.title }}</span>
-          <span class="text-xs text-muted" data-testid="priority-when">{{ when(t) }}</span>
-        </button>
-      </li>
-    </ul>
+    <template v-if="!editorOnly">
+      <p class="text-muted">{{ m.tabIntro }}</p>
+      <button type="button" class="min-h-12 self-start rounded-xl border border-line bg-surface px-4 font-medium" @click="open(null)">{{ m.add }}</button>
+      <p v-if="!sorted.length" class="text-muted">{{ m.empty }}</p>
+      <ul class="flex flex-col gap-2">
+        <li v-for="t in sorted" :key="t.id" class="flex items-start gap-3 rounded-2xl border border-line bg-surface p-3" data-testid="priority-row">
+          <AppIcon name="alert" size="size-6" class="mt-0.5 text-carried" />
+          <button type="button" class="flex min-w-0 flex-1 flex-col items-start gap-1 text-left" @click="open(t)">
+            <span class="text-base break-words">{{ t.title }}</span>
+            <span class="text-xs text-muted" data-testid="priority-when">{{ when(t) }}</span>
+          </button>
+          <button type="button" :class="rowAction" :aria-label="messages.tasks.editLabel(t.title)" @click="open(t)">
+            <AppIcon name="pencil" />{{ messages.tasks.edit }}
+          </button>
+        </li>
+      </ul>
+    </template>
 
     <dialog
       ref="dialog"
@@ -21,7 +27,6 @@
       <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
         <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
         <label class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.title }}<input v-model="title" maxlength="500" required :class="field"></label>
-        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.description }}<textarea v-model="description" maxlength="5000" rows="2" :class="[field, 'py-2']" /></label>
         <TimeInput v-model="time" :label="m.editor.time" required :input-class="field" />
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-1 text-sm text-muted">{{ m.editor.when }}</legend>
@@ -33,14 +38,19 @@
             <button v-for="d in ALL" :key="d" type="button" :class="dayChip(weekdays.includes(d))" :aria-pressed="weekdays.includes(d)" @click="toggleDay(d)">{{ dayNames[d] }}</button>
           </div>
           <HowOften v-if="mode === 'repeat'" v-model="weekInterval" />
-          <label v-else class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.date }}<input v-model="date" type="date" required :class="field"></label>
+          <DateInput v-else v-model="date" :label="m.editor.date" :min="todayIn(deviceTimeZone())" required :input-class="field" />
         </fieldset>
+        <MoreOptions :summary="m.editor.description" :start-open="!!editing?.description" test-id="priority-more">
+          <NotesEditor v-model="description" :label="m.editor.description" test-id="priority-description" />
+        </MoreOptions>
+        <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
         <div class="flex gap-2">
           <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
           <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
         </div>
         <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.open()">{{ m.editor.delete }}</button>
       </form>
+      <CloseX @click="dialog?.close()" />
     </dialog>
 
     <ConfirmDialog
@@ -56,6 +66,8 @@
 
 <script setup lang="ts">
 // SPEC §5: priority tasks — one-off (a date) or repeating on chosen weekdays — with a reminder time.
+import AppIcon from '@/components/AppIcon.vue'
+import CloseX from '@/components/CloseX.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
@@ -65,10 +77,18 @@ import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { messages } from '@/messages'
 import type { PriorityTaskRow } from '@/sync/types'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { dayChip, dialogBox, field } from '@/ui/styles'
+import DateInput from '@/components/DateInput.vue'
+import MoreOptions from '@/components/MoreOptions.vue'
+import NotesEditor from '@/components/NotesEditor.vue'
+import { storedNotes } from '@/journal/body'
+import { dayChip, dialogBox, field, rowAction } from '@/ui/styles'
 import { live } from '@/sync/live'
+import { firstFutureDay, isLater } from '@/reminders/priority'
+import { nextWholeHour } from '@/events/rules'
+import { dayLabel, timeLabel } from '@/ui/dates'
 
-const props = defineProps<{ openId?: string | null }>()
+// editorOnly: just the editor, for opening a priority task from the calendar (SPEC §5 Calendar).
+const props = defineProps<{ openId?: string | null; editorOnly?: boolean }>()
 const emit = defineEmits<{ opened: [] }>()
 const brain = useBrainStore()
 const m = messages.priority
@@ -83,8 +103,8 @@ const tasks = useLiveQuery<PriorityTaskRow[]>(
 const sorted = computed(() => [...tasks.value].sort((a, b) => a.reminder_time.localeCompare(b.reminder_time)))
 
 function when(t: PriorityTaskRow) {
-  const time = t.reminder_time.slice(0, 5)
-  return t.due_date ? `${m.once(t.due_date)} ${m.at(time)}` : `${m.repeats((t.weekdays ?? []).map((d) => dayNames[d]).join(' '))}${t.week_interval === 2 ? `, ${messages.howOften.biweekly.toLowerCase()}` : ''} ${m.at(time)}`
+  const time = timeLabel(t.reminder_time)
+  return t.due_date ? `${m.once(dayLabel(t.due_date))} ${m.at(time)}` : `${m.repeats((t.weekdays ?? []).map((d) => dayNames[d]).join(' '))}${t.week_interval === 2 ? `, ${messages.howOften.biweekly.toLowerCase()}` : ''} ${m.at(time)}`
 }
 
 // ---------- editor ----------
@@ -95,6 +115,8 @@ const isNew = ref(false)
 const title = ref('')
 const description = ref('')
 const time = ref('08:00')
+const error = ref('')
+const nowTime = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
 const mode = ref<'once' | 'repeat'>('repeat')
 const date = ref('')
 const weekdays = ref<number[]>([...ALL])
@@ -107,7 +129,8 @@ function open(t: PriorityTaskRow | null) {
     id: crypto.randomUUID(),
     title: '',
     description: null,
-    reminder_time: '08:00',
+    // A new one starts at the next whole hour, so it's always in the future (SPEC §5 Priority tasks).
+    reminder_time: nextWholeHour(),
     due_date: null,
     weekdays: [...ALL],
     start_date: today,
@@ -132,7 +155,8 @@ watch(editing, (t) => {
   description.value = t.description ?? ''
   time.value = t.reminder_time.slice(0, 5)
   mode.value = t.due_date ? 'once' : 'repeat'
-  date.value = t.due_date ?? todayIn(deviceTimeZone())
+  error.value = ''
+  date.value = t.due_date ?? firstFutureDay(t.reminder_time, todayIn(deviceTimeZone()), nowTime())
   weekdays.value = [...(t.weekdays ?? ALL)]
   weekInterval.value = t.week_interval ?? 1
   dialog.value?.showModal()
@@ -144,10 +168,18 @@ function toggleDay(d: number) {
 }
 async function save() {
   if (!editing.value || !title.value.trim() || !time.value) return
+  const today = todayIn(deviceTimeZone())
+  if (mode.value === 'once' && !isLater(date.value, time.value, today, nowTime())) {
+    error.value = m.editor.pastError
+    return
+  }
+  // A repeating one that starts today (a new one, or one made today) moves to tomorrow if its time has passed.
+  const start = editing.value.start_date >= today ? firstFutureDay(time.value, today, nowTime()) : editing.value.start_date
   await brain.savePriorityTask({
     ...editing.value,
+    start_date: start,
     title: title.value.trim(),
-    description: description.value.trim() || null,
+    description: storedNotes(description.value),
     reminder_time: time.value,
     due_date: mode.value === 'once' ? date.value : null,
     weekdays: mode.value === 'repeat' ? weekdays.value : null,

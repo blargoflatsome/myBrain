@@ -59,15 +59,15 @@ export function searchDocs(data: SearchData): SearchDoc[] {
   })
   const bucketName = new Map(data.buckets.map((b) => [b.id, b.name]))
   return [
-    ...data.tasks.filter((t) => !t.deleted_at).map((t) => doc('task', t.id, t.title, t.notes ?? '', t.updated_at, { date: t.due_date })),
+    ...data.tasks.filter((t) => !t.deleted_at).map((t) => doc('task', t.id, t.title, plainText(t.notes ?? ''), t.updated_at, { date: t.due_date })),
     ...data.vaultItems
       .filter((v) => !v.deleted_at)
-      .map((v) => doc('vault_item', v.id, v.title, [v.notes, v.link].filter(Boolean).join('\n'), v.updated_at, { bucketId: v.bucket_id, context: bucketName.get(v.bucket_id) })),
+      .map((v) => doc('vault_item', v.id, v.title, [plainText(v.notes ?? ''), v.link].filter(Boolean).join('\n'), v.updated_at, { bucketId: v.bucket_id, context: bucketName.get(v.bucket_id) })),
     ...data.journal
       .filter((j) => !j.deleted_at && (j.body.trim() || j.tomorrow?.trim()))
       .map((j) => doc('journal_entry', j.id, j.date, [plainText(j.body), plainText(j.tomorrow ?? '')].filter(Boolean).join('\n'), j.updated_at, { date: j.date })),
-    ...data.quests.filter((q) => !q.deleted_at).map((q) => doc('quest', q.id, q.title, q.details ?? '', q.updated_at)),
-    ...data.events.filter((e) => !e.deleted_at).map((e) => doc('event', e.id, e.title, e.notes ?? '', e.updated_at, { date: e.start_date })),
+    ...data.quests.filter((q) => !q.deleted_at).map((q) => doc('quest', q.id, q.title, plainText(q.details ?? ''), q.updated_at)),
+    ...data.events.filter((e) => !e.deleted_at).map((e) => doc('event', e.id, e.title, plainText(e.notes ?? ''), e.updated_at, { date: e.start_date })),
     ...data.habits.filter((h) => !h.deleted_at).map((h) => doc('habit', h.id, h.title, '', h.updated_at)),
     ...data.routines.filter((r) => !r.deleted_at).map((r) => doc('routine', r.id, r.title, '', r.updated_at)),
   ]

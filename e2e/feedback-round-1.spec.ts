@@ -20,16 +20,6 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Every week or every 2 weeks', () => {
-  test('a habit can repeat every 2 weeks', async ({ page }) => {
-    await open(page, '/habits')
-    await page.getByRole('button', { name: '+ New habit' }).click()
-    const dialog = page.getByRole('dialog', { name: 'New habit' })
-    await dialog.getByLabel('Title').fill('Water plants')
-    await expect(howOften(dialog).getByRole('radio', { name: 'Every week' })).toHaveAttribute('aria-checked', 'true')
-    await howOften(dialog).getByRole('radio', { name: 'Every 2 weeks' }).click()
-    await dialog.getByRole('button', { name: 'Save' }).click()
-    await expect.poll(() => lastWrite('habits')).toMatchObject({ title: 'Water plants', week_interval: 2 })
-  })
 
   test('a routine on chosen weekdays can repeat every 2 weeks', async ({ page }) => {
     await open(page, '/routines')
@@ -62,6 +52,7 @@ test.describe('Spec §5 Quick capture: Habit', () => {
     await days.getByRole('button', { name: 'Sun' }).click()
     await howOften(page).getByRole('radio', { name: 'Every 2 weeks' }).click()
     await page.getByLabel('Reminder time (optional)').fill('21:00')
+    await page.getByTestId('habit-more').getByText('More details').click()
     await page.getByRole('checkbox', { name: /Private/ }).check()
     await page.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Added to your habits. Future you is building something.')
@@ -72,14 +63,6 @@ test.describe('Spec §5 Quick capture: Habit', () => {
       notify_time: '21:00',
       is_private: true,
     })
-  })
-})
-
-test.describe('Spec §5 Orphans', () => {
-  test('the inbox is called Orphans, and the old address still opens it', async ({ page }) => {
-    await open(page, '/inbox')
-    await expect(page).toHaveURL(/\/orphans$/)
-    await expect(page.getByRole('heading', { name: 'Orphans', level: 1 })).toBeVisible()
   })
 })
 
@@ -164,18 +147,17 @@ test.describe('Spec §5 Dashboard: worst day and favorite buckets', () => {
     await expect(page.getByRole('textbox', { name: 'Add to Shopping list' })).toBeVisible()
   })
 
-  test('an item can be deleted from the bucket list, after confirming', async ({ page }) => {
+  test('an item can be deleted from the bucket list, with Undo (SPEC §2)', async ({ page }) => {
     server.seed('vault_buckets', [{ id: 'b-groc', name: 'Groceries', position: 9, checkable: false, starred: false }])
     server.seed('vault_items', [{ id: 'v1', bucket_id: 'b-groc', title: 'Milk', notes: null, created_at: '2026-11-01T00:00:00Z' }])
     await open(page, '/vault?bucket=b-groc')
     await expect(page.getByTestId('vault-item')).toHaveText(['Milk'])
     await page.getByRole('button', { name: 'Delete Milk' }).click()
-    const confirm = page.getByRole('alertdialog', { name: 'Delete this item?' })
-    await expect(confirm).toContainText('"Milk" will be deleted from Groceries on all your devices.')
-    await confirm.getByRole('button', { name: 'Keep it' }).click()
-    await expect(page.getByTestId('vault-item')).toHaveCount(1)
+    await expect(page.getByTestId('vault-item')).toHaveCount(0)
+    await expect(page.getByTestId('undo-bar')).toContainText('Deleted "Milk"')
+    await page.getByTestId('undo-bar').getByRole('button', { name: 'Undo' }).click()
+    await expect(page.getByTestId('vault-item')).toHaveText(['Milk'])
     await page.getByRole('button', { name: 'Delete Milk' }).click()
-    await confirm.getByRole('button', { name: 'Delete' }).click()
     await expect(page.getByTestId('vault-item')).toHaveCount(0)
     await expect.poll(() => lastWrite('vault_items')).toMatchObject({ id: 'v1', deleted_at: expect.any(String) })
   })

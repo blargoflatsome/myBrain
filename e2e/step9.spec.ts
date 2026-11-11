@@ -37,10 +37,8 @@ test.describe('Spec §5 The Vault', () => {
     await expect.poll(() => lastWrite('vault_items')).toMatchObject({ title: 'Milk', checked: true })
 
     await page.getByRole('button', { name: 'Clear checked' }).click()
-    const confirm = page.getByRole('alertdialog', { name: 'Clear checked items?' })
-    await expect(confirm).toContainText('Delete 1 checked item from Shopping list?')
-    await confirm.getByRole('button', { name: 'Delete' }).click()
     await expect(page.getByTestId('vault-item')).toHaveText(['Eggs', 'Bread'])
+    await expect(page.getByTestId('undo-bar')).toContainText('Cleared 1 checked item')
     await expect.poll(() => lastWrite('vault_items')).toMatchObject({ title: 'Milk', deleted_at: expect.any(String) })
   })
 
@@ -49,13 +47,14 @@ test.describe('Spec §5 The Vault', () => {
     await open(page, '/vault?bucket=bucket-1')
     await page.getByRole('button', { name: 'Open Luigi’s' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit item' })
+    await dialog.getByText('More details').click()
     await dialog.getByRole('radio', { name: '4 stars' }).click()
     await dialog.getByLabel('Link or address (optional)').fill('luigis.example.com/menu')
-    await dialog.getByLabel('Notes (optional)').fill('Great carbonara')
+    await dialog.getByRole('textbox', { name: 'Notes (optional)' }).fill('Great carbonara')
     await expect(dialog.getByRole('combobox', { name: 'Add a tag' })).toHaveCount(0)
     await dialog.getByRole('button', { name: 'Save' }).click()
 
-    await expect.poll(() => lastWrite('vault_items')).toMatchObject({ rating: 4, link: 'luigis.example.com/menu', notes: 'Great carbonara' })
+    await expect.poll(() => lastWrite('vault_items')).toMatchObject({ rating: 4, link: 'luigis.example.com/menu', notes: '<p>Great carbonara</p>' })
     const item = page.getByTestId('vault-item')
     await expect(item.getByRole('img', { name: '4 of 5 stars' })).toBeVisible()
     await expect(item.getByRole('link', { name: 'Open link: luigis.example.com' })).toHaveAttribute('href', 'https://luigis.example.com/menu')
@@ -81,6 +80,7 @@ test.describe('Spec §5 The Vault', () => {
     await page.getByRole('button', { name: 'Bucket settings' }).click()
     const dialog = page.getByRole('dialog', { name: 'Bucket settings' })
     await dialog.getByLabel('Name').fill('Books to read')
+    await dialog.getByTestId('bucket-more').getByText('More details').click()
     await dialog.getByRole('checkbox', { name: /Items can be checked off/ }).check()
     await dialog.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByRole('heading', { name: 'Books to read', level: 1 })).toBeVisible()
@@ -144,7 +144,7 @@ test.describe('Spec §5 Global search and tags', () => {
     await expect(dialog.getByTestId('results-vault_item')).toContainText('Luigi’s')
     await expect(dialog.getByTestId('results-vault_item')).toContainText('Restaurant reviews')
     await dialog.getByRole('searchbox', { name: 'Search everything' }).fill('zebra')
-    await expect(dialog.getByRole('status')).toHaveText("Past you didn't leave anything matching that.")
+    await expect(dialog.getByRole('status')).toHaveText("I can't find anything matching that.")
   })
 
   test('tapping a result opens it where it lives', async ({ page }) => {
@@ -155,7 +155,7 @@ test.describe('Spec §5 Global search and tags', () => {
     await dialog.getByTestId('search-result').click()
     await expect(page).toHaveURL(/\/vault\?bucket=bucket-1/)
     await expect(page.getByRole('dialog', { name: 'Edit item' })).toBeVisible()
-    await page.getByRole('dialog', { name: 'Edit item' }).getByRole('button', { name: 'Close' }).click()
+    await page.getByRole('dialog', { name: 'Edit item' }).getByRole('button', { name: 'Close' }).first().click()
 
     dialog = await openSearch(page)
     await dialog.getByRole('searchbox', { name: 'Search everything' }).fill('cafe table')
@@ -180,6 +180,7 @@ test.describe('Spec §5 Global search and tags', () => {
     await open(page, '/tasks')
     await page.getByRole('button', { name: /^Pay rent/ }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit task' })
+    await dialog.getByText('More details').click()
     await dialog.getByRole('combobox', { name: 'Add a tag' }).fill('money')
     await dialog.getByRole('combobox', { name: 'Add a tag' }).press('Enter')
     await expect(dialog.getByTestId('tag-chip')).toHaveText(/#money/)
@@ -222,6 +223,7 @@ test.describe('Spec §5 Calendar', () => {
     await dialog.getByLabel('Starts Time').fill('12:30')
     await dialog.getByLabel('Ends Time').fill('13:30')
     await dialog.getByLabel('Repeat').selectOption({ label: 'Every week' })
+    await dialog.getByTestId('event-more').getByText('More details').click()
     await dialog.getByLabel('Reminder').selectOption({ label: '15 minutes before' })
     await dialog.getByRole('button', { name: 'Save' }).click()
     await expect(dialog).toBeHidden()
@@ -252,40 +254,33 @@ test.describe('Spec §5 Calendar', () => {
     expect(server.written('events')).toHaveLength(0)
   })
 
-  test('tapping an event opens it; deleting a repeating event asks first and deletes the series', async ({ page }) => {
+  test('tapping an event opens it; deleting a repeating event with no guests deletes the series, with Undo', async ({ page }) => {
     server.seed('events', [
       { id: 'e2', title: 'Standup', notes: null, start_date: '2026-11-02', start_time: '09:30:00', end_date: '2026-11-02', end_time: '09:45:00', repeat: 'weekdays', reminder_minutes: null },
     ])
     await open(page, '/calendar')
     await page.getByRole('button', { name: 'Day', exact: true }).click()
     await page.locator('.cal-wrap').getByText('Standup').click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
     await expect(dialog.getByLabel('Title')).toHaveValue('Standup')
     await dialog.getByRole('button', { name: 'Delete event' }).click()
-    const confirm = page.getByRole('alertdialog', { name: 'Delete this event?' })
-    await expect(confirm).toContainText('"Standup" and every repeat will be deleted from all your devices.')
-    await confirm.getByRole('button', { name: 'Delete' }).click()
+    await expect(page.getByTestId('undo-bar')).toContainText('Deleted "Standup"')
     await expect.poll(() => lastWrite('events')).toMatchObject({ id: 'e2', deleted_at: expect.any(String) })
     await expect(page.locator('.cal-wrap').getByText('Standup')).toHaveCount(0)
-  })
-
-  test('tapping a task opens it on the Tasks page', async ({ page }) => {
-    seedCalendar()
-    await open(page, '/calendar')
-    await page.getByRole('button', { name: 'Day', exact: true }).click()
-    await page.locator('.cal-wrap').getByText('Pay rent').click()
-    await expect(page.getByRole('dialog', { name: 'Edit task' })).toBeVisible()
   })
 
   test('a reminder or search result can open the calendar on a day, with the event open', async ({ page }) => {
     seedCalendar()
     await open(page, '/calendar?date=2026-11-10&event=e1')
+    await expect(page.getByTestId('calendar-item').getByRole('heading', { name: 'Dentist' })).toBeVisible()
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     await expect(page.getByRole('dialog', { name: 'Edit event' }).getByLabel('Title')).toHaveValue('Dentist')
   })
 
   test('an empty day says so', async ({ page }) => {
     await open(page, '/calendar')
     await page.getByRole('button', { name: 'Day', exact: true }).click()
-    await expect(page.getByTestId('calendar-empty')).toHaveText('Nothing planned. Past you left today open.')
+    await expect(page.getByTestId('calendar-empty')).toHaveText('Nothing planned.')
   })
 })

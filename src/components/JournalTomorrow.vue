@@ -4,7 +4,7 @@
     <RichTextEditor
       :model-value="draft ?? entry?.tomorrow ?? ''"
       :label="m.tomorrowLabel"
-      min-height="6rem"
+      :min-height="minHeight"
       @update:model-value="onInput"
       @blur="save"
     />
@@ -26,7 +26,8 @@ import type { JournalEntryRow } from '@/sync/types'
 // The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
 const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
 
-const props = defineProps<{ date: string; entry?: JournalEntryRow }>()
+// The same size as the day's writing box above it (SPEC §5 Journal).
+const props = withDefaults(defineProps<{ date: string; entry?: JournalEntryRow; minHeight?: string }>(), { entry: undefined, minHeight: '18rem' })
 /** busy: there's writing waiting to be stored (for the journal's save status). */
 const emit = defineEmits<{ busy: [on: boolean] }>()
 const brain = useBrainStore()

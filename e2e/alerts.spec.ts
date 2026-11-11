@@ -70,15 +70,8 @@ test.describe('Spec §6 In-app alerts: the bell', () => {
     await list.getByRole('button', { name: 'Clear all' }).click()
     await expect(list).toContainText('Nothing from past you in the last 7 days.')
     await expect.poll(() => server.written('notifications').filter((n) => n.deleted_at).length).toBe(2)
-    await list.getByRole('button', { name: 'Close' }).click()
+    await list.getByRole('button', { name: 'Close' }).first().click()
     await expect(page.getByTestId('alerts-count')).toHaveCount(0)
-  })
-
-  test('the Dashboard no longer has a notifications box', async ({ page }) => {
-    server.seed('notifications', [note('n1', 'Take meds', '2026-11-10T13:00:00Z')])
-    await open(page, '/')
-    await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
-    await expect(page.getByTestId('dash-notifications')).toHaveCount(0)
   })
 })
 

@@ -36,7 +36,7 @@ test.describe('Spec §5 Accounts and contact info', () => {
     await open(page, '/habits')
     await expect(page).toHaveURL(/\/welcome/)
     await expect(page.getByRole('heading', { name: 'One more thing' })).toBeVisible()
-    await expect(page.getByText('Past you needs a phone number for event invites.')).toBeVisible()
+    await expect(page.getByText('I need a phone number for event invites.')).toBeVisible()
     await page.getByLabel('Phone number').fill('call me')
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.getByRole('alert')).toContainText('doesn’t look like a phone number')
@@ -90,6 +90,7 @@ test.describe('Spec §10 Connections, scheduling: availability for connections',
       { user_id: 'bob-id', timezone: 'America/New_York', kind: 'rule', weekday: 2, start_date: null, start_time: '18:00:00', end_date: null, end_time: '23:00:00', repeat: null, busy: true },
     ]
     await open(page, '/calendar?date=2026-11-10&event=' + EVENT)
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
     await dialog.getByRole('button', { name: 'Contacts' }).click()
     const contacts = page.getByRole('dialog', { name: 'Your people' })
@@ -112,6 +113,7 @@ test.describe('Spec §5 Shared events and invitations', () => {
       { invite_id: 'inv-dan', name: 'Dan', email: null, phone: '(555) 010-3000', token: 'tok-dan' },
     ]
     await open(page, '/calendar?date=2026-11-10&event=' + EVENT)
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
     await expect(dialog.getByLabel('Find people by name')).toHaveCount(0)
     await dialog.getByLabel('Email or phone number').fill('carol@example.com')
@@ -184,6 +186,7 @@ test.describe('Spec §5 Cancelling an event or attendance', () => {
       { invite_id: 'inv-dan', name: 'Dan', email: null, phone: '5550103000', body: 'Hi Dan, I’m sorry, but I have to cancel Birthday party on Tuesday, November 10 at 7:00 pm. Sorry for the short notice!' },
     ]
     await open(page, '/calendar?date=2026-11-10&event=' + EVENT)
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     await page.getByRole('dialog', { name: 'Edit event' }).getByRole('button', { name: 'Cancel and notify' }).click()
     const confirm = page.getByRole('alertdialog', { name: 'Cancel this event?' })
     await expect(confirm.getByTestId('cancel-who')).toHaveText(/Carol\s*Dan/)

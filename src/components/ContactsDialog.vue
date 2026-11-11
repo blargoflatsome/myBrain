@@ -48,12 +48,14 @@
       <RouterLink to="/connections" class="text-sm text-accent underline">{{ c.manage }}</RouterLink>
       <button type="button" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="dialog?.close()">{{ m.done }}</button>
     </div>
+    <CloseX @click="dialog?.close()" />
   </dialog>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Calendar, my people: the Contacts window. My people A to Z with a search box; Add keeps the window open
 // (Added, with Undo); people already invited to the event show as Invited.
+import CloseX from '@/components/CloseX.vue'
 import { computed, ref, watch } from 'vue'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'

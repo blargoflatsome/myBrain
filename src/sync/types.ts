@@ -25,6 +25,7 @@ export const SYNC_TABLES = [
   'post_its',
   'notifications',
   'people',
+  'quest_logs',
 ] as const
 
 /** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
@@ -47,6 +48,8 @@ export interface TaskRow extends BaseRow {
   priority?: number
   status: 'open' | 'done' | 'cancelled'
   completed_at?: string | null
+  /** Cleared from the list after being crossed off (SPEC §5 Tasks); still counted in stats. */
+  cleared_at?: string | null
   source: 'manual' | 'capture' | 'journal'
 }
 
@@ -174,11 +177,20 @@ export interface QuestRow extends BaseRow {
   details?: string | null
   energy_level?: EnergyLevel | null
   time_bucket?: TimeBucket | null
+  /** 'done' is no longer used: a done quest goes back to 'open' and its completion is in quest_logs. */
   status: 'open' | 'accepted' | 'done'
   last_picked_at?: string | null
-  /** When it was marked done (SPEC §5 Journal counts completed quests by day). */
+  /** When it was last marked done. */
   completed_at?: string | null
   times_picked?: number
+}
+
+/** One time a quest was done (SPEC §5 Random Quest): quests stay in the list, so completions are logged. */
+export interface QuestLogRow extends BaseRow {
+  quest_id: string
+  /** The day it was done, in my time zone. */
+  date: string
+  completed_at: string
 }
 
 export interface InboxRow extends BaseRow {
@@ -306,6 +318,7 @@ export interface RowTypes {
   notifications: NotificationRow
   post_its: PostItRow
   people: PersonRow
+  quest_logs: QuestLogRow
   tasks: TaskRow
   vault_buckets: VaultBucketRow
   vault_items: VaultItemRow

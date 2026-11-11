@@ -11,25 +11,8 @@
         {{ m.editor.title }}
         <input v-model="title" maxlength="500" required :class="field">
       </label>
-      <label class="flex items-center justify-between gap-4">
-        <span>
-          <span class="font-medium">{{ m.editor.anytime }}</span>
-          <span class="block text-xs text-muted">{{ m.editor.anytimeHint }}</span>
-        </span>
-        <input v-model="anytime" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
-      </label>
-      <TimeInput v-if="!anytime" v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
-      <fieldset v-if="!anytime" class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted">{{ m.editor.weekdays }}</legend>
-        <div class="flex flex-wrap gap-1.5" role="group" :aria-label="m.editor.weekdays">
-          <button v-for="d in ALL_WEEKDAYS" :key="d" type="button" :class="dayChip(weekdays.includes(d))" :aria-pressed="weekdays.includes(d)" @click="toggleDay(d)">
-            {{ dayNames[d] }}
-          </button>
-        </div>
-      </fieldset>
-      <HowOften v-if="!anytime" v-model="weekInterval" />
       <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted">{{ m.editor.steps }}</legend>
+        <legend class="mb-1 text-sm font-medium">{{ m.editor.steps }}</legend>
         <p v-if="stepRows.length > 1" class="-mt-1 text-xs text-muted">{{ m.editor.dragHint }}</p>
         <ol ref="stepList" class="flex flex-col gap-2">
           <li v-for="(s, i) in stepRows" :key="s.key" class="flex flex-wrap items-center gap-1.5" data-testid="routine-step-row">
@@ -50,7 +33,7 @@
               data-testid="habit-step"
             >
               <span class="truncate">{{ habitById(s.habitId)?.title ?? s.title }}</span>
-              <span v-if="habitById(s.habitId)?.is_priority" class="text-danger" :aria-label="messages.habits.priorityBadge">⚠</span>
+              <span v-if="habitById(s.habitId)?.is_priority" class="text-carried" role="img" :aria-label="messages.habits.priorityBadge"><AppIcon name="alert" /></span>
               <span class="ml-auto shrink-0 text-xs text-muted">{{ m.editor.habitTag }}</span>
             </span>
             <input v-else v-model="s.title" maxlength="500" :aria-label="m.editor.stepLabel(i + 1)" :placeholder="m.editor.stepLabel(i + 1)" :class="[field, 'min-w-0 flex-1']">
@@ -73,18 +56,47 @@
           </button>
           <select v-if="choosingHabit" :class="[field, 'min-h-11']" :aria-label="m.editor.chooseHabit" @change="addHabitStep">
             <option value="">{{ m.editor.chooseHabit }}</option>
-            <option v-for="h in habitChoices" :key="h.id" :value="h.id">{{ h.is_priority ? `⚠ ${h.title}` : h.title }}</option>
+            <option v-for="h in habitChoices" :key="h.id" :value="h.id">{{ h.is_priority ? `${h.title} (${messages.habits.priorityBadge})` : h.title }}</option>
           </select>
         </div>
         <p v-if="stepRows.some((r) => r.habitId)" class="text-xs text-muted">{{ m.editor.habitHint }}</p>
       </fieldset>
-      <TagInput v-model="tags.names.value" />
+      <!-- When it runs: how often with the days right under it, like habits (SPEC §5 Routines, §2 Calm by design) -->
+      <fieldset class="flex flex-col gap-3" data-testid="routine-schedule">
+        <legend class="mb-1 text-sm font-medium">{{ m.editor.when }}</legend>
+        <label class="flex items-center justify-between gap-4">
+          <span>
+            <span class="font-medium">{{ m.editor.anytime }}</span>
+            <span class="block text-xs text-muted">{{ m.editor.anytimeHint }}</span>
+          </span>
+          <input v-model="anytime" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+        </label>
+        <template v-if="!anytime">
+          <HowOften v-model="weekInterval" />
+          <div class="flex flex-col gap-1">
+            <span :id="`${uid}-days`" class="text-sm text-muted">{{ m.editor.weekdays }}</span>
+            <div class="flex flex-wrap gap-1.5" role="group" :aria-labelledby="`${uid}-days`">
+              <button v-for="d in ALL_WEEKDAYS" :key="d" type="button" :class="dayChip(weekdays.includes(d))" :aria-pressed="weekdays.includes(d)" @click="toggleDay(d)">
+                {{ dayNames[d] }}
+              </button>
+            </div>
+          </div>
+        </template>
+      </fieldset>
+      <fieldset v-if="!anytime" class="flex flex-col gap-3 rounded-xl border border-line p-3" data-testid="routine-reminders">
+        <legend class="px-1 text-sm font-medium">{{ messages.forms.reminders }}</legend>
+        <TimeInput v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
+      </fieldset>
+      <MoreOptions :summary="m.editor.moreSummary" :start-open="moreOpen" test-id="routine-more">
+        <TagInput v-model="tags.names.value" />
+      </MoreOptions>
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
       </div>
       <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.open()">{{ m.editor.delete }}</button>
     </form>
+    <CloseX @click="dialog?.close()" />
   </dialog>
 
   <ConfirmDialog
@@ -100,12 +112,15 @@
 <script setup lang="ts">
 // New or edit routine: title, reminder time and weekdays (or run anytime), ordered steps that can be my own text or
 // one of my habits (SPEC §5 Routines). Delete asks first (SPEC §2).
+import AppIcon from '@/components/AppIcon.vue'
+import CloseX from '@/components/CloseX.vue'
 import TimeInput from '@/components/TimeInput.vue'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HowOften from '@/components/HowOften.vue'
 import TagInput from '@/components/TagInput.vue'
 import { useItemTags } from '@/composables/useItemTags'
+import MoreOptions from '@/components/MoreOptions.vue'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { arrowStep, useDragSort } from '@/composables/useDragSort'
 import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
@@ -127,7 +142,11 @@ const notifyTime = ref('')
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
 const anytime = ref(false)
 const weekInterval = ref(1)
+const uid = useId()
 const tags = useItemTags('routine', computed(() => props.routine?.id))
+// More details opens by itself when the routine has tags.
+const moreOpen = ref(false)
+watch(() => tags.names.value.length, (n) => (moreOpen.value = n > 0))
 const stepRows = ref<{ key: string; id?: string; title: string; habitId?: string | null }[]>([])
 
 // My habits, for habit steps.
@@ -165,6 +184,18 @@ watch(
     choosingHabit.value = false
     if (!stepRows.value.length) addStep()
     dialog.value?.showModal()
+  },
+)
+// Steps download after their routine, so the editor can open a moment before they arrive. Fill them in then,
+// as long as I haven't started on the blank step, so saving never drops steps I can't see yet.
+watch(
+  () => props.steps,
+  (steps) => {
+    const [only, ...more] = stepRows.value
+    const untouchedBlank = !!only && !more.length && !only.id && !only.habitId && !only.title.trim()
+    if (props.routine && steps.length && untouchedBlank) {
+      stepRows.value = steps.map((s) => ({ key: s.id, id: s.id, title: s.title, habitId: s.habit_id ?? null }))
+    }
   },
 )
 

@@ -1,5 +1,5 @@
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <template v-if="routine">
       <div>
         <RouterLink to="/routines" class="text-sm text-muted underline">{{ m.run.back }}</RouterLink>
@@ -16,7 +16,7 @@
         <p class="text-sm text-muted" data-testid="step-of">{{ m.run.stepOf(state.index, state.total) }}</p>
         <p class="cross-out text-3xl font-bold break-words" :class="{ crossing }" data-testid="current-step">{{ stepTitle }}</p>
         <p v-if="currentHabit" class="-mt-4 text-sm text-muted" data-testid="habit-step-note">
-          <span v-if="currentHabit.is_priority" class="text-danger">⚠ </span>{{ m.run.habitNote }}
+          <AppIcon v-if="currentHabit.is_priority" name="alert" class="mr-1 text-carried" />{{ m.run.habitNote }}
         </p>
         <div class="grid grid-cols-2 gap-3">
           <button type="button" class="min-h-14 rounded-xl border border-line px-4 text-lg font-medium" :disabled="busy" @click="act('skipped')">
@@ -38,6 +38,7 @@
 <script setup lang="ts">
 // SPEC §5 Routines: one step at a time. Skip moves on at once; Completed crosses the step out first.
 // The step 7 notification opens this screen directly (/routines/<id>/run).
+import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { useBrainStore } from '@/stores/brain'

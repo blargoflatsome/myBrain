@@ -48,20 +48,30 @@ export function tasksForDay(tasks: TaskRow[], day: string, today: string, timeZo
   const open = visible.filter(
     (t) => t.status === 'open' && ((t.due_date === day && day >= today) || (day === today && t.due_date! < today)),
   )
-  const done = visible.filter((t) => t.status === 'done' && doneDay(t, timeZone) === day)
+  const done = visible.filter((t) => t.status === 'done' && !t.cleared_at && doneDay(t, timeZone) === day)
   return [...open.sort(byPriorityThenAge), ...done.sort(byPriorityThenAge)]
+}
+
+/** Tasks crossed off on a day and then cleared from its list (they still count, SPEC §5 Tasks). */
+export function clearedForDay(tasks: TaskRow[], day: string, timeZone = 'UTC'): TaskRow[] {
+  return tasks.filter((t) => !t.deleted_at && t.status === 'done' && !!t.cleared_at && !!t.due_date && doneDay(t, timeZone) === day)
+}
+
+/** "Clear crossed-off" (SPEC §5 Tasks): the done tasks in a list, hidden from it but kept for history and stats. */
+export function clearDone(list: TaskRow[], now: Date = new Date()): TaskRow[] {
+  return list.filter((t) => t.status === 'done' && !t.cleared_at).map((t) => ({ ...t, cleared_at: now.toISOString() }))
 }
 
 /** The Undated list: tasks with no due date. They never carry over. */
 export function undatedTasks(tasks: TaskRow[]): TaskRow[] {
-  const visible = tasks.filter((t) => !t.deleted_at && t.status !== 'cancelled' && !t.due_date)
+  const visible = tasks.filter((t) => !t.deleted_at && t.status !== 'cancelled' && !t.due_date && !(t.status === 'done' && t.cleared_at))
   return [...visible.filter((t) => t.status === 'open').sort(byPriorityThenAge), ...visible.filter((t) => t.status === 'done')]
 }
 
 /** Completing crosses a task off; tapping again un-crosses it. */
 export function toggleDone(task: TaskRow, now: Date = new Date()): TaskRow {
   return task.status === 'done'
-    ? { ...task, status: 'open', completed_at: null }
+    ? { ...task, status: 'open', completed_at: null, cleared_at: null }
     : { ...task, status: 'done', completed_at: now.toISOString() }
 }
 

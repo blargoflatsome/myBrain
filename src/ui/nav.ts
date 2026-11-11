@@ -16,7 +16,6 @@ export const MORE_NAV: { to: string; label: string }[] = [
   { to: '/orphans', label: messages.nav.inbox },
   { to: '/connections', label: messages.nav.connections },
   { to: '/account', label: messages.nav.account },
-  { to: '/docs', label: messages.nav.help },
 ]
 /** Whether a page belongs under More (its tab or button shows as current). */
 export const inMore = (path: string) => MORE_NAV.some((i) => path === i.to || path.startsWith(`${i.to}/`))

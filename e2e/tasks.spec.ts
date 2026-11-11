@@ -54,7 +54,7 @@ test.describe('Spec §5 Tasks: daily list in the "past you" voice', () => {
     server.seed('tasks', [task('a', 'only one', '2026-11-10')])
     await open(page)
     await page.getByRole('button', { name: 'Cross off only one' }).click()
-    await expect(page.getByText('Everything past you asked for today is done. Past you would be proud.')).toBeVisible()
+    await expect(page.getByText('Everything past you asked for today is done!.')).toBeVisible()
   })
 })
 
@@ -62,8 +62,8 @@ test.describe('Spec §5 Tasks: carry-over', () => {
   test('a task not done by midnight carries over to today in red text', async ({ page }) => {
     server.seed('tasks', [task('a', 'call bank', '2026-11-09'), task('bb', 'fresh', '2026-11-10')])
     await open(page)
-    await expect(item(page, 'call bank').getByTestId('task-title')).toHaveClass(/text-danger/)
-    await expect(item(page, 'fresh').getByTestId('task-title')).not.toHaveClass(/text-danger/)
+    await expect(item(page, 'call bank').getByTestId('task-title')).toHaveClass(/text-carried/)
+    await expect(item(page, 'fresh').getByTestId('task-title')).not.toHaveClass(/text-carried/)
     await expect(item(page, 'call bank')).toContainText('Past you hoped this would happen yesterday.')
     await expect(item(page, 'call bank').getByRole('button', { name: 'Cancel task' })).toHaveCount(0)
   })
@@ -87,16 +87,16 @@ test.describe('Spec §5 Tasks: carry-over', () => {
     await dialog.getByLabel('Title').fill('clean one shelf')
     await dialog.getByLabel('Date').fill('2026-11-10')
     await dialog.getByRole('button', { name: 'Save' }).click()
-    await expect(item(page, 'clean one shelf').getByTestId('task-title')).not.toHaveClass(/text-danger/)
+    await expect(item(page, 'clean one shelf').getByTestId('task-title')).not.toHaveClass(/text-carried/)
     await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ title: 'clean one shelf', due_date: '2026-11-10' })
   })
 
   test('the list rolls over at midnight while the app stays open', async ({ page }) => {
     server.seed('tasks', [task('a', 'finish essay', '2026-11-10')])
     await open(page, new Date('2026-11-11T04:59:00Z')) // 11:59 pm New York
-    await expect(item(page, 'finish essay').getByTestId('task-title')).not.toHaveClass(/text-danger/)
+    await expect(item(page, 'finish essay').getByTestId('task-title')).not.toHaveClass(/text-carried/)
     await page.clock.runFor(2 * 60_000) // past midnight
-    await expect(item(page, 'finish essay').getByTestId('task-title')).toHaveClass(/text-danger/)
+    await expect(item(page, 'finish essay').getByTestId('task-title')).toHaveClass(/text-carried/)
     await expect(item(page, 'finish essay')).toContainText('Past you hoped this would happen yesterday.')
   })
 
@@ -127,7 +127,7 @@ test.describe('Spec §5 Tasks: scheduling and the Undated list', () => {
     await open(page)
     await expect(item(page, 'someday: learn piano')).toHaveCount(0)
     await page.getByRole('tab', { name: 'Undated' }).click()
-    await expect(item(page, 'someday: learn piano').getByTestId('task-title')).not.toHaveClass(/text-danger/)
+    await expect(item(page, 'someday: learn piano').getByTestId('task-title')).not.toHaveClass(/text-carried/)
     await page.getByRole('textbox', { name: 'Add an undated task' }).fill('fix bike')
     await page.getByRole('button', { name: 'Add' }).click()
     await expect(item(page, 'fix bike').getByTestId('task-priority')).toHaveText('Low')
@@ -139,27 +139,9 @@ test.describe('Spec §5 Tasks: scheduling and the Undated list', () => {
     await open(page)
     await page.getByRole('button', { name: /^second/ }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit task' })
+    await dialog.getByText('More details').click()
     await dialog.getByText('High').click()
     await dialog.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByTestId('task-title')).toHaveText(['second', 'first'])
-  })
-})
-
-test.describe('Spec §2: confirm before removing data', () => {
-  test('Delete explains what will happen and only deletes after confirming', async ({ page }) => {
-    server.seed('tasks', [task('a', 'old idea', '2026-11-10')])
-    await open(page)
-    await page.getByRole('button', { name: /^old idea/ }).click()
-    await page.getByRole('button', { name: 'Delete task' }).click()
-    const confirm = page.getByRole('alertdialog', { name: 'Delete this task?' })
-    await expect(confirm).toContainText('"old idea" will be removed from all your devices.')
-
-    await confirm.getByRole('button', { name: 'Keep it' }).click()
-    expect(server.written('tasks')).toHaveLength(0)
-
-    await page.getByRole('button', { name: 'Delete task' }).click()
-    await confirm.getByRole('button', { name: 'Delete' }).click()
-    await expect(item(page, 'old idea')).toHaveCount(0)
-    await expect.poll(() => server.written('tasks').at(-1)?.deleted_at).toBeTruthy()
   })
 })

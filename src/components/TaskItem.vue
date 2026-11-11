@@ -14,7 +14,7 @@
       <button type="button" class="flex min-w-0 flex-1 flex-col items-start gap-1 text-left" @click="emit('edit')">
         <span
           class="text-base break-words transition-colors"
-          :class="[done ? 'text-muted line-through' : '', carried && !done ? 'font-medium text-danger' : '']"
+          :class="[done ? 'text-muted line-through' : '', carried && !done ? 'font-medium text-carried' : '']"
           data-testid="task-title"
         >
           {{ task.title }}
@@ -24,18 +24,16 @@
           {{ m.priority[priority] }}
         </span>
       </button>
+      <button type="button" :class="rowAction" :aria-label="m.editLabel(task.title)" data-testid="task-edit" @click="emit('edit')">
+        <AppIcon name="pencil" />{{ m.edit }}
+      </button>
     </div>
     <p v-if="carried === 1" class="text-sm text-muted">{{ m.carriedOnce }}</p>
     <template v-else-if="needsDecision(task, today)">
       <p class="text-sm text-muted">{{ m.carriedMany(carried) }}</p>
-      <div class="flex gap-2">
-        <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm font-medium" @click="emit('edit')">
-          {{ m.edit }}
-        </button>
-        <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3 text-sm font-medium" @click="emit('cancel')">
-          {{ m.cancel }}
-        </button>
-      </div>
+      <button type="button" :class="[rowAction, 'self-start']" @click="emit('cancel')">
+        {{ m.cancel }}
+      </button>
     </template>
   </li>
 </template>
@@ -46,6 +44,8 @@ import { computed } from 'vue'
 import type { TaskRow } from '@/sync/types'
 import { carryOverCount, needsDecision, priorityKey } from '@/tasks/rules'
 import { messages } from '@/messages'
+import { priorityDot, rowAction } from '@/ui/styles'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps<{ task: TaskRow; today: string }>()
 const emit = defineEmits<{ toggle: []; edit: []; cancel: [] }>()
@@ -54,5 +54,5 @@ const m = messages.tasks
 const carried = computed(() => carryOverCount(props.task, props.today))
 const done = computed(() => props.task.status === 'done')
 const priority = computed(() => priorityKey(props.task.priority))
-const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' } as const
+const dot = priorityDot
 </script>

@@ -65,5 +65,5 @@ export function markPicked(quest: QuestRow, now: Date = new Date()): QuestRow {
 }
 
 export const acceptQuest = (q: QuestRow): QuestRow => ({ ...q, status: 'accepted' })
-/** Marking a quest done records when, so the journal can count completed quests by day (SPEC §5 Journal). */
-export const finishQuest = (q: QuestRow, now: Date = new Date()): QuestRow => ({ ...q, status: 'done', completed_at: now.toISOString() })
+/** Done (SPEC §5 Random Quest): back to the list to be picked again, out of In progress; the store logs the completion. */
+export const finishQuest = (q: QuestRow, now: Date = new Date()): QuestRow => ({ ...q, status: 'open', completed_at: now.toISOString() })

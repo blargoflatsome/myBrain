@@ -17,7 +17,7 @@
           class="mb-2 flex min-h-12 items-center gap-2 rounded-xl border border-line px-3 text-base text-muted hover:bg-surface"
           @click="searchWindow.open()"
         >
-          <span aria-hidden="true">⌕</span>{{ messages.nav.search }}
+          <AppIcon name="search" />{{ messages.nav.search }}
         </button>
         <ul class="flex flex-col gap-1">
           <li v-for="item in MAIN_NAV" :key="item.to">
@@ -37,7 +37,7 @@
           <span>{{ messages.nav.more }}</span>
           <span class="flex items-center gap-2">
             <span v-if="inboxCount && !moreOpen" class="rounded-full bg-accent px-2 text-xs text-accent-ink" aria-hidden="true">{{ inboxCount }}</span>
-            <span aria-hidden="true">{{ moreOpen ? '▴' : '▾' }}</span>
+            <AppIcon :name="moreOpen ? 'chevronUp' : 'chevronDown'" />
           </span>
         </button>
         <ul v-show="moreOpen" id="nav-more" class="flex flex-col gap-1 pl-2">
@@ -69,7 +69,7 @@
           <div class="flex items-center gap-2">
             <SyncIndicator v-if="!wide" />
             <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line text-lg" :aria-label="messages.search.open" @click="searchWindow.open()">
-              <span aria-hidden="true">⌕</span>
+              <AppIcon name="search" size="size-5" />
             </button>
             <AlertsBell v-if="!wide" />
           </div>
@@ -97,13 +97,16 @@
 
     <!-- SPEC §5: full-screen reminder for due priority habits and tasks, on every screen. -->
     <PriorityReminder v-if="showChrome" />
+    <UndoBar v-if="showChrome" />
     <FocusTimer v-if="showChrome" />
   </div>
 </template>
 
 <script setup lang="ts">
+import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref, watch } from 'vue'
 import AlertsBell from '@/components/AlertsBell.vue'
+import UndoBar from '@/components/UndoBar.vue'
 import AlertBanner from '@/components/AlertBanner.vue'
 import BottomTabs from '@/components/BottomTabs.vue'
 import { MAIN_NAV, MORE_NAV, inMore } from '@/ui/nav'

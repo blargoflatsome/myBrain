@@ -75,6 +75,36 @@ export function restoreFocus(opener: Element | null) {
   }
 }
 
+const outsideWatched = new WeakSet<HTMLDialogElement>()
+
+/** Whether a point is outside the window's box (on the dimmed backdrop). */
+function outside(dialog: HTMLDialogElement, x: number, y: number) {
+  const r = dialog.getBoundingClientRect()
+  return x < r.left || x > r.right || y < r.top || y > r.bottom
+}
+
+/**
+ * SPEC §2 Windows: a click on the backdrop closes the window, like Escape: a "cancel" event goes first, so a window
+ * that must not close yet (sharing, one person at a time) can stop it. The press has to start outside too, so
+ * selecting text inside and letting go outside doesn't close anything.
+ */
+export function closeOnOutsideClick(dialog: HTMLDialogElement) {
+  if (outsideWatched.has(dialog)) return
+  outsideWatched.add(dialog)
+  let pressedOutside = false
+  dialog.addEventListener('pointerdown', (e) => {
+    pressedOutside = e.target === dialog && outside(dialog, e.clientX, e.clientY)
+  })
+  dialog.addEventListener('click', (e) => {
+    const wasOutside = pressedOutside
+    pressedOutside = false
+    // Keyboard "clicks" on buttons report 0,0 with the button as target, so only the dialog itself counts.
+    if (!wasOutside || e.target !== dialog || !outside(dialog, e.clientX, e.clientY) || !dialog.open) return
+    if (topModal() !== dialog) return
+    if (dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) dialog.close()
+  })
+}
+
 /**
  * Install once at start-up. Every showModal() remembers what had focus, and that element gets focus back when the
  * window closes (by a button, Escape or code).
@@ -88,6 +118,7 @@ export function installModalFocus() {
     const opener = document.activeElement
     showModal.call(this)
     opened.push(this)
+    closeOnOutsideClick(this)
     this.addEventListener(
       'close',
       () => {

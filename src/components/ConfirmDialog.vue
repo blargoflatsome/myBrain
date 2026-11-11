@@ -7,11 +7,13 @@
       <button type="button" :class="[dangerButton, 'flex-1']" @click="emit('confirm')">{{ confirmLabel }}</button>
       <button type="button" :class="[secondaryButton, 'flex-1']" @click="close">{{ keepLabel }}</button>
     </div>
+    <CloseX @click="dialog?.close()" />
   </dialog>
 </template>
 
 <script setup lang="ts">
 // The "are you sure?" window shown before anything removes data (SPEC §2 Confirm before impact).
+import CloseX from '@/components/CloseX.vue'
 import { ref } from 'vue'
 import { confirmBox, dangerButton, secondaryButton } from '@/ui/styles'
 

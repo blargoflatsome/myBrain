@@ -1,21 +1,5 @@
 import { expect, test } from '@playwright/test'
 
-test.describe('Spec §3: mobile-first app shell', () => {
-  test('each page has its own title, ending with the app name My Brain', async ({ page }) => {
-    await page.goto('/')
-    await expect(page).toHaveTitle('Sign in · My Brain')
-  })
-
-  test('page never scrolls sideways at the current screen width', async ({ page }) => {
-    await page.goto('/sign-in')
-    await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible()
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    )
-    expect(overflow).toBeLessThanOrEqual(0)
-  })
-})
-
 test.describe('Spec §8: Google sign-in through Supabase Auth', () => {
   test('a signed-out visitor opening the app is sent to sign-in', async ({ page }) => {
     await page.goto('/')

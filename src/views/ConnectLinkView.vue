@@ -1,5 +1,5 @@
 <template>
-  <main class="mx-auto flex w-full max-w-md flex-col gap-4 px-4 pt-10 pb-28 text-center">
+  <main class="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pt-8 md:px-8 pb-28 text-center">
     <h1 class="text-2xl font-bold">{{ m.linkHeading }}</h1>
     <p v-if="state === 'loading'" class="text-muted" role="status">{{ m.linkLoading }}</p>
     <template v-else-if="state === 'ready' && who">

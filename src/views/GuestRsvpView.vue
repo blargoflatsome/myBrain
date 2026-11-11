@@ -1,5 +1,5 @@
 <template>
-  <main class="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-5 px-4 pt-10 pb-16">
+  <main class="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-6 px-5 pt-8 md:px-8 pb-16">
     <p v-if="state === 'loading'" class="text-muted">{{ m.loading }}</p>
     <p v-else-if="state === 'invalid'" class="text-lg" role="alert" data-testid="guest-invalid">{{ m.invalid }}</p>
     <template v-else-if="data">
@@ -7,7 +7,7 @@
       <div class="flex flex-col gap-1">
         <h1 class="text-3xl font-bold" :class="data.cancelled ? 'line-through' : ''">{{ data.title }}</h1>
         <p class="text-lg" data-testid="guest-when">{{ whenText(data) }}</p>
-        <p v-if="data.notes" class="whitespace-pre-wrap text-muted">{{ data.notes }}</p>
+        <RichNotes :value="data.notes" class="text-muted" />
       </div>
 
       <p v-if="data.cancelled" class="rounded-xl bg-surface p-4 font-medium" role="status">{{ m.cancelled }}</p>
@@ -39,7 +39,7 @@
           <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="connectHost">{{ m.connect }}</button>
         </div>
         <p v-if="connectNote" class="text-sm" role="status" data-testid="guest-connect-sent">{{ connectNote }}</p>
-        <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" @click="addToCalendar">📅 {{ m.addToCalendar }}</button>
+        <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" @click="addToCalendar"><AppIcon name="calendar" class="mr-1" />{{ m.addToCalendar }}</button>
       </template>
 
       <div v-if="!signedIn && !data.passed && !data.cancelled" class="flex flex-col gap-2 rounded-2xl bg-surface p-4" data-testid="guest-sign-up">
@@ -70,7 +70,9 @@
 <script setup lang="ts">
 // SPEC §5 Shared events: the public page a guest opens from their private link. No account needed: see the event,
 // answer Yes / Maybe / No, message the host, add it to a calendar, or stop the emails.
+import AppIcon from '@/components/AppIcon.vue'
 import { computed, onMounted, ref } from 'vue'
+import RichNotes from '@/components/RichNotes.vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { rememberReturn } from '@/router/returnTo'
 import { claimGuestInvite, guestClaimStatus, guestConnectOffer, guestConnectWithHost, type ClaimStatus } from '@/events/connections'
@@ -167,5 +169,5 @@ function addToCalendar() {
   if (!d) return
   downloadIcs({ uid: invite.value, title: d.title, notes: d.notes, start_date: d.start_date, start_time: d.start_time, end_date: d.end_date, end_time: d.end_time, repeat: d.repeat, timezone: d.timezone, organizer: d.host_name })
 }
-const btn = (on: boolean) => ['min-h-12 flex-1 rounded-xl border px-4 text-lg font-semibold', on ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-surface']
+const btn = (on: boolean) => ['min-h-12 flex-1 rounded-xl border px-4 text-lg font-semibold', on ? 'choice-on border-accent bg-accent/10 text-ink' : 'border-line bg-surface']
 </script>

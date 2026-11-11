@@ -1,8 +1,8 @@
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div>
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted italic">{{ m.subtitle }}</p>
+      <p class="text-muted">{{ m.subtitle }}</p>
     </div>
 
     <section class="flex flex-col gap-4 rounded-2xl border border-line p-4" data-testid="journal-today">
@@ -64,14 +64,14 @@
             @update:model-value="onInput(e.date, $event)"
           />
           <SaveStatus class="-mt-2" :busy="busy.has(`${e.date}:body`)" :has-saved="true" test-id="save-status-writing" />
-          <JournalTomorrow :date="e.date" :entry="e" @busy="track(e.date, 'tomorrow', $event)" />
+          <JournalTomorrow :date="e.date" :entry="e" min-height="12rem" @busy="track(e.date, 'tomorrow', $event)" />
           <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="finishEditing(e.date)">
             {{ m.done }}
           </button>
         </template>
         <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
         <div v-else-if="e.body.trim()" class="rich" data-testid="journal-body" v-html="cleanHtml(e.body)" />
-        <p v-else-if="e.auto" class="text-sm text-muted italic">{{ m.autoNote }}</p>
+        <p v-else-if="e.auto" class="text-sm text-muted">{{ m.autoNote }}</p>
         <div v-if="editingDate !== e.date && e.tomorrow?.trim()" class="flex flex-col gap-1 text-sm" data-testid="journal-tomorrow">
           <span class="font-medium">{{ m.tomorrowLabel }}</span>
           <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->

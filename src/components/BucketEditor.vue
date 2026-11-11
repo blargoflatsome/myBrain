@@ -11,13 +11,15 @@
         {{ m.bucketEditor.name }}
         <input v-model="name" maxlength="200" required :class="field">
       </label>
-      <label class="flex items-center justify-between gap-4">
-        <span>
-          <span class="font-medium">{{ m.bucketEditor.checkable }}</span>
-          <span class="block text-xs text-muted">{{ m.bucketEditor.checkableHint }}</span>
-        </span>
-        <input v-model="checkable" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
-      </label>
+      <MoreOptions :summary="m.bucketEditor.checkable" :start-open="moreOpen" test-id="bucket-more">
+        <label class="flex items-center justify-between gap-4">
+          <span>
+            <span class="font-medium">{{ m.bucketEditor.checkable }}</span>
+            <span class="block text-xs text-muted">{{ m.bucketEditor.checkableHint }}</span>
+          </span>
+          <input v-model="checkable" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+        </label>
+      </MoreOptions>
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.bucketEditor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.bucketEditor.close }}</button>
@@ -26,6 +28,7 @@
         {{ m.bucketEditor.delete }}
       </button>
     </form>
+    <CloseX @click="dialog?.close()" />
   </dialog>
 
   <ConfirmDialog
@@ -40,6 +43,8 @@
 
 <script setup lang="ts">
 // SPEC §5 The Vault: rename a bucket, choose whether its items can be checked off, or delete it (with its items).
+import MoreOptions from '@/components/MoreOptions.vue'
+import CloseX from '@/components/CloseX.vue'
 import { ref, watch } from 'vue'
 import { messages } from '@/messages'
 import type { VaultBucketRow } from '@/sync/types'
@@ -54,6 +59,7 @@ const dialog = ref<HTMLDialogElement | null>(null)
 const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const name = ref('')
 const checkable = ref(false)
+const moreOpen = ref(false)
 
 watch(
   () => props.bucket,
@@ -61,6 +67,7 @@ watch(
     if (!b) return dialog.value?.close()
     name.value = b.name
     checkable.value = !!b.checkable
+    moreOpen.value = !!b.checkable
     dialog.value?.showModal()
   },
 )

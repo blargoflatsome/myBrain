@@ -10,8 +10,8 @@
       <div>
         <p class="text-sm text-muted">{{ m.from(invite?.host_name || '') }}</p>
         <h2 class="text-xl font-bold" :class="cancelled ? 'line-through' : ''">{{ event.title }}</h2>
-        <p>{{ whenText(event) }}</p>
-        <p v-if="event.notes" class="mt-1 text-sm whitespace-pre-wrap text-muted">{{ event.notes }}</p>
+        <p>{{ dayTimeLabel(event.start_date, event.start_time) }}</p>
+        <RichNotes :value="event.notes" class="mt-1 text-sm text-muted" />
       </div>
       <p v-if="cancelled" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ m.cancelledNote }}</p>
       <template v-else-if="!dropped">
@@ -56,15 +56,19 @@
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
       <button type="button" class="min-h-11 rounded-xl border border-line px-4" @click="dialog?.close()">{{ messages.calendar.editor.close }}</button>
     </div>
+    <CloseX @click="dialog?.close()" />
   </dialog>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Shared events: an event I was invited to. Read-only; I answer Yes / Maybe / No, message the host or
 // everyone going, or drop out (cancel and notify).
+import CloseX from '@/components/CloseX.vue'
+import RichNotes from '@/components/RichNotes.vue'
+import { dayTimeLabel } from '@/ui/dates'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
-import { messageEvent, respondToInvite, whenText } from '@/events/sharing'
+import { messageEvent, respondToInvite } from '@/events/sharing'
 import { connectViaEvent, eventAttendees, setEventVisibility, type Attendee } from '@/events/connections'
 import { messages } from '@/messages'
 import type { EventInviteRow, EventRow } from '@/sync/types'

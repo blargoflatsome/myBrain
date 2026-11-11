@@ -10,7 +10,7 @@
           <button
             type="button"
             class="min-h-11 shrink-0 rounded-xl border px-3 text-sm"
-            :class="pushOn ? 'border-accent bg-accent font-semibold text-accent-ink' : 'border-line'"
+            :class="pushOn ? 'choice-on border-accent bg-accent/10 font-semibold text-ink' : 'border-line'"
             :aria-pressed="pushOn"
             @click="togglePush"
           >

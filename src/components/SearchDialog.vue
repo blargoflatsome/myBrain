@@ -7,7 +7,7 @@
     @close="store.close()"
   >
     <div class="flex h-full flex-col">
-      <div class="flex items-center gap-2 border-b border-line p-3">
+      <div class="flex items-center gap-2 border-b border-line p-3 pr-14">
         <input
           ref="box"
           v-model="query"
@@ -17,7 +17,6 @@
           :aria-label="m.placeholder"
           :placeholder="m.placeholder"
         >
-        <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-3 text-sm" @click="store.close()">{{ m.close }}</button>
       </div>
 
       <div v-if="tags.length" class="flex gap-1.5 overflow-x-auto border-b border-line px-3 py-2" role="group" :aria-label="m.tagsLabel">
@@ -26,7 +25,7 @@
           :key="t.id"
           type="button"
           class="min-h-9 shrink-0 rounded-full border px-3 text-sm"
-          :class="chosenTags.includes(t.id) ? 'border-accent bg-accent font-semibold text-accent-ink' : 'border-line text-ink'"
+          :class="chosenTags.includes(t.id) ? 'choice-on border-accent bg-accent/10 font-semibold text-ink' : 'border-line text-ink'"
           :aria-pressed="chosenTags.includes(t.id)"
           @click="toggleTag(t.id)"
         >
@@ -56,12 +55,14 @@
         </section>
       </div>
     </div>
+    <CloseX :label="m.close" @click="store.close()" />
   </dialog>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Global search and tags: search tasks, journal, The Vault, quests and events on this device; filter by tag;
 // tap a result to open it where it lives.
+import CloseX from '@/components/CloseX.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
 import { useBrainStore } from '@/stores/brain'
@@ -70,7 +71,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { RESULT_ORDER, type SearchDoc, type SearchType, search, searchDocs, snippet } from '@/search/search'
 import { messages } from '@/messages'
 import type { TagRow } from '@/sync/types'
-import { shortDayWithYear } from '@/ui/dates'
+import { dayLabel, shortDayWithYear } from '@/ui/dates'
 import { live } from '@/sync/live'
 
 const brain = useBrainStore()
@@ -137,7 +138,7 @@ function titleOf(doc: SearchDoc) {
 }
 function contextOf(doc: SearchDoc) {
   if (doc.type === 'vault_item') return doc.context ?? ''
-  if ((doc.type === 'task' || doc.type === 'event') && doc.date) return shortDayWithYear(doc.date)
+  if ((doc.type === 'task' || doc.type === 'event') && doc.date) return dayLabel(doc.date)
   return ''
 }
 

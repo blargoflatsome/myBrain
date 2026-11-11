@@ -30,6 +30,7 @@ export class LocalDb extends Dexie {
   routine_step_logs!: Table<RowTypes['routine_step_logs'], string>
   priority_tasks!: Table<RowTypes['priority_tasks'], string>
   priority_task_logs!: Table<RowTypes['priority_task_logs'], string>
+  quest_logs!: Table<RowTypes['quest_logs'], string>
   reminder_state!: Table<RowTypes['reminder_state'], string>
   journal_entries!: Table<RowTypes['journal_entries'], string>
   events!: Table<RowTypes['events'], string>
@@ -100,6 +101,10 @@ export class LocalDb extends Dexie {
     // My people: guests saved to invite again.
     this.version(10).stores({
       people: 'id, updated_at',
+    })
+    // Quests can be done again and again: each completion is logged.
+    this.version(11).stores({
+      quest_logs: 'id, updated_at, quest_id, date',
     })
   }
 

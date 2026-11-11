@@ -13,7 +13,7 @@
             v-for="o in (['email', 'text', 'both'] as const)"
             :key="o"
             class="flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-xl border px-3 text-sm"
-            :class="notify === o ? 'border-accent bg-accent font-semibold text-accent-ink' : 'border-line'"
+            :class="notify === o ? 'choice-on border-accent bg-accent/10 font-semibold text-ink' : 'border-line'"
           >
             <input v-model="notify" type="radio" :value="o" class="sr-only">{{ w.notifyOptions[o] }}
           </label>

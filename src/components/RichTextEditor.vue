@@ -62,7 +62,7 @@
           :aria-pressed="editor.isActive('taskList')"
           @click="editor.chain().focus().toggleTaskList().run()"
         >
-          <span aria-hidden="true">☑︎</span>
+          <AppIcon name="checklist" />
         </button>
         <button
           type="button"
@@ -71,10 +71,10 @@
           :aria-pressed="editor.isActive('blockquote')"
           @click="editor.chain().focus().toggleBlockquote().run()"
         >
-          <span aria-hidden="true">❝</span>
+          <AppIcon name="quote" />
         </button>
         <button type="button" :class="btn(editor.isActive('link'))" :aria-label="m.link" :aria-pressed="editor.isActive('link')" @click="openLink">
-          🔗
+          <AppIcon name="link" />
         </button>
       </div>
       <button
@@ -117,6 +117,7 @@
 <script setup lang="ts">
 // SPEC §5 Journal: a formatted-text editor (bold, italic, underline, strikethrough, headings, lists, checklists,
 // quotes, links) that can be opened full screen for easier typing.
+import AppIcon from '@/components/AppIcon.vue'
 import { onBeforeUnmount, nextTick, ref, watch } from 'vue'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'

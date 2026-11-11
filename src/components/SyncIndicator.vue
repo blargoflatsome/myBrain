@@ -16,11 +16,11 @@ const brain = useBrainStore()
 const view = computed(() => {
   const { state, pending } = brain.status
   if (!brain.online || state === 'offline') {
-    return { dot: 'bg-amber-500', text: pending ? `${messages.sync.offline} · ${messages.sync.pending(pending)}` : messages.sync.offline }
+    return { dot: 'bg-warning', text: pending ? `${messages.sync.offline} · ${messages.sync.pending(pending)}` : messages.sync.offline }
   }
-  if (state === 'syncing') return { dot: 'bg-sky-500 animate-pulse', text: messages.sync.syncing }
-  if (pending) return { dot: 'bg-sky-500', text: messages.sync.pending(pending) }
+  if (state === 'syncing') return { dot: 'bg-accent', text: messages.sync.syncing }
+  if (pending) return { dot: 'bg-accent', text: messages.sync.pending(pending) }
   if (state === 'error') return { dot: 'bg-danger', text: messages.sync.pending(pending) }
-  return { dot: 'bg-emerald-500', text: messages.sync.online }
+  return { dot: 'bg-done', text: messages.sync.online }
 })
 </script>

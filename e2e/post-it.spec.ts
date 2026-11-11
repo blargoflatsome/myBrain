@@ -28,15 +28,15 @@ test.describe('Spec §5 Post It', () => {
     await expect(editor).toBeFocused()
     await page.getByRole('toolbar', { name: 'Formatting: Post It' }).getByRole('button', { name: 'Bold' }).click()
     await page.keyboard.type('Call the vet')
-    await page.getByRole('radiogroup', { name: 'Color' }).getByRole('radio', { name: /Pink/ }).click()
+    await page.getByRole('radiogroup', { name: 'Color' }).getByRole('radio', { name: /Blue/ }).click()
     await page.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Stuck to your Dashboard. Future you will see it first thing.')
-    await expect.poll(() => lastWrite('post_its')).toMatchObject({ body: '<p><strong>Call the vet</strong></p>', color: 'pink' })
+    await expect.poll(() => lastWrite('post_its')).toMatchObject({ body: '<p><strong>Call the vet</strong></p>', color: 'blue' })
 
     await goTo(page, 'Dashboard')
     await expect(board(page)).toHaveCount(1)
     await expect(board(page).locator('strong')).toHaveText('Call the vet')
-    await expect(board(page)).toHaveClass(/note-pink/)
+    await expect(board(page)).toHaveClass(/note-blue/)
     await expect(page.locator('main section').first()).toHaveAttribute('data-testid', 'dash-postits')
   })
 
@@ -44,7 +44,7 @@ test.describe('Spec §5 Post It', () => {
     await open(page, '/capture')
     await page.getByRole('group', { name: 'What are you capturing?' }).getByRole('button', { name: 'Post It', exact: true }).click()
     await page.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(page.getByRole('alert')).toHaveText('Past you needs a few words to stick on the note.')
+    await expect(page.getByRole('alert')).toHaveText('What do you want future you to know?')
     expect(server.written('post_its')).toHaveLength(0)
   })
 
@@ -204,4 +204,13 @@ test.describe('Spec §5 Post It', () => {
     await expect(page.getByRole('button', { name: /Make a task|^Done$/ })).toHaveCount(0)
   })
 
+})
+
+test('Pink is no longer offered, but an older pink note still shows pink', async ({ page }) => {
+  server.seed('post_its', [{ id: 'p-old', body: '<p>From before</p>', color: 'pink', position: 0 }])
+  await page.goto('/capture')
+  await page.getByRole('button', { name: 'Post It', exact: true }).click()
+  await expect(page.getByRole('radiogroup', { name: 'Color' }).getByRole('radio')).toHaveText([/Yellow/, /Blue/, /Green/])
+  await page.goto('/')
+  await expect(page.locator('.note-pink').first()).toBeVisible()
 })
