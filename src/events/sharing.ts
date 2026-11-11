@@ -4,6 +4,7 @@ import type { FreeBusyRow } from '@/events/availability'
 import { supabase } from '@/lib/supabase'
 import { isIOS } from '@/ui/device'
 import type { EventRow, InviteResponse } from '@/sync/types'
+import { achieved } from '@/celebrate/bus'
 
 export interface PersonToInvite {
   /** Found by name search. */
@@ -46,7 +47,11 @@ async function list<T>(fn: string, args: Record<string, unknown>): Promise<T[]> 
   return (await call<T[] | null>(fn, args)) ?? []
 }
 
-export const invitePeople = (event: string, people: PersonToInvite[]) => list<NewInvite>('invite_people', { event, people })
+export async function invitePeople(event: string, people: PersonToInvite[]) {
+  const invites = await list<NewInvite>('invite_people', { event, people })
+  if (invites.length) achieved({ kind: 'shared_event' })
+  return invites
+}
 export const uninvite = (invite: string) => call<void>('uninvite', { invite })
 export const respondToInvite = (invite: string, answer: 'yes' | 'maybe' | 'no') => call<void>('respond_to_invite', { invite, answer })
 export const eventPeople = (event: string) => list<EventPerson>('event_people', { event })

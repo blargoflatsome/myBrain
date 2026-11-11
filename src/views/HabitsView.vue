@@ -23,7 +23,7 @@
           <div class="flex items-start gap-3">
             <button
               type="button"
-              class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm"
+              class="relative mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm"
               :class="ring[status(h)]"
               :aria-label="status(h) === 'completed' ? m.undo(h.title) : m.complete(h.title)"
               :aria-pressed="status(h) === 'completed'"
@@ -31,6 +31,10 @@
               @click="toggle(h)"
             >
               <span v-if="status(h) === 'completed'" aria-hidden="true">✓</span>
+              <!-- SPEC §5 Celebrations: the ring fills around the habit as it's done. -->
+              <svg v-if="justDone === h.id" aria-hidden="true" viewBox="0 0 36 36" class="celebrate-ring pointer-events-none absolute -inset-1.5 size-11 -rotate-90" data-testid="habit-ring">
+                <circle cx="18" cy="18" r="16" fill="none" stroke="var(--done)" stroke-width="3" stroke-linecap="round" />
+              </svg>
               <span v-else-if="status(h) === 'missed'" aria-hidden="true">✕</span>
             </button>
             <button type="button" class="flex min-w-0 flex-1 flex-col items-start gap-1 text-left" @click="edit(h)">
@@ -39,7 +43,7 @@
                 <span data-testid="habit-status">{{
                   status(h) === 'completed' ? m.doneToday : status(h) === 'missed' ? m.missedToday : dueText(h)
                 }}</span>
-                <span data-testid="habit-streak"><AppIcon name="flame" class="mr-1" />{{ m.streak(streakOf(h).current) }}</span>
+                <span data-testid="habit-streak" :class="{ 'celebrate-bounce': justDone === h.id }"><AppIcon name="flame" class="mr-1" />{{ m.streak(streakOf(h).current) }}</span>
                 <span data-testid="habit-best">{{ m.best(streakOf(h).best) }}</span>
                 <span v-if="h.is_private"><AppIcon name="lock" class="mr-1" />{{ m.privateBadge }}</span>
                 <span v-if="h.is_priority" class="text-carried"><AppIcon name="alert" class="mr-1" />{{ m.priorityBadge }}</span>
@@ -131,10 +135,12 @@ function dueText(h: HabitRow) {
 }
 
 const celebrated = ref<string | null>(null)
+const justDone = ref<string | null>(null)
 async function toggle(h: HabitRow) {
   const before = streakOf(h).best
   const kind = await brain.toggleHabit(h, new Date(), timeZone.value)
   now.value = new Date()
+  justDone.value = kind === 'complete' ? h.id : null
   const after = streaks(h, (await brain.db?.habit_logs.toArray()) ?? [], now.value, timeZone.value).best
   celebrated.value = kind === 'complete' && after > before && before > 0 ? h.id : null
 }

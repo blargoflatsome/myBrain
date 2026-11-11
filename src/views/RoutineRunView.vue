@@ -7,13 +7,23 @@
       </div>
 
       <template v-if="anytimeFinished">
-        <p class="rounded-2xl bg-surface p-6 text-lg font-medium" role="status" data-testid="routine-finished">{{ m.run.finished }}</p>
+        <div class="flex items-center gap-4 rounded-2xl bg-surface p-6" role="status" data-testid="routine-finished">
+          <!-- SPEC §5 Celebrations: the steps fold into one ticked badge. -->
+          <span class="celebrate-fold flex size-14 shrink-0 items-center justify-center rounded-full bg-done text-bg" aria-hidden="true"><AppIcon name="check" size="size-8" /></span>
+          <span class="text-lg font-medium">{{ m.run.finished }}</span>
+        </div>
         <button type="button" class="min-h-12 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="startAgain = true">
           {{ m.run.startAgain }}
         </button>
       </template>
       <section v-else-if="state.current" class="flex flex-col gap-6 rounded-2xl border border-line bg-surface p-6" aria-live="polite">
-        <p class="text-sm text-muted" data-testid="step-of">{{ m.run.stepOf(state.index, state.total) }}</p>
+        <div class="flex flex-col gap-2">
+          <p class="text-sm text-muted" data-testid="step-of">{{ m.run.stepOf(state.index, state.total) }}</p>
+          <!-- SPEC §5 Celebrations: the bar moves forward with each step done. -->
+          <div class="h-2 overflow-hidden rounded-full bg-line" aria-hidden="true">
+            <div class="h-full rounded-full bg-done transition-[width] duration-500 ease-out" :style="{ width: `${progress}%` }" data-testid="routine-progress" />
+          </div>
+        </div>
         <p class="cross-out text-3xl font-bold break-words" :class="{ crossing }" data-testid="current-step">{{ stepTitle }}</p>
         <p v-if="currentHabit" class="-mt-4 text-sm text-muted" data-testid="habit-step-note">
           <AppIcon v-if="currentHabit.is_priority" name="alert" class="mr-1 text-carried" />{{ m.run.habitNote }}
@@ -28,7 +38,11 @@
         </div>
       </section>
 
-      <p v-else-if="state.finished" class="rounded-2xl bg-surface p-6 text-lg font-medium" role="status" data-testid="routine-finished">{{ m.run.finished }}</p>
+      <div v-else-if="state.finished" class="flex items-center gap-4 rounded-2xl bg-surface p-6" role="status" data-testid="routine-finished">
+        <!-- SPEC §5 Celebrations: the steps fold into one ticked badge. -->
+        <span class="celebrate-fold flex size-14 shrink-0 items-center justify-center rounded-full bg-done text-bg" aria-hidden="true"><AppIcon name="check" size="size-8" /></span>
+        <span class="text-lg font-medium">{{ m.run.finished }}</span>
+      </div>
       <p v-else class="text-muted">{{ m.noSteps }}</p>
     </template>
     <p v-else-if="routine === undefined" class="text-muted">{{ m.run.missing }}</p>
@@ -82,6 +96,7 @@ const run = computed(() => (routine.value ? currentRun(routine.value, runs.value
 const habitDone = computed(() => habitDoneStepIds(daySteps.value, habitLogs.value, today.value))
 const state = computed(() => runState(daySteps.value, run.value, logs.value, habitDone.value))
 const currentHabit = computed(() => (state.value.current ? habitOf(state.value.current, habits.value) : undefined))
+const progress = computed(() => (state.value.total ? (state.value.done / state.value.total) * 100 : 0))
 const stepTitle = computed(() => currentHabit.value?.title ?? state.value.current?.title ?? '')
 
 // A run-anytime routine just finished: say so, and offer "Start again" for a fresh run (SPEC §5 Routines).

@@ -179,7 +179,7 @@ test.describe('Spec §5: Decide later, then sort it when I have time', () => {
     await goTo(page, /Orphans/)
     await expect(page.getByText('Past you jotted this down. Where should it go?')).toBeVisible()
     await page.getByRole('button', { name: 'Quest' }).click()
-    await expect(page.getByText("Good news! You haven't created any orphans.")).toBeVisible()
+    await expect(page.getByTestId('orphans-sorted')).toHaveText('All sorted. Every orphan has a home.')
     await expect.poll(() => server.written('quests')[0]).toMatchObject({
       title: 'maybe learn Portuguese',
       energy_level: 'ugh',

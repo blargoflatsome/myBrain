@@ -22,6 +22,9 @@ import type { PersonToInvite } from '@/events/sharing'
 import { live } from '@/sync/live'
 import { finishQuest as finishedQuest } from '@/quests/picker'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
+import { achieved } from '@/celebrate/bus'
+import { badgeId, type BadgeKind } from '@/celebrate/rules'
+import type { NotificationRow } from '@/sync/types'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
 function background(work: Promise<unknown> | undefined) {
@@ -45,6 +48,8 @@ export const useBrainStore = defineStore('brain', () => {
    * session). Misses are only recorded after that, so a fresh device never mistakes "not downloaded yet" for "missed".
    */
   const habitsReady = ref(false)
+  /** True once this device holds my badges from the server, so a badge I already have is never earned again. */
+  const badgesReady = ref(false)
   let cleanup: (() => void) | null = null
   let lastRemote: Remote | null = null
 
@@ -91,8 +96,10 @@ export const useBrainStore = defineStore('brain', () => {
       unsubscribe()
     }
     habitsReady.value = false
+    badgesReady.value = false
     const local = db.value
     const markReady = async () => {
+      if (await local.meta.get('downloaded:badges')) badgesReady.value = true
       if (await local.meta.get('downloaded:habit_logs')) habitsReady.value = true
       if (habitsReady.value && (await local.meta.get('downloaded:journal_entries'))) await refreshJournal()
     }
@@ -138,6 +145,7 @@ export const useBrainStore = defineStore('brain', () => {
     const { engine: e, uid } = requireReady()
     const record = buildCaptureRecord(input, uid)
     await e.save(record.table, record.row as never)
+    achieved({ kind: 'capture', table: record.table })
     return record
   }
 
@@ -155,6 +163,7 @@ export const useBrainStore = defineStore('brain', () => {
     const { create, retire } = buildConversion(from, to, uid)
     await e.save(create.table, create.row as never)
     await e.remove(retire.table, retire.id)
+    if (from.table === 'inbox') achieved({ kind: 'orphan' })
     return create
   }
 
@@ -177,7 +186,12 @@ export const useBrainStore = defineStore('brain', () => {
   }
 
   async function saveTask(row: TaskRow) {
-    return requireReady().engine.save('tasks', row)
+    const { engine: e, local } = requireReady()
+    const before = await local.tasks.get(row.id)
+    const saved = await e.save('tasks', row)
+    // Crossed off just now (not a later edit of a task already done): celebrate it (SPEC §5 Celebrations).
+    if (row.status === 'done' && before?.status !== 'done') achieved({ kind: 'task', task: row })
+    return saved
   }
 
   async function deleteTask(id: string) {
@@ -195,6 +209,7 @@ export const useBrainStore = defineStore('brain', () => {
     const logId = crypto.randomUUID()
     await e.save('quest_logs', { id: logId, user_id: uid, quest_id: quest.id, date: todayIn(timeZone, now), completed_at: now.toISOString(), deleted_at: null })
     await e.save('quests', done)
+    achieved({ kind: 'quest' })
     return logId
   }
 
@@ -278,6 +293,7 @@ export const useBrainStore = defineStore('brain', () => {
       await e.remove('habit_logs', action.log.id)
     }
     await refreshHabit(habit, now, timeZone)
+    if (action.kind === 'complete') achieved({ kind: 'habit', habit })
     return action.kind
   }
 
@@ -338,6 +354,7 @@ export const useBrainStore = defineStore('brain', () => {
     if (action.run) await e.save('routine_runs', action.run)
     for (const log of action.logs) await e.save('routine_step_logs', log)
     if (action.finish) await e.save('routine_runs', action.finish)
+    if (status === 'completed' || action.finish) achieved({ kind: 'step', finished: !!action.finish })
     // A completed habit step completes the habit for the day too (SPEC §5 Routines: one tick counts for both).
     if (action.completeHabitId) {
       const habit = habits.find((h) => h.id === action.completeHabitId && !h.deleted_at)
@@ -425,11 +442,13 @@ export const useBrainStore = defineStore('brain', () => {
     const existing = (await local.journal_entries.where('date').equals(date).toArray()).find((x) => !x.deleted_at)
     const auto = (row: JournalEntryRow) => row.auto && !body
     if (existing) {
+      if (existing.body === body) return
       await e.patch('journal_entries', existing.id, (fresh) => (fresh.body === body ? null : { body, auto: auto(fresh) }))
-      return
+    } else {
+      const stats = dayStats(await dayData(), date, now, timeZone)
+      await e.save('journal_entries', { ...emptyEntry(uid, date, false), body, stats, stats_final: date < today })
     }
-    const stats = dayStats(await dayData(), date, now, timeZone)
-    await e.save('journal_entries', { ...emptyEntry(uid, date, false), body, stats, stats_final: date < today })
+    if (body) achieved({ kind: 'journal' })
   }
 
   /**
@@ -473,6 +492,24 @@ export const useBrainStore = defineStore('brain', () => {
     await requireReady().engine.patch('notifications', id, (n) => (n.read_at ? {} : { read_at: new Date().toISOString() }))
   }
 
+  // ---------- Celebrations (SPEC §5 Celebrations) ----------
+  /** Keep a badge, earned now or (quietly) found in my history. Returns false if I already had it. */
+  async function saveBadge(kind: BadgeKind, now = new Date()) {
+    const { engine: e, uid, local } = requireReady()
+    // Until my badges have downloaded, this device can't tell a new badge from one I already have.
+    if (!badgesReady.value) return false
+    if ((await local.badges.where('kind').equals(kind).toArray()).some((b) => !b.deleted_at)) return false
+    await e.save('badges', { id: badgeId(uid, kind), user_id: uid, kind, earned_at: now.toISOString(), deleted_at: null })
+    return true
+  }
+  /** An alert the app gives me itself (the next-day congratulations). Same id on every device, so it comes once. */
+  async function addAlert(row: Omit<NotificationRow, 'user_id' | 'deleted_at'>) {
+    const { engine: e, uid, local } = requireReady()
+    if (await local.notifications.get(row.id)) return false
+    await e.save('notifications', { ...row, user_id: uid, deleted_at: null })
+    return true
+  }
+
   // ---------- Post Its (SPEC §5 Quick capture and Dashboard) ----------
   /** A new Post It goes in front of the others. Returns null when nothing was written. */
   async function addPostIt(html: string, color: PostItColor) {
@@ -480,7 +517,9 @@ export const useBrainStore = defineStore('brain', () => {
     const body = normalizeBody(html)
     if (!body) return null
     const row: PostItRow = { id: crypto.randomUUID(), user_id: uid, body, color, position: frontPosition(await local.post_its.toArray()), deleted_at: null }
-    return e.save('post_its', row)
+    const saved = await e.save('post_its', row)
+    achieved({ kind: 'postit' })
+    return saved
   }
   async function savePostIt(row: PostItRow) {
     const body = normalizeBody(row.body)
@@ -535,12 +574,17 @@ export const useBrainStore = defineStore('brain', () => {
     const trimmed = title.trim()
     if (!trimmed) return null
     // created_at is set here too, so items keep the order they were added in before they reach the server.
-    return e.save('vault_items', { id: crypto.randomUUID(), user_id: uid, bucket_id: bucketId, title: trimmed, notes: null, rating: null, link: null, checked: false, created_at: new Date().toISOString(), deleted_at: null })
+    const saved = await e.save('vault_items', { id: crypto.randomUUID(), user_id: uid, bucket_id: bucketId, title: trimmed, notes: null, rating: null, link: null, checked: false, created_at: new Date().toISOString(), deleted_at: null })
+    achieved({ kind: 'vault' })
+    return saved
   }
 
   async function saveVaultItem(row: VaultItemRow) {
-    const { engine: e, uid } = requireReady()
-    return e.save('vault_items', { ...row, user_id: uid })
+    const { engine: e, uid, local } = requireReady()
+    const isNew = !(await local.vault_items.get(row.id))
+    const saved = await e.save('vault_items', { ...row, user_id: uid })
+    if (isNew) achieved({ kind: 'vault' })
+    return saved
   }
 
   async function deleteVaultItem(id: string) {
@@ -646,6 +690,8 @@ export const useBrainStore = defineStore('brain', () => {
 
   return {
     db,
+    saveBadge,
+    addAlert,
     saveJournalFields,
     applyDataReset,
     saveAvailabilityRule,
@@ -686,6 +732,7 @@ export const useBrainStore = defineStore('brain', () => {
     deleteRoutine,
     recordRoutineStep,
     habitsReady,
+    badgesReady,
     addHabit,
     saveHabit,
     deleteHabit,

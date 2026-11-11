@@ -13,15 +13,18 @@
       <JournalStatsCard v-if="todayStats" :stats="todayStats" />
       <JournalBetter :key="today" :date="today" :entry="todayEntry" @busy="track(today, 'better', $event)" />
 
-      <RichTextEditor
-        :model-value="draftOf(today, todayEntry)"
-        :label="m.writeLabel"
-        :placeholder="m.writePlaceholder"
-        min-height="18rem"
-        @update:model-value="onInput(today, $event)"
-        @blur="save(today)"
-      />
-      <SaveStatus class="-mt-2" :busy="busy.has(`${today}:body`)" :has-saved="!!todayEntry?.body" test-id="save-status-writing" />
+      <!-- SPEC §5 Celebrations: a soft glow around the writing when it's saved. -->
+      <div class="rounded-xl" :class="{ 'celebrate-glow': glowing }" data-testid="journal-writing" :data-glowing="glowing || undefined">
+        <RichTextEditor
+          :model-value="draftOf(today, todayEntry)"
+          :label="m.writeLabel"
+          :placeholder="m.writePlaceholder"
+          min-height="18rem"
+          @update:model-value="onInput(today, $event)"
+          @blur="save(today)"
+        />
+      </div>
+      <SaveStatus class="-mt-2" :busy="busy.has(`${today}:body`)" :has-saved="!!todayEntry?.body" stamp test-id="save-status-writing" />
       <JournalTomorrow :key="today" :date="today" :entry="todayEntry" @busy="track(today, 'tomorrow', $event)" />
     </section>
 
@@ -94,6 +97,7 @@ import JournalTomorrow from '@/components/JournalTomorrow.vue'
 import SaveStatus from '@/components/SaveStatus.vue'
 import { onPageHide } from '@/composables/usePageHide'
 import { useBrainStore } from '@/stores/brain'
+import { useCelebrateStore } from '@/stores/celebrate'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { hadActivity, hasStats } from '@/journal/stats'
@@ -110,6 +114,19 @@ const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextE
 
 const EARLIER_PER_PAGE = 3
 const brain = useBrainStore()
+const celebrate = useCelebrateStore()
+const glowing = ref(false)
+let glowTimer: ReturnType<typeof setTimeout> | undefined
+watch(
+  () => celebrate.journalSaved,
+  () => {
+    if (celebrate.level === 'off') return
+    glowing.value = true
+    clearTimeout(glowTimer)
+    glowTimer = setTimeout(() => (glowing.value = false), 1200)
+  },
+)
+onScopeDispose(() => clearTimeout(glowTimer))
 const m = messages.journal
 const { today, timeZone } = useToday()
 

@@ -324,3 +324,55 @@ textarea:focus {
 .choice-on::before {
   content: '✓ a0';
 }
+
+/* SPEC §5 Celebrations. <html data-celebrate> is full, gentle or off (Off shows nothing here). Full moves; Gentle
+   only glows for a moment, with no movement, so it suits reduce-motion too. */
+@keyframes celebrate-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); box-shadow: 0 0 0 18px transparent; }
+}
+@keyframes celebrate-glow {
+  from { box-shadow: 0 0 0 4px color-mix(in srgb, var(--done) 40%, transparent), 0 0 24px color-mix(in srgb, var(--done) 35%, transparent); }
+  to { box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes celebrate-bounce {
+  30% { transform: translateY(-4px) scale(1.15); }
+  60% { transform: translateY(0) scale(0.97); }
+}
+@keyframes celebrate-draw {
+  from { stroke-dashoffset: 24; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes celebrate-ring {
+  from { stroke-dashoffset: 101; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes celebrate-stamp {
+  0% { transform: scale(1.6) rotate(-8deg); opacity: 0; }
+  60% { transform: scale(0.95) rotate(-3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-3deg); }
+}
+@keyframes celebrate-ripple {
+  from { transform: scale(0.6); opacity: 0.5; }
+  to { transform: scale(2.4); opacity: 0; }
+}
+@keyframes celebrate-fold {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.celebrate-ring,
+.celebrate-ripple { display: none; }
+[data-celebrate='full'] .capture-pulse { animation: celebrate-pulse 800ms ease-out; }
+[data-celebrate='full'] .celebrate-glow { animation: celebrate-glow 1200ms ease-out; }
+[data-celebrate='full'] .celebrate-bounce { display: inline-block; animation: celebrate-bounce 600ms ease-out; }
+[data-celebrate='full'] .celebrate-draw path { stroke-dasharray: 24; animation: celebrate-draw 350ms ease-out both; }
+[data-celebrate='full'] .celebrate-ring { display: block; stroke-dasharray: 101; animation: celebrate-ring 500ms ease-out both; }
+[data-celebrate='full'] .celebrate-stamp { display: inline-block; animation: celebrate-stamp 450ms ease-out both; }
+[data-celebrate='full'] .celebrate-ripple { display: block; animation: celebrate-ripple 1400ms ease-out both; }
+[data-celebrate='full'] .celebrate-fold { animation: celebrate-fold 500ms ease-out both; }
+[data-celebrate='gentle'] .capture-pulse,
+[data-celebrate='gentle'] .celebrate-glow {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--done) 35%, transparent);
+}

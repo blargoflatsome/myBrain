@@ -21,6 +21,14 @@
               </select>
               <span class="text-xs">{{ m.visibilityHint }}</span>
             </label>
+            <!-- SPEC §5 Celebrations: how lively celebrations are. -->
+            <label class="flex flex-col gap-1 text-sm text-muted">
+              {{ cs.label }}
+              <select v-model="celebrations" :class="field" data-testid="celebrations-setting">
+                <option v-for="c in CELEBRATION_SETTINGS" :key="c" :value="c">{{ cs.options[c] }}</option>
+              </select>
+              <span class="text-xs">{{ cs.hint }}</span>
+            </label>
           </div>
           <div class="flex items-center gap-3">
             <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="saving">{{ m.save }}</button>
@@ -188,6 +196,8 @@ import MyPeople from '@/components/MyPeople.vue'
 import AvailabilityCard from '@/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
 import { field } from '@/ui/styles'
+import { useCelebrateStore } from '@/stores/celebrate'
+import { CELEBRATION_SETTINGS, parseSetting, type CelebrationSetting } from '@/celebrate/rules'
 
 type Visibility = 'private' | 'approved' | 'everyone'
 
@@ -196,6 +206,9 @@ const brain = useBrainStore()
 const router = useRouter()
 const m = messages.profile
 const g = messages.accountGroups
+const cs = messages.celebrations.setting
+const celebrate = useCelebrateStore()
+const celebrations = ref<CelebrationSetting>(celebrate.setting)
 
 const displayName = ref('')
 const avatarUrl = ref<string | null>(null)
@@ -207,13 +220,14 @@ const notice = ref('')
 onMounted(async () => {
   const { data } = await supabase
     .from('profiles')
-    .select('display_name, avatar_url, streak_visibility')
+    .select('display_name, avatar_url, streak_visibility, celebrations')
     .eq('user_id', auth.user?.id ?? '')
     .maybeSingle()
   if (data) {
     displayName.value = data.display_name ?? ''
     avatarUrl.value = data.avatar_url
     visibility.value = data.streak_visibility as Visibility
+    celebrations.value = parseSetting(data.celebrations)
     loaded.value = true
   }
 })
@@ -223,9 +237,10 @@ async function save() {
   saving.value = true
   const { error } = await supabase
     .from('profiles')
-    .update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value })
+    .update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value, celebrations: celebrations.value })
     .eq('user_id', auth.user?.id ?? '')
   saving.value = false
+  if (!error) celebrate.setSetting(celebrations.value)
   notice.value = error ? m.offline : m.saved
 }
 

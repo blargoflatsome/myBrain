@@ -733,6 +733,44 @@ export const messages = {
     close: 'Stop and close the timer',
     openPill: (phase: string, time: string) => `Focus timer: ${phase}, ${time} left. Open`,
   },
+  /** SPEC §5 Celebrations: messages after finishing something, badges, Trophies and the setting. Plain for now; the user writes the playful lines. */
+  celebrations: {
+    allHabits: 'Every habit done today. Past you would be proud.',
+    welcomeBack: 'Welcome back. Picking it up again is what counts.',
+    orphansSorted: 'All sorted. Every orphan has a home.',
+    focusToday: (minutes: number) => (minutes >= 60 ? `Focus time today: ${Math.floor(minutes / 60)} hr ${minutes % 60} min` : `Focus time today: ${minutes} min`),
+    focusDone: 'Work part done. Nice focus.',
+    perfectDayAlert: {
+      title: 'Yesterday was a perfect day',
+      body: 'You did every habit yesterday. Past you is very proud of you.',
+    },
+    badgeEarned: (name: string) => `New badge: ${name}`,
+    badges: {
+      first_task: 'First task crossed off',
+      first_habit: 'First habit done',
+      first_routine: 'First routine finished',
+      first_journal: 'First journal entry',
+      first_vault: 'First thing in the Vault',
+      first_quest: 'First quest done',
+      first_focus: 'First focus session',
+      first_postit: 'First Post It',
+      first_orphan: 'First orphan sorted',
+      first_shared_event: 'First shared event',
+    },
+    trophies: {
+      heading: 'Trophies',
+      perfectDays: (n: number) => (n === 1 ? '1 perfect day' : `${n} perfect days`),
+      perfectDaysHint: 'Days with every habit done',
+      earnedOn: (day: string) => `Earned ${day}`,
+      notYet: 'Not yet',
+      count: (got: number, total: number) => `${got} of ${total} badges`,
+    },
+    setting: {
+      label: 'Celebrations',
+      options: { full: 'Full: confetti and bounces', gentle: 'Gentle: a soft glow', off: 'Off: messages only' },
+      hint: 'Reduce motion on this device always makes it Gentle.',
+    },
+  },
   /** SPEC §6 In-app alerts: the bell, its list, and the banner. */
   alerts: {
     heading: 'Alerts',

@@ -9,7 +9,9 @@
         :aria-pressed="done"
         @click="emit('toggle')"
       >
-        <span v-if="done" aria-hidden="true">✓</span>
+        <svg v-if="done" aria-hidden="true" viewBox="0 0 24 24" class="size-4" :class="{ 'celebrate-draw': justDone }" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" data-testid="task-check">
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
       </button>
       <button type="button" class="flex min-w-0 flex-1 flex-col items-start gap-1 text-left" @click="emit('edit')">
         <span
@@ -40,7 +42,7 @@
 
 <script setup lang="ts">
 // One task (SPEC §5 Tasks): cross off, priority dot, carry-over in red, Cancel/Edit after two carry-overs.
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { TaskRow } from '@/sync/types'
 import { carryOverCount, needsDecision, priorityKey } from '@/tasks/rules'
 import { messages } from '@/messages'
@@ -53,6 +55,11 @@ const m = messages.tasks
 
 const carried = computed(() => carryOverCount(props.task, props.today))
 const done = computed(() => props.task.status === 'done')
+// SPEC §5 Celebrations: the check mark draws itself in when I cross a task off.
+const justDone = ref(false)
+watch(done, (now, before) => {
+  justDone.value = now && !before
+})
 const priority = computed(() => priorityKey(props.task.priority))
 const dot = priorityDot
 </script>

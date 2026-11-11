@@ -1,7 +1,12 @@
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-    <p v-if="!items.length" class="text-muted">{{ m.empty }}</p>
+    <!-- SPEC §5 Celebrations: sorting the last orphan gets a friendly "all sorted". -->
+    <div v-if="!items.length && sortedAll" class="flex items-center gap-4 rounded-2xl bg-surface p-6" role="status" data-testid="orphans-sorted">
+      <span class="celebrate-fold flex size-12 shrink-0 items-center justify-center rounded-full bg-done text-bg" aria-hidden="true"><AppIcon name="check" size="size-7" /></span>
+      <span class="text-lg font-medium">{{ messages.celebrations.orphansSorted }}</span>
+    </div>
+    <p v-else-if="!items.length" class="text-muted">{{ m.empty }}</p>
     <ul class="flex flex-col gap-4">
       <li v-for="item in items" :key="item.id" class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
         <p class="text-sm text-muted">{{ m.itemPrompt }}</p>
@@ -14,6 +19,8 @@
 
 <script setup lang="ts">
 // SPEC §5: things saved with "Decide later" wait here until I sort them.
+import { ref } from 'vue'
+import AppIcon from '@/components/AppIcon.vue'
 import DestinationPicker from '@/components/DestinationPicker.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -31,7 +38,10 @@ const items = useLiveQuery<InboxRow[]>(
   [() => brain.db],
 )
 
+const sortedAll = ref(false)
 async function file(item: InboxRow, choice: Omit<CaptureInput, 'text'>) {
+  const last = items.value.length === 1
   await brain.convert({ table: 'inbox', row: item }, choice)
+  if (last) sortedAll.value = true
 }
 </script>
