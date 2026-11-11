@@ -1,15 +1,15 @@
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <template v-if="!bucket">
       <div>
         <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-        <p class="text-muted italic">{{ m.intro }}</p>
+        <p class="text-muted">{{ m.intro }}</p>
       </div>
       <p v-if="!buckets.length" class="text-muted">{{ m.noBuckets }}</p>
       <ul class="flex flex-col gap-2" :aria-label="m.bucketsHeading">
         <li v-for="b in buckets" :key="b.id" class="flex items-center rounded-2xl border border-line bg-surface" data-testid="vault-bucket">
           <button type="button" class="flex min-h-14 flex-1 items-center justify-between gap-3 px-4 text-left" @click="openBucket(b)">
-            <span class="font-medium"><span v-if="b.starred" class="text-star" aria-hidden="true">★ </span>{{ b.name }}</span>
+            <span class="font-medium"><AppIcon v-if="b.starred" name="star" filled class="mr-1 text-star" />{{ b.name }}</span>
             <span class="text-sm text-muted">{{ m.itemCount(countIn(b)) }}</span>
           </button>
         </li>
@@ -38,7 +38,7 @@
               :title="m.starHint"
               @click="brain.saveBucket({ ...bucket, starred: !bucket.starred })"
             >
-              {{ bucket.starred ? '★' : '☆' }}
+              <AppIcon name="star" :filled="bucket.starred" size="size-5" />
             </button>
             <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="editingBucket = bucket">{{ m.settings }}</button>
           </div>
@@ -56,7 +56,7 @@
           v-for="i in bucketItems"
           :key="i.id"
           class="flex items-start gap-3 rounded-2xl border border-line bg-surface p-3"
-          :class="i.checked ? 'opacity-60' : ''"
+          :class="i.checked ? 'text-muted' : ''"
           data-testid="vault-item"
         >
           <button
@@ -75,8 +75,8 @@
             <button type="button" class="text-left font-medium" :class="i.checked ? 'line-through' : ''" :aria-label="m.open(i.title)" @click="editing = i">
               {{ i.title }}
             </button>
-            <span v-if="i.rating" class="text-sm text-star" :aria-label="m.stars(i.rating)" role="img">{{ '★'.repeat(i.rating) }}<span class="text-muted">{{ '☆'.repeat(5 - i.rating) }}</span></span>
-            <p v-if="i.notes" class="line-clamp-2 text-sm whitespace-pre-wrap text-muted">{{ i.notes }}</p>
+            <span v-if="i.rating" class="text-sm text-star" :aria-label="m.stars(i.rating)" role="img"><AppIcon v-for="n in 5" :key="n" name="star" :filled="n <= i.rating" :class="n <= i.rating ? '' : 'text-muted'" /></span>
+            <p v-if="i.notes" class="line-clamp-2 text-sm text-muted">{{ plainText(i.notes) }}</p>
             <a
               v-if="i.link"
               :href="linkTarget(i.link).href"
@@ -84,7 +84,7 @@
               rel="noopener noreferrer"
               class="self-start text-sm text-accent underline"
               :aria-label="`${linkTarget(i.link).kind === 'map' ? m.openMap : m.openLink}: ${linkLabel(i.link)}`"
-            >{{ linkTarget(i.link).kind === 'map' ? '📍' : '🔗' }} {{ linkLabel(i.link) }}</a>
+            ><AppIcon :name="linkTarget(i.link).kind === 'map' ? 'pin' : 'link'" class="mr-1" />{{ linkLabel(i.link) }}</a>
           </div>
           <button
             type="button"
@@ -96,7 +96,7 @@
           </button>
         </li>
       </ul>
-      <button v-if="checked.length" type="button" class="min-h-11 self-start rounded-xl border border-line px-4 text-sm" @click="confirmClear?.open()">
+      <button v-if="checked.length" type="button" class="min-h-11 self-start rounded-xl border border-line px-4 text-sm" @click="clearChecked">
         {{ m.clearChecked }}
       </button>
     </template>
@@ -109,30 +109,12 @@
       @delete="deleteBucket"
       @close="editingBucket = null"
     />
-
-    <ConfirmDialog
-      ref="confirmDelete"
-      :heading="m.confirmDeleteItem.heading"
-      :body="m.confirmDeleteItem.body(deleting?.title ?? '', bucket?.name ?? '')"
-      :confirm-label="m.confirmDeleteItem.confirm"
-      :keep-label="m.confirmDeleteItem.keep"
-      @close="deleting = null"
-      @confirm="confirmDeleteItem"
-    />
-
-    <ConfirmDialog
-      ref="confirmClear"
-      :heading="m.confirmClear.heading"
-      :body="m.confirmClear.body(checked.length, bucket?.name ?? '')"
-      :confirm-label="m.confirmClear.confirm"
-      :keep-label="m.confirmClear.keep"
-      @confirm="clearChecked"
-    />
   </main>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 The Vault: my buckets; inside one, its items with a quick add box, check-off, ratings and links.
+import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import VaultItemEditor from '@/components/VaultItemEditor.vue'
@@ -142,9 +124,10 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { activeBuckets, checkedItems, itemsInBucket, linkLabel, linkTarget } from '@/vault/rules'
 import { messages } from '@/messages'
 import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { fieldOnPage } from '@/ui/styles'
 import { live } from '@/sync/live'
+import { useUndoStore } from '@/stores/undo'
+import { plainText } from '@/journal/body'
 
 const brain = useBrainStore()
 const route = useRoute()
@@ -210,27 +193,23 @@ async function saveItem(i: VaultItemRow) {
   await brain.saveVaultItem(i)
   await closeEditor()
 }
+// One item, or the checked ones, go straight away with Undo (SPEC §2).
+const undo = useUndoStore()
 async function deleteItem(i: VaultItemRow) {
   await brain.deleteVaultItem(i.id)
   await closeEditor()
+  undo.offer(messages.undo.deleted(i.title), () => brain.restore('vault_items', i.id))
 }
-
-// Delete straight from the list, after confirming (SPEC §5 The Vault).
-const confirmDelete = ref<InstanceType<typeof ConfirmDialog> | null>(null)
-const deleting = ref<VaultItemRow | null>(null)
-function askDelete(i: VaultItemRow) {
-  deleting.value = i
-  confirmDelete.value?.open()
+async function askDelete(i: VaultItemRow) {
+  await brain.deleteVaultItem(i.id)
+  undo.offer(messages.undo.deleted(i.title), () => brain.restore('vault_items', i.id))
 }
-async function confirmDeleteItem() {
-  if (deleting.value) await brain.deleteVaultItem(deleting.value.id)
-  confirmDelete.value?.close()
-}
-
-const confirmClear = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 async function clearChecked() {
-  if (bucket.value) await brain.clearChecked(bucket.value.id)
-  confirmClear.value?.close()
+  if (!bucket.value) return
+  const ids = await brain.clearChecked(bucket.value.id)
+  undo.offer(messages.undo.clearedChecked(ids.length), async () => {
+    for (const id of ids) await brain.restore('vault_items', id)
+  })
 }
 
 </script>

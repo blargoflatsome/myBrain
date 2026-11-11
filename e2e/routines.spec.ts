@@ -137,6 +137,23 @@ test.describe('Spec §5 Routines: list and stats', () => {
       .toEqual(['Read', 'Phone on charger'])
   })
 
+  test('opening a routine before its steps have downloaded still shows its steps once they arrive', async ({ page }) => {
+    seedMorning()
+    let release = () => {}
+    const stepsHeld = new Promise<void>((r) => (release = r))
+    await page.route(/\/rest\/v1\/routine_steps/, async (route) => {
+      await stepsHeld
+      await route.fallback()
+    })
+    await open(page, '/routines')
+    await page.getByRole('button', { name: 'Edit' }).first().click()
+    const titles = page.getByRole('dialog').getByTestId('routine-step-row').getByRole('textbox')
+    await expect(titles).toHaveCount(1)
+    release()
+    await expect(titles).toHaveCount(5)
+    await expect(titles.nth(1)).toHaveValue('Brush teeth')
+  })
+
   test('steps can also be moved with the arrow keys on their handle', async ({ page }) => {
     await open(page, '/routines')
     await page.getByRole('button', { name: '+ New routine' }).click()

@@ -1,8 +1,8 @@
 <template>
-  <main class="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div class="flex items-center gap-4">
       <img v-if="avatarUrl" :src="avatarUrl" alt="" class="size-16 rounded-full border border-line" referrerpolicy="no-referrer">
-      <div v-else class="flex size-16 items-center justify-center rounded-full bg-surface text-2xl" aria-hidden="true">🙂</div>
+      <div v-else class="flex size-16 items-center justify-center rounded-full bg-surface text-muted" aria-hidden="true"><AppIcon name="user" size="size-12" /></div>
       <h1 class="text-2xl font-bold">{{ displayName || m.heading }}</h1>
     </div>
 
@@ -62,9 +62,9 @@
           </button>
           <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
         </section>
-        <section class="flex flex-col gap-2 rounded-xl border border-danger/40 p-4" :aria-label="messages.deleteData.button">
+        <section class="flex flex-col gap-2 rounded-xl border border-warning/50 p-4" :aria-label="messages.deleteData.button" data-testid="delete-data">
           <p class="text-sm text-muted">{{ messages.deleteData.hint }}</p>
-          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askWipe">
+          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-warning px-4 font-semibold text-warning" @click="askWipe">
             {{ messages.deleteData.button }}
           </button>
           <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
@@ -88,7 +88,6 @@
     </AccountGroup>
 
     <p class="flex flex-wrap justify-center gap-4 text-sm">
-      <RouterLink to="/docs" class="text-muted underline">{{ messages.legal.docs }}</RouterLink>
       <RouterLink to="/privacy" class="text-muted underline">{{ messages.legal.privacy }}</RouterLink>
       <RouterLink to="/terms" class="text-muted underline">{{ messages.legal.terms }}</RouterLink>
     </p>
@@ -104,7 +103,7 @@
         <fieldset class="flex flex-col gap-1" data-testid="wipe-removes">
           <legend class="sr-only">{{ messages.deleteData.removes }}</legend>
           <label v-for="p in wipeParts" :key="p" class="flex min-h-9 items-center gap-3 text-sm">
-            <input v-model="wipeChosen" type="checkbox" :value="p" class="size-5 shrink-0 accent-[var(--danger)]">
+            <input v-model="wipeChosen" type="checkbox" :value="p" class="size-5 shrink-0 accent-[var(--warning)]">
             {{ messages.deleteData.parts[p] }}
           </label>
           <div class="flex gap-3 text-xs">
@@ -127,7 +126,7 @@
         <div class="flex flex-col gap-2 sm:flex-row">
           <button
             type="submit"
-            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink disabled:opacity-50"
+            class="min-h-12 flex-1 rounded-xl bg-warning px-4 font-semibold text-warning-ink disabled:opacity-50"
             :disabled="wiping || !wipeChosen.length || wipeTyped.trim().toUpperCase() !== messages.deleteData.word"
           >
             {{ messages.deleteData.confirm }}
@@ -135,6 +134,7 @@
           <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmWipe?.close()">{{ messages.deleteData.keep }}</button>
         </div>
       </form>
+      <CloseX @click="confirmWipe?.close()" />
     </dialog>
 
     <dialog
@@ -163,12 +163,15 @@
           </button>
         </div>
       </form>
+      <CloseX @click="confirmDelete?.close()" />
     </dialog>
   </main>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Account page: display name, avatar and streak visibility, then settings. Streaks are on the Dashboard.
+import AppIcon from '@/components/AppIcon.vue'
+import CloseX from '@/components/CloseX.vue'
 import { computed, onMounted, ref } from 'vue'
 import AccountGroup from '@/components/AccountGroup.vue'
 import { RouterLink, useRouter } from 'vue-router'

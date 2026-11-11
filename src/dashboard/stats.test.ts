@@ -143,7 +143,14 @@ describe('Spec §5 Dashboard: tasks, routines, quests', () => {
     ]
     expect(tasksDone(tasks, '2026-01-01', NOW, TZ)).toBe(1)
     expect(tasksDone(tasks, null, NOW, TZ)).toBe(2)
-    expect(questsFinished([{ id: 'q', title: 'q', status: 'done', completed_at: '2026-11-02T12:00:00Z', deleted_at: null }], '2026-01-01', NOW, TZ)).toBe(1)
+    // Each time a quest is done counts (SPEC §5 Random Quest: quests can be done again).
+    const logs = [
+      { id: 'l1', quest_id: 'q', date: '2026-11-02', completed_at: '2026-11-02T12:00:00Z', deleted_at: null },
+      { id: 'l2', quest_id: 'q', date: '2026-11-05', completed_at: '2026-11-05T12:00:00Z', deleted_at: null },
+      { id: 'l3', quest_id: 'q', date: '2025-11-05', completed_at: '2025-11-05T12:00:00Z', deleted_at: null },
+    ]
+    expect(questsFinished(logs, '2026-01-01', NOW, TZ)).toBe(2)
+    expect(questsFinished(logs, null, NOW, TZ)).toBe(3)
   })
 
   it('a scheduled routine shows its rate in the period; a run-anytime one, times finished', () => {

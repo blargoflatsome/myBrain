@@ -109,8 +109,6 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Connections', '/connections', (p) => expect(p.getByRole('heading', { name: 'Connections', level: 1 })).toBeVisible()],
   ['Capture page', '/capture', (p) => expect(p.getByRole('heading', { name: 'What are you capturing?' })).toBeVisible()],
   ['Privacy', '/privacy', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
-  ['Features', '/features', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
-  ['Docs', '/docs', (p) => expect(p.getByRole('heading', { name: 'How to use My Brain', level: 1 })).toBeVisible()],
   ['Terms', '/terms', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
 ]
 
@@ -178,13 +176,26 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'Alerts window')
     })
 
-    test('Vault item editor and delete confirmation', async ({ page }) => {
+    test('Calendar item window, date grid and More details (feedback round 4)', async ({ page }, info) => {
+      await page.goto('/calendar?date=2026-11-10&event=e-long')
+      const view = page.getByTestId('calendar-item')
+      await expect(view).toBeVisible()
+      await scan(page, 'Calendar item window')
+      await view.getByRole('button', { name: 'Edit' }).click()
+      const editor = page.getByRole('dialog', { name: 'Edit event' })
+      await editor.getByTestId('event-more').getByText('More details').click()
+      if (!isPhone(info)) await editor.getByRole('combobox', { name: 'Starts Date' }).click()
+      await scan(page, 'Event editor with More details and the date grid open')
+    })
+
+    test('Vault item editor and the Undo bar', async ({ page }) => {
       await page.goto('/vault?bucket=b1')
       await page.getByRole('button', { name: 'Open Dune' }).click()
       await scan(page, 'Vault item editor')
       await page.keyboard.press('Escape')
       await page.getByRole('button', { name: 'Delete Dune' }).click()
-      await scan(page, 'Delete item confirmation')
+      await expect(page.getByTestId('undo-bar').getByRole('button', { name: 'Undo' })).toBeVisible()
+      await scan(page, 'Undo bar')
     })
 
     test('Post It being edited on the Dashboard', async ({ page }) => {
@@ -203,13 +214,6 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.getByRole('button', { name: 'Minimize' }).click()
       await expect(page.getByTestId('focus-pill')).toBeVisible()
       await scan(page, 'Focus timer pill')
-    })
-
-    test('Habit editor with start date and monthly', async ({ page }) => {
-      await page.goto('/habits')
-      await page.getByRole('button', { name: '+ New habit' }).click()
-      await page.getByRole('dialog', { name: 'New habit' }).getByRole('radio', { name: /Every month/ }).click()
-      await scan(page, 'Habit editor monthly')
     })
 
     test('Journal full screen writing', async ({ page }) => {
@@ -354,11 +358,12 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
   })
 
   test('a confirmation over an editor traps Tab; closing each returns focus to what opened it', async ({ page }) => {
-    await page.goto('/vault?bucket=b1')
-    const openItem = page.getByRole('button', { name: 'Open Dune' })
+    // Deleting a habit still asks first (it removes its history, SPEC §2).
+    await page.goto('/habits')
+    const openItem = page.getByRole('button', { name: /^Take meds/ }).first()
     await openItem.focus()
     await page.keyboard.press('Enter')
-    const editor = page.getByRole('dialog', { name: 'Edit item' })
+    const editor = page.getByRole('dialog', { name: 'Edit habit' })
     await expect(editor).toBeVisible()
     const del = editor.getByRole('button', { name: /Delete/ })
     await del.focus()

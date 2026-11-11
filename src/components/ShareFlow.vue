@@ -30,12 +30,14 @@
         <button type="button" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="close">{{ m.done }}</button>
       </template>
     </div>
+    <CloseX @click="close()" />
   </dialog>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Cancelling (Phase 1 texting): one person at a time, open my messaging app (or email app) with their
 // message ready; after I send it and come back, the next one, with "2 of 5", until everyone has been messaged.
+import CloseX from '@/components/CloseX.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { markShared, shareHref, type ShareTarget } from '@/events/sharing'
 import { messages } from '@/messages'

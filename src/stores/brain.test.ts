@@ -69,6 +69,23 @@ describe('Spec §5 Habits: misses are never invented on a device that has not do
   })
 })
 
+describe('Spec §5 Journal: one entry per day, even when saves happen at once', () => {
+  it('writing, the tomorrow box and two quick Yes/No taps all land in a single entry, in order', async () => {
+    const brain = useBrainStore()
+    brain.start(`u-${crypto.randomUUID()}`, remote)
+    const now = new Date('2026-11-10T15:00:00Z')
+    await Promise.all([
+      brain.saveJournalBody('2026-11-10', '<p>A good day</p>', now, 'UTC'),
+      brain.saveJournalFields('2026-11-10', { tomorrow: '<p>Sleep early</p>' }, now, 'UTC'),
+      brain.saveJournalFields('2026-11-10', { better_than_yesterday: true }, now, 'UTC'),
+      brain.saveJournalFields('2026-11-10', { better_than_yesterday: false }, now, 'UTC'),
+    ])
+    const entries = (await brain.db!.journal_entries.where('date').equals('2026-11-10').toArray()).filter((e) => !e.deleted_at)
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({ body: '<p>A good day</p>', tomorrow: '<p>Sleep early</p>', better_than_yesterday: false })
+  })
+})
+
 describe('Spec §5 The Vault: bucket picker can create a new bucket', () => {
   it('a new bucket goes after the existing ones', async () => {
     const brain = useBrainStore()

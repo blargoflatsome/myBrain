@@ -81,7 +81,8 @@ export function calendarItems(
       if (!isTaskScheduled(p, d)) continue
       items.push({
         id: `priority:${p.id}:${d}`,
-        title: `⚠ ${p.title}`,
+        // Marked in words as well as colour (WCAG 1.4.1), without an emoji (SPEC §2 Calm by design).
+        title: `Priority: ${p.title}`,
         start: `${d}T${hhmm(p.reminder_time)}`,
         allDay: false,
         className: 'cal-priority',

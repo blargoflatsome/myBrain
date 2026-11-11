@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
-/* SPEC §3 visual style: calm neutrals, one accent (teal), light or dark following the system setting. */
+/* SPEC §2 Calm by design, §3 visual style: warm neutrals, one soft blue accent, muted status colours, light or dark
+   following the system setting. Every text colour still meets WCAG AA contrast on its background. */
 @theme {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -11,39 +12,62 @@
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
   --color-danger-ink: var(--danger-ink);
+  --color-warning: var(--warning);
+  --color-warning-ink: var(--warning-ink);
+  --color-done: var(--done);
+  --color-carried: var(--carried);
+  --color-prio-low: var(--prio-low);
+  --color-prio-medium: var(--prio-medium);
+  --color-prio-high: var(--prio-high);
   --color-control: var(--control);
   --color-star: var(--star);
 }
 
 :root {
-  --bg: #f8fafc;
-  --surface: #ffffff;
-  --ink: #0f172a;
-  --muted: #64748b;
-  --line: #e2e8f0;
-  --accent: #0f766e;
+  --bg: #f6f4ef;
+  --surface: #fffdf9;
+  --ink: #2b2d2f;
+  --muted: #62666b;
+  --line: #e4e0d8;
+  --accent: #3b6b8c;
   --accent-ink: #ffffff;
-  --danger: #b91c1c;
+  /* Done (sage), carried-over title text (muted terracotta), and the three priority dots. */
+  --done: #4f7a5c;
+  --carried: #9c4630;
+  --prio-low: #7fa58a;
+  --prio-medium: #c9a24a;
+  --prio-high: #c2694f;
+  --danger: #b42318;
   --danger-ink: #ffffff;
+  /* A warning that is not the final word (Delete my data): orange, so red stays for errors and Delete my account. */
+  --warning: #c2410c;
+  --warning-ink: #ffffff;
   /* Borders that show where a form field is: at least 3:1 against the page (WCAG 1.4.11). */
-  --control: #848fa3;
-  --star: #b45309;
+  --control: #858a91;
+  --star: #8a6a24;
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b1120;
-    --surface: #111827;
-    --ink: #e2e8f0;
-    --muted: #94a3b8;
-    --line: #1f2937;
-    --accent: #2dd4bf;
-    --accent-ink: #042f2e;
-    --danger: #f87171;
-    --danger-ink: #450a0a;
-    --control: #64748b;
-    --star: #facc15;
+    --bg: #14181d;
+    --surface: #1b2027;
+    --ink: #dfe3e6;
+    --muted: #9ea7af;
+    --line: #2b313a;
+    --accent: #8fb5d3;
+    --accent-ink: #10202c;
+    --done: #9cc4a8;
+    --carried: #e39a85;
+    --prio-low: #8fb59a;
+    --prio-medium: #d8b866;
+    --prio-high: #d98a73;
+    --danger: #f2867a;
+    --danger-ink: #3a0b06;
+    --warning: #f0a86a;
+    --warning-ink: #3a1a05;
+    --control: #6e7783;
+    --star: #e0c27a;
     color-scheme: dark;
   }
 }
@@ -51,6 +75,9 @@
 body {
   background: var(--bg);
   color: var(--ink);
+  /* SPEC §2 Calm by design: room between lines, left-aligned text. */
+  line-height: 1.5;
+  text-align: left;
   /* Long things people type (a pasted link, a long word) wrap instead of pushing the page sideways (WCAG 1.4.10). */
   overflow-wrap: anywhere;
 }
@@ -90,16 +117,16 @@ textarea:focus {
 }
 
 /* Post It colours (SPEC §5): soft paper tints, with dark text in light mode and light text in dark mode (WCAG 1.4.3). */
-.note-yellow { background: #fef3c7; color: #451a03; }
-.note-pink { background: #fce7f3; color: #500724; }
-.note-blue { background: #dbeafe; color: #172554; }
-.note-green { background: #dcfce7; color: #052e16; }
-/* In dark mode the notes stay bright like real paper, a little deeper than in light mode so they don't glare. */
+.note-yellow { background: #fbf3d6; color: #451a03; }
+.note-pink { background: #f8e9ef; color: #500724; }
+.note-blue { background: #e4edf6; color: #172554; }
+.note-green { background: #e4f0e6; color: #052e16; }
+/* In dark mode the notes stay paper-light, but pale and muted so they don't glare (SPEC §2 Calm by design). */
 @media (prefers-color-scheme: dark) {
-  .note-yellow { background: #fde047; color: #422006; }
-  .note-pink { background: #f9a8d4; color: #500724; }
-  .note-blue { background: #93c5fd; color: #172554; }
-  .note-green { background: #86efac; color: #052e16; }
+  .note-yellow { background: #e9dcae; color: #3a2a08; }
+  .note-pink { background: #e3c8d3; color: #3d1426; }
+  .note-blue { background: #c4d5e6; color: #13253a; }
+  .note-green { background: #c6dcc9; color: #10301a; }
 }
 /* Post Its look taped to the page (SPEC §5 Dashboard): a strip of tape, a slight tilt, a soft shadow, and the notes
    underneath peeking out of the stack. */
@@ -234,24 +261,24 @@ textarea:focus {
   --fc-classic-event-contrast: var(--ink);
   background: color-mix(in srgb, var(--ink) 8%, transparent);
   border: 0;
-  border-left: 4px solid #22c55e;
+  border-left: 4px solid var(--prio-low);
 }
 .cal-wrap .cal-task,
 .cal-wrap .cal-task * {
   color: var(--ink);
 }
 .cal-wrap .cal-medium {
-  border-left-color: #facc15;
+  border-left-color: var(--prio-medium);
 }
 .cal-wrap .cal-high {
-  border-left-color: #ef4444;
+  border-left-color: var(--prio-high);
 }
 .cal-wrap .cal-done {
   text-decoration: line-through;
 }
 .cal-wrap .cal-priority {
-  --fc-classic-event: var(--danger);
-  --fc-classic-event-contrast: var(--danger-ink);
+  --fc-classic-event: var(--accent);
+  --fc-classic-event-contrast: var(--accent-ink);
 }
 /* Days from the next or previous month stay readable (1.4.3). */
 .cal-wrap [data-color-scheme] {
@@ -283,4 +310,17 @@ textarea:focus {
 .cal-wrap .cal-cancelled {
   text-decoration: line-through;
   opacity: 0.5;
+}
+
+/* Reading pages (Docs, Privacy, Terms) keep lines to about 70 characters (SPEC §2 Calm by design). */
+.docs p,
+.docs li,
+.legal p,
+.legal li {
+  max-width: 70ch;
+}
+
+/* A chosen option shows a check mark as well as the soft tint (WCAG 1.4.1: not by colour alone). */
+.choice-on::before {
+  content: '✓ a0';
 }

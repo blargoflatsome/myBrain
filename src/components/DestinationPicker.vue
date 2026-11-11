@@ -16,11 +16,7 @@
     </template>
 
     <template v-else-if="step === 'task'">
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.taskDateLabel }}
-        <input v-model="dueDate" type="date" class="min-h-12 rounded-xl border border-line bg-surface px-3 text-base text-ink">
-        <span class="text-xs">{{ m.taskDateHint }}</span>
-      </label>
+      <DateInput v-model="dueDate" :label="m.taskDateLabel" :hint="m.taskDateHint" :input-class="fieldOnPage" />
       <div class="flex gap-3">
         <button type="button" :class="btn" @click="reset">{{ m.back }}</button>
         <button type="button" :class="[primary, 'flex-1']" :disabled="disabled" @click="finish({ destination: 'task', dueDate: dueDate || null })">
@@ -63,6 +59,8 @@
 <script setup lang="ts">
 // SPEC §5: choose where a thought goes each time: Task (optional date), The Vault (bucket picker), Quest, or Decide later.
 import { ref } from 'vue'
+import DateInput from '@/components/DateInput.vue'
+import { fieldOnPage } from '@/ui/styles'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { messages } from '@/messages'

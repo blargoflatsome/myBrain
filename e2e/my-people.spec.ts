@@ -23,6 +23,7 @@ async function open(page: Page, path: string) {
 async function openEvent(page: Page) {
   server.seed('events', [calendarEvent])
   await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
+  await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
   const dialog = page.getByRole('dialog', { name: 'Edit event' })
   await expect(dialog).toBeVisible()
   return dialog
@@ -162,6 +163,7 @@ test.describe('Spec §5 Calendar, my people: fixed or removed on the Account pag
     await expect(section.getByTestId('saved-person')).toHaveText([/^Grace · \(555\) 010-5000/])
     await expect.poll(() => server.written('people').at(-1)).toMatchObject({ name: 'Grace', email: null, phone: '(555) 010-5000', deleted_at: null })
     await page.goto(`/calendar?date=2026-11-10&event=${EVENT}`)
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     await page.getByRole('dialog', { name: 'Edit event' }).getByRole('button', { name: 'Contacts' }).click()
     await expect(page.getByRole('dialog', { name: 'Your people' }).getByTestId('contact')).toHaveText([/^Grace/])
   })
@@ -188,14 +190,12 @@ test.describe('Spec §5 Calendar, my people: fixed or removed on the Account pag
     await expect(editor.getByTestId('person-error')).toHaveText('Keep an email address or a phone number, so you can invite them.')
   })
 
-  test('removing someone asks first, then takes them off the list', async ({ page }) => {
+  test('removing someone takes them off the list straight away, with Undo (SPEC §2)', async ({ page }) => {
     server.seed('people', [person('pe-1', 'Frank', 'frank@example.com', null)])
     await open(page, '/account')
     const section = page.getByTestId('my-people-settings')
     await section.getByRole('button', { name: 'Remove Frank' }).click()
-    const confirm = page.getByRole('alertdialog', { name: 'Remove from your people?' })
-    await expect(confirm).toContainText('Frank won’t be listed for invitations any more.')
-    await confirm.getByRole('button', { name: 'Remove' }).click()
+    await expect(page.getByTestId('undo-bar')).toContainText('Removed Frank')
     await expect(section.getByTestId('saved-person')).toHaveCount(0)
     await expect(section).toContainText('No one yet.')
     await expect.poll(() => server.written('people').at(-1)?.deleted_at).toBeTruthy()

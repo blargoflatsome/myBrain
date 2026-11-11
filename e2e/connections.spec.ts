@@ -56,12 +56,6 @@ test.describe('Spec §10 Connections: ask, answer, remove', () => {
     await page.getByRole('button', { name: 'Cancel request to carol@example.com' }).click()
     await expect.poll(() => rpc('cancel_connection_request')[0]?.args).toMatchObject({ req: 'req-2' })
   })
-
-  test('the Account page links to Connections', async ({ page }) => {
-    await open(page, '/account')
-    await page.locator('#content').getByRole('link', { name: 'Connections' }).click()
-    await expect(page).toHaveURL(/\/connections$/)
-  })
 })
 
 test.describe('Spec §10 Connections: inviting a connection in the app', () => {
@@ -70,6 +64,7 @@ test.describe('Spec §10 Connections: inviting a connection in the app', () => {
     server.rpcResults.my_connections = [{ friend_id: BOB, display_name: 'Bob Baker', avatar_url: null, since: '2026-11-01T00:00:00Z' }]
     server.rpcResults.invite_people = [{ invite_id: 'inv-bob', name: 'Bob Baker', email: null, phone: null, token: null }]
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
     await dialog.getByRole('button', { name: 'Contacts' }).click()
     const contacts = page.getByRole('dialog', { name: 'Your people' })
@@ -154,6 +149,7 @@ test.describe('Spec §10 Connections: connect from my people and from a guest in
     server.seed('people', [{ id: 'pe-carol', name: 'Carol', email: 'carol@example.com', phone: null }])
     server.rpcResults.people_with_accounts = [{ person_id: 'pe-carol' }]
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     await page.getByRole('dialog', { name: 'Edit event' }).getByRole('button', { name: 'Contacts' }).click()
     const contacts = page.getByRole('dialog', { name: 'Your people' })
     await contacts.getByRole('button', { name: 'Connect with Carol' }).click()
@@ -203,7 +199,9 @@ test.describe('Spec §10 Connections: who’s going', () => {
   test('the host chooses whether guests can see who’s going', async ({ page }) => {
     server.seed('events', [{ ...event, user_id: undefined }])
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    await dialog.getByTestId('event-more').getByText('More details').click()
     const box = dialog.getByRole('checkbox', { name: /Guests can see who’s going/ })
     await expect(box).toBeChecked()
     await box.uncheck()

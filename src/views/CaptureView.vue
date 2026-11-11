@@ -1,5 +1,5 @@
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <CaptureForm :shared-input="shared || undefined" />
   </main>
 </template>

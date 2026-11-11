@@ -34,24 +34,16 @@
           <button type="button" :class="secondaryButton" @click="editor?.close()">{{ m.cancel }}</button>
         </div>
       </form>
+      <CloseX @click="editor?.close()" />
     </dialog>
-
-    <ConfirmDialog
-      ref="confirmRemove"
-      :heading="m.confirmRemove.heading"
-      :body="m.confirmRemove.body(removing ? personLabel(removing) : '')"
-      :confirm-label="m.confirmRemove.confirm"
-      :keep-label="m.confirmRemove.keep"
-      @close="removing = null"
-      @confirm="remove"
-    />
   </section>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Calendar, my people: on the Account page I can fix a saved person's name, email or phone, or remove them.
+import CloseX from '@/components/CloseX.vue'
 import { computed, onMounted, ref } from 'vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { useUndoStore } from '@/stores/undo'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -124,14 +116,10 @@ async function connect(p: PersonRow) {
   await loadAccounts()
 }
 
-const confirmRemove = ref<InstanceType<typeof ConfirmDialog> | null>(null)
-const removing = ref<PersonRow | null>(null)
-function askRemove(p: PersonRow) {
-  removing.value = p
-  confirmRemove.value?.open()
-}
-async function remove() {
-  if (removing.value) await brain.removePerson(removing.value.id)
-  confirmRemove.value?.close()
+// Removing someone happens straight away, with Undo (SPEC §2).
+const undo = useUndoStore()
+async function askRemove(p: PersonRow) {
+  await brain.removePerson(p.id)
+  undo.offer(messages.undo.removed(personLabel(p)), () => brain.restore('people', p.id))
 }
 </script>

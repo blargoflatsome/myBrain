@@ -25,6 +25,7 @@ export class FakeSupabase {
     vault_buckets: new Map(),
     vault_items: new Map(),
     quests: new Map(),
+    quest_logs: new Map(),
     inbox: new Map(),
     habits: new Map(),
     habit_logs: new Map(),
@@ -113,6 +114,8 @@ export class FakeSupabase {
         if (!localStorage.getItem('my-brain:account-open')) {
           localStorage.setItem('my-brain:account-open', JSON.stringify(['profile', 'reminders', 'events', 'people', 'data', 'account']))
         }
+        // The same for the Dashboard's More stats (closed to start; e2e/feedback-round-4.spec.ts checks that).
+        if (!localStorage.getItem('my-brain:dashboard-more')) localStorage.setItem('my-brain:dashboard-more', 'open')
       })
     }
 
@@ -165,7 +168,7 @@ export class FakeSupabase {
   rpcArgs: { name: string; args: Record<string, unknown> }[] = []
   /** What a database function returns: a value, or a function of its arguments. Unset = no content. */
   rpcResults: Record<string, unknown> = {}
-  /** Start with every Account group open (set false to see the page's own defaults). */
+  /** Start with every Account group and the Dashboard's More stats open (set false to see the page's own defaults). */
   openAccountGroups = true
 
   /** Remove every row from a table, as the server would after a delete. */

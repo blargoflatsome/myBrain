@@ -44,12 +44,6 @@ test.describe('Spec §5 Habits', () => {
     await expect(page.getByTestId('habits-tagline')).toHaveText('You are only in competition with yourself.')
   })
 
-  test('the Tasks page shows its heading and intro line', async ({ page }) => {
-    await open(page, '/tasks')
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tasks')
-    await expect(page.getByTestId('tasks-intro')).toHaveText("Let's get these To-Done.")
-  })
-
   test('a new habit has a title, reminder time, timer and weekdays; the timer starts at the reminder time', async ({ page }) => {
     await open(page)
     await page.getByRole('button', { name: '+ New habit' }).click()
@@ -105,17 +99,17 @@ test.describe('Spec §5 Habits', () => {
     server.seed('habits', [habit('h1', 'Stretch', { start_date: '2026-11-08', current_streak: 2, best_streak: 2 })])
     server.seed('habit_logs', [log('h1', '2026-11-08'), log('h1', '2026-11-09')])
     await open(page)
-    await expect(row(page, 'Stretch').getByTestId('habit-streak')).toHaveText('🔥 2 in a row')
+    await expect(row(page, 'Stretch').getByTestId('habit-streak')).toHaveText('2 in a row')
 
     await page.getByRole('button', { name: 'Mark Stretch done' }).click()
     await expect(row(page, 'Stretch').getByTestId('habit-status')).toHaveText('Done today')
-    await expect(row(page, 'Stretch').getByTestId('habit-streak')).toHaveText('🔥 3 in a row')
+    await expect(row(page, 'Stretch').getByTestId('habit-streak')).toHaveText('3 in a row')
     await expect(row(page, 'Stretch').getByTestId('habit-best')).toHaveText('Best: 3')
-    await expect(row(page, 'Stretch')).toContainText('New best! Past you would be impressed.')
+    await expect(row(page, 'Stretch')).toContainText('New best! Way to make past you look like a chump!')
     await expect.poll(() => server.written('habit_logs').at(-1)).toMatchObject({ habit_id: 'h1', date: '2026-11-10', status: 'completed' })
 
     await page.getByRole('button', { name: 'Undo Stretch' }).click()
-    await expect(row(page, 'Stretch').getByTestId('habit-streak')).toHaveText('🔥 2 in a row')
+    await expect(row(page, 'Stretch').getByTestId('habit-streak')).toHaveText('2 in a row')
     await expect.poll(() => server.written('habit_logs').at(-1)?.deleted_at).toBeTruthy()
   })
 
@@ -123,12 +117,12 @@ test.describe('Spec §5 Habits', () => {
     server.seed('habits', [habit('h1', 'Meds', { notify_time: '08:00', timer_minutes: 60, start_date: '2026-11-08' })])
     server.seed('habit_logs', [log('h1', '2026-11-08'), log('h1', '2026-11-09')])
     await open(page, '/habits', new Date('2026-11-10T13:58:00Z')) // 8:58 am, due 9:00 am
-    await expect(row(page, 'Meds').getByTestId('habit-status')).toHaveText('Due by 9:00 AM')
+    await expect(row(page, 'Meds').getByTestId('habit-status')).toHaveText('Due by 9:00 am')
 
     await page.clock.runFor(3 * 60_000)
     await expect(row(page, 'Meds').getByTestId('habit-status')).toHaveText('Missed today')
-    await expect(row(page, 'Meds')).toContainText('Past you missed this one.')
-    await expect(row(page, 'Meds').getByTestId('habit-streak')).toHaveText('🔥 0 in a row')
+    await expect(row(page, 'Meds')).toContainText('Past you missed this one!')
+    await expect(row(page, 'Meds').getByTestId('habit-streak')).toHaveText('0 in a row')
     await expect(row(page, 'Meds').getByTestId('habit-best')).toHaveText('Best: 2')
     await expect(page.getByRole('button', { name: 'Mark Meds done' })).toBeDisabled()
     await expect.poll(() => server.written('habit_logs').find((l) => l.date === '2026-11-10')).toMatchObject({ status: 'missed' })
@@ -176,7 +170,7 @@ test.describe('Spec §5 Habits and Profile page: private habits', () => {
       ...['01', '02', '03', '04', '05', '06', '07', '08', '09'].map((d) => log('h2', `2026-11-${d}`)),
     ])
     await open(page)
-    await expect(row(page, 'Take meds')).toContainText('🔒 Private')
+    await expect(row(page, 'Take meds')).toContainText('Private')
 
     await goTo(page, 'Account')
     await expect(page.getByTestId('profile-streak')).toHaveCount(0)
@@ -189,6 +183,7 @@ test.describe('Spec §5 Habits and Profile page: private habits', () => {
     await open(page)
     await page.getByRole('button', { name: '+ New habit' }).click()
     const dialog = page.getByRole('dialog', { name: 'New habit' })
+    await dialog.getByText('More details').click()
     await expect(dialog.getByRole('checkbox', { name: /Private/ })).not.toBeChecked()
     await dialog.getByLabel('Title').fill('Journal privately')
     await dialog.getByRole('checkbox', { name: /Private/ }).check()
@@ -208,16 +203,8 @@ test.describe('Spec §5 Account page', () => {
     await page.getByLabel('Display name').fill('Jo')
     await page.getByLabel('Who can see my streaks').selectOption('everyone')
     await page.getByRole('button', { name: 'Save profile' }).click()
-    await expect(page.getByText('Saved. Past you would approve.')).toBeVisible()
+    await expect(page.getByText('Saved.', { exact: true })).toBeVisible()
     expect(server.written('profiles').at(-1)).toMatchObject({ display_name: 'Jo', streak_visibility: 'everyone' })
-  })
-
-  test('the page is called Account, and the old Profile address still opens it', async ({ page }) => {
-    await open(page, '/profile')
-    await expect(page).toHaveURL(/\/account$/)
-    await openMore(page)
-    await expect(page.getByRole('link', { name: 'Account' }).locator('visible=true')).toHaveCount(1)
-    await expect(page.getByRole('link', { name: 'Profile' })).toHaveCount(0)
   })
 
   test('Spec §9: Delete My Account confirms first, then deletes everything and signs me out', async ({ page }) => {
@@ -287,7 +274,7 @@ test.describe('Navigation', () => {
     await openMore(page)
     const sheet = page.getByRole('dialog', { name: 'More' })
     const moreLinks = (await sheet.isVisible()) ? sheet.getByRole('link') : page.locator('#nav-more').getByRole('link')
-    await expect(moreLinks).toHaveText(['Routines', 'Journal', 'Quests', /^Orphans/, 'Connections', 'Account', 'Help'])
+    await expect(moreLinks).toHaveText(['Routines', 'Journal', 'Quests', /^Orphans/, 'Connections', 'Account'])
   })
 
   test('on a phone, tabs along the bottom: Tasks, Habits, Calendar, The Vault and More; More opens the rest', async ({ page }, info) => {

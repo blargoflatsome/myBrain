@@ -191,7 +191,8 @@ test.describe('Spec §5 Dashboard', () => {
     server.seed('routines', [{ id: 'r1', title: 'Morning', notify_time: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' }])
     server.seed('routine_steps', [{ id: 's1', routine_id: 'r1', position: 0, title: 'Wake', start_date: '2026-11-01' }])
     server.seed('routine_runs', [{ id: 'run1', routine_id: 'r1', date: '2026-11-02', started_at: '2026-11-02T12:00:00Z', finished_at: '2026-11-02T12:10:00Z' }])
-    server.seed('quests', [{ id: 'q1', title: 'Bake', status: 'done', completed_at: '2026-11-02T12:00:00Z' }])
+    server.seed('quests', [{ id: 'q1', title: 'Bake', status: 'open', completed_at: '2026-11-02T12:00:00Z' }])
+    server.seed('quest_logs', [{ id: 'ql1', quest_id: 'q1', date: '2026-11-02', completed_at: '2026-11-02T12:00:00Z' }])
     await open(page)
     await expect(page.getByRole('meter', { name: 'Morning' })).toHaveAttribute('aria-valuenow', '11') // 1 of 9 days
     await expect(page.getByTestId('dash-quests')).toHaveText('1')

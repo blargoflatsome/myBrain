@@ -8,9 +8,9 @@
     data-testid="priority-reminder"
   >
     <div class="flex max-w-md flex-col gap-3">
-      <p class="text-sm font-semibold tracking-wide text-danger uppercase">⚠ {{ m.eyebrow }}</p>
+      <p class="text-sm font-semibold text-carried"><AppIcon name="alert" class="mr-1" />{{ m.eyebrow }}</p>
       <h2 class="text-4xl font-bold break-words" data-testid="priority-title">{{ current.title }}</h2>
-      <p v-if="current.description" class="text-lg text-muted">{{ current.description }}</p>
+      <RichNotes :value="current.description" class="text-lg text-muted" />
       <p v-if="due.length > 1" class="text-sm text-muted">{{ m.more(due.length - 1) }}</p>
     </div>
     <div class="flex w-full max-w-md flex-col gap-4">
@@ -26,8 +26,10 @@
 
 <script setup lang="ts">
 // SPEC §5: full-screen reminder for due priority habits and tasks. Stays until slide to complete, Snooze or Cancel.
+import AppIcon from '@/components/AppIcon.vue'
 import { computed, onScopeDispose, ref } from 'vue'
 import SlideToComplete from '@/components/SlideToComplete.vue'
+import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { duePriorities, type DuePriority } from '@/reminders/priority'

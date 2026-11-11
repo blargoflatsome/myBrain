@@ -8,7 +8,10 @@ export const fieldOnPage = 'min-h-12 w-full rounded-xl border border-line bg-sur
 /** A slightly smaller field for dense forms (availability, people search). */
 export const fieldCompact = 'min-h-11 w-full rounded-xl border border-line bg-bg px-3 text-base text-ink'
 
-const selected = 'border-accent bg-accent font-semibold text-accent-ink'
+// SPEC §2 Calm by design: a chosen option is a soft tint with a check mark (the .choice-on class adds it), never a
+// solid fill that looks like the main button. The same style for every choice in the app.
+/** The look of a chosen option, for toggles that don't use chip(). */
+export const selected = 'choice-on border-accent bg-accent/10 font-semibold text-ink'
 const unselected = 'border-line bg-surface text-ink'
 
 /** A round toggle chip (a choice in a row of choices). */
@@ -16,15 +19,14 @@ export const chip = (on: boolean) => ['min-h-11 min-w-11 rounded-full border px-
 /** A narrow chip for weekday pickers, so seven fit in a row. */
 export const dayChip = (on: boolean) => ['min-h-11 min-w-11 rounded-full border px-2 text-sm', on ? selected : unselected]
 /** A quieter filter chip: the chosen one gets a soft tint and a check mark (add the check in the template). */
-export const filterChip = (on: boolean) => [
-  'min-h-11 rounded-full border px-3 text-sm',
-  on ? 'border-accent bg-accent/10 font-semibold text-ink' : 'border-line bg-surface text-ink',
-]
+export const filterChip = (on: boolean) => ['min-h-11 rounded-full border px-3 text-sm', on ? selected : unselected]
 /** One of two or three side-by-side answers (Yes / No, Going / Maybe / No). */
 export const choice = (on: boolean) => ['min-h-11 flex-1 rounded-xl border px-3 font-semibold', on ? selected : 'border-line']
 
 /** A secondary action (Close, Cancel, Keep it). */
 export const secondaryButton = 'min-h-12 rounded-xl border border-line px-4'
+/** A small action at the end of a list row (Edit, Cancel), the same in every list (SPEC §2 Calm by design). */
+export const rowAction = 'flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 text-sm font-medium'
 /** The confirming action of something that removes data. */
 export const dangerButton = 'min-h-12 rounded-xl bg-danger px-4 font-semibold text-danger-ink'
 
@@ -33,6 +35,11 @@ export const dialogBox = 'm-auto w-[min(100%-2rem,32rem)] rounded-2xl border bor
 /** A small confirmation window box. */
 export const confirmBox = 'm-auto w-[min(100%-2rem,24rem)] rounded-2xl border border-line bg-surface p-5 text-ink backdrop:bg-black/50'
 
+/** The priority dot colours (SPEC §2 Calm by design: muted, always shown with the label). */
+export const priorityDot = { high: 'bg-prio-high', medium: 'bg-prio-medium', low: 'bg-prio-low' } as const
+
 /** A Dashboard card and its big number. */
-export const card = 'flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4'
+export const card = 'flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5'
 export const bigNumber = 'text-3xl font-bold tabular-nums'
+/** A smaller number, for a row of counts like yesterday's. */
+export const smallNumber = 'text-xl font-semibold tabular-nums'

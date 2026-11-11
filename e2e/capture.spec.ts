@@ -64,7 +64,7 @@ test.describe('Spec §5 Quick capture: choose the type first', () => {
   test('only the title is required: an empty title is not saved', async ({ page }) => {
     await startCapture(page, 'Quest')
     await save(page).click()
-    await expect(page.getByRole('alert')).toHaveText('Nothing to save yet. What did past you want to remember?')
+    await expect(page.getByRole('alert')).toHaveText('Nothing to save yet.')
     expect(server.writes).toHaveLength(0)
   })
 })
@@ -84,13 +84,14 @@ test.describe('Spec §5 Quick capture: Task form', () => {
   test('notes, date and priority are saved', async ({ page }) => {
     await startCapture(page, 'Task')
     await titleBox(page).fill('dentist')
-    await page.getByLabel('Notes (optional)').fill('bring insurance card')
+    await page.getByTestId('capture-more').getByText('More details').click()
+    await page.getByRole('textbox', { name: 'Notes (optional)' }).fill('bring insurance card')
     await page.getByLabel('When? (optional)').fill('2026-11-09')
     await page.getByRole('group', { name: 'Priority' }).getByRole('button', { name: 'High' }).click()
     await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Saved. Future you will find it waiting in Tasks.')
     await expect.poll(() => server.written('tasks')[0]).toMatchObject({
-      notes: 'bring insurance card',
+      notes: '<p>bring insurance card</p>',
       due_date: '2026-11-09',
       priority: 3,
     })
@@ -114,10 +115,11 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
     await startCapture(page, 'The Vault')
     await page.getByRole('group', { name: 'Which bucket?' }).getByRole('button', { name: 'Restaurant reviews' }).click()
     await titleBox(page).fill('Thai Garden')
-    await page.getByLabel('Notes (optional)').fill('try the green curry')
+    await page.getByTestId('capture-more').getByText('More details').click()
+    await page.getByRole('textbox', { name: 'Notes (optional)' }).fill('try the green curry')
     await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText('Saved to Restaurant reviews. Future you will be glad you did.')
-    await expect.poll(() => server.written('vault_items')[0]).toMatchObject({ bucket_id: 'bucket-1', notes: 'try the green curry' })
+    await expect.poll(() => server.written('vault_items')[0]).toMatchObject({ bucket_id: 'bucket-1', notes: '<p>try the green curry</p>' })
   })
 
   test('a new bucket can be made from the form', async ({ page }) => {
@@ -133,9 +135,11 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
 })
 
 test.describe('Spec §5 Quick capture: Quest form', () => {
-  test('shows Title, Details, Energy needed and Time needed; defaults are Ugh and 30 min', async ({ page }) => {
+  test('shows Title; Details, Energy needed and Time needed are in More details; defaults are Ugh and 30 min', async ({ page }) => {
     await startCapture(page, 'Quest')
-    await expect(page.getByLabel('Details (optional)')).toBeVisible()
+    await expect(page.getByTestId('capture-more')).toContainText('Ugh · 30 min')
+    await page.getByTestId('capture-more').getByText('More details').click()
+    await expect(page.getByRole('textbox', { name: 'Details (optional)' })).toBeVisible()
     await expect(page.getByRole('group', { name: 'Energy needed' }).getByRole('button', { name: 'Ugh' })).toHaveAttribute('aria-pressed', 'true')
     await expect(page.getByRole('group', { name: 'Time needed' }).getByRole('button', { name: '30 min' })).toHaveAttribute('aria-pressed', 'true')
     await titleBox(page).fill('build a birdhouse')
@@ -152,12 +156,13 @@ test.describe('Spec §5 Quick capture: Quest form', () => {
   test('details, energy and time can be changed', async ({ page }) => {
     await startCapture(page, 'Quest')
     await titleBox(page).fill('kayak the river')
-    await page.getByLabel('Details (optional)').fill('rent at the dock')
+    await page.getByTestId('capture-more').getByText('More details').click()
+    await page.getByRole('textbox', { name: 'Details (optional)' }).fill('rent at the dock')
     await page.getByRole('group', { name: 'Energy needed' }).getByRole('button', { name: 'Medicated' }).click()
     await page.getByRole('group', { name: 'Time needed' }).getByRole('button', { name: 'Half a day' }).click()
     await save(page).click()
     await expect.poll(() => server.written('quests')[0]).toMatchObject({
-      details: 'rent at the dock',
+      details: '<p>rent at the dock</p>',
       energy_level: 'medicated',
       time_bucket: 'half_day',
     })
@@ -174,7 +179,7 @@ test.describe('Spec §5: Decide later, then sort it when I have time', () => {
     await goTo(page, /Orphans/)
     await expect(page.getByText('Past you jotted this down. Where should it go?')).toBeVisible()
     await page.getByRole('button', { name: 'Quest' }).click()
-    await expect(page.getByText("Past you hasn't left any orphans.")).toBeVisible()
+    await expect(page.getByText("Good news! You haven't created any orphans.")).toBeVisible()
     await expect.poll(() => server.written('quests')[0]).toMatchObject({
       title: 'maybe learn Portuguese',
       energy_level: 'ugh',
@@ -228,6 +233,6 @@ test.describe('Spec §3: PWA install, home-screen shortcut, Web Share Target', (
     await expect(page).toHaveURL(/\/capture$/)
     await typeGroup(page).getByRole('button', { name: 'The Vault' }).click()
     await expect(titleBox(page)).toHaveValue('Great recipe')
-    await expect(page.getByLabel('Notes (optional)')).toHaveValue('https://example.com/soup')
+    await expect(page.getByRole('textbox', { name: 'Notes (optional)' })).toHaveText('https://example.com/soup')
   })
 })

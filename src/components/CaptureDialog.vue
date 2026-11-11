@@ -7,19 +7,18 @@
     @close="capture.close()"
   >
     <div class="flex flex-col gap-3 px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-      <div class="-mx-4 flex items-center justify-between border-b border-line px-4 pb-3">
+      <div class="-mx-4 flex min-h-11 items-center border-b border-line px-4 pr-14 pb-3">
         <span class="text-sm font-medium text-muted">{{ messages.capture.windowLabel }}</span>
-        <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="capture.close()">
-          {{ messages.capture.close }}
-        </button>
       </div>
       <CaptureForm v-if="capture.isOpen" :key="capture.opened" />
     </div>
+    <CloseX :label="messages.capture.close" @click="capture.close()" />
   </dialog>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Quick capture: the Capture window, over the current page. Full screen on a phone, centred on wider screens.
+import CloseX from '@/components/CloseX.vue'
 import { nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import CaptureForm from '@/components/CaptureForm.vue'

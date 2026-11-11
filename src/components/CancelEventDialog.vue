@@ -25,12 +25,14 @@
         <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.keep }}</button>
       </div>
     </div>
+    <CloseX @click="dialog?.close()" />
   </dialog>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Cancelling: "Cancel and notify". The confirmation lists exactly who will be told and shows my message;
 // nothing is sent unless I confirm. The creator cancels for everyone; an attendee only drops out.
+import CloseX from '@/components/CloseX.vue'
 import { computed, ref, watch } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'

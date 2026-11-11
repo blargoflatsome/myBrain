@@ -1,5 +1,5 @@
 <template>
-  <main class="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
       <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="startNew(range.from <= today && today <= range.to ? today : range.from, null)">
@@ -20,7 +20,7 @@
           :key="v.name"
           type="button"
           class="min-h-9 rounded-lg px-3 text-sm"
-          :class="view === v.name ? 'bg-accent font-semibold text-accent-ink' : 'text-muted'"
+          :class="view === v.name ? 'bg-accent/10 font-semibold text-ink' : 'text-muted'"
           :aria-pressed="view === v.name"
           @click="changeView(v.name)"
         >
@@ -36,6 +36,9 @@
 
     <p v-if="inviteError" class="text-sm text-danger" role="alert">{{ inviteError }}</p>
     <p v-if="inviteNotice" class="rounded-xl border border-line bg-surface p-3 text-sm" role="status" data-testid="invite-notice">{{ inviteNotice }}</p>
+    <CalendarItemDialog :item="viewItem" @edit="editItem" @close="viewItem = null" />
+    <TaskEditor :task="editingTask" @save="saveTask" @delete="deleteTask" @close="editingTask = null" />
+    <PriorityTasks editor-only :open-id="editPriority" @opened="editPriority = null" />
     <EventEditor :event="editing" :is-new="isNew" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="editing = null" />
     <InvitedEventDialog :event="viewing" :invite="viewingInvite" @drop-out="startDropOut" @close="viewing = null" />
     <CancelEventDialog :event="cancelling" :mode="cancelMode" @done="cancelled" @close="cancelling = null" />
@@ -67,6 +70,9 @@ import '@fullcalendar/vue3/themes/classic/theme.css'
 import '@fullcalendar/vue3/themes/classic/palette.css'
 import type { CalendarOptions, DateClickInfo, DatesSetInfo, EventClickInfo } from '@fullcalendar/vue3'
 import EventEditor from '@/components/EventEditor.vue'
+import CalendarItemDialog, { type CalendarView } from '@/components/CalendarItemDialog.vue'
+import TaskEditor from '@/components/TaskEditor.vue'
+import PriorityTasks from '@/components/PriorityTasks.vue'
 import InvitedEventDialog from '@/components/InvitedEventDialog.vue'
 import CancelEventDialog from '@/components/CancelEventDialog.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -80,8 +86,9 @@ import { useToday } from '@/composables/useToday'
 import { calendarItems, newEvent, nextWholeHour, type CalendarItem } from '@/events/rules'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
-import type { EventInviteRow, EventRow } from '@/sync/types'
+import type { EventInviteRow, EventRow, PriorityTaskRow, TaskRow } from '@/sync/types'
 import { live } from '@/sync/live'
+import { useUndoStore } from '@/stores/undo'
 
 const brain = useBrainStore()
 const route = useRoute()
@@ -97,7 +104,8 @@ const views: { name: ViewName; label: string }[] = [
 ]
 const calendar = ref<InstanceType<typeof FullCalendar> | null>(null)
 const api = () => calendar.value?.getApi()
-const view = ref<ViewName>(window.matchMedia('(min-width: 768px)').matches ? 'dayGridMonth' : 'timeGridDay')
+// The calendar opens on the month (SPEC §5 Calendar).
+const view = ref<ViewName>('dayGridMonth')
 const title = ref('')
 const range = ref<{ from: string; to: string }>({ from: today.value, to: today.value })
 
@@ -145,10 +153,14 @@ const options = computed<CalendarOptions>(() => ({
   dateClick: (info: DateClickInfo) => startNew(info.dateStr.slice(0, 10), info.allDay ? null : info.dateStr.slice(11, 16)),
   eventClick: (info: EventClickInfo) => {
     info.jsEvent.preventDefault()
-    const { kind, itemId } = info.event.extendedProps as CalendarItem['extendedProps']
-    if (kind === 'task') void router.push({ name: 'home', query: { task: itemId } })
-    else if (kind === 'priority_task') void router.push({ name: 'home', query: { priority: itemId } })
-    else openEvent(itemId)
+    const { kind, itemId, date } = info.event.extendedProps as CalendarItem['extendedProps']
+    if (kind === 'task') {
+      const row = tasks.value.find((t) => t.id === itemId)
+      if (row) viewItem.value = { kind, title: row.title, date, row }
+    } else if (kind === 'priority_task') {
+      const row = priorityTasks.value.find((p) => p.id === itemId)
+      if (row) viewItem.value = { kind, title: row.title, date, row }
+    } else openEvent(itemId, date)
   },
   datesSet: (info: DatesSetInfo) => {
     title.value = info.view.title
@@ -175,17 +187,42 @@ const myInvites = useLiveQuery<EventInviteRow[]>(async () => (brain.db ? brain.d
 const viewing = ref<EventRow | null>(null)
 const viewingInvite = computed(() => (viewing.value ? (myInvites.value.find((i) => i.event_id === viewing.value!.id && !i.deleted_at) ?? null) : null))
 
-function openEvent(id: string) {
+function openEvent(id: string, date?: string) {
   const e = events.value.find((x) => x.id === id)
   if (!e) return
-  // Someone else's event I was invited to opens read-only; my own opens the editor.
+  // Someone else's event I was invited to opens with its answers; my own opens read-only, with Edit.
   if (e.user_id && brain.userId && e.user_id !== brain.userId) {
     viewing.value = e
     return
   }
-  isNew.value = false
-  editing.value = e
+  viewItem.value = { kind: 'event', title: e.title, date: date ?? e.start_date, row: e }
 }
+
+// ---------- Viewing my own items read-only, then editing them here (SPEC §5 Calendar) ----------
+const tasks = useLiveQuery<TaskRow[]>(async () => (brain.db ? live(await brain.db.tasks.toArray()) : []), [], [() => brain.db])
+const priorityTasks = useLiveQuery<PriorityTaskRow[]>(async () => (brain.db ? live(await brain.db.priority_tasks.toArray()) : []), [], [() => brain.db])
+const viewItem = ref<CalendarView | null>(null)
+const editingTask = ref<TaskRow | null>(null)
+const editPriority = ref<string | null>(null)
+function editItem(item: CalendarView) {
+  viewItem.value = null
+  if (item.kind === 'task') editingTask.value = item.row
+  else if (item.kind === 'priority_task') editPriority.value = item.row.id
+  else {
+    isNew.value = false
+    editing.value = item.row
+  }
+}
+async function saveTask(t: TaskRow) {
+  await brain.saveTask(t)
+  editingTask.value = null
+}
+async function deleteTask(t: TaskRow) {
+  await brain.deleteTask(t.id)
+  editingTask.value = null
+  undo.offer(messages.undo.deleted(t.title), () => brain.restore('tasks', t.id))
+}
+const undo = useUndoStore()
 
 // ---------- Inviting, and reaching guests one at a time (SPEC §5 Shared events) ----------
 const inviteError = ref('')
@@ -278,16 +315,18 @@ function cancelled(targets: ShareTarget[]) {
     shareTargets.value = targets
   }
 }
-async function deleteEvent(e: EventRow) {
+async function deleteEvent(e: EventRow, confirmed = false) {
   await brain.deleteEvent(e.id)
   editing.value = null
+  // Without guests it went straight away, so it can come back (SPEC §2 Undo).
+  if (!confirmed) undo.offer(messages.undo.deleted(e.title), () => brain.restore('events', e.id))
 }
 
 // Opened with ?date= (a reminder or search) and maybe ?event= (search): go there and open the event.
 watch(
   [() => route.query.event, events],
   ([id]) => {
-    if (typeof id !== 'string' || editing.value) return
+    if (typeof id !== 'string' || editing.value || viewItem.value) return
     if (events.value.some((e) => e.id === id)) {
       openEvent(id)
       void router.replace({ query: { date: route.query.date } })

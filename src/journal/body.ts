@@ -52,6 +52,23 @@ export function plainText(html: string): string {
   return (doc.body.textContent ?? '').replace(/\s+/g, ' ').trim()
 }
 
+/** Formatted text as plain lines (one per paragraph or list item), for calendar files; plain text is left alone. */
+export function textLines(html: string): string {
+  if (!html.trimStart().startsWith('<')) return html
+  const lined = html.replace(/<br\s*\/?>/g, '\n').replace(/<\/(p|li|h2|h3|blockquote|div)>/g, '$&\n')
+  const doc = new DOMParser().parseFromString(lined, 'text/html')
+  return (doc.body.textContent ?? '')
+    .split('\n')
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n')
+}
+
+/** Formatted notes to store (SPEC §5 Formatted notes): cleaned HTML, or null when nothing was written. */
+export function storedNotes(html: string | null | undefined): string | null {
+  return html ? normalizeBody(html) || null : null
+}
+
 /** What to store: cleaned HTML, or '' when nothing was written (an empty editor still holds an empty paragraph). */
 export function normalizeBody(html: string): string {
   return plainText(html) ? cleanHtml(html) : ''

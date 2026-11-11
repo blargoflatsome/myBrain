@@ -11,50 +11,23 @@
         {{ m.editor.title }}
         <input v-model="title" maxlength="500" required :class="field">
       </label>
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.startDate }}
-        <input v-model="startDate" type="date" :min="earliestStart" required :class="field">
-      </label>
-      <HowOften v-model="weekInterval" v-model:monthly="monthly" :start-date="startDate" />
-      <TimeInput v-model="notifyTime" :label="m.editor.notifyTime" :input-class="field" />
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.timer }}
-        <select v-model="timer" :disabled="timerDisabled" :class="[field, 'disabled:opacity-50']">
-          <option :value="null">{{ m.editor.timerNone }}</option>
-          <option v-for="t in timerOptions" :key="t" :value="t">{{ m.editor.timerOptions[t] }}</option>
-        </select>
-        <span class="text-xs">{{ m.editor.timerHint }}</span>
-      </label>
-      <fieldset v-if="!monthly" class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted">{{ m.editor.weekdays }}</legend>
-        <div class="flex flex-wrap gap-1.5" role="group" :aria-label="m.editor.weekdays">
-          <button
-            v-for="d in ALL_WEEKDAYS"
-            :key="d"
-            type="button"
-            :class="dayChip(weekdays.includes(d))"
-            :aria-pressed="weekdays.includes(d)"
-            @click="toggleDay(d)"
-          >
-            {{ m.weekdayNames[d] }}
-          </button>
-        </div>
-      </fieldset>
-      <TagInput v-model="tags.names.value" />
-      <label class="flex items-start gap-3">
-        <input v-model="isPrivate" type="checkbox" class="mt-1 size-5 accent-[var(--accent)]">
-        <span>
-          <span class="font-medium">{{ m.editor.private }}</span>
-          <span class="block text-sm text-muted">{{ m.editor.privateHint }}</span>
-        </span>
-      </label>
-      <label class="flex items-start gap-3">
-        <input v-model="isPriority" type="checkbox" class="mt-1 size-5">
-        <span>
-          <span class="font-medium">{{ m.editor.priority }}</span>
-          <span class="block text-sm text-muted">{{ m.editor.priorityHint }}</span>
-        </span>
-      </label>
+      <HabitFields
+        v-model:week-interval="weekInterval"
+        v-model:monthly="monthly"
+        v-model:weekdays="weekdays"
+        v-model:start-date="startDate"
+        v-model:notify-time="notifyTime"
+        v-model:timer="timer"
+        v-model:is-priority="isPriority"
+        v-model:is-private="isPrivate"
+        :min-start="earliestStart"
+        :field-class="field"
+        :more-open="moreOpen"
+      >
+        <template #more>
+          <TagInput v-model="tags.names.value" />
+        </template>
+      </HabitFields>
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
@@ -63,6 +36,7 @@
         {{ m.editor.delete }}
       </button>
     </form>
+    <CloseX @click="dialog?.close()" />
   </dialog>
 
   <ConfirmDialog
@@ -76,15 +50,15 @@
 </template>
 
 <script setup lang="ts">
-import TimeInput from '@/components/TimeInput.vue'
-import HowOften from '@/components/HowOften.vue'
+import CloseX from '@/components/CloseX.vue'
+import HabitFields from '@/components/HabitFields.vue'
 // New or edit habit: title, reminder time, timer, weekdays, private (SPEC §5 Habits). Delete asks first (SPEC §2).
 import { computed, ref, watch } from 'vue'
 import type { HabitRow } from '@/sync/types'
 import { ALL_WEEKDAYS } from '@/habits/rules'
 import { messages } from '@/messages'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { dayChip, dialogBox, field } from '@/ui/styles'
+import { dialogBox, field } from '@/ui/styles'
 import TagInput from '@/components/TagInput.vue'
 import { useItemTags } from '@/composables/useItemTags'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
@@ -105,7 +79,11 @@ const startDate = ref('')
 const tags = useItemTags('habit', computed(() => props.habit?.id))
 const isPrivate = ref(false)
 const isPriority = ref(false)
-const timerOptions = [15, 30, 60, 120, 180, 240]
+// More details opens by itself when the habit is private or has tags.
+const moreOpen = ref(false)
+watch(() => tags.names.value.length, (n) => {
+  if (n) moreOpen.value = true
+})
 
 watch(
   () => props.habit,
@@ -120,21 +98,10 @@ watch(
     startDate.value = h.start_date
     isPrivate.value = h.is_private
     isPriority.value = !!h.is_priority
+    moreOpen.value = h.is_private || tags.names.value.length > 0
     dialog.value?.showModal()
   },
 )
-
-// A timer starts at the reminder time, so it needs one.
-const timerDisabled = computed(() => !notifyTime.value)
-watch(notifyTime, (t) => {
-  if (!t) timer.value = null
-})
-
-function toggleDay(d: number) {
-  const has = weekdays.value.includes(d)
-  if (has && weekdays.value.length === 1) return // at least one day
-  weekdays.value = has ? weekdays.value.filter((x) => x !== d) : [...weekdays.value, d].sort()
-}
 
 // A habit starts today or later (an earlier start would count days already gone as missed); an existing habit
 // can keep the start date it has.

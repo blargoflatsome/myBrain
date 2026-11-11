@@ -1,15 +1,15 @@
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div>
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted italic" data-testid="tasks-intro">{{ m.intro }}</p>
+      <p class="text-muted" data-testid="tasks-intro">{{ m.intro }}</p>
     </div>
     <div class="flex gap-2 rounded-2xl bg-surface p-1" role="tablist">
       <button
         type="button"
         role="tab"
         :aria-selected="view === 'day'"
-        :class="[tab, view === 'day' ? 'bg-accent text-accent-ink' : 'text-muted']"
+        :class="[tab, view === 'day' ? 'bg-accent/10 font-semibold text-ink' : 'text-muted']"
         @click="view = 'day'"
       >
         {{ m.todayHeading }}
@@ -18,7 +18,7 @@
         type="button"
         role="tab"
         :aria-selected="view === 'undated'"
-        :class="[tab, view === 'undated' ? 'bg-accent text-accent-ink' : 'text-muted']"
+        :class="[tab, view === 'undated' ? 'bg-accent/10 font-semibold text-ink' : 'text-muted']"
         @click="view = 'undated'"
       >
         {{ m.undatedHeading }}
@@ -27,7 +27,7 @@
         type="button"
         role="tab"
         :aria-selected="view === 'priority'"
-        :class="[tab, view === 'priority' ? 'bg-accent text-accent-ink' : 'text-muted']"
+        :class="[tab, view === 'priority' ? 'bg-accent/10 font-semibold text-ink' : 'text-muted']"
         @click="view = 'priority'"
       >
         {{ messages.priority.tabHeading }}
@@ -57,7 +57,17 @@
 
       <p v-if="view === 'day' && offset === 0 && list.length && !allDoneToday" class="text-muted">{{ m.pastYouToday }}</p>
       <p v-if="allDoneToday" class="text-muted" role="status">{{ m.allDone }}</p>
-      <p v-if="!list.length" class="text-muted">{{ emptyText }}</p>
+      <p v-if="!list.length && !allDoneToday" class="text-muted">{{ emptyText }}</p>
+
+      <button
+        v-if="doneInList"
+        type="button"
+        class="min-h-11 self-end rounded-xl border border-line px-4 text-sm"
+        data-testid="clear-done"
+        @click="clearCrossedOff"
+      >
+        {{ m.clearDone(doneInList) }}
+      </button>
 
       <ul class="flex flex-col gap-2">
         <TaskItem
@@ -87,10 +97,11 @@ import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { addDays, daysBetween } from '@/tasks/days'
-import { cancelTask, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
+import { cancelTask, clearDone, clearedForDay, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
 import { messages } from '@/messages'
 import type { TaskRow } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
+import { useUndoStore } from '@/stores/undo'
 
 const brain = useBrainStore()
 const m = messages.tasks
@@ -119,9 +130,25 @@ const emptyText = computed(() => {
   if (offset.value < 0) return m.emptyPast
   return offset.value === 0 ? m.emptyToday : m.emptyFuture
 })
+// Cleared tasks still count: a day whose crossed-off tasks were all cleared is still "all done".
 const allDoneToday = computed(
-  () => view.value === 'day' && offset.value === 0 && list.value.length > 0 && list.value.every((t) => t.status === 'done'),
+  () =>
+    view.value === 'day' &&
+    offset.value === 0 &&
+    list.value.every((t) => t.status === 'done') &&
+    (list.value.length > 0 || clearedForDay(all.value, today.value, timeZone.value).length > 0),
 )
+
+// SPEC §5 Tasks: "Clear crossed-off" hides done tasks from the list; they stay in history and stats.
+const doneInList = computed(() => list.value.filter((t) => t.status === 'done').length)
+const undo = useUndoStore()
+async function clearCrossedOff() {
+  const before = list.value.filter((t) => t.status === 'done' && !t.cleared_at)
+  for (const t of clearDone(list.value)) await brain.saveTask(t)
+  undo.offer(messages.undo.clearedTasks(before.length), async () => {
+    for (const t of before) await brain.saveTask({ ...t, cleared_at: null })
+  })
+}
 
 const newTitle = ref('')
 const addLabel = computed(() =>
@@ -170,6 +197,7 @@ async function saveEdit(t: TaskRow) {
 async function remove(t: TaskRow) {
   await brain.deleteTask(t.id)
   editing.value = null
+  undo.offer(messages.undo.deleted(t.title), () => brain.restore('tasks', t.id))
 }
 
 const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'

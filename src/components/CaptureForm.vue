@@ -67,7 +67,7 @@
             :aria-pressed="speech.listening.value"
             @click="speech.listening.value ? speech.stop() : speech.start()"
           >
-            🎙 {{ speech.listening.value ? m.micListening : m.micStart }}
+            <AppIcon name="mic" /> {{ speech.listening.value ? m.micListening : m.micStart }}
           </button>
         </div>
         <p v-if="speech.failed.value" class="text-sm text-danger" role="alert">{{ m.micError }}</p>
@@ -94,79 +94,50 @@
         <input v-if="addingBucket" v-model="newBucketName" maxlength="200" :aria-label="m.newBucket" :placeholder="m.newBucket" :class="fieldOnPage">
       </fieldset>
 
-      <label v-if="type !== 'later' && type !== 'habit' && type !== 'postit'" class="flex flex-col gap-1 text-sm text-muted">
-        {{ type === 'quest' ? m.detailsLabel : m.notesLabel }}
-        <textarea v-model="notes" maxlength="20000" rows="3" :class="[fieldOnPage, 'py-2']" />
-      </label>
-
-      <!-- Task: optional date, priority -->
+      <!-- Task: a date; notes and priority are optional, in More details (SPEC §5 Forms) -->
       <template v-if="type === 'task'">
-        <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.taskDateLabel }}
-          <input v-model="dueDate" type="date" :class="fieldOnPage">
-          <span class="text-xs">{{ m.taskDateHint }}</span>
-        </label>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ t.priorityLabel }}</legend>
-          <div class="flex flex-wrap gap-2" role="group" :aria-label="t.priorityLabel">
-            <button
-              v-for="p in [...PRIORITIES].reverse()"
-              :key="p.level"
-              type="button"
-              :class="chip(priority === p.level)"
-              :aria-pressed="priority === p.level"
-              @click="priority = p.level"
-            >
-              <span class="mr-1 inline-block size-2 rounded-full" :class="dot[p.key]" aria-hidden="true" />{{ t.priority[p.key] }}
-            </button>
-          </div>
-        </fieldset>
+        <DateInput v-model="dueDate" :label="m.taskDateLabel" :hint="m.taskDateHint" :input-class="fieldOnPage" />
+        <MoreOptions :summary="m.moreTask" :start-open="sharedNotes" test-id="capture-more">
+          <NotesEditor v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
+          <fieldset class="flex flex-col gap-2">
+            <legend class="mb-1 text-sm text-muted">{{ t.priorityLabel }}</legend>
+            <div class="flex flex-wrap gap-2" role="group" :aria-label="t.priorityLabel">
+              <button
+                v-for="p in [...PRIORITIES].reverse()"
+                :key="p.level"
+                type="button"
+                :class="chip(priority === p.level)"
+                :aria-pressed="priority === p.level"
+                @click="priority = p.level"
+              >
+                <span class="mr-1 inline-block size-2 rounded-full" :class="dot[p.key]" aria-hidden="true" />{{ t.priority[p.key] }}
+              </button>
+            </div>
+          </fieldset>
+        </MoreOptions>
       </template>
+
+      <MoreOptions v-if="type === 'vault'" :summary="m.notesLabel" :start-open="sharedNotes" test-id="capture-more">
+        <NotesEditor v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
+      </MoreOptions>
 
       <!-- Habit: the full habit form (SPEC §5 Quick capture) -->
-      <template v-if="type === 'habit'">
-        <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ h.editor.startDate }}
-          <input v-model="habitStart" type="date" :min="habitToday" :class="fieldOnPage">
-        </label>
-        <HowOften v-model="habitInterval" v-model:monthly="habitMonthly" :start-date="habitStart" />
-        <fieldset v-if="!habitMonthly" class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ h.editor.weekdays }}</legend>
-          <div class="flex flex-wrap gap-1.5" role="group" :aria-label="h.editor.weekdays">
-            <button
-              v-for="d in [0, 1, 2, 3, 4, 5, 6]"
-              :key="d"
-              type="button"
-              :class="chip(habitDays.includes(d))"
-              :aria-pressed="habitDays.includes(d)"
-              @click="toggleHabitDay(d)"
-            >
-              {{ h.weekdayNames[d] }}
-            </button>
-          </div>
-        </fieldset>
-        <div class="grid grid-cols-2 gap-3">
-          <TimeInput v-model="habitTime" :label="h.editor.notifyTime" :input-class="fieldOnPage" />
-          <label class="flex flex-col gap-1 text-sm text-muted">
-            {{ h.editor.timer }}
-            <select v-model="habitTimer" :class="fieldOnPage" :disabled="!habitTime">
-              <option value="">{{ h.editor.timerNone }}</option>
-              <option v-for="mins in [15, 30, 60, 120, 180, 240]" :key="mins" :value="String(mins)">{{ h.editor.timerOptions[mins] }}</option>
-            </select>
-          </label>
-        </div>
-        <label class="flex items-start gap-3 text-sm">
-          <input v-model="habitPrivate" type="checkbox" class="mt-0.5 size-5 accent-[var(--accent)]">
-          <span><span class="font-medium">{{ h.editor.private }}</span><span class="block text-xs text-muted">{{ h.editor.privateHint }}</span></span>
-        </label>
-        <label class="flex items-start gap-3 text-sm">
-          <input v-model="habitPriority" type="checkbox" class="mt-0.5 size-5 accent-[var(--accent)]">
-          <span><span class="font-medium">{{ h.editor.priority }}</span><span class="block text-xs text-muted">{{ h.editor.priorityHint }}</span></span>
-        </label>
-      </template>
+      <HabitFields
+        v-if="type === 'habit'"
+        v-model:week-interval="habitInterval"
+        v-model:monthly="habitMonthly"
+        v-model:weekdays="habitDays"
+        v-model:start-date="habitStart"
+        v-model:notify-time="habitTime"
+        v-model:timer="habitTimer"
+        v-model:is-priority="habitPriority"
+        v-model:is-private="habitPrivate"
+        :min-start="habitToday"
+        :field-class="fieldOnPage"
+      />
 
-      <!-- Quest: energy and time, defaults Ugh / 30 min -->
-      <template v-if="type === 'quest'">
+      <!-- Quest: energy and time (defaults Ugh / 30 min) and details, all optional -->
+      <MoreOptions v-if="type === 'quest'" :summary="`${q.energy[energy]} · ${q.time[time]}`" :start-open="sharedNotes" test-id="capture-more">
         <fieldset class="flex flex-col gap-2">
           <legend class="mb-1 text-sm text-muted">{{ q.editor.energy }}</legend>
           <div class="flex flex-wrap gap-2" role="group" :aria-label="q.editor.energy">
@@ -183,7 +154,8 @@
             </button>
           </div>
         </fieldset>
-      </template>
+        <NotesEditor v-model="notes" :label="m.detailsLabel" test-id="capture-notes" />
+      </MoreOptions>
 
       <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
       <button type="submit" class="min-h-14 rounded-2xl bg-accent px-4 text-lg font-semibold text-accent-ink" :disabled="saving">
@@ -196,13 +168,16 @@
 <script setup lang="ts">
 // SPEC §5 Quick capture: choose the type first, then a form made for it. Only the title is required. Works offline.
 // Shown in the Capture window over any page (CaptureDialog), and on the /capture page used for sharing from other apps.
-import TimeInput from '@/components/TimeInput.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
-import HowOften from '@/components/HowOften.vue'
+import HabitFields from '@/components/HabitFields.vue'
+import DateInput from '@/components/DateInput.vue'
+import MoreOptions from '@/components/MoreOptions.vue'
+import NotesEditor from '@/components/NotesEditor.vue'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_POST_IT_COLOR, POST_IT_COLORS } from '@/postits/rules'
-import { plainText, toEditorHtml } from '@/journal/body'
+import { plainText, storedNotes, toEditorHtml } from '@/journal/body'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useSpeech } from '@/composables/useSpeech'
 import {
@@ -217,7 +192,7 @@ import { PRIORITIES } from '@/tasks/rules'
 import { ENERGY_LEVELS, TIME_BUCKETS } from '@/quests/picker'
 import { messages } from '@/messages'
 import type { EnergyLevel, PostItColor, TimeBucket, VaultBucketRow } from '@/sync/types'
-import { chip, fieldOnPage } from '@/ui/styles'
+import { chip, fieldOnPage, priorityDot } from '@/ui/styles'
 import { activeBuckets } from '@/vault/rules'
 
 // The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
@@ -232,7 +207,6 @@ const brain = useBrainStore()
 const m = messages.capture
 const q = messages.quests
 const t = messages.tasks
-const h = messages.habits
 const pm = messages.postIts
 
 // Post It (SPEC §5 Quick capture): a small formatted note and a color.
@@ -250,6 +224,7 @@ const bucketId = ref<string | null>(null)
 const addingBucket = ref(false)
 const newBucketName = ref('')
 const shared = ref('')
+const sharedNotes = ref(false)
 
 const notice = ref('')
 const error = ref('')
@@ -285,6 +260,8 @@ async function choose(d: Destination) {
       const { title: first, rest } = splitTitle(shared.value)
       title.value = first
       notes.value = rest
+      // Shared text in the notes is shown, not folded away.
+      sharedNotes.value = !!rest
     }
   }
   await nextTick()
@@ -299,15 +276,9 @@ const habitMonthly = ref(false)
 const habitToday = todayIn(deviceTimeZone())
 const habitStart = ref(habitToday)
 const habitTime = ref('')
-const habitTimer = ref('')
+const habitTimer = ref<number | null>(null)
 const habitPrivate = ref(false)
 const habitPriority = ref(false)
-function toggleHabitDay(d: number) {
-  const has = habitDays.value.includes(d)
-  if (has && habitDays.value.length === 1) return
-  habitDays.value = has ? habitDays.value.filter((x) => x !== d) : [...habitDays.value, d].sort()
-}
-
 function reset() {
   postBody.value = ''
   postColor.value = DEFAULT_POST_IT_COLOR
@@ -316,7 +287,7 @@ function reset() {
   habitMonthly.value = false
   habitStart.value = habitToday
   habitTime.value = ''
-  habitTimer.value = ''
+  habitTimer.value = null
   habitPrivate.value = false
   habitPriority.value = false
   type.value = null
@@ -329,6 +300,7 @@ function reset() {
   addingBucket.value = false
   newBucketName.value = ''
   shared.value = ''
+  sharedNotes.value = false
   error.value = ''
 }
 
@@ -385,7 +357,7 @@ async function save() {
     const input: CaptureInput = {
       destination: type.value,
       text: title.value,
-      notes: notes.value,
+      notes: storedNotes(notes.value) ?? '',
       dueDate: dueDate.value || null,
       priority: priority.value,
       bucketId: bucketId.value ?? undefined,
@@ -397,7 +369,7 @@ async function save() {
         monthly: habitMonthly.value,
         startDate: habitStart.value,
         notifyTime: habitTime.value || null,
-        timerMinutes: habitTimer.value ? Number(habitTimer.value) : null,
+        timerMinutes: habitTime.value ? habitTimer.value : null,
         isPrivate: habitPrivate.value,
         isPriority: habitPriority.value,
       },
@@ -413,5 +385,5 @@ async function save() {
 
 const typeBtn = 'min-h-16 rounded-2xl border border-line bg-surface px-4 text-lg font-semibold text-ink active:scale-[0.98]'
 const types: Destination[] = ['task', 'vault', 'quest', 'habit', 'postit', 'later']
-const dot = { high: 'bg-red-500', medium: 'bg-yellow-400', low: 'bg-green-500' } as const
+const dot = priorityDot
 </script>

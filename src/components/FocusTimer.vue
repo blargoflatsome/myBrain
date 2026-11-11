@@ -31,7 +31,7 @@
     data-testid="focus-pill"
     @click="focus.minimized = false"
   >
-    <span class="size-2.5 rounded-full" :class="focus.state.phase === 'work' ? 'bg-red-400' : 'bg-emerald-400'" aria-hidden="true" />
+    <span class="size-2.5 rounded-full" :class="focus.state.phase === 'work' ? 'bg-prio-high' : 'bg-done'" aria-hidden="true" />
     <span aria-hidden="true">{{ m.phaseShort[focus.state.phase] }} · {{ time }}</span>
   </button>
 

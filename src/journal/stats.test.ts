@@ -44,6 +44,7 @@ function data(extra: Partial<DayData> = {}): DayData {
     priorityTasks: [],
     priorityTaskLogs: [],
     quests: [],
+    questLogs: [],
     ...extra,
   }
 }
@@ -147,13 +148,18 @@ describe('Spec §5 Journal: the day’s stats', () => {
     expect(s.streaks).toEqual([])
   })
 
-  it('quests completed that day (in my timezone) are listed', () => {
+  it('quests done that day are listed, from the completion log (a quest can be done again)', () => {
     const s = dayStats(
       data({
         quests: [
-          { id: 'q1', title: 'Paint the fence', status: 'done', completed_at: '2026-11-11T03:00:00Z', deleted_at: null }, // 10 pm Nov 10 NY
-          { id: 'q2', title: 'Yesterday', status: 'done', completed_at: '2026-11-10T03:00:00Z', deleted_at: null },
+          { id: 'q1', title: 'Paint the fence', status: 'open', completed_at: '2026-11-11T03:00:00Z', deleted_at: null },
+          { id: 'q2', title: 'Yesterday', status: 'open', completed_at: '2026-11-10T03:00:00Z', deleted_at: null },
           { id: 'q3', title: 'Open', status: 'open', deleted_at: null },
+        ],
+        questLogs: [
+          { id: 'l1', quest_id: 'q1', date: '2026-11-10', completed_at: '2026-11-11T03:00:00Z', deleted_at: null }, // 10 pm Nov 10 NY
+          { id: 'l2', quest_id: 'q2', date: '2026-11-09', completed_at: '2026-11-10T03:00:00Z', deleted_at: null },
+          { id: 'l3', quest_id: 'q1', date: '2026-11-08', completed_at: '2026-11-09T03:00:00Z', deleted_at: null },
         ],
       }),
       '2026-11-10',

@@ -1,8 +1,8 @@
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div>
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted italic" data-testid="habits-tagline">{{ m.intro }}</p>
+      <p class="text-muted" data-testid="habits-tagline">{{ m.intro }}</p>
     </div>
 
     <button type="button" class="min-h-12 self-start rounded-xl border border-line bg-surface px-4 font-medium" @click="startNew">
@@ -39,10 +39,10 @@
                 <span data-testid="habit-status">{{
                   status(h) === 'completed' ? m.doneToday : status(h) === 'missed' ? m.missedToday : dueText(h)
                 }}</span>
-                <span data-testid="habit-streak">{{ m.streak(streakOf(h).current) }}</span>
+                <span data-testid="habit-streak"><AppIcon name="flame" class="mr-1" />{{ m.streak(streakOf(h).current) }}</span>
                 <span data-testid="habit-best">{{ m.best(streakOf(h).best) }}</span>
-                <span v-if="h.is_private">{{ m.privateBadge }}</span>
-                <span v-if="h.is_priority" class="text-danger">{{ m.priorityBadge }}</span>
+                <span v-if="h.is_private"><AppIcon name="lock" class="mr-1" />{{ m.privateBadge }}</span>
+                <span v-if="h.is_priority" class="text-carried"><AppIcon name="alert" class="mr-1" />{{ m.priorityBadge }}</span>
               </span>
             </button>
           </div>
@@ -60,7 +60,7 @@
             <span>{{ h.title }}</span>
             <span class="flex gap-3 text-xs text-muted">
               <span>{{ h.weekdays.map((d) => m.weekdayNames[d]).join(' ') }}</span>
-              <span>{{ m.streak(streakOf(h).current) }}</span>
+              <span><AppIcon name="flame" class="mr-1" />{{ m.streak(streakOf(h).current) }}</span>
               <span>{{ m.best(streakOf(h).best) }}</span>
             </span>
           </button>
@@ -74,6 +74,7 @@
 
 <script setup lang="ts">
 // SPEC §5 Habits: today's habits with their timer deadlines, streaks and best streaks.
+import AppIcon from '@/components/AppIcon.vue'
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import HabitEditor from '@/components/HabitEditor.vue'
 import { useBrainStore } from '@/stores/brain'
@@ -82,6 +83,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { dayStatus, deadline, dueByMidnight, isScheduled, newHabit, streaks } from '@/habits/rules'
 import { messages } from '@/messages'
+import { momentLabel } from '@/ui/dates'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
 import { live } from '@/sync/live'
 import { useRoute, useRouter } from 'vue-router'
@@ -125,8 +127,7 @@ function status(h: HabitRow) {
 }
 function dueText(h: HabitRow) {
   if (dueByMidnight(h, today.value)) return m.dueToday
-  const time = new Date(deadline(h, today.value, timeZone.value)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-  return m.dueBy(time)
+  return m.dueBy(momentLabel(new Date(deadline(h, today.value, timeZone.value)).toISOString()))
 }
 
 const celebrated = ref<string | null>(null)

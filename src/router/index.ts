@@ -34,8 +34,6 @@ export const routes = [
   { path: '/inbox', redirect: '/orphans' },
   { path: '/welcome', name: 'welcome', component: () => import('@/views/WelcomeView.vue') },
   { path: '/rsvp/:invite/:token', name: 'rsvp', component: () => import('@/views/GuestRsvpView.vue'), meta: { public: true, guest: true } },
-  { path: '/features', name: 'features', component: () => import('@/views/FeaturesView.vue'), meta: { public: true, guest: true } },
-  { path: '/docs', name: 'docs', component: () => import('@/views/DocsView.vue'), meta: { public: true, guest: true } },
   { path: '/privacy', name: 'privacy', component: () => import('@/views/PrivacyView.vue'), meta: { public: true, guest: true } },
   { path: '/terms', name: 'terms', component: () => import('@/views/TermsView.vue'), meta: { public: true, guest: true } },
   { path: '/sign-in', name: 'sign-in', component: () => import('@/views/SignInView.vue'), meta: { public: true } },

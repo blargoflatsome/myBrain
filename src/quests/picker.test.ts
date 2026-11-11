@@ -89,11 +89,8 @@ describe('Spec §5 Random Quest: accept, mark done, and pick history', () => {
     const q = markPicked(markPicked(quest('a'), new Date('2026-11-06T10:00:00Z')), new Date('2026-11-06T11:00:00Z'))
     expect(q).toMatchObject({ times_picked: 2, last_picked_at: '2026-11-06T11:00:00.000Z' })
   })
-  it('accept moves a quest to in progress; mark done finishes it', () => {
+  it('accept moves a quest to in progress; mark done puts it back in the list to do again', () => {
     expect(acceptQuest(quest('a')).status).toBe('accepted')
-    expect(finishQuest(quest('a')).status).toBe('done')
-  })
-  it('Spec §5 Journal: marking a quest done records when it was completed', () => {
-    expect(finishQuest(quest('a'), new Date('2026-11-10T15:00:00Z')).completed_at).toBe('2026-11-10T15:00:00.000Z')
+    expect(finishQuest(acceptQuest(quest('a'))).status).toBe('open')
   })
 })

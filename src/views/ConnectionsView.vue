@@ -1,5 +1,5 @@
 <template>
-  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 pt-6 pb-28">
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
     <p class="text-sm text-muted">{{ m.intro }}</p>
     <p v-if="!brain.online" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ m.offline }}</p>
@@ -143,6 +143,7 @@ import {
 } from '@/events/connections'
 import { isEmail, isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
+import { momentLabel } from '@/ui/dates'
 import { useBrainStore } from '@/stores/brain'
 import { card, field } from '@/ui/styles'
 
@@ -167,7 +168,7 @@ const fresh = ref<NewLink | null>(null)
 const freshUrl = computed(() => (fresh.value ? linkUrl(fresh.value.token) : ''))
 const linkStatus = ref('')
 const canShare = typeof navigator !== 'undefined' && 'share' in navigator
-const when = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })
+const when = (iso: string) => momentLabel(iso)
 async function makeLink() {
   linkStatus.value = ''
   try {

@@ -12,10 +12,6 @@
         <input v-model="title" maxlength="500" required :class="field">
       </label>
       <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.details }}
-        <textarea v-model="details" maxlength="20000" rows="3" :class="[field, 'py-2']" />
-      </label>
-      <label class="flex flex-col gap-1 text-sm text-muted">
         {{ m.editor.energy }}
         <select v-model="energy" :class="field">
           <option value="">{{ m.editor.unset }}</option>
@@ -29,33 +25,31 @@
           <option v-for="t in TIME_BUCKETS" :key="t" :value="t">{{ m.time[t] }}</option>
         </select>
       </label>
+      <MoreOptions :summary="m.editor.moreSummary" :start-open="!!quest?.details" test-id="quest-more">
+        <NotesEditor v-model="details" :label="m.editor.details" test-id="quest-details" />
+      </MoreOptions>
       <div class="flex gap-2">
         <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
         <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
       </div>
-      <button type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.open()">
+      <button type="button" class="self-start text-sm text-danger underline" @click="deleteNow">
         {{ m.editor.delete }}
       </button>
     </form>
+    <CloseX @click="dialog?.close()" />
   </dialog>
-
-  <ConfirmDialog
-    ref="confirmDialog"
-    :heading="m.confirmDelete.heading"
-    :body="m.confirmDelete.body(quest?.title ?? '')"
-    :confirm-label="m.confirmDelete.confirm"
-    :keep-label="m.confirmDelete.keep"
-    @confirm="confirmDelete"
-  />
 </template>
 
 <script setup lang="ts">
 // Edit a quest: title, details, energy and time needed; Delete asks first (SPEC §2 Confirm before impact).
+import CloseX from '@/components/CloseX.vue'
 import { ref, watch } from 'vue'
 import type { EnergyLevel, QuestRow, TimeBucket } from '@/sync/types'
 import { ENERGY_LEVELS, TIME_BUCKETS } from '@/quests/picker'
 import { messages } from '@/messages'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import MoreOptions from '@/components/MoreOptions.vue'
+import NotesEditor from '@/components/NotesEditor.vue'
+import { storedNotes } from '@/journal/body'
 import { dialogBox, field } from '@/ui/styles'
 
 const props = defineProps<{ quest: QuestRow | null }>()
@@ -63,7 +57,6 @@ const emit = defineEmits<{ save: [QuestRow]; delete: [QuestRow]; close: [] }>()
 const m = messages.quests
 
 const dialog = ref<HTMLDialogElement | null>(null)
-const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const title = ref('')
 const details = ref('')
 const energy = ref<EnergyLevel | ''>('')
@@ -86,15 +79,14 @@ async function save() {
   emit('save', {
     ...props.quest,
     title: title.value.trim(),
-    details: details.value.trim() || null,
+    details: storedNotes(details.value),
     energy_level: energy.value || null,
     time_bucket: time.value || null,
   })
 }
 
-function confirmDelete() {
+function deleteNow() {
   if (props.quest) emit('delete', props.quest)
-  confirmDialog.value?.close()
 }
 
 </script>

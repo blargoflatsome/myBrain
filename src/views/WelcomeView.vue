@@ -1,5 +1,5 @@
 <template>
-  <main class="mx-auto flex w-full max-w-md flex-col gap-5 px-4 pt-10 pb-28">
+  <main class="mx-auto flex w-full max-w-md flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div>
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
       <p class="text-muted">{{ m.body }}</p>
@@ -17,7 +17,7 @@
             v-for="o in (['email', 'text', 'both'] as const)"
             :key="o"
             class="flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-xl border px-3"
-            :class="notify === o ? 'border-accent bg-accent font-semibold text-accent-ink' : 'border-line bg-surface'"
+            :class="notify === o ? 'choice-on border-accent bg-accent/10 font-semibold text-ink' : 'border-line bg-surface'"
           >
             <input v-model="notify" type="radio" :value="o" class="sr-only">{{ m.notifyOptions[o] }}
           </label>

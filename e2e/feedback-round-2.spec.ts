@@ -53,6 +53,7 @@ test.describe('Spec §5 Calendar: inviting shows what happened at every step', (
       { invite_id: 'inv-dan', name: 'Dan', email: null, phone: '5550103000', token: 'tok-dan' },
     ]
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
     await dialog.getByLabel('Email or phone number').fill('5550103000')
     await dialog.getByLabel('Their name (optional)').fill('Dan')
@@ -85,7 +86,8 @@ test.describe('Spec §5 Random Quest: calmer page, sorted by effort, in pages', 
     // The chosen filter is a soft tint with a check mark, not a solid green button.
     const any = page.getByRole('group', { name: /energy/i }).getByRole('button').first()
     await expect(any).toHaveAttribute('aria-pressed', 'true')
-    await expect(any).toContainText('✓')
+    // The check mark is drawn by .choice-on (SPEC §2 Calm by design: the same for every choice).
+    expect(await any.evaluate((el) => getComputedStyle(el, '::before').content)).toContain('✓')
     await expect(any).not.toHaveClass(/(^| )bg-accent( |$)/)
   })
 })

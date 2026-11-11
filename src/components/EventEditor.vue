@@ -17,18 +17,12 @@
       </label>
       <fieldset class="grid grid-cols-2 gap-3">
         <legend class="mb-1 text-sm font-medium">{{ m.editor.start }}</legend>
-        <label class="flex flex-col gap-1 text-sm text-muted" :class="allDay ? 'col-span-2' : ''">
-          {{ m.editor.date }}
-          <input v-model="startDate" type="date" :class="field" :aria-label="`${m.editor.start} ${m.editor.date}`">
-        </label>
+        <DateInput v-model="startDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.start} ${m.editor.date}`" required :input-class="field" />
         <TimeInput v-if="!allDay" v-model="startTime" :label="m.editor.time" :aria-label="`${m.editor.start} ${m.editor.time}`" :input-class="field" />
       </fieldset>
       <fieldset class="grid grid-cols-2 gap-3">
         <legend class="mb-1 text-sm font-medium">{{ m.editor.end }}</legend>
-        <label class="flex flex-col gap-1 text-sm text-muted" :class="allDay ? 'col-span-2' : ''">
-          {{ m.editor.date }}
-          <input v-model="endDate" type="date" :class="field" :aria-label="`${m.editor.end} ${m.editor.date}`">
-        </label>
+        <DateInput v-model="endDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.end} ${m.editor.date}`" required :input-class="field" />
         <TimeInput v-if="!allDay" v-model="endTime" :label="m.editor.time" :aria-label="`${m.editor.end} ${m.editor.time}`" :input-class="field" />
       </fieldset>
       <label class="flex flex-col gap-1 text-sm text-muted">
@@ -37,21 +31,20 @@
           <option v-for="r in REPEATS" :key="r" :value="r">{{ m.repeat[r] }}</option>
         </select>
       </label>
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.reminder }}
-        <select v-model="reminder" :class="field">
-          <option v-for="r in REMINDERS" :key="String(r)" :value="r">{{ m.reminder(r) }}</option>
-        </select>
-        <span v-if="allDay && reminder !== null" class="text-xs">{{ m.editor.reminderAllDay }}</span>
-      </label>
-      <label class="flex items-center justify-between gap-4 text-sm">
-        <span><span class="font-medium">{{ c.showGuests }}</span><span class="block text-xs text-muted">{{ c.showGuestsHint }}</span></span>
-        <input v-model="showGuests" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
-      </label>
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.notes }}
-        <textarea v-model="notes" maxlength="20000" rows="2" :class="[field, 'py-2']" />
-      </label>
+      <MoreOptions :summary="m.editor.moreSummary" :start-open="moreOpen" test-id="event-more">
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ m.editor.reminder }}
+          <select v-model="reminder" :class="field">
+            <option v-for="r in REMINDERS" :key="String(r)" :value="r">{{ m.reminder(r) }}</option>
+          </select>
+          <span v-if="allDay && reminder !== null" class="text-xs">{{ m.editor.reminderAllDay }}</span>
+        </label>
+        <label class="flex items-center justify-between gap-4 text-sm">
+          <span><span class="font-medium">{{ c.showGuests }}</span><span class="block text-xs text-muted">{{ c.showGuestsHint }}</span></span>
+          <input v-model="showGuests" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+        </label>
+        <NotesEditor v-model="notes" :label="m.editor.notes" test-id="event-notes" />
+      </MoreOptions>
       <EventPeople
         v-if="event && !event.cancelled_at"
         v-model="people"
@@ -77,10 +70,11 @@
       >
         {{ messages.cancelEvent.button }}
       </button>
-      <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.open()">
+      <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="askDelete">
         {{ m.editor.delete }}
       </button>
     </form>
+    <CloseX @click="dialog?.close()" />
   </dialog>
 
   <ConfirmDialog
@@ -96,9 +90,15 @@
 <script setup lang="ts">
 // SPEC §5 Calendar and reminders: add or edit a personal event: title, start and end (or all day), repeat,
 // reminder, notes. Delete asks first; deleting a repeating event deletes the whole series.
+import CloseX from '@/components/CloseX.vue'
 import TimeInput from '@/components/TimeInput.vue'
+import DateInput from '@/components/DateInput.vue'
+import MoreOptions from '@/components/MoreOptions.vue'
+import NotesEditor from '@/components/NotesEditor.vue'
+import { storedNotes } from '@/journal/body'
 import { computed, ref, watch } from 'vue'
 import EventPeople from '@/components/EventPeople.vue'
+import { useBrainStore } from '@/stores/brain'
 import type { PersonToInvite } from '@/events/sharing'
 import { eventProblem, nextWholeHour, REMINDERS, REPEATS } from '@/events/rules'
 import { messages } from '@/messages'
@@ -107,7 +107,8 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { field } from '@/ui/styles'
 
 const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
-const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow]; close: []; cancel: [EventRow] }>()
+const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow, boolean]; close: []; cancel: [EventRow] }>()
+const brain = useBrainStore()
 const m = messages.calendar
 const c = messages.connections
 // Whether attendees see who else is going (SPEC §10 Connections).
@@ -130,6 +131,8 @@ watch(allDay, (on) => {
 })
 const reminder = ref<number | null>(null)
 const notes = ref('')
+// More details opens by itself when something in it is set.
+const moreOpen = ref(false)
 const error = ref('')
 // People to invite when saving (SPEC §5 Shared events).
 const people = ref<PersonToInvite[]>([])
@@ -156,6 +159,7 @@ watch(
     reminder.value = e.reminder_minutes
     showGuests.value = e.show_guests ?? true
     notes.value = e.notes ?? ''
+    moreOpen.value = !!e.notes || e.reminder_minutes !== null || e.show_guests === false
     error.value = ''
     people.value = []
     dialog.value?.showModal()
@@ -179,7 +183,7 @@ const draft = computed<EventRow | null>(() =>
         repeat: repeat.value,
         reminder_minutes: reminder.value,
         show_guests: showGuests.value,
-        notes: notes.value.trim() || null,
+        notes: storedNotes(notes.value),
       }
     : null,
 )
@@ -194,8 +198,16 @@ async function save() {
   }
   emit('save', row, people.value)
 }
+// An event with people invited asks first (it affects them); one without goes straight away, with Undo (SPEC §2).
+async function askDelete() {
+  const e = props.event
+  if (!e) return
+  const invites = brain.db ? await brain.db.event_invites.where('event_id').equals(e.id).toArray() : []
+  if (invites.some((i) => !i.deleted_at)) confirmDialog.value?.open()
+  else emit('delete', e, false)
+}
 function confirmDelete() {
-  if (props.event) emit('delete', props.event)
+  if (props.event) emit('delete', props.event, true)
   confirmDialog.value?.close()
 }
 </script>

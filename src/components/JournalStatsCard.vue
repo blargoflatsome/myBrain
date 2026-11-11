@@ -59,19 +59,20 @@
         v-for="s in stats.streaks"
         :key="s.title"
         class="rounded-full px-3 py-1 text-sm"
-        :class="s.kind === 'reached' ? 'bg-accent text-accent-ink' : 'border border-line text-muted'"
-      >{{ s.kind === 'reached' ? `🔥 ${m.reached(s.title, s.days)}` : m.reset(s.title) }}</span>
+        :class="s.kind === 'reached' ? 'border border-accent bg-accent/10 text-ink' : 'border border-line text-muted'"
+      ><AppIcon v-if="s.kind === 'reached'" name="flame" class="mr-1" />{{ s.kind === 'reached' ? m.reached(s.title, s.days) : m.reset(s.title) }}</span>
     </div>
 
     <div v-if="stats.quests.length" class="flex flex-wrap items-center gap-2" data-testid="stat-quests">
       <span class="text-sm text-muted">{{ m.quests }} · {{ stats.quests.length }}</span>
-      <span v-for="q in stats.quests" :key="q" class="rounded-full border border-line px-3 py-1 text-sm">★ {{ q }}</span>
+      <span v-for="q in stats.quests" :key="q" class="rounded-full border border-line px-3 py-1 text-sm"><AppIcon name="check" class="mr-1" />{{ q }}</span>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Journal: the day's stats, shown visually so they can be read at a glance.
+import AppIcon from '@/components/AppIcon.vue'
 import { computed } from 'vue'
 import type { JournalStats } from '@/sync/types'
 import { percent } from '@/routines/rules'

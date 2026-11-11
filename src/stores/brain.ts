@@ -20,6 +20,7 @@ import type { PersonRow, PostItColor, PostItRow } from '@/sync/types'
 import { peopleToSave } from '@/events/people'
 import type { PersonToInvite } from '@/events/sharing'
 import { live } from '@/sync/live'
+import { finishQuest as finishedQuest } from '@/quests/picker'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
@@ -187,6 +188,23 @@ export const useBrainStore = defineStore('brain', () => {
     return requireReady().engine.save('quests', row)
   }
 
+  /** Mark a quest done (SPEC §5 Random Quest): it goes back to the list, and the completion is logged for stats. */
+  async function finishQuest(quest: QuestRow, now = new Date(), timeZone = deviceTimeZone()) {
+    const { engine: e, uid } = requireReady()
+    const done = finishedQuest(quest, now)
+    const logId = crypto.randomUUID()
+    await e.save('quest_logs', { id: logId, user_id: uid, quest_id: quest.id, date: todayIn(timeZone, now), completed_at: now.toISOString(), deleted_at: null })
+    await e.save('quests', done)
+    return logId
+  }
+
+  /** Undo marking a quest done: the quest goes back as it was and its completion is taken off the log. */
+  async function unfinishQuest(before: QuestRow, logId: string) {
+    const { engine: e } = requireReady()
+    await e.remove('quest_logs', logId)
+    await e.save('quests', before)
+  }
+
   async function deleteQuest(id: string) {
     await requireReady().engine.remove('quests', id)
   }
@@ -348,6 +366,7 @@ export const useBrainStore = defineStore('brain', () => {
       priorityTasks: await local.priority_tasks.toArray(),
       priorityTaskLogs: await local.priority_task_logs.toArray(),
       quests: await local.quests.toArray(),
+      questLogs: await local.quest_logs.toArray(),
     }
   }
 
@@ -385,8 +404,21 @@ export const useBrainStore = defineStore('brain', () => {
     }
   }
 
+  // Saves for the same day run one at a time, so two saves at once (writing and the tomorrow box, or quick
+  // Yes/No taps) can't both find no entry and each make one: a day has one journal entry (SPEC §5 Journal).
+  const journalSaves = new Map<string, Promise<unknown>>()
+  function oneAtATime<T>(date: string, work: () => Promise<T>): Promise<T> {
+    const next = (journalSaves.get(date) ?? Promise.resolve()).catch(() => undefined).then(work)
+    journalSaves.set(date, next)
+    void next.finally(() => journalSaves.get(date) === next && journalSaves.delete(date)).catch(() => undefined)
+    return next
+  }
+
   /** Save what I wrote for a day. Writing in an entry the app made makes it mine. Always editable (SPEC §5 Journal). */
-  async function saveJournalBody(date: string, html: string, now = new Date(), timeZone = deviceTimeZone()) {
+  function saveJournalBody(date: string, html: string, now = new Date(), timeZone = deviceTimeZone()) {
+    return oneAtATime(date, () => storeJournalBody(date, html, now, timeZone))
+  }
+  async function storeJournalBody(date: string, html: string, now: Date, timeZone: string) {
     const { engine: e, uid, local } = requireReady()
     const body = normalizeBody(html)
     const today = todayIn(timeZone, now)
@@ -404,12 +436,15 @@ export const useBrainStore = defineStore('brain', () => {
    * Save the journal's other answers for a day: "How to make tomorrow better?" and "Was today better than
    * yesterday?" (SPEC §5 Journal). Creates the day's entry if needed; always editable.
    */
-  async function saveJournalFields(
+  function saveJournalFields(
     date: string,
     fields: { tomorrow?: string; better_than_yesterday?: boolean | null },
     now = new Date(),
     timeZone = deviceTimeZone(),
   ) {
+    return oneAtATime(date, () => storeJournalFields(date, fields, now, timeZone))
+  }
+  async function storeJournalFields(date: string, fields: { tomorrow?: string; better_than_yesterday?: boolean | null }, now: Date, timeZone: string) {
     const { engine: e, uid, local } = requireReady()
     const today = todayIn(timeZone, now)
     const existing = (await local.journal_entries.where('date').equals(date).toArray()).find((x) => !x.deleted_at)
@@ -456,6 +491,11 @@ export const useBrainStore = defineStore('brain', () => {
   async function removePostIt(id: string) {
     await requireReady().engine.remove('post_its', id)
   }
+  /** Put back something just removed (SPEC §2 Undo): deletes are soft, so it comes back with everything it had. */
+  async function restore(table: SyncTable, id: string) {
+    await requireReady().engine.patch(table, id, () => ({ deleted_at: null }))
+  }
+
   async function restorePostIt(id: string) {
     await requireReady().engine.patch('post_its', id, () => ({ deleted_at: null }))
   }
@@ -514,9 +554,11 @@ export const useBrainStore = defineStore('brain', () => {
   /** "Clear checked": delete the checked items in a checklist bucket (the caller has already confirmed). */
   async function clearChecked(bucketId: string) {
     const { engine: e, local } = requireReady()
-    for (const item of (await local.vault_items.where('bucket_id').equals(bucketId).toArray()).filter((i) => !i.deleted_at && i.checked)) {
+    const cleared = (await local.vault_items.where('bucket_id').equals(bucketId).toArray()).filter((i) => !i.deleted_at && i.checked)
+    for (const item of cleared) {
       await e.remove('vault_items', item.id)
     }
+    return cleared.map((i) => i.id)
   }
 
   // ---------- Events (SPEC §5 Calendar and reminders) ----------
@@ -662,5 +704,8 @@ export const useBrainStore = defineStore('brain', () => {
     deleteTask,
     saveQuest,
     deleteQuest,
+    finishQuest,
+    unfinishQuest,
+    restore,
   }
 })

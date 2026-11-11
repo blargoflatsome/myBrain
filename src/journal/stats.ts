@@ -1,18 +1,5 @@
 // Journal rules (SPEC §5 Journal): the day's stats, missed days written on my behalf, and when stats freeze.
-import type {
-  HabitLogRow,
-  HabitRow,
-  JournalEntryRow,
-  JournalStats,
-  PriorityTaskLogRow,
-  PriorityTaskRow,
-  QuestRow,
-  RoutineRow,
-  RoutineRunRow,
-  RoutineStepLogRow,
-  RoutineStepRow,
-  TaskRow,
-} from '@/sync/types'
+import type { HabitLogRow, HabitRow, JournalEntryRow, JournalStats, PriorityTaskLogRow, PriorityTaskRow, QuestLogRow, QuestRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow } from '@/sync/types'
 import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
 import { activeSteps, isAnytime, isScheduled as routineScheduled, runFor, stepsForDay } from '@/routines/rules'
 import { isTaskScheduled } from '@/reminders/priority'
@@ -30,6 +17,7 @@ export interface DayData {
   priorityTasks: PriorityTaskRow[]
   priorityTaskLogs: PriorityTaskLogRow[]
   quests: QuestRow[]
+  questLogs: QuestLogRow[]
 }
 
 const localDay = (iso: string, timeZone: string) => todayIn(timeZone, new Date(iso))
@@ -99,9 +87,10 @@ export function dayStats(data: DayData, date: string, now: Date, timeZone: strin
     priority.push({ title: t.title, done: live(data.priorityTaskLogs).some((l) => l.task_id === t.id && l.date === date) })
   }
 
-  const quests = live(data.quests)
-    .filter((q) => q.status === 'done' && q.completed_at && localDay(q.completed_at, timeZone) === date)
-    .map((q) => q.title)
+  const titles = new Map(data.quests.map((q) => [q.id, q.title]))
+  const quests = live(data.questLogs)
+    .filter((l) => l.date === date && titles.has(l.quest_id))
+    .map((l) => titles.get(l.quest_id)!)
 
   return { tasks: taskStats, habits: { kept, scheduled: habits.length }, routines, priority, streaks: streakNotes, quests }
 }

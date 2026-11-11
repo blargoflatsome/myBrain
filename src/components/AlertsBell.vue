@@ -41,12 +41,15 @@
       <button type="button" class="min-h-11 self-end rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.close }}</button>
       <p class="sr-only" aria-live="polite">{{ announcement }}</p>
     </div>
+    <CloseX @click="dialog?.close()" />
   </dialog>
 </template>
 
 <script setup lang="ts">
 // SPEC §6 In-app alerts: the bell in the header with how many alerts I haven't dealt with; it opens them all, newest
 // first, 5 per page. Tapping one takes me where I deal with it and counts it as seen; ✕ or Clear all clears them.
+import CloseX from '@/components/CloseX.vue'
+import { momentLabel } from '@/ui/dates'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageControls from '@/components/PageControls.vue'
@@ -63,11 +66,7 @@ const router = useRouter()
 const { alerts, unread } = useAlerts()
 const { page, pageCount, pageItems } = usePagination(alerts, 5)
 
-const when = (iso: string) => {
-  const d = new Date(iso)
-  const today = new Date().toDateString() === d.toDateString()
-  return today ? d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : d.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })
-}
+const when = (iso: string) => momentLabel(iso)
 
 const dialog = ref<HTMLDialogElement | null>(null)
 const announcement = ref('')

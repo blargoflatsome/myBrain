@@ -1,20 +1,5 @@
 // Dashboard stats (SPEC §5 Dashboard): habits, journal, events, tasks, routines and quests, over a chosen period.
-import type {
-  EventInviteRow,
-  EventRow,
-  HabitLogRow,
-  HabitRow,
-  JournalEntryRow,
-  JournalStats,
-  QuestRow,
-  RoutineRow,
-  RoutineRunRow,
-  RoutineStepLogRow,
-  RoutineStepRow,
-  TaskRow,
-  VaultBucketRow,
-  VaultItemRow,
-} from '@/sync/types'
+import type { EventInviteRow, EventRow, HabitLogRow, HabitRow, JournalEntryRow, JournalStats, QuestLogRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
 import { isAnytime, routineStats } from '@/routines/rules'
 import { occursOn } from '@/events/rules'
@@ -182,9 +167,10 @@ export function tasksDone(tasks: TaskRow[], from: string | null, now: Date, time
   return live(tasks).filter((t) => t.status === 'done' && t.completed_at && inPeriod(localDay(t.completed_at, timeZone), from, today)).length
 }
 
-export function questsFinished(quests: QuestRow[], from: string | null, now: Date, timeZone: string): number {
+/** Times quests were done in the period (a quest can be done more than once). */
+export function questsFinished(logs: QuestLogRow[], from: string | null, now: Date, timeZone: string): number {
   const today = todayIn(timeZone, now)
-  return live(quests).filter((q) => q.status === 'done' && q.completed_at && inPeriod(localDay(q.completed_at, timeZone), from, today)).length
+  return live(logs).filter((l) => inPeriod(l.date, from, today)).length
 }
 
 export interface RoutineSummary {
@@ -225,7 +211,9 @@ export interface YesterdaySummary {
   habits: { kept: number; scheduled: number }
   tasks: { done: number; due: number }
   routines: { finished: number; total: number; list: { id: string; title: string; done: number; total: number }[] }
-  /** Nothing was scheduled or due yesterday. */
+  /** Titles of quests done yesterday (one per time done). */
+  quests: string[]
+  /** Nothing was scheduled, due or done yesterday. */
   empty: boolean
 }
 
@@ -239,6 +227,8 @@ export function yesterdaySummary(stats: JournalStats): YesterdaySummary {
     habits: { ...stats.habits },
     tasks: { ...stats.tasks },
     routines: { finished: list.filter((r) => r.done >= r.total).length, total: list.length, list },
-    empty: !stats.habits.scheduled && !stats.tasks.due && !list.length,
+    // Quests done yesterday (SPEC §5 Dashboard); quests aren't scheduled, so it's a count with their names.
+    quests: [...stats.quests],
+    empty: !stats.habits.scheduled && !stats.tasks.due && !list.length && !stats.quests.length,
   }
 }

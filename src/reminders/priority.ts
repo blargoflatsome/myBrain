@@ -2,7 +2,7 @@
 // The server sends the notifications; the app shows the full-screen reminder while one is due.
 import type { HabitLogRow, HabitRow, PriorityTaskLogRow, PriorityTaskRow, ReminderStateRow } from '@/sync/types'
 import { dayStatus, isScheduled, weekdayOf, zonedTime } from '@/habits/rules'
-import { onWeek, todayIn } from '@/tasks/days'
+import { addDays, onWeek, todayIn } from '@/tasks/days'
 
 export const SNOOZE_MINUTES = 10
 
@@ -28,6 +28,17 @@ function held(state: ReminderStateRow | undefined, now: Date): boolean {
   if (!state) return false
   if (state.cancelled_at) return true
   return !!state.snoozed_until && new Date(state.snoozed_until).getTime() > now.getTime()
+}
+
+/** SPEC §5 Priority tasks: a repeating one starts today if its time is still to come, otherwise tomorrow, so it never
+ * goes off the moment it's saved. Times are "HH:MM" in my time zone. */
+export function firstFutureDay(time: string, today: string, nowTime: string): string {
+  return time.slice(0, 5) > nowTime ? today : addDays(today, 1)
+}
+
+/** SPEC §5 Priority tasks: a one-off reminder must be later than now. */
+export function isLater(date: string, time: string, today: string, nowTime: string): boolean {
+  return date > today || (date === today && time.slice(0, 5) > nowTime)
 }
 
 export function isTaskScheduled(task: PriorityTaskRow, date: string): boolean {

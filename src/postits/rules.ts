@@ -1,7 +1,8 @@
 // Post Its (SPEC §5 Quick capture and Dashboard): sticky notes for quick reminders and scratch ideas.
 import type { PostItColor, PostItRow } from '@/sync/types'
 
-export const POST_IT_COLORS: PostItColor[] = ['yellow', 'pink', 'blue', 'green']
+// Pink was removed as a choice (user, 2026-11-10); notes made pink before still show pink.
+export const POST_IT_COLORS: PostItColor[] = ['yellow', 'blue', 'green']
 export const DEFAULT_POST_IT_COLOR: PostItColor = 'yellow'
 
 /** Notes to show, front first: by position, then newest. Removed notes are left out. */

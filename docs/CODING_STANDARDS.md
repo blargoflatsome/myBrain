@@ -24,7 +24,7 @@ file says *how* the code is written.
 - Messages that need values are small functions: `deleteItem: (title: string) => \`Delete ${title}\``.
 - Messages to other people (guests, invitees) are written plainly from the user, not in the "past you" voice.
 - Long-form pages (Privacy, Terms, Features, Docs) keep their text in their own page file, written plainly for anyone, since it is a document rather than interface wording.
-- **Features and Docs stay current:** any change that adds, alters or removes functionality updates `src/views/FeaturesView.vue` (a short marketing summary of each feature) and `src/views/DocsView.vue` (how to use it) in the same pull request. A review checks both.
+- **Features and Docs:** removed until the app is finished (2026-11-10); written fresh then.
 
 ## 3. Where code goes
 
@@ -108,7 +108,7 @@ than copying it.
 - Use real input where it matters (a real touch swipe, real typing), not faked events.
 - Test typed text long: a long sentence, a paragraph and an unbroken link (samples in `e2e/a11y.spec.ts`).
 - Mock the clock for anything time-dependent; wait for data to load before measuring layout.
-- Run the full suite (`npm run test:all`) before calling anything done.
+- **Two levels of testing.** While coding, run the quick checks after each change: `npm run test:quick` (types, Vitest, desktop browser tests), or just the files you touched (`npm run test:e2e:quick -- quests`). When the user says to merge, run the full review once, and merge only if it passes: `npm run test:all` (lint, types, Vitest, desktop, Android and iPhone), and `npm run test:db` when there are new migrations. CI runs the full review on every pull request too.
 
 ## 12. Git
 

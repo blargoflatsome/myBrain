@@ -17,8 +17,6 @@
     <p v-if="failed" role="alert" class="text-danger">{{ messages.signIn.error }}</p>
     <DevSignIn v-if="DevSignIn" />
     <p class="flex flex-wrap justify-center gap-4 text-sm">
-      <RouterLink to="/features" class="text-muted underline">{{ messages.legal.features }}</RouterLink>
-      <RouterLink to="/docs" class="text-muted underline">{{ messages.legal.docs }}</RouterLink>
       <RouterLink to="/privacy" class="text-muted underline">{{ messages.legal.privacy }}</RouterLink>
       <RouterLink to="/terms" class="text-muted underline">{{ messages.legal.terms }}</RouterLink>
     </p>

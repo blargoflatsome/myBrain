@@ -1,6 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
-import { goTo } from './support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 8:00 pm.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -33,12 +32,6 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Journal', () => {
-  test('the Journal is in the menu', async ({ page }) => {
-    await open(page, '/')
-    await goTo(page, 'Journal')
-    await expect(page.getByRole('heading', { name: 'Journal', level: 1 })).toBeVisible()
-    await expect(page.getByText('How did today go?')).toBeVisible()
-  })
 
   test("today's stats are shown at a glance: tasks, habits, routines, priority, streaks and quests", async ({ page }) => {
     server.seed('tasks', [
@@ -54,7 +47,8 @@ test.describe('Spec §5 Journal', () => {
       { id: 'l1', run_id: 'run1', step_id: 's0', status: 'completed', logged_at: '2026-11-10T12:00:00Z' },
       { id: 'l2', run_id: 'run1', step_id: 's1', status: 'completed', logged_at: '2026-11-10T12:05:00Z' },
     ])
-    server.seed('quests', [{ id: 'q1', title: 'Paint the fence', status: 'done', completed_at: '2026-11-10T20:00:00Z' }])
+    server.seed('quests', [{ id: 'q1', title: 'Paint the fence', status: 'open', completed_at: '2026-11-10T20:00:00Z' }])
+    server.seed('quest_logs', [{ id: 'ql1', quest_id: 'q1', date: '2026-11-10', completed_at: '2026-11-10T20:00:00Z' }])
 
     await open(page)
     const today = page.getByTestId('journal-today')
@@ -140,15 +134,6 @@ test.describe('Spec §5 Journal', () => {
     await expect(today.getByRole('textbox', { name: 'How the day went' })).toContainText('Typing with room to think.')
   })
 
-  test('there is no separate Add a task for tomorrow button: Capture does that, over the Journal', async ({ page }) => {
-    await open(page)
-    await expect(page.getByRole('textbox', { name: 'How the day went' })).toBeVisible()
-    await expect(page.getByRole('button', { name: /Add a task for tomorrow/ })).toHaveCount(0)
-    await page.getByRole('button', { name: '+ Capture' }).click()
-    await expect(page.getByRole('dialog', { name: 'Capture' })).toBeVisible()
-    await expect(page).toHaveURL(/\/journal$/)
-  })
-
 
   test('with no past entries, the empty journal says so', async ({ page }) => {
     await open(page)
@@ -167,7 +152,7 @@ test.describe('Spec §5 Journal', () => {
       .poll(() => server.written('journal_entries').find((e) => e.date === '2026-11-09'))
       .toMatchObject({ auto: true, body: '', stats_final: true, stats: { habits: { kept: 1, scheduled: 1 } } })
     const entry = page.getByTestId('journal-entry-2026-11-09')
-    await expect(entry).toContainText("Past you was busy this day, so here's what happened. Want to add a few words?")
+    await expect(entry).toContainText("Past you couldn't be bothered apparently, so here's what happened. Want to add a few words?")
     await expect(entry.getByTestId('stat-habits').getByTestId('stat-value')).toHaveText('1 of 1')
 
     await entry.getByRole('button', { name: 'Edit' }).click()

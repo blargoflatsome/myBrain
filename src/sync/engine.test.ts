@@ -117,6 +117,20 @@ describe('Spec §7: background updates never overwrite an edit', () => {
     expect(await engine.patch('habits', 'h2', () => null)).toBe(false)
     expect(await db.outbox.count()).toBe(0)
   })
+
+  it('a pull that started before my latest change uploaded never brings back the older copy', async () => {
+    await engine.save('tasks', task('t9', 'first'))
+    await engine.flush()
+    const stale = await remote.pullSince('tasks', null)
+    // The download is in flight while I change the task again and the change uploads.
+    remote.pullSince = (async () => {
+      await engine.save('tasks', task('t9', 'second'))
+      await engine.flush()
+      return stale
+    }) as typeof remote.pullSince
+    await engine.pull(['tasks'])
+    expect(await db.tasks.get('t9')).toMatchObject({ title: 'second' })
+  })
 })
 
 describe('Spec §7: retried uploads never create duplicates', () => {

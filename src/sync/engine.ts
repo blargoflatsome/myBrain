@@ -152,7 +152,11 @@ export class SyncEngine {
       let latest = since
       for (const row of rows) {
         const queued = await this.db.outbox.where('rowId').equals(row.id).count()
-        if (!queued) await this.db.rows(table).put(row)
+        // A pull that started before my latest change uploaded can bring back an older copy: never step back.
+        // (updated_at on the device always comes from the server, so the two are comparable.)
+        const mine = queued ? undefined : await this.db.rows(table).get(row.id)
+        const older = !!(mine?.updated_at && row.updated_at && row.updated_at < mine.updated_at)
+        if (!queued && !older) await this.db.rows(table).put(row)
         if (row.updated_at && (!latest || row.updated_at > latest)) latest = row.updated_at
       }
       if (latest) await this.db.meta.put({ key, value: latest })

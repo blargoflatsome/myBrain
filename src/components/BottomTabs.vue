@@ -55,12 +55,14 @@
       </ul>
       <button type="button" class="mt-2 min-h-12 rounded-xl border border-line px-4" @click="sheet?.close()">{{ messages.nav.closeMore }}</button>
     </div>
+    <CloseX @click="sheet?.close()" />
   </dialog>
 </template>
 
 <script setup lang="ts">
 // SPEC §2 Navigation: on phones, a tab bar along the bottom (Tasks, Habits, Calendar, The Vault, More); More opens a
 // panel from the bottom with everything else. The Dashboard is "My Brain" in the header.
+import CloseX from '@/components/CloseX.vue'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { messages } from '@/messages'

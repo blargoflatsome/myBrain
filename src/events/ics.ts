@@ -1,6 +1,7 @@
 // Calendar files (.ics) for guests (SPEC §5 Shared events): "Add to my calendar" on the guest page.
 import { zonedTime } from '@/habits/rules'
 import { addDays } from '@/tasks/days'
+import { textLines } from '@/journal/body'
 import type { EventRepeat } from '@/sync/types'
 
 export interface IcsEvent {
@@ -58,7 +59,7 @@ export function icsFile(e: IcsEvent, now: Date = new Date()): string {
     timed ? `DTSTART:${utc(zonedTime(e.start_date, e.start_time!.slice(0, 5), e.timezone))}` : `DTSTART;VALUE=DATE:${day(e.start_date)}`,
     timed ? `DTEND:${utc(zonedTime(e.end_date, e.end_time!.slice(0, 5), e.timezone))}` : `DTEND;VALUE=DATE:${day(addDays(e.end_date, 1))}`,
     `SUMMARY:${escapeText(e.title)}`,
-    ...(e.notes ? [`DESCRIPTION:${escapeText(e.notes)}`] : []),
+    ...(e.notes ? [`DESCRIPTION:${escapeText(textLines(e.notes))}`] : []),
     ...(e.organizer ? [`ORGANIZER;CN=${paramText(e.organizer)}:invalid:nomail`] : []),
     ...(RULES[e.repeat] ? [`RRULE:${RULES[e.repeat]}`] : []),
     'END:VEVENT',

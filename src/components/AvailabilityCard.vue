@@ -34,16 +34,16 @@
       <ul class="flex flex-col gap-1">
         <li v-for="x in upcoming" :key="x.id" class="flex items-center justify-between gap-2 text-sm" data-testid="availability-exception">
           <span>
-            {{ shortDay(x.date) }} · {{ x.start_time ? `${t(x.start_time)} – ${t(x.end_time)}` : m.allDay }} ·
+            {{ dayLabel(x.date) }} · {{ x.start_time ? `${t(x.start_time)} – ${t(x.end_time)}` : m.allDay }} ·
             <span :class="x.kind === 'available' ? 'text-accent' : 'text-muted'">{{ m.kinds[x.kind] }}</span>
             <span v-if="x.note" class="text-muted"> · {{ x.note }}</span>
           </span>
-          <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(shortDay(x.date))" @click="brain.deleteAvailabilityException(x.id)">✕</button>
+          <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(dayLabel(x.date))" @click="brain.deleteAvailabilityException(x.id)">✕</button>
         </li>
       </ul>
       <form v-if="addingException" class="flex flex-col gap-2" @submit.prevent="addException">
         <div class="grid grid-cols-2 gap-2">
-          <label class="flex flex-col gap-1 text-xs text-muted">{{ m.date }}<input v-model="exDate" type="date" :class="fieldCompact"></label>
+          <DateInput v-model="exDate" :label="m.date" label-class="text-xs text-muted" required :input-class="fieldCompact" />
           <label class="flex flex-col gap-1 text-xs text-muted">{{ m.kind }}
             <select v-model="exKind" :class="fieldCompact">
               <option value="unavailable">{{ m.kinds.unavailable }}</option>
@@ -68,6 +68,7 @@
 <script setup lang="ts">
 // SPEC §5 Availability schedule: weekly times I'm never free, and one-off days (unavailable, or available after all).
 import TimeInput from '@/components/TimeInput.vue'
+import DateInput from '@/components/DateInput.vue'
 import { computed, ref } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
@@ -76,7 +77,7 @@ import { todayIn, deviceTimeZone } from '@/tasks/days'
 import { messages } from '@/messages'
 import type { AvailabilityExceptionRow, AvailabilityRuleRow } from '@/sync/types'
 import { fieldCompact } from '@/ui/styles'
-import { shortDay } from '@/ui/dates'
+import { dayLabel } from '@/ui/dates'
 import { live } from '@/sync/live'
 
 const brain = useBrainStore()
