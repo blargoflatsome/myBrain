@@ -249,13 +249,13 @@ test.describe('Spec §5 Account page', () => {
 
   test('sign out lives on the Account page', async ({ page }) => {
     await open(page, '/account')
-    await page.getByRole('button', { name: 'Sign out' }).click()
+    await page.getByRole('main').getByRole('button', { name: 'Sign out' }).click()
     await expect(page).toHaveURL(/\/sign-in$/)
   })
 })
 
 test.describe('Navigation', () => {
-  test('the left menu reaches Dashboard, Tasks, Habits, Quests, Orphans and Account, with text labels only', async ({ page }) => {
+  test('the left menu reaches Dashboard, Tasks, Habits, Quests and Orphans (Account from the header), with text labels only', async ({ page }) => {
     await open(page, '/')
     for (const [name, url] of [
       ['Habits', /\/habits$/],
@@ -274,7 +274,7 @@ test.describe('Navigation', () => {
     await openMore(page)
     const sheet = page.getByRole('dialog', { name: 'More' })
     const moreLinks = (await sheet.isVisible()) ? sheet.getByRole('link') : page.locator('#nav-more').getByRole('link')
-    await expect(moreLinks).toHaveText(['Routines', 'Journal', 'Quests', /^Orphans/, 'Connections', 'Account'])
+    await expect(moreLinks).toHaveText(['Routines', 'Journal', 'Quests', /^Orphans/, 'Connections'])
   })
 
   test('on a phone, tabs along the bottom: Tasks, Habits, Calendar, The Vault and More; More opens the rest', async ({ page }, info) => {

@@ -47,34 +47,14 @@
               <span v-if="item.to === '/orphans' && inboxCount" class="rounded-full bg-accent px-2 text-xs text-accent-ink" data-testid="inbox-count">{{ inboxCount }}</span>
             </RouterLink>
           </li>
-          <li>
-            <button type="button" class="flex min-h-12 w-full items-center rounded-xl px-3 text-left text-base text-muted hover:bg-surface" data-testid="focus-open" @click="openFocus">
-              {{ messages.focus.menu }}
-            </button>
-          </li>
         </ul>
-        <div class="mt-auto px-3 py-4">
-          <SyncIndicator />
-        </div>
       </nav>
     </div>
 
     <div class="flex min-h-dvh min-w-0 flex-1 flex-col">
-      <!-- SPEC §6 In-app alerts: the bell sits in the top right corner on wide screens (in the header on phones). -->
-      <div v-if="showChrome && wide" class="fixed top-3 right-4 z-20"><AlertsBell /></div>
       <AlertBanner v-if="showChrome" />
-      <header v-if="showChrome" class="sticky top-0 z-10 border-b border-line bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur md:hidden">
-        <div class="flex items-center justify-between gap-3 px-4 py-3">
-          <RouterLink to="/" class="flex min-h-11 items-center font-bold">{{ messages.appName }}</RouterLink>
-          <div class="flex items-center gap-2">
-            <SyncIndicator v-if="!wide" />
-            <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line text-lg" :aria-label="messages.search.open" @click="searchWindow.open()">
-              <AppIcon name="search" size="size-5" />
-            </button>
-            <AlertsBell v-if="!wide" />
-          </div>
-        </div>
-      </header>
+      <!-- SPEC §2 Header: Account, Focus timer, alerts bell, Sign out and sync status (plus My Brain and Search on phones). -->
+      <AppHeader v-if="showChrome" :wide="wide" @focus="openFocus" />
 
       <!-- On phones, room for the bottom tabs so nothing is hidden behind them. -->
       <div id="content" class="flex flex-1 flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
@@ -91,7 +71,7 @@
     >
       + {{ messages.capture.openButton }}
     </button>
-    <BottomTabs v-if="showChrome" :inbox-count="inboxCount" @focus="openFocus" />
+    <BottomTabs v-if="showChrome" :inbox-count="inboxCount" />
     <CaptureDialog v-if="showChrome" />
     <SearchDialog v-if="showChrome" />
 
@@ -105,13 +85,12 @@
 <script setup lang="ts">
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref, watch } from 'vue'
-import AlertsBell from '@/components/AlertsBell.vue'
+import AppHeader from '@/components/AppHeader.vue'
 import UndoBar from '@/components/UndoBar.vue'
 import AlertBanner from '@/components/AlertBanner.vue'
 import BottomTabs from '@/components/BottomTabs.vue'
 import { MAIN_NAV, MORE_NAV, inMore } from '@/ui/nav'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
-import SyncIndicator from '@/components/SyncIndicator.vue'
 import PriorityReminder from '@/components/PriorityReminder.vue'
 import FocusTimer from '@/components/FocusTimer.vue'
 import { useFocusStore } from '@/stores/focus'

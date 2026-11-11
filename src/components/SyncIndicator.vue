@@ -1,7 +1,7 @@
 <template>
-  <p class="flex items-center gap-2 text-xs text-muted" role="status" aria-live="polite" data-testid="sync-indicator">
-    <span class="size-2 rounded-full" :class="view.dot" aria-hidden="true" />
-    {{ view.text }}
+  <p class="flex items-center gap-2 text-xs text-muted" :class="compact && 'min-h-11 min-w-6 justify-center'" :title="compact ? view.text : undefined" role="status" aria-live="polite" data-testid="sync-indicator">
+    <span class="size-2.5 shrink-0 rounded-full" :class="view.dot" aria-hidden="true" />
+    <span :class="compact && 'sr-only'">{{ view.text }}</span>
   </p>
 </template>
 
@@ -11,6 +11,8 @@ import { computed } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { messages } from '@/messages'
 
+// Compact (phones' header): the dot alone, with its words for screen readers and on hover (SPEC §2 Header).
+defineProps<{ compact?: boolean }>()
 const brain = useBrainStore()
 
 const view = computed(() => {

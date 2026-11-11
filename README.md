@@ -28,4 +28,4 @@ npm run test:all    # lint + typecheck + all tests (what CI runs)
 See `.env.example`. Only `VITE_`-prefixed values reach the browser; everything else is server-side only (Netlify environment variables). Where each value comes from is documented as each service is set up.
 
 ## Key decisions
-See the Decisions list at the end of [docs/SPEC.md](docs/SPEC.md).
+See [docs/DECISIONS.md](docs/DECISIONS.md).

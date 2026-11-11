@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { FakeSupabase } from './support/fakeSupabase'
 import { isPhone, isSafari } from './support/devices'
-import { goTo, openMore } from './support/nav'
+import { goTo } from './support/nav'
 
 // SPEC §2: every screen meets WCAG 2.2 Level AA. axe checks every page and the main windows, in light and dark.
 // What axe can't check (keyboard order, meaning, zoom and reflow) is reviewed by hand and covered by other tests.
@@ -207,7 +207,6 @@ for (const scheme of ['light', 'dark'] as const) {
     test('Focus timer, full screen and minimized', async ({ page }) => {
       await page.goto('/')
       await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
-      await openMore(page)
       await page.getByTestId('focus-open').locator('visible=true').click()
       await expect(page.getByRole('dialog', { name: 'Focus timer' })).toBeVisible()
       await scan(page, 'Focus timer')

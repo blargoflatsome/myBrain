@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from './support/fakeSupabase'
 import { isSafari } from './support/devices'
-import { goTo, openMore } from './support/nav'
+import { goTo } from './support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:20 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -132,7 +132,6 @@ test.describe('Spec §5 Journal: pages of 3 days, and a save status under each b
 
 test.describe('Spec §5 Focus timer', () => {
   async function openTimer(page: Page) {
-    await openMore(page)
     await page.getByTestId('focus-open').locator('visible=true').click()
     return page.getByRole('dialog', { name: 'Focus timer' })
   }

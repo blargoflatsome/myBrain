@@ -42,6 +42,15 @@ export const messages = {
   },
   signOut: {
     button: 'Sign out',
+    confirmHeading: 'Sign out?',
+    confirmBody: 'This signs you out on this device. Everything stays saved.',
+    keep: 'Stay signed in',
+  },
+  /** SPEC §2 Navigation, Header. */
+  header: {
+    label: 'Top bar',
+    account: 'Account',
+    timer: 'Focus timer',
   },
   capture: {
     windowLabel: 'Capture',

@@ -12,6 +12,8 @@ export async function goTo(page: Page, name: string | RegExp) {
     await page.getByRole('link', { name: 'My Brain' }).locator('visible=true').first().click()
     return
   }
+  // SPEC §2 Header: Account is in the header, not under More.
+  if (name === 'Account') return page.getByTestId('header-account').click()
   const nav = mainNav(page)
   await expect(nav).toBeVisible()
   const link = nav.getByRole('link', { name })

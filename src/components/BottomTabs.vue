@@ -47,11 +47,6 @@
             <span v-if="item.to === '/orphans' && inboxCount" class="rounded-full bg-accent px-2 text-xs text-accent-ink" data-testid="inbox-count">{{ inboxCount }}</span>
           </RouterLink>
         </li>
-        <li>
-          <button type="button" class="flex min-h-12 w-full items-center rounded-xl px-3 text-left text-base hover:bg-bg" data-testid="focus-open" @click="focusTimer">
-            {{ messages.focus.menu }}
-          </button>
-        </li>
       </ul>
       <button type="button" class="mt-2 min-h-12 rounded-xl border border-line px-4" @click="sheet?.close()">{{ messages.nav.closeMore }}</button>
     </div>
@@ -69,16 +64,11 @@ import { messages } from '@/messages'
 import { MAIN_NAV, MORE_NAV, NAV_ICON_PATHS, inMore } from '@/ui/nav'
 
 defineProps<{ inboxCount: number }>()
-const emit = defineEmits<{ focus: [] }>()
 const route = useRoute()
 const moreCurrent = computed(() => inMore(route.path))
 const sheet = ref<HTMLDialogElement | null>(null)
 function openMore() {
   sheet.value?.showModal()
-}
-function focusTimer() {
-  sheet.value?.close()
-  emit('focus')
 }
 watch(() => route.fullPath, () => sheet.value?.close())
 </script>
