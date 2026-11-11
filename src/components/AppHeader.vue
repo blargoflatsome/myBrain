@@ -1,8 +1,10 @@
 <template>
   <header class="sticky top-0 z-10 border-b border-line bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur" :aria-label="messages.header.label" data-testid="app-header">
-    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2" :class="wide ? 'justify-end' : 'justify-between'">
+    <div class="flex items-center gap-1 px-2 py-2 min-[360px]:px-3" :class="wide ? 'justify-end' : 'justify-between'">
       <div v-if="!wide" class="flex items-center gap-1">
-        <RouterLink to="/" class="flex min-h-11 items-center pr-1 font-bold">{{ messages.appName }}</RouterLink>
+        <RouterLink to="/" :class="iconButton" :aria-label="messages.appName" data-testid="header-home">
+          <AppIcon name="home" size="size-5" />
+        </RouterLink>
         <button type="button" :class="iconButton" :aria-label="messages.search.open" @click="searchWindow.open()">
           <AppIcon name="search" size="size-5" />
         </button>
@@ -16,32 +18,19 @@
           <AppIcon name="timer" size="size-5" />
         </button>
         <AlertsBell />
-        <button type="button" :class="iconButton" :aria-label="messages.signOut.button" data-testid="header-sign-out" @click="confirmSignOut?.open()">
-          <AppIcon name="signOut" size="size-5" />
-        </button>
-        <SyncIndicator :compact="!wide" class="pl-1" />
+        <SyncIndicator :compact="!wide" />
       </div>
     </div>
-    <ConfirmDialog
-      ref="confirmSignOut"
-      :heading="messages.signOut.confirmHeading"
-      :body="messages.signOut.confirmBody"
-      :confirm-label="messages.signOut.button"
-      :keep-label="messages.signOut.keep"
-      @confirm="signOut"
-    />
   </header>
 </template>
 
 <script setup lang="ts">
-// SPEC §2 Navigation, Header: Account (my picture or a person icon), Focus timer, alerts bell, Sign out (asks first)
-// and sync status, on every signed-in page. Phones also get My Brain and Search here; wide screens have those in the
+// SPEC §2 Navigation, Header: Account (my picture or a person icon), Focus timer, alerts bell and sync status, on every signed-in page. Phones also get My Brain and Search here; wide screens have those in the
 // side menu.
 import { ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import AlertsBell from '@/components/AlertsBell.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import SyncIndicator from '@/components/SyncIndicator.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchStore } from '@/stores/search'
@@ -51,11 +40,10 @@ import { messages } from '@/messages'
 defineProps<{ wide: boolean }>()
 const emit = defineEmits<{ focus: [] }>()
 
-const iconButton = 'flex size-11 items-center justify-center rounded-xl border border-line'
+// 44 px, or 40 px under 360 px wide so everything fits on one line at 320 px (SPEC §2 Header).
+const iconButton = 'flex size-10 min-[360px]:size-11 shrink-0 items-center justify-center rounded-xl border border-line'
 const auth = useAuthStore()
-const router = useRouter()
 const searchWindow = useSearchStore()
-const confirmSignOut = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 
 // The profile picture; when there is none, or it can't load (offline, removed), the plain person icon shows.
 const avatarUrl = ref<string | null>(null)
@@ -71,10 +59,4 @@ watch(
   },
   { immediate: true },
 )
-
-async function signOut() {
-  confirmSignOut.value?.close()
-  await auth.signOut()
-  await router.push({ name: 'sign-in' })
-}
 </script>

@@ -15,17 +15,17 @@ async function open(page: Page, avatar: string | null, serve: 'ok' | 'broken' = 
   return page.getByTestId('app-header')
 }
 
-test.describe('Spec §2 Header: Account, Focus timer, alerts, Sign out and sync on every signed-in page', () => {
-  test('the header has Account, Focus timer, the bell, Sign out and sync status, in that order', async ({ page }) => {
+test.describe('Spec §2 Header: Account, Focus timer, alerts and sync on every signed-in page', () => {
+  test('the header has Account, Focus timer, the bell and sync status, in that order, and no Sign out', async ({ page }) => {
     const header = await open(page, null)
     const names = await header.locator('a[aria-label], button[aria-label], [role=status]').evaluateAll((els) =>
       els.map((e) => e.getAttribute('data-testid') ?? e.getAttribute('aria-label')),
     )
-    const order = ['header-account', 'focus-open', 'alerts-bell', 'header-sign-out', 'sync-indicator']
+    const order = ['header-account', 'focus-open', 'alerts-bell', 'sync-indicator']
     expect(names.filter((n) => order.includes(n ?? ''))).toEqual(order)
     await expect(header.getByRole('link', { name: 'Account' })).toBeVisible()
     await expect(header.getByRole('button', { name: 'Focus timer' })).toBeVisible()
-    await expect(header.getByRole('button', { name: 'Sign out' })).toBeVisible()
+    await expect(header.getByRole('button', { name: 'Sign out' })).toHaveCount(0)
     await expect(header.getByTestId('sync-indicator')).toHaveText('Synced')
   })
 
@@ -56,20 +56,6 @@ test.describe('Spec §2 Header: Account, Focus timer, alerts, Sign out and sync 
     await expect(page.getByRole('dialog', { name: 'Focus timer' })).toBeVisible()
   })
 
-  test('Sign out asks first: Stay signed in keeps me here, Sign out signs this device out', async ({ page }) => {
-    const header = await open(page, null)
-    await header.getByTestId('header-sign-out').click()
-    const ask = page.getByRole('alertdialog', { name: 'Sign out?' })
-    await expect(ask).toBeVisible()
-    await ask.getByRole('button', { name: 'Stay signed in' }).click()
-    await expect(ask).toBeHidden()
-    await expect(page).toHaveURL(/\/$/)
-
-    await header.getByTestId('header-sign-out').click()
-    await ask.getByRole('button', { name: 'Sign out' }).click()
-    await expect(page).toHaveURL(/\/sign-in$/)
-  })
-
   test('Account and Focus timer are no longer under More', async ({ page }, info) => {
     await open(page, null)
     if (info.project.name === 'desktop-chromium') {
@@ -97,20 +83,39 @@ test.describe('Spec §2 Header: Account, Focus timer, alerts, Sign out and sync 
     } else {
       await expect(words).toHaveClass(/sr-only/)
       await expect(sync).toHaveAttribute('title', 'Synced')
-      // Phones also keep My Brain and Search in the header.
-      await expect(header.getByRole('link', { name: 'My Brain' })).toBeVisible()
+      // Phones also have a Home icon (named My Brain, opens the Dashboard) and Search in the header.
+      const home = header.getByRole('link', { name: 'My Brain' })
+      await expect(home.locator('[data-icon="home"]')).toBeVisible()
+      await expect(home).not.toContainText('My Brain')
       await expect(header.getByRole('button', { name: 'Search' })).toBeVisible()
     }
   })
 
-  test('at 320 px the header fits without sideways scrolling, and every control is at least 44 px', async ({ page }) => {
+  for (const [width, size] of [[320, 40], [360, 44], [412, 44]] as const) {
+    test(`at ${width} px everything sits on one line without sideways scrolling, controls ${size} px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 640 })
+      const header = await open(page, AVATAR)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+      const controls = await header.locator('a:visible, button:visible, [role=status]').all()
+      expect(controls).toHaveLength(6)
+      const middles: number[] = []
+      for (const el of controls) {
+        const box = (await el.boundingBox())!
+        if ((await el.getAttribute('role')) !== 'status') expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(size)
+        expect(box.x).toBeGreaterThanOrEqual(0)
+        expect(box.x + box.width).toBeLessThanOrEqual(width)
+        middles.push(box.y + box.height / 2)
+      }
+      expect(Math.max(...middles) - Math.min(...middles)).toBeLessThanOrEqual(2)
+    })
+  }
+
+  test('the Home icon opens the Dashboard', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 })
-    const header = await open(page, AVATAR)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
-    for (const el of await header.locator('a:visible, button:visible').all()) {
-      const box = await el.boundingBox()
-      expect(box && Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44)
-      expect(box && box.x + box.width).toBeLessThanOrEqual(320)
-    }
+    const header = await open(page, null)
+    await header.getByRole('link', { name: 'Account' }).click()
+    await expect(page).toHaveURL(/\/account$/)
+    await header.getByTestId('header-home').click()
+    await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
   })
 })

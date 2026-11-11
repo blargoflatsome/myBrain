@@ -1,7 +1,7 @@
 <template>
   <button
     type="button"
-    class="relative flex size-11 items-center justify-center rounded-xl border border-line"
+    class="relative flex size-10 min-[360px]:size-11 shrink-0 items-center justify-center rounded-xl border border-line"
     :aria-label="unread ? m.bellLabel(unread) : m.bellLabelNone"
     data-testid="alerts-bell"
     @click="openList"

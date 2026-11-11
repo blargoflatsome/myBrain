@@ -28,6 +28,10 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Also on this branch: token savings (SPEC decisions moved to `docs/DECISIONS.md`, old progress to `docs/PROGRESS_ARCHIVE.md`, reading rule in CLAUDE.md).
 - Tests: `e2e/header.spec.ts`; `goTo('Account')` now uses the header. Quick checks pass; Android checked for the changed tests. `npm run test:all` passed (2026-11-11): Vitest 319, Playwright 958 (3 profiles).
 
+## Header on one line, sign out moved (merged via PR, branch `header-one-line`)
+- User: everything on one line; on phones a Home icon instead of "My Brain". Controls 44 px, 40 px under 360 px wide; nothing wraps at 320 px (SPEC §2 Header, DECISIONS 2026-11-11). Tests in `e2e/header.spec.ts` at 320, 360 and 412 px.
+- Sign out removed from the header (user); on the Account page it's now its own always-visible row right under Your profile, out of the Account group with Delete account. Test in `e2e/account-layout.spec.ts`. `npm run test:all` passed (2026-11-11): Vitest 319, Playwright 967.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).

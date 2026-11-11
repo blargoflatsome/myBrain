@@ -42,9 +42,6 @@ export const messages = {
   },
   signOut: {
     button: 'Sign out',
-    confirmHeading: 'Sign out?',
-    confirmBody: 'This signs you out on this device. Everything stays saved.',
-    keep: 'Stay signed in',
   },
   /** SPEC §2 Navigation, Header. */
   header: {
@@ -578,7 +575,7 @@ export const messages = {
     openConnections: 'Open Connections',
     data: 'Download or delete your data',
     accountTitle: 'Account',
-    account: 'Sign out or delete your account',
+    account: 'Delete your account',
     signOutHint: 'Sign out on this device.',
   },
   /** SPEC §5 Calendar, my people: the list on the Account page. */
