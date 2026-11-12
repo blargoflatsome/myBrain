@@ -64,6 +64,8 @@ export const linkUrl = (token: string, origin: string = window.location.origin) 
 // ---------- Part 3: connect from my people and from a guest invitation ----------
 /** Ids of my saved people whose email belongs to an account I'm not connected with (they show Connect). */
 export const peopleWithAccounts = async () => new Set((await list<{ person_id: string }>('people_with_accounts')).map((r) => r.person_id))
+/** Ids of my saved people who are already connections (matched by their email or phone), shown once, as the connection. */
+export const peopleWhoAreConnections = async () => new Set((await list<{ person_id: string }>('people_who_are_connections')).map((r) => r.person_id))
 export const guestConnectOffer = (invite: string, token: string) => call<boolean | null>('guest_connect_offer', { invite, token })
 export const guestConnectWithHost = (invite: string, token: string) => call<void>('guest_connect_with_host', { invite, token })
 

@@ -61,11 +61,6 @@ begin
   -- Nobody sees another user's streaks unless both agreed to connect: no "Everyone" choice, no shared list.
   select count(*) into n from pg_proc where proname = 'shared_streaks' and pronamespace = 'public'::regnamespace;
   if n <> 0 then raise exception 'FAIL: Spec §10: there is no list of streaks shared with every user'; end if;
-  begin
-    update public.profiles set streak_visibility = 'everyone' where user_id = alice;
-    raise exception 'FAIL: Spec §5 Account page: "Everyone" is not a visibility choice';
-  exception when check_violation then null;
-  end;
 
   raise exception 'PASS: all habit rule checks passed (test data rolled back)';
 end

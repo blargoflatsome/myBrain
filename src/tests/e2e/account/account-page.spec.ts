@@ -21,17 +21,16 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Account page', () => {
-  test('shows my name, lets me edit it, and streaks are private (only me) by default; there is no bio', async ({ page }) => {
+  test('shows my name and lets me edit it; there is no bio and no visibility setting (§5 Profiles)', async ({ page }) => {
     await open(page, '/account')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Test Person')
-    await expect(page.getByLabel(msg.profile.visibility)).toHaveValue('private')
+    await expect(page.getByTestId('profile-settings').getByRole('combobox')).toHaveCount(0)
 
     await expect(page.getByLabel('Short bio')).toHaveCount(0)
     await page.getByLabel(msg.profile.displayName).fill('Jo')
-    await page.getByLabel(msg.profile.visibility).selectOption('approved')
     await page.getByRole('button', { name: msg.profile.save }).click()
     await expect(page.getByText(msg.profile.saved, { exact: true })).toBeVisible()
-    expect(server.written('profiles').at(-1)).toMatchObject({ display_name: 'Jo', streak_visibility: 'approved' })
+    expect(server.written('profiles').at(-1)).toMatchObject({ display_name: 'Jo' })
   })
 
   test('Spec §9: Delete My Account confirms first, then deletes everything and signs me out', async ({ page }) => {

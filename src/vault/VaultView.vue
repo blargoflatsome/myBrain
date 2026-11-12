@@ -37,7 +37,6 @@
               <AppIcon name="star" :filled="bucket.starred" size="size-5" />
             </button>
             <button type="button" :class="smallButton" @click="editingBucket = bucket">{{ m.settings }}</button>
-            <NewButton :label="m.newItem" data-testid="new-item" @click="startNewItem" />
           </div>
         </div>
       </div>
@@ -64,7 +63,7 @@
             @click="brain.toggleVaultItem(i.id)"
           />
           <div class="flex min-w-0 flex-1 flex-col gap-1">
-            <button type="button" class="text-left font-medium" :class="i.checked ? 'line-through' : ''" :aria-label="m.open(i.title)" @click="(isNewItem = false), (editing = i)">
+            <button type="button" class="text-left font-medium" :class="i.checked ? 'line-through' : ''" :aria-label="m.open(i.title)" @click="editing = i">
               {{ i.title }}
             </button>
             <span v-if="i.rating" class="text-sm text-star" :aria-label="m.stars(i.rating)" role="img"><AppIcon v-for="n in 5" :key="n" name="star" :filled="n <= i.rating" :class="n <= i.rating ? '' : 'text-muted'" /></span>
@@ -86,7 +85,7 @@
       </button>
     </template>
 
-    <VaultItemEditor :item="editing" :is-new="isNewItem" :buckets="buckets" @save="saveItem" @delete="deleteItem" @close="closeEditor" />
+    <VaultItemEditor :item="editing" :buckets="buckets" @save="saveItem" @delete="deleteItem" @close="closeEditor" />
     <BucketEditor
       :bucket="editingBucket"
       :item-count="editingBucket ? countIn(editingBucket) : 0"
@@ -114,7 +113,6 @@ import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
 import RowDelete from '@/components/RowDelete.vue'
 import CheckCircle from '@/components/CheckCircle.vue'
-import { useAuthStore } from '@/stores/auth'
 import { live } from '@/sync/live'
 import { useUndoStore } from '@/stores/undo'
 import { plainText } from '@/journal/body'
@@ -175,17 +173,8 @@ watch(
   },
   { immediate: true },
 )
-const isNewItem = ref(false)
-// SPEC §2 Adding looks alike: + New item opens the item editor for this bucket (the quick-add box stays too).
-const auth = useAuthStore()
-function startNewItem() {
-  if (!bucket.value) return
-  isNewItem.value = true
-  editing.value = { id: crypto.randomUUID(), user_id: auth.user?.id ?? '', bucket_id: bucket.value.id, title: '', notes: null, rating: null, link: null, checked: false, created_at: new Date().toISOString(), deleted_at: null }
-}
 async function closeEditor() {
   editing.value = null
-  isNewItem.value = false
   if (route.query.item) await router.replace({ query: { bucket: bucketId.value ?? undefined } })
 }
 async function saveItem(i: VaultItemRow) {

@@ -63,7 +63,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { contactKey } from '@/events/contacts'
 import { matchesPerson, personLabel, sortPeople, uniquePeople } from '@/events/people'
 import type { PersonToInvite } from '@/events/sharing'
-import { myConnections, peopleWithAccounts, requestConnection, type Connection } from '@/connections/connections'
+import { myConnections, peopleWhoAreConnections, peopleWithAccounts, requestConnection, type Connection } from '@/connections/connections'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { live } from '@/sync/live'
@@ -77,7 +77,9 @@ const c = messages.connections
 const brain = useBrainStore()
 
 const rows = useLiveQuery<PersonRow[]>(async () => (brain.db ? live(await brain.db.people.toArray()) : []), [], [() => brain.db])
-const people = computed(() => sortPeople(uniquePeople(rows.value)))
+// A saved person who is also a connection shows once, under On My Brain (SPEC §5 Calendar, Contacts window).
+const alsoConnections = ref<Set<string>>(new Set())
+const people = computed(() => sortPeople(uniquePeople(rows.value)).filter((p) => !alsoConnections.value.has(p.id)))
 const search = ref('')
 const listed = computed(() => people.value.filter((p) => matchesPerson(p, search.value)))
 const { page, pageCount, pageItems } = usePagination(listed, 10)
@@ -110,6 +112,7 @@ defineExpose({
     if (!brain.online) return
     void myConnections().then((list) => (connections.value = list), () => {})
     void peopleWithAccounts().then((ids) => (withAccounts.value = ids), () => {})
+    void peopleWhoAreConnections().then((ids) => (alsoConnections.value = ids), () => {})
   },
 })
 </script>

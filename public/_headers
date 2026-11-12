@@ -8,3 +8,49 @@
   Permissions-Policy: camera=(), geolocation=(), payment=(), usb=(), microphone=(self)
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Cross-Origin-Opener-Policy: same-origin
+
+# Search engines (docs/SPEC.md §8): only the sign-in page (and / which leads to it when signed out) may be indexed.
+# Every other page, including the public guest, Privacy and Terms pages, says noindex. A new route needs a line here;
+# src/tests/unit/security/robots.test.ts fails otherwise.
+/tasks
+  X-Robots-Tag: noindex, nofollow
+/capture
+  X-Robots-Tag: noindex, nofollow
+/routines
+  X-Robots-Tag: noindex, nofollow
+/routines/*
+  X-Robots-Tag: noindex, nofollow
+/journal
+  X-Robots-Tag: noindex, nofollow
+/vault
+  X-Robots-Tag: noindex, nofollow
+/calendar
+  X-Robots-Tag: noindex, nofollow
+/habits
+  X-Robots-Tag: noindex, nofollow
+/account
+  X-Robots-Tag: noindex, nofollow
+/tags
+  X-Robots-Tag: noindex, nofollow
+/connections
+  X-Robots-Tag: noindex, nofollow
+/people/*
+  X-Robots-Tag: noindex, nofollow
+/connect/*
+  X-Robots-Tag: noindex, nofollow
+/profile
+  X-Robots-Tag: noindex, nofollow
+/quests
+  X-Robots-Tag: noindex, nofollow
+/orphans
+  X-Robots-Tag: noindex, nofollow
+/inbox
+  X-Robots-Tag: noindex, nofollow
+/welcome
+  X-Robots-Tag: noindex, nofollow
+/rsvp/*
+  X-Robots-Tag: noindex, nofollow
+/privacy
+  X-Robots-Tag: noindex, nofollow
+/terms
+  X-Robots-Tag: noindex, nofollow

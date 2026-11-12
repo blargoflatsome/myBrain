@@ -51,7 +51,7 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Tests: `src/tests/e2e/app/forms.spec.ts` and `habits/form.spec.ts` (forms and habit layout), plus updates in capture, habits, routines, a11y and others. No migration. Full review: Vitest 335, Playwright 692/693; the one iPhone dashboard habit-stats failure passed 3/3 alone. User will fine-tune spacing themselves.
 
 ## Plan trimmed (2026-11-11, user)
-- Still to build: a push for connection requests; what a profile shows (decide first). Phase 2: email sending (domain + Resend), Home Assistant, Alexa/voice, smartwatch.
+- Still to build: a push for connection requests. (Profiles: built 2026-11-12.) Phase 2: email sending (domain + Resend), Home Assistant, Alexa/voice, smartwatch.
 - Dropped: "Just this date" answers, Features and Docs pages, Type it like you'd say it, automatic texting (SMS), Capacitor Android app, social streaks and leaderboards, the Raspberry Pi display. SPEC, CLAUDE.md, CODING_STANDARDS and README updated; DECISIONS 2026-11-11.
 
 ## Tags page (merged via PR #53, branch `tags-page`)
@@ -125,6 +125,19 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Appearance: System, Light, Dark in Account Settings (`ui/appearance.ts`, `profiles.appearance`, kept on the device as `my-brain:appearance`); dark colours also apply with `data-theme="dark"`; Calendar follows it.
 - Migration `20261112010000_pause_streaks_appearance.sql`: applied to dev; `npm run test:db` passes (30 files, new `rls_habit_pauses.sql`). Prod migrated (second push confirms up to date).
 - Tests: unit `quests/picker.test.ts`, `habits/rules.test.ts`; e2e `account/appearance-and-pause.spec.ts` (new), `quests/quests.spec.ts`. Full review (2026-11-12): Vitest 387, Playwright 718/721 (32 skipped); the 3 iPhone failures (dropped test-server connections on a11y page loads) passed 18/18 alone.
+
+## Profiles (merged via PR, branch `routines-credit`)
+- SPEC §5 Profiles, §8 Search engines; DECISIONS 2026-11-12 Profiles. Also carries the earlier uncommitted No SMS / Discord doc edits.
+- `/people/:id` (`src/profiles/ProfileView.vue`), opened from a connection's name on the Connections page: picture (`src/components/UserAvatar.vue`, now also on the Account page), name, earned trophies as tier-coloured icons (`ProfileTrophies.vue`, `--tier-*` tokens in `style.css`), Invite to event window (`InviteToEventDialog.vue`, `inviteChoices` in `src/profiles/rules.ts`: my upcoming events, Invited / Full) and New event (`src/events/startWith.ts` hands the person to the Calendar's new-event editor). No streaks, no online status.
+- "Who sees my profile" setting removed (Account page, profile store, messages).
+- Trophies on a profile use the Dashboard's own parts: `TrophyGroups.vue` and `TrophyDetailsDialog.vue` (shared with `TrophiesSection.vue`); someone else's details window shows how a trophy is earned instead of "You kept…". Tier colour tokens dropped.
+- Vault bucket: + New item removed (the Add an item box stays); its unused editor new-mode removed (SPEC §2 Adding).
+- Guest invite report (2026-11-12): prod showed the friend answered from the guest link without an account, then signed up from the page's offer. The offer now shows only after answering and says it's optional (`GuestRsvpView.vue`, `messages.guest.signUp`; test in `guest-links.spec.ts`).
+- Contacts window shows a saved person who is also a connection only once, as the connection (`people_who_are_connections()` matching the connection's sign-in email or phone in any format via `phone_key`; `ContactsDialog.vue`). Migration `20261112030000_people_who_are_connections.sql`: dev migrated, `npm run test:db` passes (check in `rls_connect_part3.sql`), `npm run test:flows` passes. Prod not migrated yet (both new migrations go right before merge).
+- **View my profile** link beside Save profile in Your profile: `/people/<my id>` shows my own profile from this device (name, picture, live trophies), without Invite to event.
+- Migration `20261112020000_profiles.sql`: `connection_profile(friend)` (connections only, not blocked, never anon), `invite_people` skips a connection already invited to the event, `streak_visibility` column and `visibility` type dropped. Dev migrated; `npm run test:db` passes (31 files, new `rls_connection_profile.sql`; `rls_connections.sql` now expects one invite per event); `npm run test:flows` passes. **Prod not migrated yet** (do it right before merge; old clients writing `streak_visibility` fail until the deploy lands).
+- `public/robots.txt` (allow all) and `X-Robots-Tag: noindex, nofollow` in `public/_headers` for every route but `/` and `/sign-in`; `src/tests/unit/security/robots.test.ts` fails if a new route lacks it.
+- Tests: `src/tests/unit/profiles/rules.test.ts`, `src/tests/e2e/profiles/profiles.spec.ts`, Profile page and Invite window axe scans + 320 px reflow with an unbroken name in `a11y.spec.ts`, Account page test updated. Full review (2026-11-12): Vitest 395, Playwright 748/750 (30 skipped); the 2 iPhone failures (dropped test-server connections on a11y page loads) passed 12/12 alone.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.

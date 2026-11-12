@@ -81,10 +81,10 @@
       <p v-if="!connections.length" class="text-sm text-muted">{{ m.none }}</p>
       <ul v-else class="flex flex-col gap-2">
         <li v-for="c in connections" :key="c.friend_id" class="flex min-w-0 items-center justify-between gap-2" data-testid="connection">
-          <span class="flex min-w-0 items-center gap-2">
-            <img v-if="c.avatar_url" :src="c.avatar_url" alt="" class="size-8 rounded-full" referrerpolicy="no-referrer">
-            <span class="font-medium [overflow-wrap:anywhere]">{{ c.display_name }}</span>
-          </span>
+          <RouterLink :to="`/people/${c.friend_id}`" class="flex min-h-11 min-w-0 items-center gap-2 rounded-xl" :aria-label="pm.openLabel(c.display_name)" data-testid="connection-profile-link">
+            <UserAvatar :url="c.avatar_url" />
+            <span class="font-medium underline-offset-4 hover:underline [overflow-wrap:anywhere]">{{ c.display_name }}</span>
+          </RouterLink>
           <span class="flex shrink-0 gap-1">
             <button type="button" :class="smallButton" :aria-label="m.removeLabel(c.display_name)" @click="askEnd(c, false)">{{ m.remove }}</button>
             <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm text-danger" :aria-label="m.blockLabel(c.display_name)" @click="askEnd(c, true)">{{ m.block }}</button>
@@ -120,6 +120,7 @@
 // account), answer requests (Accept, Decline, Block), see my connections and remove or block them.
 import { computed, onMounted, ref } from 'vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import UserAvatar from '@/components/UserAvatar.vue'
 import {
   answerRequest,
   cancelRequest,
@@ -148,6 +149,7 @@ import { useBrainStore } from '@/stores/brain'
 import { card, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
 
 const m = messages.connections
+const pm = messages.personProfile
 const brain = useBrainStore()
 const incoming = ref<IncomingRequest[]>([])
 const sent = ref<SentRequest[]>([])

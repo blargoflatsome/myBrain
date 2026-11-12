@@ -1,0 +1,4 @@
+# My Brain (docs/SPEC.md §8 Search engines): only the sign-in page is meant for search results. Crawlers may visit,
+# so they can read the "noindex" every other page sends; private pages aren't listed here on purpose.
+User-agent: *
+Allow: /

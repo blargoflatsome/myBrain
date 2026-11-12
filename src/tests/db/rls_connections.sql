@@ -68,8 +68,9 @@ begin
   perform public.invite_people(ev, '[{"user_id": "22222222-2222-2222-2222-222222222222"}]'::jsonb);
   execute 'reset role';
   select count(*) into n from public.invite_recipients r join public.event_invites i on i.id = r.invite_id where i.event_id = ev and r.user_id = bob;
-  -- Two: the earlier guest invitation moved in when we connected (part 4), plus this one.
-  if n <> 2 then raise exception 'FAIL: Spec §10: connections can be invited in the app (got %)', n; end if;
+  -- One: the earlier guest invitation moved in when we connected (part 4), so inviting again adds no second one
+  -- (§5 Profiles).
+  if n <> 1 then raise exception 'FAIL: Spec §10: connections can be invited in the app, once per event (got %)', n; end if;
 
   -- Removing ends it on both sides; blocking stops new requests silently.
   execute 'set local role authenticated';

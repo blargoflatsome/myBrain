@@ -63,7 +63,6 @@ export class FakeSupabase {
       display_name: 'Test Person',
       bio: null,
       avatar_url: null,
-      streak_visibility: 'private',
       phone: '+1 555 010 0100',
       event_notify_method: 'email',
       findable: true,

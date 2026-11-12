@@ -23,13 +23,8 @@
       </ul>
     </template>
     <div v-else id="dash-trophy-list" class="flex flex-col gap-6" data-testid="trophy-groups">
-      <section v-for="g in earnedGroups" :key="g.category" class="flex flex-col gap-2" :aria-labelledby="`trophy-cat-${g.category}`" :data-testid="`trophy-category-${g.category}`">
-        <h3 :id="`trophy-cat-${g.category}`" class="text-sm font-semibold text-muted">{{ t.categories[g.category] }}</h3>
-        <ul class="grid gap-2 sm:grid-cols-2">
-          <TrophyCard v-for="item in g.items" :key="item.id" :item="item" @open="openDetails" />
-        </ul>
-      </section>
-      <p v-if="!earnedGroups.length" class="text-sm text-muted">{{ t.none }}</p>
+      <TrophyGroups :items="earned" id-prefix="trophy-category" @open="openDetails" />
+      <p v-if="!earned.length" class="text-sm text-muted">{{ t.none }}</p>
     </div>
 
     <div class="flex flex-wrap gap-2">
@@ -54,40 +49,14 @@
           <h2 class="text-lg font-semibold">{{ t.lockedHeading }}</h2>
           <p class="text-sm text-muted">{{ t.lockedHint }}</p>
         </div>
-        <p v-if="!lockedGroups.length" class="text-sm text-muted">{{ t.lockedNone }}</p>
-        <section v-for="g in lockedGroups" :key="g.category" class="flex flex-col gap-2" :aria-labelledby="`locked-cat-${g.category}`">
-          <h3 :id="`locked-cat-${g.category}`" class="text-sm font-semibold text-muted">{{ t.categories[g.category] }}</h3>
-          <ul class="grid gap-2 sm:grid-cols-2">
-            <TrophyCard v-for="item in g.items" :key="item.id" :item="item" @open="openDetails" />
-          </ul>
-        </section>
+        <p v-if="!locked.length" class="text-sm text-muted">{{ t.lockedNone }}</p>
+        <TrophyGroups :items="locked" id-prefix="locked-cat" @open="openDetails" />
         <button type="button" class="self-start" :class="secondaryButton" @click="lockedDialog?.close()">{{ t.close }}</button>
       </div>
       <CloseX @click="lockedDialog?.close()" />
     </dialog>
 
-    <!-- What I did to earn a trophy: each level reached and when, or the one thing for a single-step trophy. -->
-    <dialog ref="detailsDialog" :class="dialogBox" :aria-label="details ? trophyName(details) : t.heading" data-testid="trophy-details">
-      <div v-if="details" class="flex flex-col gap-6 p-5">
-        <div class="flex items-center gap-3 pr-10">
-          <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-done text-bg" aria-hidden="true"><AppIcon name="trophy" size="size-6" /></span>
-          <div class="flex min-w-0 flex-col">
-            <h2 class="text-lg font-semibold break-words">{{ trophyName(details) }}</h2>
-            <span v-if="details.tier" class="text-sm">{{ t.tiers[details.tier] }}</span>
-          </div>
-        </div>
-        <p data-testid="trophy-details-about">{{ detailsAbout }}</p>
-        <ul v-if="details.thresholds.length > 1" class="flex flex-col gap-2" :aria-label="t.levelsHeading" data-testid="trophy-details-levels">
-          <li v-for="(need, i) in details.thresholds" :key="need" class="flex items-baseline justify-between gap-3 text-sm" :class="i < details.level ? '' : 'text-muted'">
-            <span>{{ t.tiers[TIERS[i]!] }} · {{ t.reached(need, details.unit) }}</span>
-            <span class="shrink-0 text-xs text-muted">{{ details.days[i] ? dateWithYear(details.days[i]!) : i < details.level ? '' : t.notYet }}</span>
-          </li>
-        </ul>
-        <p v-else-if="details.lastDay" class="text-sm text-muted">{{ t.earnedOn(dateWithYear(details.lastDay)) }}</p>
-        <button type="button" class="self-start" :class="secondaryButton" @click="detailsDialog?.close()">{{ t.close }}</button>
-      </div>
-      <CloseX @click="detailsDialog?.close()" />
-    </dialog>
+    <TrophyDetailsDialog ref="detailsDialog" />
   </section>
 </template>
 
@@ -96,41 +65,29 @@
 // earned or started by category, with progress; See locked trophies opens a window with the rest (surprises as ???).
 // Tapping an earned trophy opens what I did to earn it.
 import { computed, ref } from 'vue'
-import { nextTick } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import CloseX from '@/components/CloseX.vue'
 import TrophyCard from '@/trophies/components/TrophyCard.vue'
-import { byCategory, closestTrophy, newest, trophyName, type BoardItem } from '@/trophies/board'
+import TrophyGroups from '@/trophies/components/TrophyGroups.vue'
+import TrophyDetailsDialog from '@/trophies/components/TrophyDetailsDialog.vue'
+import { closestTrophy, newest, trophyName, type BoardItem } from '@/trophies/board'
 import { TIERS } from '@/trophies/definitions'
 import { messages } from '@/messages'
-import { dateWithYear } from '@/ui/dates'
 import { card, dialogBox, secondaryButton, smallButton } from '@/ui/styles'
 
 const props = defineProps<{ items: BoardItem[] }>()
 const cm = messages.celebrations
 const t = cm.trophies
 
-const detailsDialog = ref<HTMLDialogElement | null>(null)
-const details = ref<BoardItem | null>(null)
-async function openDetails(item: BoardItem) {
-  details.value = item
-  await nextTick()
-  detailsDialog.value?.showModal()
-}
-/** What I did: a first time, a surprise found, or how the trophy is earned. */
-const detailsAbout = computed(() => {
-  const d = details.value
-  if (!d) return ''
-  if (d.category === 'firsts') return cm.badgesAbout[d.id] ?? ''
-  return t.earnedAbout[d.id] ?? t.about[d.id] ?? ''
-})
+const detailsDialog = ref<InstanceType<typeof TrophyDetailsDialog> | null>(null)
+const openDetails = (item: BoardItem) => detailsDialog.value?.open(item)
 
 const showAll = ref(false)
 const lockedDialog = ref<HTMLDialogElement | null>(null)
 const earnedCount = computed(() => props.items.filter((i) => i.level).length)
 const latest = computed(() => newest(props.items, 3))
-const earnedGroups = computed(() => byCategory(props.items.filter((i) => !i.locked)))
-const lockedGroups = computed(() => byCategory(props.items.filter((i) => i.locked)))
+const earned = computed(() => props.items.filter((i) => !i.locked))
+const locked = computed(() => props.items.filter((i) => i.locked))
 const closest = computed(() => closestTrophy(props.items))
 const closeLine = computed(() => {
   const c = closest.value

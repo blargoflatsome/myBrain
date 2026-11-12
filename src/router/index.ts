@@ -26,6 +26,7 @@ export const routes = [
   { path: '/account', name: 'account', component: () => import('@/account/AccountView.vue') },
   { path: '/tags', name: 'tags', component: () => import('@/tags/TagsView.vue') },
   { path: '/connections', name: 'connections', component: () => import('@/connections/ConnectionsView.vue') },
+  { path: '/people/:id', name: 'person', component: () => import('@/profiles/ProfileView.vue') },
   { path: '/connect/:token', name: 'connect', component: () => import('@/connections/ConnectLinkView.vue'), meta: { returnAfterSignIn: true } },
   // The page was called Profile before; old links still work.
   { path: '/profile', redirect: '/account' },

@@ -10,7 +10,6 @@ export interface Profile {
   user_id: string
   display_name: string | null
   avatar_url: string | null
-  streak_visibility: 'private' | 'approved'
   celebrations: string | null
   /** SPEC §3 Appearance: system, light or dark. */
   appearance: string | null

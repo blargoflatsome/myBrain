@@ -122,11 +122,15 @@ test.describe('Spec §10 Connections part 4: the guest page', () => {
 })
 
 test.describe('Spec §10 Connections part 4: the guest page, signed out', () => {
-  test('a guest without an account is invited to create one, and comes back to the invitation after signing in', async ({ page }) => {
+  test('only after answering is a guest offered an optional account, and they come back to the invitation after signing in', async ({ page }) => {
     await page.route(/\/rest\/v1\/rpc\/guest_invite$/, (route) => route.fulfill({ json: [guest] }))
+    await page.route(/\/rest\/v1\/rpc\/guest_respond$/, (route) => route.fulfill({ status: 204, body: '' }))
     await open(page, '/rsvp/inv-carol/tok-carol')
     const prompt = page.getByTestId('guest-sign-up')
-    await expect(prompt).toContainText('create a free My Brain account')
+    await expect(page.getByRole('button', { name: msg.guest.yes })).toBeVisible()
+    await expect(prompt).toHaveCount(0)
+    await page.getByRole('button', { name: msg.guest.yes }).click()
+    await expect(prompt).toBeVisible()
     await prompt.getByRole('button', { name: msg.guest.signUpButton }).click()
     await expect(page).toHaveURL(/\/sign-in$/)
     expect(await page.evaluate(() => sessionStorage.getItem('my-brain:after-sign-in'))).toBe('/rsvp/inv-carol/tok-carol')
