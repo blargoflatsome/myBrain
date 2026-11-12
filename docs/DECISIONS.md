@@ -186,3 +186,8 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 - Capture opens on the text box, with the type chips under it and Decide later chosen, so a thought can be typed before deciding where it goes. Choosing a type keeps the text (first line title, rest notes); between two titled types the title and formatted notes stay as they are. Claude's call: tapping a chip leaves focus on the chip (no jump), except Post It, whose note editor takes the box's place.
 - Orphans one at a time, oldest first, with "1 of N". User: the card files to all five types (Task, The Vault, Quest, Habit, Post It) and gets a trash can with Undo; Skip moves an orphan to the back only while on the page (no migration). Deleting the last orphan counts as emptying Orphans, like filing it.
 - A task that carried over twice gets Tomorrow and Undated (one tap, Undo) beside Cancel task; moving it gives it a new due date, so its carry-over count starts again.
+
+## 2026-11-12 ADHD fit (UI review branch C, docs/UI_REVIEW_TASKS.md H1–H3)
+- Habits show "Kept N of the last M" (scheduled days in the last 30, today only once settled) beside the streak, so one miss doesn't erase the picture. A missed day's circle loses its ✕. Dashboard "Most missed" is renamed "Needs some love".
+- Tasks show one muted line above the list (empty/all-done, else past-you, else intro) instead of stacking up to three.
+- Pick 3 (user: automatic): first 3 open tasks in the usual order, the rest folded; the toggle shows only when more than 3 are open; remembered on the device. Claude's call: the fold holds crossed-off tasks too, so crossing one off brings the next one up; the fold itself isn't remembered.

@@ -83,3 +83,9 @@ export function cancelTask(task: TaskRow): TaskRow {
 export function moveTask(task: TaskRow, dueDate: string | null): TaskRow {
   return { ...task, due_date: dueDate }
 }
+
+/** Pick 3 (SPEC §5 Tasks): the first 3 open tasks of a list in its order, and everything else. */
+export function pickThree(list: readonly TaskRow[]): { shown: TaskRow[]; rest: TaskRow[] } {
+  const shown = list.filter((t) => t.status === 'open').slice(0, 3)
+  return { shown, rest: list.filter((t) => !shown.includes(t)) }
+}

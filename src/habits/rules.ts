@@ -164,6 +164,21 @@ export function streaks(habit: HabitRow, logs: readonly HabitLogRow[], now: Date
   return { current, best: Math.max(best, current) }
 }
 
+/**
+ * "Kept 26 of the last 30" (SPEC §5 Habits): of the scheduled days in the last `days` days, how many were kept,
+ * out of those already settled (today counts only once it's kept or missed).
+ */
+export function keptLately(habit: HabitRow, logs: readonly HabitLogRow[], now: Date, timeZone: string, days = 30) {
+  const from = addDays(todayIn(timeZone, now), 1 - days)
+  let kept = 0
+  let total = 0
+  for (const { status } of dayStatuses(habit, logs, now, timeZone, from)) {
+    if (status === 'completed') kept++
+    if (status === 'completed' || status === 'missed') total++
+  }
+  return { kept, total }
+}
+
 /** Scheduled days whose deadline passed with nothing logged: these get a "missed" log (SPEC §5 Habits). */
 export function missedDaysToRecord(habit: HabitRow, logs: readonly HabitLogRow[], now: Date, timeZone: string): string[] {
   return dayStatuses(habit, logs, now, timeZone)

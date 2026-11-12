@@ -150,6 +150,8 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - "Today" is the calendar date in the device's current timezone, so carry-over follows me when I travel. The profile's timezone is kept in step with the device for server-side jobs (notifications).
 - Priority levels change how the task is rendered (for example emphasis, order, color). Three levels: **Low** (sage), **Medium** (soft ochre), **High** (muted terracotta), shown as a colored dot and label beside the task. New tasks default to Low. Open tasks are ordered High, Medium, Low, then oldest first. Coloured title text is reserved for carried-over tasks; priority only colours the dot, so the two never look alike.
 - Present tasks in the "past you" voice.
+- **One line at a time (2026-11-12):** above the list there is only one muted line: the empty or all-done line if it applies, else the past-you line (today with tasks), else the page intro. The Priority tab keeps the intro under the heading.
+- **Pick 3 (2026-11-12, user: automatic):** a **Pick 3** toggle on today's list (shown when more than 3 tasks are open) shows only the first 3 open tasks in the usual order (High, Medium, Low, then oldest) and folds everything else under **Show the rest (7)**. Crossing one off brings the next one up. Remembered on this device. No migration.
 
 - Carry-over is calculated from each task's due date and today's date in my timezone when the list is displayed (and by a server-side job for notifications), not by a counter that only runs while the app is open. It stays correct when the app was closed or offline, or when I travel across timezones. `carry_over_count` is derived the same way. Test daylight saving changes and timezone changes.
 
@@ -160,6 +162,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Timer** starts at the notify time: notify 8:00 am with a 2-hour timer means done by 10:00 am. With no timer (or no notify time) the habit is due by midnight. **On the day a habit is created it is always due by midnight**, so it is never missed the moment it is saved; the timer applies from the next day. A timer needs a notify time. A habit can be completed any time before its deadline, and a completion can be undone until then.
 - **Scheduled days:** a habit only counts on its scheduled days (its chosen weekdays, in every other week if it repeats every 2 weeks, counted from the week it starts; weeks run Sunday to Saturday; or its day of the month if monthly), and never before its start date. Days it isn't scheduled neither extend nor break the streak. A habit's history starts on its start date.
 - Track a streak of scheduled days in a row. A missed day resets it to zero, and the app keeps my **best streak** as the new goal to beat. Current and best streaks are shown on the Habits page and the Dashboard (see the Account page section below).
+- **Missed isn't failure (2026-11-12):** on the Habits page each habit also shows **"Kept 26 of the last 30"** beside its streak: of its scheduled days in the last 30 days (today counts once it's kept or missed), how many were kept; hidden until it has one. A missed day's circle is muted and empty (no ✕, nothing red, no faded look); the line under it says it was missed.
 
 - The Habits page displays this line, worded exactly: "You are only in competition with yourself." It keeps the focus on beating my own best streak.
 
@@ -347,7 +350,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Period:** a dropdown at the top chooses **This year** (the default, January 1 to today), **Last 12 months**, or **All time**. It applies to every count below; streaks are always counted over all time.
 - **Habits:**
   - every habit with its current streak and its longest streak ever;
-  - **Most missed:** (bars in a neutral colour, not red) the top 3 habits with the most missed days in the period (a habit is missed when its deadline passes without completing it; skipping its step in a routine doesn't count until the day is missed);
+  - **Needs some love** (formerly Most missed; bars in a neutral colour, not red): the top 3 habits with the most missed days in the period (a habit is missed when its deadline passes without completing it; skipping its step in a routine doesn't count until the day is missed);
   - **Longest current streak:** the habit kept going the most days in a row right now;
   - **Best streak ever:** the longest streak any habit has reached;
   - **Oldest habit:** the habit I have been tracking the longest, since its start date.

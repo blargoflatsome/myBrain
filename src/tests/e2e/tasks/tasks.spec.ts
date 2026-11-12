@@ -47,6 +47,32 @@ test.describe('Spec §5 Tasks: the daily list', () => {
   })
 })
 
+test.describe('Spec §5 Tasks: one line at a time and Pick 3', () => {
+  test('only one line sits above the list: the past-you line today, the intro in Undated', async ({ page }) => {
+    server.seed('tasks', [task('a', 'pay rent', '2026-11-10'), task('bb', 'someday', null)])
+    await open(page)
+    await expect(page.getByTestId('tasks-line')).toHaveText(msg.tasks.pastYouToday)
+    await expect(page.getByTestId('tasks-intro')).toHaveCount(0)
+    await page.getByRole('tab', { name: msg.tasks.undatedHeading }).click()
+    await expect(page.getByTestId('tasks-line')).toHaveText(msg.tasks.intro)
+  })
+
+  test('Pick 3 shows the first 3 open tasks, folds the rest, and is remembered', async ({ page }) => {
+    server.seed('tasks', [
+      task('a', 'low one', '2026-11-10', { priority: 1 }),
+      task('bb', 'high one', '2026-11-10', { priority: 3 }),
+      task('ccc', 'medium one', '2026-11-10', { priority: 2 }),
+      task('dddd', 'low two', '2026-11-10', { priority: 1 }),
+    ])
+    await open(page)
+    await page.getByTestId('pick-three').click()
+    await expect(page.getByTestId('task-title').filter({ visible: true })).toHaveText(['high one', 'medium one', 'low one'])
+    await page.reload()
+    await page.getByTestId('show-rest').click()
+    await expect(page.getByTestId('task-title').filter({ visible: true })).toHaveText(['high one', 'medium one', 'low one', 'low two'])
+  })
+})
+
 test.describe('Spec §5 Tasks: carry-over', () => {
   test('a task not done by midnight carries over to today in red text', async ({ page }) => {
     server.seed('tasks', [task('a', 'call bank', '2026-11-09'), task('bb', 'fresh', '2026-11-10')])

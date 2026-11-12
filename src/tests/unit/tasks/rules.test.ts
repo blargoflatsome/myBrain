@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TaskRow } from '@/sync/types'
 import { addDays, daysBetween, todayIn } from '@/tasks/days'
-import { cancelTask, carryOverCount, needsDecision, priorityKey, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
+import { cancelTask, carryOverCount, needsDecision, pickThree, priorityKey, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
 
 const NY = 'America/New_York'
 
@@ -148,5 +148,16 @@ describe('Spec §5 Tasks: daily list, scheduling, and the Undated list', () => {
 describe('Spec §5 Tasks: priority levels', () => {
   it('maps 3/2/1 to High/Medium/Low and anything else to Low (the default)', () => {
     expect([3, 2, 1, 0, undefined].map(priorityKey)).toEqual(['high', 'medium', 'low', 'low', 'low'])
+  })
+})
+
+describe('Spec §5 Tasks: Pick 3', () => {
+  it('shows the first 3 open tasks in the list order and folds the rest, crossed-off ones included', () => {
+    const [a, b, c, d] = ['a', 'b', 'c', 'd'].map((title) => task({ title }))
+    const crossed = task({ title: 'crossed', status: 'done' })
+    // Crossing one of the 3 off brings the next one up.
+    const { shown, rest } = pickThree([a, crossed, b, c, d])
+    expect(shown.map((t) => t.title)).toEqual(['a', 'b', 'c'])
+    expect(rest.map((t) => t.title)).toEqual(['crossed', 'd'])
   })
 })

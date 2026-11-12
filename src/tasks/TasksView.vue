@@ -1,6 +1,6 @@
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
-    <PageHeading :heading="m.heading" :intro="m.intro" intro-test-id="tasks-intro">
+    <PageHeading :heading="m.heading" :intro="view === 'priority' ? m.intro : undefined" intro-test-id="tasks-intro">
       <NewButton v-if="view !== 'priority'" :label="m.newTask" data-testid="new-task" @click="startNew" />
     </PageHeading>
     <div class="flex gap-2 rounded-2xl bg-surface p-1" role="tablist">
@@ -54,9 +54,19 @@
         <button type="submit" :class="primaryButton">{{ m.add }}</button>
       </form>
 
-      <p v-if="view === 'day' && offset === 0 && list.length && !allDoneToday" class="text-muted">{{ m.pastYouToday }}</p>
-      <p v-if="allDoneToday" class="text-muted" role="status">{{ m.allDone }}</p>
-      <p v-if="!list.length && !allDoneToday" class="text-muted">{{ emptyText }}</p>
+      <!-- SPEC §5 Tasks: one muted line above the list, never a stack of them. -->
+      <p class="text-muted" :role="allDoneToday ? 'status' : undefined" data-testid="tasks-line">{{ topLine }}</p>
+
+      <button
+        v-if="canPick"
+        type="button"
+        :class="[chip(pickOn), 'self-start']"
+        :aria-pressed="pickOn"
+        data-testid="pick-three"
+        @click="setPick(!pickOn)"
+      >
+        <span v-if="pickOn" aria-hidden="true">✓ </span>{{ m.pickThree }}
+      </button>
 
       <button
         v-if="doneInList"
@@ -70,7 +80,7 @@
 
       <ul class="flex flex-col gap-2">
         <TaskItem
-          v-for="t in list"
+          v-for="t in shownTasks"
           :key="t.id"
           :task="t"
           :today="today"
@@ -82,6 +92,32 @@
           @undated="move(t, null)"
         />
       </ul>
+      <template v-if="picking && picked.rest.length">
+        <button
+          type="button"
+          :class="[smallButton, 'self-start']"
+          :aria-expanded="showRest"
+          aria-controls="tasks-rest"
+          data-testid="show-rest"
+          @click="showRest = !showRest"
+        >
+          {{ showRest ? m.hideRest : m.showRest(picked.rest.length) }}
+        </button>
+        <ul v-show="showRest" id="tasks-rest" class="flex flex-col gap-2">
+          <TaskItem
+            v-for="t in picked.rest"
+            :key="t.id"
+            :task="t"
+            :today="today"
+            @toggle="brain.saveTask(toggleDone(t))"
+            @edit="edit(t)"
+            @delete="remove(t)"
+            @cancel="brain.saveTask(cancelTask(t))"
+            @tomorrow="move(t, addDays(today, 1))"
+            @undated="move(t, null)"
+          />
+        </ul>
+      </template>
     </template>
 
     <TaskEditor :task="editing" :is-new="isNew" @save="saveEdit" @delete="remove" @close="editing = null" />
@@ -101,12 +137,13 @@ import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { addDays, daysBetween } from '@/tasks/days'
-import { cancelTask, clearDone, clearedForDay, DEFAULT_PRIORITY, moveTask, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
+import { cancelTask, clearDone, clearedForDay, DEFAULT_PRIORITY, moveTask, pickThree, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
 import { messages } from '@/messages'
 import type { TaskRow } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
 import { useUndoStore } from '@/stores/undo'
-import { primaryButton, selected, smallButton } from '@/ui/styles'
+import { chip, primaryButton, selected, smallButton } from '@/ui/styles'
+import { readKey, writeKey } from '@/ui/storage'
 import { useAuthStore } from '@/stores/auth'
 
 const brain = useBrainStore()
@@ -144,6 +181,27 @@ const allDoneToday = computed(
     list.value.every((t) => t.status === 'done') &&
     (list.value.length > 0 || clearedForDay(all.value, today.value, timeZone.value).length > 0),
 )
+
+// SPEC §5 Tasks: one line above the list: empty or all done, else the past-you line, else the intro.
+const topLine = computed(() => {
+  if (allDoneToday.value) return m.allDone
+  if (!list.value.length) return emptyText.value
+  if (view.value === 'day' && offset.value === 0) return m.pastYouToday
+  return m.intro
+})
+
+// SPEC §5 Tasks Pick 3: today's first 3 open tasks, the rest folded away. Remembered on this device.
+const PICK_KEY = 'tasks.pickThree'
+const pickOn = ref(readKey(PICK_KEY) === '1')
+function setPick(on: boolean) {
+  pickOn.value = on
+  writeKey(PICK_KEY, on ? '1' : null)
+}
+const canPick = computed(() => view.value === 'day' && offset.value === 0 && list.value.filter((t) => t.status === 'open').length > 3)
+const picking = computed(() => pickOn.value && canPick.value)
+const picked = computed(() => pickThree(list.value))
+const shownTasks = computed(() => (picking.value ? picked.value.shown : list.value))
+const showRest = ref(false)
 
 // SPEC §5 Tasks: "Clear crossed-off" hides done tasks from the list; they stay in history and stats.
 const doneInList = computed(() => list.value.filter((t) => t.status === 'done').length)

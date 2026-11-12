@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
-import { dayStatus, deadline, isScheduled, logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, weekdayOf, wrongMisses, zonedTime } from '@/habits/rules'
+import { dayStatus, deadline, isScheduled, keptLately, logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, weekdayOf, wrongMisses, zonedTime } from '@/habits/rules'
 
 import { addDays } from '@/tasks/days'
 
@@ -153,6 +153,25 @@ describe('Spec §5 Habits: streaks and best streak', () => {
     // 12:30 am on Nov 12: yesterday (Nov 11, nothing logged) is still open until 1 am, so it breaks nothing.
     expect(streaks(h, logs, at('2026-11-12T05:30:00Z'), NY)).toEqual({ current, best })
     expect(missedDaysToRecord(h, logs, at('2026-11-12T05:30:00Z'), NY)).toHaveLength(Math.floor(day / 50))
+  })
+})
+
+describe('Spec §5 Habits: missed is not failure (Kept N of the last M)', () => {
+  it('counts kept scheduled days; today counts only once it is kept', () => {
+    const logs = [done('2026-11-01'), done('2026-11-02'), done('2026-11-03'), missed('2026-11-04'), done('2026-11-05')]
+    const now = at('2026-11-06T15:00:00Z') // Nov 6, 10 am, still open
+    expect(keptLately(habit(), logs, now, NY)).toEqual({ kept: 4, total: 5 })
+    expect(keptLately(habit(), [...logs, done('2026-11-06')], now, NY)).toEqual({ kept: 5, total: 6 })
+  })
+
+  it('looks back 30 days only', () => {
+    const logs = Array.from({ length: 40 }, (_, i) => done(addDays('2026-10-01', i))) // Oct 1 to Nov 9
+    expect(keptLately(habit({ start_date: '2026-10-01' }), logs, at('2026-11-10T15:00:00Z'), NY)).toEqual({ kept: 29, total: 29 })
+  })
+
+  it('days the habit is not scheduled are left out', () => {
+    const mondays = habit({ weekdays: [1] }) // Nov 2, 9, 16
+    expect(keptLately(mondays, [done('2026-11-02'), done('2026-11-16')], at('2026-11-20T15:00:00Z'), NY)).toEqual({ kept: 2, total: 3 })
   })
 })
 
