@@ -8,7 +8,7 @@ const PHONE_FILES = ['a11y', 'header', 'post-it', 'dashboard', 'account-layout',
 const phoneOnly = new RegExp(String.raw`\b(${PHONE_FILES.join('|')})\.spec\.ts|@phone`)
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './src/tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

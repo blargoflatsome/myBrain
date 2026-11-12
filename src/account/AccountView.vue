@@ -1,0 +1,359 @@
+<template>
+  <main class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
+    <div class="flex items-center gap-4">
+      <img v-if="avatarUrl" :src="avatarUrl" alt="" class="size-16 rounded-full border border-line" referrerpolicy="no-referrer">
+      <div v-else class="flex size-16 items-center justify-center rounded-full bg-surface text-muted" aria-hidden="true"><AppIcon name="user" size="size-12" /></div>
+      <h1 class="text-2xl font-bold">{{ displayName || m.heading }}</h1>
+    </div>
+
+    <AccountGroup id="profile" :title="m.settingsHeading" :summary="g.profile">
+      <section data-testid="profile-settings" :aria-label="m.settingsHeading">
+        <form v-if="loaded" class="flex flex-col gap-4" @submit.prevent="save">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="flex flex-col gap-1 text-sm text-muted">
+              {{ m.displayName }}
+              <input v-model="displayName" maxlength="120" :class="field">
+            </label>
+            <label class="flex flex-col gap-1 text-sm text-muted">
+              {{ m.visibility }}
+              <select v-model="visibility" :class="field">
+                <option v-for="v in visibilities" :key="v" :value="v">{{ m.visibilityOptions[v] }}</option>
+              </select>
+              <span class="text-xs">{{ m.visibilityHint }}</span>
+            </label>
+          </div>
+          <div class="flex items-center gap-3">
+            <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="saving">{{ m.save }}</button>
+            <p v-if="notice" role="status" class="text-sm text-muted">{{ notice }}</p>
+          </div>
+        </form>
+        <p v-else class="text-muted">{{ m.offline }}</p>
+      </section>
+    </AccountGroup>
+
+    <AccountGroup id="settings" :title="g.settingsTitle" :summary="g.settings">
+      <!-- SPEC §5 Celebrations: how lively celebrations are, saved to my profile with its own Save. -->
+      <section class="rounded-xl border border-line px-4 py-3" :aria-label="cs.label" data-testid="celebrations-settings">
+        <form v-if="loaded" class="flex flex-col gap-3" @submit.prevent="saveCelebrations">
+          <label class="flex flex-col gap-1 text-sm text-muted">
+            <span class="pb-2">{{ cs.label }}</span>
+            <select v-model="celebrations" :class="field" data-testid="celebrations-setting">
+              <option v-for="c in CELEBRATION_SETTINGS" :key="c" :value="c">{{ cs.options[c] }}</option>
+            </select>
+            <span class="text-xs">{{ cs.hint }}</span>
+          </label>
+          <div class="flex items-center gap-3">
+            <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="savingCelebrations">{{ cs.save }}</button>
+            <p v-if="celebrationsNotice" role="status" class="text-sm text-muted">{{ celebrationsNotice }}</p>
+          </div>
+        </form>
+        <p v-else class="text-muted">{{ m.offline }}</p>
+      </section>
+
+      <!-- SPEC §5 Tags page: reached from here. -->
+      <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" aria-labelledby="account-tags" data-testid="account-tags">
+        <span class="min-w-0">
+          <h2 id="account-tags" class="font-semibold">{{ g.tagsTitle }}</h2>
+          <span class="block text-sm text-muted">{{ g.tagsHint }}</span>
+        </span>
+        <RouterLink to="/tags" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openTags }}</RouterLink>
+      </section>
+
+      <AccountGroup id="reminders" :title="messages.notifications.heading" :summary="g.reminders">
+        <NotificationSettings />
+      </AccountGroup>
+
+      <AccountGroup id="events" :title="g.eventsTitle" :summary="g.events">
+        <div class="grid items-start gap-4 lg:grid-cols-2">
+          <EventSettings />
+          <AvailabilityCard />
+        </div>
+      </AccountGroup>
+
+      <AccountGroup id="people" :title="g.peopleTitle" :summary="g.people">
+        <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4" aria-labelledby="account-connections">
+          <span class="min-w-0">
+            <h3 id="account-connections" class="font-semibold">{{ messages.connections.heading }}</h3>
+            <span class="block text-sm text-muted">{{ g.connectionsHint }}</span>
+          </span>
+          <RouterLink to="/connections" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openConnections }}</RouterLink>
+        </section>
+        <MyPeople />
+      </AccountGroup>
+
+
+
+      <AccountGroup id="data" :title="messages.dataExport.heading" :summary="g.data">
+        <div class="grid gap-4 sm:grid-cols-2" data-testid="data-export">
+          <section class="flex flex-col gap-2 rounded-xl border border-line p-4" :aria-label="messages.dataExport.button">
+            <p class="text-sm text-muted">{{ messages.dataExport.body }}</p>
+            <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-line px-4" :disabled="exporting" @click="exportData">
+              {{ exporting ? messages.dataExport.working : messages.dataExport.button }}
+            </button>
+            <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
+          </section>
+          <section class="flex flex-col gap-2 rounded-xl border border-warning/50 p-4" :aria-label="messages.deleteData.button" data-testid="delete-data">
+            <p class="text-sm text-muted">{{ messages.deleteData.hint }}</p>
+            <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-warning px-4 font-semibold text-warning" @click="askWipe">
+              {{ messages.deleteData.button }}
+            </button>
+            <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
+          </section>
+        </div>
+      </AccountGroup>
+    </AccountGroup>
+
+    <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" :aria-label="messages.signOut.button" data-testid="sign-out">
+      <p class="min-w-0 text-sm text-muted">{{ g.signOutHint }}</p>
+      <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-4 font-medium" @click="signOut">
+        {{ messages.signOut.button }}
+      </button>
+    </section>
+
+    <section class="w-auto block rounded-xl border border-danger/40 p-4" data-testid="delete-account" :aria-label="m.deleteHeading">
+      <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askDelete">
+        {{ m.deleteButton }}
+      </button>
+    </section>
+
+
+    <p class="flex flex-wrap justify-center gap-4 text-sm">
+      <RouterLink to="/privacy" class="text-muted underline">{{ messages.legal.privacy }}</RouterLink>
+      <RouterLink to="/terms" class="text-muted underline">{{ messages.legal.terms }}</RouterLink>
+    </p>
+
+    <dialog
+      ref="confirmWipe"
+      :aria-label="messages.deleteData.heading"
+      class="m-auto max-h-[92dvh] w-[min(28rem,calc(100%-2rem))] rounded-2xl border border-line bg-bg p-5 text-ink backdrop:bg-black/60"
+    >
+      <form class="flex flex-col gap-3" @submit.prevent="wipeData">
+        <h2 class="text-xl font-bold">{{ messages.deleteData.heading }}</h2>
+        <p class="text-sm text-muted">{{ messages.deleteData.removes }}</p>
+        <fieldset class="flex flex-col gap-1" data-testid="wipe-removes">
+          <legend class="sr-only">{{ messages.deleteData.removes }}</legend>
+          <label v-for="p in wipeParts" :key="p" class="flex min-h-9 items-center gap-3 text-sm">
+            <input v-model="wipeChosen" type="checkbox" :value="p" class="size-5 shrink-0 accent-[var(--warning)]">
+            {{ messages.deleteData.parts[p] }}
+          </label>
+          <div class="flex gap-3 text-xs">
+            <button type="button" class="text-muted underline" @click="wipeChosen = [...wipeParts]">{{ messages.deleteData.selectAll }}</button>
+            <button type="button" class="text-muted underline" @click="wipeChosen = []">{{ messages.deleteData.selectNone }}</button>
+          </div>
+        </fieldset>
+        <p class="text-sm text-muted">{{ messages.deleteData.keeps }}</p>
+        <ul class="flex list-disc flex-col gap-0.5 pl-5 text-sm" data-testid="wipe-keeps">
+          <li v-for="p in wipeKept" :key="p">{{ messages.deleteData.parts[p] }}</li>
+          <li v-for="item in messages.deleteData.keepList" :key="item">{{ item }}</li>
+        </ul>
+        <p v-if="!wipeChosen.length" class="text-sm text-danger" role="alert">{{ messages.deleteData.noneTicked }}</p>
+        <p class="text-sm font-medium">{{ messages.deleteData.undo }}</p>
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ messages.deleteData.typeLabel }}
+          <input v-model="wipeTyped" :class="field" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        </label>
+        <p v-if="wipeError" class="text-sm text-danger" role="alert">{{ wipeError }}</p>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="submit"
+            class="min-h-12 flex-1 rounded-xl bg-warning px-4 font-semibold text-warning-ink disabled:opacity-50"
+            :disabled="wiping || !wipeChosen.length || wipeTyped.trim().toUpperCase() !== messages.deleteData.word"
+          >
+            {{ messages.deleteData.confirm }}
+          </button>
+          <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmWipe?.close()">{{ messages.deleteData.keep }}</button>
+        </div>
+      </form>
+      <CloseX @click="confirmWipe?.close()" />
+    </dialog>
+
+    <dialog
+      ref="confirmDelete"
+      :aria-label="m.deleteConfirm.heading"
+      class="m-auto w-[min(28rem,calc(100%-2rem))] rounded-2xl border border-line bg-bg p-5 text-ink backdrop:bg-black/60"
+    >
+      <form class="flex flex-col gap-4" @submit.prevent="deleteAccount">
+        <h2 class="text-xl font-bold">{{ m.deleteConfirm.heading }}</h2>
+        <p class="text-muted">{{ m.deleteConfirm.body }}</p>
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          {{ m.deleteConfirm.typeLabel }}
+          <input v-model="typed" :class="field" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        </label>
+        <p v-if="deleteError" class="text-sm text-danger" role="alert">{{ deleteError }}</p>
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="submit"
+            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink disabled:opacity-50"
+            :disabled="deleting || typed.trim().toUpperCase() !== m.deleteConfirm.word"
+          >
+            {{ m.deleteConfirm.confirm }}
+          </button>
+          <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDelete?.close()">
+            {{ m.deleteConfirm.keep }}
+          </button>
+        </div>
+      </form>
+      <CloseX @click="confirmDelete?.close()" />
+    </dialog>
+  </main>
+</template>
+
+<script setup lang="ts">
+// SPEC §5 Account page: display name, avatar and streak visibility, then settings. Streaks are on the Dashboard.
+import AppIcon from '@/components/AppIcon.vue'
+import CloseX from '@/components/CloseX.vue'
+import { computed, onMounted, ref } from 'vue'
+import AccountGroup from '@/account/components/AccountGroup.vue'
+import { RouterLink, useRouter } from 'vue-router'
+import { supabase } from '@/lib/supabase'
+import { supabaseRemote } from '@/sync/supabaseRemote'
+import { useAuthStore } from '@/stores/auth'
+import { useBrainStore } from '@/stores/brain'
+import { messages } from '@/messages'
+import NotificationSettings from '@/notifications/components/NotificationSettings.vue'
+import EventSettings from '@/events/components/EventSettings.vue'
+import MyPeople from '@/events/components/MyPeople.vue'
+import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
+import { downloadMyData } from '@/account/export'
+import { field } from '@/ui/styles'
+import { useCelebrateStore } from '@/stores/celebrate'
+import { CELEBRATION_SETTINGS, parseSetting, type CelebrationSetting } from '@/celebrate/rules'
+
+type Visibility = 'private' | 'approved' | 'everyone'
+
+const auth = useAuthStore()
+const brain = useBrainStore()
+const router = useRouter()
+const m = messages.profile
+const g = messages.accountGroups
+const cs = messages.celebrations.setting
+const celebrate = useCelebrateStore()
+const celebrations = ref<CelebrationSetting>(celebrate.setting)
+
+const displayName = ref('')
+const avatarUrl = ref<string | null>(null)
+const visibility = ref<Visibility>('private')
+const loaded = ref(false)
+const saving = ref(false)
+const notice = ref('')
+
+onMounted(async () => {
+  const { data } = await supabase
+    .from('profiles')
+    .select('display_name, avatar_url, streak_visibility, celebrations')
+    .eq('user_id', auth.user?.id ?? '')
+    .maybeSingle()
+  if (data) {
+    displayName.value = data.display_name ?? ''
+    avatarUrl.value = data.avatar_url
+    visibility.value = data.streak_visibility as Visibility
+    celebrations.value = parseSetting(data.celebrations)
+    loaded.value = true
+  }
+})
+
+async function save() {
+  notice.value = ''
+  saving.value = true
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value })
+    .eq('user_id', auth.user?.id ?? '')
+  saving.value = false
+  notice.value = error ? m.offline : m.saved
+}
+
+// Celebrations has its own Save in Account Settings.
+const savingCelebrations = ref(false)
+const celebrationsNotice = ref('')
+async function saveCelebrations() {
+  celebrationsNotice.value = ''
+  savingCelebrations.value = true
+  const { error } = await supabase.from('profiles').update({ celebrations: celebrations.value }).eq('user_id', auth.user?.id ?? '')
+  savingCelebrations.value = false
+  if (!error) celebrate.setSetting(celebrations.value)
+  celebrationsNotice.value = error ? m.offline : m.saved
+}
+
+
+// ---------- Delete My Account (SPEC §9): confirm, then delete everything ----------
+const confirmDelete = ref<HTMLDialogElement | null>(null)
+const typed = ref('')
+const deleting = ref(false)
+const deleteError = ref('')
+function askDelete() {
+  typed.value = ''
+  deleteError.value = ''
+  confirmDelete.value?.showModal()
+}
+async function deleteAccount() {
+  if (typed.value.trim().toUpperCase() !== m.deleteConfirm.word) return
+  deleting.value = true
+  deleteError.value = ''
+  brain.stop()
+  const ok = await auth.deleteAccount()
+  deleting.value = false
+  if (!ok) {
+    deleteError.value = m.deleteConfirm.failed
+    if (auth.user) brain.start(auth.user.id, supabaseRemote(supabase))
+    return
+  }
+  confirmDelete.value?.close()
+  await router.push({ name: 'sign-in', query: { deleted: '1' } })
+}
+
+// ---------- Download my data (SPEC §8) ----------
+const exporting = ref(false)
+const exportError = ref('')
+async function exportData() {
+  exportError.value = ''
+  exporting.value = true
+  try {
+    await downloadMyData(auth.user?.id ?? '')
+  } catch {
+    exportError.value = messages.dataExport.failed
+  } finally {
+    exporting.value = false
+  }
+}
+
+// ---------- Delete my data: start fresh, keeping the account and settings (SPEC §8) ----------
+const confirmWipe = ref<HTMLDialogElement | null>(null)
+const wipeTyped = ref('')
+const wiping = ref(false)
+const wipeError = ref('')
+const wipeDone = ref('')
+// Everything is ticked to start; I untick what I want to keep (SPEC §8).
+type WipePart = keyof typeof messages.deleteData.parts
+const wipeParts = Object.keys(messages.deleteData.parts) as WipePart[]
+const wipeChosen = ref<WipePart[]>([...wipeParts])
+const wipeKept = computed(() => wipeParts.filter((p) => !wipeChosen.value.includes(p)))
+function askWipe() {
+  wipeChosen.value = [...wipeParts]
+  wipeTyped.value = ''
+  wipeError.value = ''
+  wipeDone.value = ''
+  confirmWipe.value?.showModal()
+}
+async function wipeData() {
+  if (wipeTyped.value.trim().toUpperCase() !== messages.deleteData.word || !wipeChosen.value.length) return
+  wiping.value = true
+  wipeError.value = ''
+  const { data, error } = await supabase.rpc('delete_my_data', { parts: wipeChosen.value })
+  wiping.value = false
+  if (error) {
+    wipeError.value = messages.deleteData.failed
+    return
+  }
+  confirmWipe.value?.close()
+  await brain.applyDataReset(typeof data === 'string' ? data : new Date().toISOString())
+  wipeDone.value = messages.deleteData.done
+}
+
+async function signOut() {
+  await auth.signOut()
+  await router.push({ name: 'sign-in' })
+}
+
+const visibilities: Visibility[] = ['private', 'approved', 'everyone']
+</script>

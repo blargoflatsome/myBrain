@@ -1,4 +1,4 @@
-// Runs the SQL rule checks in supabase/tests against the linked dev project and reports a clear result.
+// Runs the SQL rule checks in src/tests/db against the linked dev project and reports a clear result.
 // Each check file is one DO block that raises "FAIL: <rule>" on the first broken rule, or "PASS: ..." at the
 // very end. Raising is how it forces Postgres to roll back the fake test users, so the Supabase CLI always
 // reports it as an error; this script reads that message and turns it into a normal pass/fail.
@@ -6,7 +6,7 @@
 import { execFileSync } from 'node:child_process'
 import { readdirSync } from 'node:fs'
 
-const dir = 'supabase/tests'
+const dir = 'src/tests/db'
 const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()
 let failed = 0
 

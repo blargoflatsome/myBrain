@@ -15,7 +15,11 @@ file says *how* the code is written.
   (for example `// SPEC §5 Journal: ...`).
 - Keep components thin: rules and calculations live in plain TypeScript modules (section 3) so they can be unit
   tested without a browser.
-- Component files are `PascalCase.vue` in `src/components/` (pieces) or `src/views/` (whole pages, one per route).
+- Component files are `PascalCase.vue`. **Everything for a feature lives in its folder** (`src/<feature>/`): its page
+  (`TasksView.vue`, one per route), its rules, and its own components in `src/<feature>/components/`. A component another
+  feature also uses stays with the feature it belongs to (Calendar imports `src/tasks/components/TaskEditor.vue`).
+  `src/components/` holds only app-wide pieces: the app shell (header, tabs, undo bar) and building blocks used everywhere
+  (icons, date and time fields, notes editor, fold-outs, confirm window).
 
 ## 2. Wording
 
@@ -30,10 +34,11 @@ file says *how* the code is written.
 
 | What | Where |
 | --- | --- |
+| A feature's page, rules and components | `src/<feature>/` (`XView.vue`, `rules.ts`, `components/`) |
 | Rules and calculations for a feature | `src/<feature>/rules.ts` (pure functions, no Vue, no database) |
 | Data on the device and syncing | `src/sync/` (`live()` for "not deleted", the sync engine, row types in `types.ts`) |
 | Reading and writing data from screens | `src/stores/brain.ts` (one place, so every write goes through the sync queue) |
-| Reusable screen behaviour | `src/composables/useX.ts` |
+| Reusable screen behaviour | `src/composables/useX.ts` (a composable only one feature uses lives in that feature's folder) |
 | Shared look of controls | `src/ui/styles.ts` (fields, chips, buttons, windows, cards) |
 | Showing dates | `src/ui/dates.ts` (`shortDay`, `shortDayWithYear`, `dateWithYear`) |
 | "Are you sure?" before removing data | `src/components/ConfirmDialog.vue` |
@@ -76,7 +81,7 @@ than copying it.
 - Anything done by dragging or swiping also works with a tap and with the keyboard.
 - Windows use `<dialog>` with `showModal()` (focus is trapped and returned by `src/a11y/focus.ts`).
 - Hidden-until-hover controls also appear on keyboard focus.
-- New pages and windows get an axe check in `e2e/a11y.spec.ts`.
+- New pages and windows get an axe check in `src/tests/e2e/accessibility/a11y.spec.ts`.
 
 ## 8. Security
 
@@ -103,10 +108,16 @@ than copying it.
 
 ## 11. Tests
 
-- Every rule gets a test named after the spec rule it proves: Vitest for logic (`src/**/*.test.ts`), Playwright for
-  screens (`e2e/`), SQL checks for database rules (`supabase/tests/`).
+- Every rule gets a test named after the spec rule it proves. All tests live in `src/tests/`, by kind, then by what
+  they test: `unit/<feature>/` (Vitest, logic), `integration/` (Vitest against the dev database), `e2e/<feature>/`
+  (Playwright, screens; helpers in `e2e/support/`), `db/` (SQL checks for database rules). Test-only helpers go in
+  `src/tests/support/` (or `e2e/support/`), never in app code. `cross-feature/` holds older tests that cover several
+  features; they get split by feature in the test cleanup.
+- **The `writing-tests` skill** (`.claude/skills/writing-tests/SKILL.md`) is the rulebook: every test must name the bug it
+  catches, wording comes from `messages.ts` (never typed out), styling is only checked when it's the rule, and logic is
+  tested in unit tests rather than the browser.
 - Use real input where it matters (a real touch swipe, real typing), not faked events.
-- Test typed text long: a long sentence, a paragraph and an unbroken link (samples in `e2e/a11y.spec.ts`).
+- Test typed text long: a long sentence, a paragraph and an unbroken link (samples in `src/tests/e2e/accessibility/a11y.spec.ts`).
 - Mock the clock for anything time-dependent; wait for data to load before measuring layout.
 - **Two levels of testing.** While coding, run the quick checks after each change: `npm run test:quick` (types, Vitest, desktop browser tests), or just the files you touched (`npm run test:e2e:quick -- quests`). When the user says to merge, run the full review once, and merge only if it passes: `npm run test:all` (lint, types, Vitest, desktop, Android and iPhone), and `npm run test:db` when there are new migrations. CI runs the full review on every pull request too.
 
