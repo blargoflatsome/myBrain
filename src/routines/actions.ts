@@ -1,7 +1,7 @@
 // Reading and writing routines, their steps and runs (SPEC §5 Routines).
 import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
 import type { ActionContext } from '@/sync/actions'
-import { activeSteps, currentRun, habitDoneStepIds, recordStep, stepsForDay } from '@/routines/rules'
+import { activeSteps, completeSkipped, currentRun, habitDoneStepIds, recordStep, resumableRun, stepsForDay } from '@/routines/rules'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { achieved } from '@/celebrate/bus'
 
@@ -72,5 +72,23 @@ export function routineActions({ ready }: ActionContext, completeHabit: (habit: 
     return action
   }
 
-  return { newRoutine, saveRoutine, deleteRoutine, recordRoutineStep }
+  /** Resume: press Completed on a step skipped in the routine's finished run (SPEC §5 Routines). */
+  async function completeSkippedStep(routine: RoutineRow, stepId: string, now = new Date()) {
+    const { engine: e, local } = ready()
+    const date = todayIn(deviceTimeZone(), now)
+    const run = resumableRun(routine, await local.routine_runs.where('routine_id').equals(routine.id).toArray(), date)
+    if (!run) return null
+    const logs = await local.routine_step_logs.where('run_id').equals(run.id).toArray()
+    const log = completeSkipped(logs, run, stepId, now)
+    if (!log) return null
+    await e.save('routine_step_logs', log)
+    const left = logs.filter((l) => !l.deleted_at && l.status === 'skipped' && l.step_id !== stepId).length
+    achieved({ kind: 'step', finished: left === 0 })
+    const step = await local.routine_steps.get(stepId)
+    const habit = step?.habit_id ? await local.habits.get(step.habit_id) : undefined
+    if (habit && !habit.deleted_at) await completeHabit(habit, now)
+    return log
+  }
+
+  return { newRoutine, saveRoutine, deleteRoutine, recordRoutineStep, completeSkippedStep }
 }

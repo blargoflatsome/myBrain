@@ -69,15 +69,44 @@ test.describe('Spec §5 Routines: one step at a time', () => {
     await expect.poll(() => server.written('routine_step_logs').at(-1)).toMatchObject({ step_id: stepId(1), status: 'skipped' })
   })
 
-  test('reaching the last step finishes the routine, even with skips', async ({ page }) => {
+  test('reaching the last step finishes the routine, even with skips, and goes back to the Routines page', async ({ page }) => {
     seedMorning()
     await open(page, `/routines/${RID}/run`)
     for (const action of ['Skip', 'Skip', 'Skip', 'Skip']) await page.getByRole('button', { name: action }).click()
     await expect(current(page)).toHaveText('Take medication')
     await page.getByRole('button', { name: msg.routines.run.completed }).click()
     await page.clock.runFor(700)
-    await expect(page.getByTestId('routine-finished')).toHaveText(msg.routines.run.finished)
+    await expect(page).toHaveURL(/\/routines$/)
     await expect.poll(() => server.written('routine_runs').at(-1)?.finished_at).toBeTruthy()
+    await expect(page.getByTestId('routine-status')).toHaveText(msg.routines.doneSkipped(4))
+  })
+
+  test('Resume goes back over just the skipped steps until none are left', async ({ page }) => {
+    seedMorning()
+    await open(page, `/routines/${RID}/run`)
+    for (const action of ['Completed', 'Skip', 'Completed', 'Skip', 'Completed']) {
+      await page.getByRole('button', { name: action, exact: true }).click()
+      await page.clock.runFor(700)
+    }
+    await expect(page).toHaveURL(/\/routines$/)
+    await page.getByRole('link', { name: msg.routines.resume }).click()
+    await expect(page.getByTestId('step-of')).toHaveText(msg.routines.run.skippedOf(1, 2))
+    await expect(current(page)).toHaveText('Brush teeth')
+    await page.getByRole('button', { name: msg.routines.run.completed }).click()
+    await page.clock.runFor(700)
+    await expect(current(page)).toHaveText('Skin care')
+    await expect.poll(() => server.written('routine_step_logs').at(-1)).toMatchObject({ step_id: stepId(2), status: 'completed' })
+
+    // Skipping it again ends the pass; Resume stays for the one still skipped.
+    await page.getByRole('button', { name: msg.routines.run.skip }).click()
+    await expect(page).toHaveURL(/\/routines$/)
+    await expect(page.getByTestId('routine-status')).toHaveText(msg.routines.doneSkipped(1))
+    await page.getByRole('link', { name: msg.routines.resume }).click()
+    await expect(current(page)).toHaveText('Skin care')
+    await page.getByRole('button', { name: msg.routines.run.completed }).click()
+    await page.clock.runFor(700)
+    await expect(page.getByTestId('routine-status')).toHaveText(msg.routines.doneToday)
+    await expect(page.getByRole('link', { name: msg.routines.resume })).toHaveCount(0)
   })
 
   test('leaving partway and coming back continues at the next step', async ({ page }) => {
@@ -296,8 +325,9 @@ test.describe('Spec §5 Routines: run anytime', () => {
     await page.getByRole('link', { name: msg.routines.continue }).click()
     await expect(current(page)).toHaveText('Sweep')
     await page.getByRole('button', { name: msg.routines.run.completed }).click()
-    await expect(page.getByTestId('routine-finished')).toBeVisible()
-    await page.getByRole('button', { name: msg.routines.run.startAgain }).click()
+    await expect(page).toHaveURL(/\/routines$/)
+    await expect(page.getByTestId('routine-status')).toHaveText(msg.routines.anytime)
+    await page.getByRole('link', { name: msg.routines.start }).click()
     await expect(current(page)).toHaveText('Sort tools')
     await page.getByRole('link', { name: msg.routines.run.back }).click()
     await expect(page.getByTestId('routine-stats')).toHaveText(msg.routines.finishedTimes(1))

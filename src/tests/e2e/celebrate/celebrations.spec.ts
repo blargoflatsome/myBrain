@@ -102,7 +102,7 @@ test.describe('Spec §5 Celebrations: small, every time', () => {
 })
 
 test.describe('Spec §5 Celebrations: finishing a set', () => {
-  test('a routine finished: a progress bar moves along, then the steps fold into one ticked badge', async ({ page }) => {
+  test('a routine finished: a progress bar moves along, then a burst as it goes back to the Routines page', async ({ page }) => {
     const RID = 'bbbbbbbb-0000-4000-8000-000000000001'
     server.seed('routines', [{ id: RID, title: 'Morning', notify_time: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-10' }])
     server.seed('routine_steps', ['Wake up', 'Stretch'].map((title, i) => ({ id: `ccccccc${i}-0000-4000-8000-000000000000`, routine_id: RID, position: i, title, start_date: '2026-11-10' })))
@@ -113,7 +113,7 @@ test.describe('Spec §5 Celebrations: finishing a set', () => {
     await expect(page.getByTestId('routine-progress')).toHaveAttribute('style', /width: 50%/)
     await page.getByRole('button', { name: msg.routines.run.completed }).click()
     await page.clock.runFor(700)
-    await expect(page.getByTestId('routine-finished')).toHaveText(msg.routines.run.finished)
+    await expect(page).toHaveURL(/\/routines$/)
     await expect(message(page)).toHaveText(msg.celebrations.badgeEarned(msg.celebrations.badges.first_routine))
   })
 

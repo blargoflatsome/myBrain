@@ -121,3 +121,22 @@ test.describe('Spec §2 Header: Account, Focus timer, alerts and sync on every s
     await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
   })
 })
+
+test.describe('Spec §2 Credit: the footer credits the creator on every page', () => {
+  test('the credit links to LinkedIn and sits clear of the Capture button and tab bar', { tag: '@phone' }, async ({ page }) => {
+    await open(page, null)
+    await page.setViewportSize({ width: 320, height: 640 })
+    const link = page.getByTestId('credit-link')
+    await expect(link).toHaveText(msg.footer.name)
+    await expect(link).toHaveAttribute('href', 'https://www.linkedin.com/in/jordanbuermann/')
+    // At the very bottom of a page taller than the screen, nothing fixed sits over the credit.
+    await page.waitForLoadState('networkidle')
+    await expect.poll(() => page.evaluate(() => (window.scrollTo(0, document.documentElement.scrollHeight), window.scrollY > 0 && window.scrollY + innerHeight >= document.documentElement.scrollHeight - 1))).toBe(true)
+    const credit = (await link.boundingBox())!
+    for (const id of ['capture-button', 'bottom-tabs']) {
+      const box = (await page.getByTestId(id).boundingBox())!
+      const overlaps = box.y < credit.y + credit.height && box.y + box.height > credit.y && box.x < credit.x + credit.width && box.x + box.width > credit.x
+      expect(overlaps, `${id} covers the credit`).toBe(false)
+    }
+  })
+})

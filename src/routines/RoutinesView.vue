@@ -16,11 +16,11 @@
         </div>
 
         <RouterLink
-          v-if="row.scheduled && row.steps.length && !row.state.finished"
+          v-if="row.scheduled && row.steps.length && (!row.state.finished || row.skipped)"
           :to="`/routines/${row.routine.id}/run`"
           class="flex items-center justify-center" :class="primaryButton"
         >
-          {{ row.state.started ? m.continue : m.start }}
+          {{ row.skipped ? m.resume : row.state.started ? m.continue : m.start }}
         </RouterLink>
 
         <button
@@ -71,7 +71,7 @@ import RoutineEditor from '@/routines/components/RoutineEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, isScheduled, percent, routineStats, runState, stepsForDay } from '@/routines/rules'
+import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, isScheduled, percent, resumableRun, routineStats, runState, skippedSteps, stepsForDay } from '@/routines/rules'
 import { messages } from '@/messages'
 import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
 import { live } from '@/sync/live'
@@ -100,19 +100,22 @@ const habitLogs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.h
 const rows = computed(() =>
   routines.value.map((r) => {
     const s = stepsForDay(activeSteps(steps.value, r.id), habits.value, today.value)
-    const state = runState(s, currentRun(r, runs.value, today.value), logs.value, habitDoneStepIds(s, habitLogs.value, today.value))
+    const habitDone = habitDoneStepIds(s, habitLogs.value, today.value)
+    const state = runState(s, currentRun(r, runs.value, today.value), logs.value, habitDone)
+    // Steps skipped in a finished run: the row offers Resume to do just those (SPEC §5 Routines).
+    const skipped = skippedSteps(s, resumableRun(r, runs.value, today.value), logs.value, habitDone).length
     const stats = routineStats(r, steps.value, runs.value, logs.value, today.value, habits.value)
     const anytime = isAnytime(r)
     // A run-anytime routine can always be started (SPEC §5 Routines).
-    return { routine: r, steps: s, state, stats, anytime, scheduled: anytime || isScheduled(r, today.value) }
+    return { routine: r, steps: s, state, skipped, stats, anytime, scheduled: anytime || isScheduled(r, today.value) }
   }),
 )
 
 function statusText(row: (typeof rows.value)[number]) {
   if (!row.steps.length) return m.noSteps
-  if (row.anytime) return row.state.started ? m.progress(row.state.done, row.state.total) : m.anytime
+  if (row.anytime) return row.state.started ? m.progress(row.state.done, row.state.total) : row.skipped ? m.finishedSkipped(row.skipped) : m.anytime
   if (!row.scheduled) return m.notToday
-  if (row.state.finished) return m.doneToday
+  if (row.state.finished) return row.skipped ? m.doneSkipped(row.skipped) : m.doneToday
   if (row.state.started) return m.progress(row.state.done, row.state.total)
   return m.notStarted
 }

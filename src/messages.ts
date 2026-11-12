@@ -255,6 +255,9 @@ export const messages = {
     deleteLabel: (title: string) => `Delete ${title}`,
     start: 'Start',
     continue: 'Continue',
+    resume: 'Resume',
+    doneSkipped: (n: number) => `Done today, ${n} skipped`,
+    finishedSkipped: (n: number) => `Finished, ${n} skipped`,
     notStarted: 'Not started',
     progress: (done: number, total: number) => `${done} of ${total} steps done`,
     doneToday: 'Done today',
@@ -271,6 +274,7 @@ export const messages = {
       startAgain: 'Start again',
       habitNote: 'A habit: completing it here completes it for today.',
       stepOf: (n: number, total: number) => `Step ${n} of ${total}`,
+      skippedOf: (n: number, total: number) => `Skipped step ${n} of ${total}`,
       skip: 'Skip',
       completed: 'Completed',
       finished: 'Routine complete. Past you would be proud.',
@@ -1345,6 +1349,12 @@ export const messages = {
   } as Record<string, string>,
   pageTitle: (page: string | undefined) => (page ? `${page} · My Brain` : 'My Brain'),
   skipToContent: 'Skip to content',
+  // SPEC §2 Credit. Keep it (CLAUDE.md "Credit in the footer").
+  footer: {
+    conceivedBy: 'Conceived of by',
+    name: 'Jordan Buermann',
+    year: (year: number) => `© ${year}`,
+  },
   pages: { previous: 'Previous', next: 'Next', position: (page: number, count: number) => `Page ${page} of ${count}` },
   timeInput: { placeholder: 'Type a time, like 8:30 am', listLabel: 'Suggested times' },
   /** SPEC §5 Date fields. */

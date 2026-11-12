@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
-import { activeSteps, isScheduled, percent, recordStep, routineStats, runFor, runIdFor, runState, stepLogIdFor } from '@/routines/rules'
+import { activeSteps, completeSkipped, isScheduled, percent, recordStep, resumableRun, routineStats, runFor, runIdFor, runState, skippedSteps, stepLogIdFor } from '@/routines/rules'
 
 const RID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
 const routine: RoutineRow = { id: RID, title: 'Morning', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', deleted_at: null }
@@ -47,6 +47,29 @@ describe('Spec §5 Routines: completing a step shows the next step', () => {
     play('2026-11-10', ['skipped', 'skipped', 'completed'], runs, logs)
     expect(runs[0]!.finished_at).toBeTruthy()
     expect(runState(steps, runs[0], logs)).toMatchObject({ current: null, finished: true, done: 3 })
+  })
+
+  it('Resume: a finished run offers just its skipped steps, and completing one turns its log into completed', () => {
+    const runs: RoutineRunRow[] = []
+    const logs: RoutineStepLogRow[] = []
+    play('2026-11-10', ['completed', 'skipped'], runs, logs)
+    expect(resumableRun(routine, runs, '2026-11-10')).toBeUndefined() // still running
+    play('2026-11-10', ['skipped'], runs, logs)
+    const run = resumableRun(routine, runs, '2026-11-10')!
+    expect(skippedSteps(steps, run, logs).map((s) => s.title)).toEqual(['Brush teeth', 'Shower'])
+    const fixed = completeSkipped(logs, run, steps[1]!.id)!
+    expect(fixed).toMatchObject({ id: stepLogIdFor(steps[1]!.id, '2026-11-10'), status: 'completed' })
+    logs.splice(logs.findIndex((l) => l.id === fixed.id), 1, fixed)
+    expect(skippedSteps(steps, run, logs).map((s) => s.title)).toEqual(['Shower'])
+    expect(routineStats(routine, steps, runs, logs, '2026-11-10').steps[1]).toMatchObject({ completed: 1, skipped: 0 })
+  })
+
+  it('Resume on a run-anytime routine goes back to its latest finished run, until a new run starts', () => {
+    const anytime = { ...routine, weekdays: null }
+    const finished: RoutineRunRow = { id: 'r1', user_id: 'u1', routine_id: RID, date: '2026-11-08', started_at: '2026-11-08T10:00:00Z', finished_at: '2026-11-08T11:00:00Z', deleted_at: null }
+    expect(resumableRun(anytime, [finished], '2026-11-10')?.id).toBe('r1')
+    const open: RoutineRunRow = { ...finished, id: 'r2', started_at: '2026-11-10T10:00:00Z', finished_at: null }
+    expect(resumableRun(anytime, [finished, open], '2026-11-10')).toBeUndefined()
   })
 
   it('a run left partway continues at the first step not yet done', () => {

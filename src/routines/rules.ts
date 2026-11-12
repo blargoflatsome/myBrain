@@ -113,6 +113,38 @@ export function runState(
   }
 }
 
+/**
+ * The finished run whose skipped steps Resume goes back to (SPEC §5 Routines): today's run for a scheduled routine;
+ * for a run-anytime routine, its latest finished run while no newer run is open.
+ */
+export function resumableRun(routine: RoutineRow, runs: RoutineRunRow[], date: string): RoutineRunRow | undefined {
+  if (!isAnytime(routine)) {
+    const run = runFor(runs, routine.id, date)
+    return run?.finished_at ? run : undefined
+  }
+  if (currentRun(routine, runs, date)) return undefined
+  return runs
+    .filter((r) => r.routine_id === routine.id && !r.deleted_at && r.finished_at)
+    .sort((a, b) => b.finished_at!.localeCompare(a.finished_at!))[0]
+}
+
+/** The steps skipped in a run, in order, leaving out habit steps whose habit has been done since. */
+export function skippedSteps(
+  steps: RoutineStepRow[],
+  run: RoutineRunRow | undefined,
+  logs: RoutineStepLogRow[],
+  habitDone: Set<string> = new Set(),
+): RoutineStepRow[] {
+  const skipped = new Set(logsOf(logs, run?.id).filter((l) => l.status === 'skipped').map((l) => l.step_id))
+  return steps.filter((s) => skipped.has(s.id) && !habitDone.has(s.id))
+}
+
+/** Completing a skipped step on Resume turns its log into "completed" (same row, so the stats count it once). */
+export function completeSkipped(logs: RoutineStepLogRow[], run: RoutineRunRow, stepId: string, now: Date = new Date()): RoutineStepLogRow | null {
+  const log = logsOf(logs, run.id).find((l) => l.step_id === stepId && l.status === 'skipped')
+  return log ? { ...log, status: 'completed', logged_at: now.toISOString() } : null
+}
+
 export interface StepAction {
   run: RoutineRunRow | null
   /** The pressed step's log, then logs for steps passed because their habit was already done. */
