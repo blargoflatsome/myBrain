@@ -134,6 +134,8 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
 
   test('rating and link are in More details, as in the item editor', async ({ page }) => {
     await startCapture(page, 'The Vault')
+    // The buckets have downloaded and the first is preselected.
+    await expect(page.getByRole('group', { name: msg.capture.bucketLabel }).getByRole('button', { name: 'Places to go' })).toHaveAttribute('aria-pressed', 'true')
     await titleBox(page).fill('Luigi’s')
     await page.getByTestId('vault-more').getByText(msg.forms.moreOptions).click()
     await page.getByRole('radio', { name: msg.vault.itemEditor.ratingStar(4) }).click()

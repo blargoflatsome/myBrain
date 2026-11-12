@@ -140,8 +140,8 @@ See [docs/DECISIONS.md](docs/DECISIONS.md).
 - Tests: `src/tests/unit/dashboard/up-next.test.ts`, Up next and leftovers in `src/tests/e2e/dashboard/dashboard.spec.ts`, close-to-a-trophy in `src/tests/e2e/trophies/trophies.spec.ts`. Full review passed (2026-11-12): Vitest 390, Playwright 722 (32 skipped), no failures. No migration.
 
 
-## Shared forms (branch `form-fields`, not merged)
+## Shared forms (merged via PR, branch `form-fields`)
 - User: forms kept drifting (quest editor dropdowns vs Capture chips; Priority tab New button in its own row). New rule CODING_STANDARDS §6 "Forms and page parts are shared, never copied", pointer in CLAUDE.md, SPEC §5 Forms, DECISIONS 2026-11-12.
 - One form per item type: `TaskFields`, `QuestFields`, `VaultItemFields` (with `BucketChoice`: chips up to 10 buckets, dropdown beyond), `PostItColors`, alongside `HabitFields`; shared `ChoiceChips` and `TitleField`. Used by Capture, the editors and Orphans (Orphans now picks a bucket, then Save to the Vault). Capture's Vault form gained rating and link (More details); the task editor shows Priority and tags in view. Priority tab's New button is in the Tasks page heading.
 - Lint (`eslint.config.ts`): the listed form files can't draw their own `input`/`select`/`textarea`/`fieldset`; `NewButton` only in `*View.vue`; `chip` only in ChoiceChips (and listed toggles).
-- Tests updated for the new layouts; new: bucket dropdown above 10 and Capture rating/link (`capture.spec.ts`), Priority New in the heading (`forms.spec.ts`). Quick checks pass (Vitest 390, desktop 383). Full review not run.
+- Tests updated for the new layouts; new: bucket dropdown above 10 and Capture rating/link (`capture.spec.ts`), Priority New in the heading (`forms.spec.ts`). Full review (2026-11-12): Vitest 390, Playwright 726/729; two iPhone dropped test-server connections passed alone, and the iPhone Capture rating/link test saved before buckets downloaded (test now waits for the preselected bucket; passes on all three). No migration.
