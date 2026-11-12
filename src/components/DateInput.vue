@@ -98,6 +98,7 @@
 import { computed, onScopeDispose, ref, useId, watch } from 'vue'
 import { addMonths, monthGrid } from '@/time/months'
 import { dateReader, loadDateReader } from '@/time/typedDate'
+import { readIsoDate } from '@/time/isoDate'
 import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
 import { dayLabel } from '@/ui/dates'
 import { messages } from '@/messages'
@@ -164,6 +165,9 @@ function onInput(event: Event) {
     return
   }
   const typed = text.value
+  // A full date (pasted, filled in by the browser) is used straight away, so a Save right after it never misses it.
+  const exact = readIsoDate(typed)
+  if (exact) return useTyped(exact)
   const read = dateReader()
   if (read) return useTyped(read(typed, today))
   // Still loading (typed at once): read it when it's here, unless something else was typed by then.

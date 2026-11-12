@@ -171,3 +171,6 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 - Clean code: `stores/brain.ts` split into `src/<feature>/actions.ts`; shared `useNow`, `TypeToConfirmDialog`, `sync/ids.ts`. The hand-written button classes are left for the UI review's consistency round, as the review suggested. Narrowing the security headers to the project's own Supabase host was skipped (optional; it needs build-time header files for each environment).
 - Found while testing: Capture could close itself when opened while the first page was still loading (the first navigation counted as moving to another page). It now ignores the app's first navigation.
 
+## 2026-11-11 Date box race
+- A date typed and saved within moments of the date box first showing could be lost: the reader for typed dates loads on first use, and Save ran before it arrived. Full dates (YYYY-MM-DD) are now read straight away without it (`time/isoDate.ts`). Claude's call; words like "tomorrow" still need the reader, which starts loading as soon as the box shows. (User asked for the fix.)
+
