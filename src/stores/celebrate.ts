@@ -23,6 +23,7 @@ import { TIERS } from '@/trophies/definitions'
 import { AWAY_DAYS, journalComeback, newLevels, taskComeback, trophyStates, trophyValues } from '@/trophies/rules'
 import { trophyCounts } from '@/trophies/server'
 import { WORK_MS } from '@/focus/timer'
+import { readKey, writeKey } from '@/ui/storage'
 
 export type BurstSize = 'small' | 'big' | 'biggest'
 export interface Burst {
@@ -37,37 +38,15 @@ const LAST_OPEN_KEY = 'my-brain:last-open'
 /** Set once a device has worked out my trophies, so later ones are celebrated one by one (SPEC §5 Trophies). */
 const trophiesReadyKey = (uid: string) => `my-brain:trophies-ready:${uid}`
 
-function readKey(key: string): string | null {
-  try {
-    return localStorage.getItem(key)
-  } catch {
-    return null
-  }
-}
-function writeKey(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value)
-  } catch {
-    // Storage blocked: nothing lost but a message.
-  }
-}
 /** How long a message stays up before the next one (or none) shows. */
 export const MESSAGE_MS = 4000
 const m = messages.celebrations
 const t = m.trophies
 const cb = m.comebacks
 
-function readSetting(): CelebrationSetting {
-  try {
-    return parseSetting(localStorage.getItem(SETTING_KEY))
-  } catch {
-    return 'full'
-  }
-}
-
 export const useCelebrateStore = defineStore('celebrate', () => {
   const brain = useBrainStore()
-  const setting = ref<CelebrationSetting>(readSetting())
+  const setting = ref<CelebrationSetting>(parseSetting(readKey(SETTING_KEY)))
   const motionQuery = typeof window !== 'undefined' ? window.matchMedia?.('(prefers-reduced-motion: reduce)') : undefined
   const reduceMotion = ref(!!motionQuery?.matches)
   motionQuery?.addEventListener?.('change', (e) => (reduceMotion.value = e.matches))
@@ -79,11 +58,7 @@ export const useCelebrateStore = defineStore('celebrate', () => {
   /** Keep my choice on this device (the Account page saves it to my profile too). */
   function setSetting(value: unknown) {
     setting.value = parseSetting(value)
-    try {
-      localStorage.setItem(SETTING_KEY, setting.value)
-    } catch {
-      // Storage blocked: it follows my profile the next time the app starts.
-    }
+    writeKey(SETTING_KEY, setting.value)
   }
 
   // Confetti comes out of what I just tapped or clicked; with the keyboard, out of the focused control.

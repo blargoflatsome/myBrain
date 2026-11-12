@@ -25,12 +25,12 @@
     <dialog ref="editor" :class="dialogBox" :aria-label="adding ? m.addHeading : m.editHeading" @close="editing = null">
       <form v-if="editing" class="flex flex-col gap-3 p-5" novalidate @submit.prevent="saveEdit">
         <h3 class="text-lg font-semibold">{{ adding ? m.addHeading : m.editHeading }}</h3>
-        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.name }}<input v-model="name" maxlength="120" :class="field" autocomplete="off"></label>
-        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.email }}<input v-model="email" type="email" maxlength="320" :class="field" autocomplete="off"></label>
-        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.phone }}<input v-model="phone" type="tel" maxlength="40" :class="field" autocomplete="off"></label>
+        <label :class="fieldLabel">{{ m.name }}<input v-model="name" maxlength="120" :class="field" autocomplete="off"></label>
+        <label :class="fieldLabel">{{ m.email }}<input v-model="email" type="email" maxlength="320" :class="field" autocomplete="off"></label>
+        <label :class="fieldLabel">{{ m.phone }}<input v-model="phone" type="tel" maxlength="40" :class="field" autocomplete="off"></label>
         <p v-if="error" class="text-sm text-danger" role="alert" data-testid="person-error">{{ error }}</p>
         <div class="flex gap-2">
-          <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.save }}</button>
+          <button type="submit" class="flex-1" :class="primaryButton">{{ m.save }}</button>
           <button type="button" :class="secondaryButton" @click="editor?.close()">{{ m.cancel }}</button>
         </div>
       </form>
@@ -54,7 +54,7 @@ import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { live } from '@/sync/live'
 import type { PersonRow } from '@/sync/types'
-import { dialogBox, field, secondaryButton } from '@/ui/styles'
+import { dialogBox, field, fieldLabel, primaryButton, secondaryButton } from '@/ui/styles'
 
 const m = messages.myPeople
 const c = messages.connections
@@ -98,7 +98,7 @@ async function saveEdit() {
   const key = contactKey(row)
   const twin = rows.value.find((p) => p.id !== row.id && contactKey(p) === key)
   if (twin) return (error.value = m.alreadySaved(personLabel(twin)))
-  await brain.savePerson(row)
+  await brain.save('people', row)
   if (adding.value) notice.value = m.addedNotice(personLabel(row))
   editor.value?.close()
 }
@@ -119,7 +119,7 @@ async function connect(p: PersonRow) {
 // Removing someone happens straight away, with Undo (SPEC §2).
 const undo = useUndoStore()
 async function askRemove(p: PersonRow) {
-  await brain.removePerson(p.id)
+  await brain.remove('people', p.id)
   undo.offer(messages.undo.removed(personLabel(p)), () => brain.restore('people', p.id))
 }
 </script>

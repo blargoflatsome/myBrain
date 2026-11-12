@@ -1,71 +1,72 @@
 <template>
-  <dialog
-    ref="dialog"
-    class="m-auto max-h-[92dvh] w-[min(100%-2rem,32rem)] rounded-2xl border border-line bg-surface p-0 text-ink backdrop:bg-black/40"
-    :aria-label="isNew ? m.editor.newHeading : m.editor.heading"
+  <EditorDialog
+    :open="!!event"
+    :heading="isNew ? m.editor.newHeading : m.editor.heading"
+    :save-label="m.editor.save"
+    :close-label="m.editor.close"
+    :delete-label="isNew ? null : m.editor.delete"
+    box-class="m-auto max-h-[92dvh] w-[min(100%-2rem,32rem)] rounded-2xl border border-line bg-surface p-0 text-ink backdrop:bg-black/40"
+    novalidate
+    @save="save"
+    @delete="askDelete"
     @close="emit('close')"
   >
-    <form class="flex flex-col gap-8 p-5" novalidate @submit.prevent="save">
-      <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        <span class="pb-2">{{ m.editor.title }}</span>
-        <input v-model="title" maxlength="500" :class="field" @input="error = ''">
+    <label :class="fieldLabel">
+      <span class="pb-2">{{ m.editor.title }}</span>
+      <input v-model="title" maxlength="500" :class="field" @input="error = ''">
+    </label>
+    <NotesEditor v-model="notes" :label="m.editor.notes" test-id="event-notes" />
+    <!-- SPEC §5 Calendar: when it happens, folded into Schedule (open for a new event; its summary says when). -->
+    <MoreOptions :title="m.editor.schedule" :summary="scheduleSummary" :start-open="scheduleOpen" test-id="event-schedule">
+      <label class="flex items-center justify-between gap-4">
+        <span class="font-medium">{{ m.editor.allDay }}</span>
+        <input v-model="allDay" type="checkbox" class="size-5 accent-[var(--accent)]">
       </label>
-      <NotesEditor v-model="notes" :label="m.editor.notes" test-id="event-notes" />
-      <!-- SPEC §5 Calendar: when it happens, folded into Schedule (open for a new event; its summary says when). -->
-      <MoreOptions :title="m.editor.schedule" :summary="scheduleSummary" :start-open="scheduleOpen" test-id="event-schedule">
-        <label class="flex items-center justify-between gap-4">
-          <span class="font-medium">{{ m.editor.allDay }}</span>
-          <input v-model="allDay" type="checkbox" class="size-5 accent-[var(--accent)]">
-        </label>
-        <fieldset class="grid grid-cols-2 gap-3">
-          <legend class="mb-1 text-sm font-medium pb-3">{{ m.editor.start }}</legend>
-          <DateInput v-model="startDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.start} ${m.editor.date}`" required :input-class="field" />
-          <TimeInput v-if="!allDay" v-model="startTime" :label="m.editor.time" :aria-label="`${m.editor.start} ${m.editor.time}`" :input-class="field" />
-        </fieldset>
-        <fieldset class="grid grid-cols-2 gap-3">
-          <legend class="mb-1 text-sm font-medium pb-3">{{ m.editor.end }}</legend>
-          <DateInput v-model="endDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.end} ${m.editor.date}`" required :input-class="field" />
-          <TimeInput v-if="!allDay" v-model="endTime" :label="m.editor.time" :aria-label="`${m.editor.end} ${m.editor.time}`" :input-class="field" />
-        </fieldset>
-        <label class="flex flex-col gap-1 text-sm text-muted">
-          <span class="pb-2">{{ m.editor.repeat }}</span>
-          <select v-model="repeat" :class="field">
-            <option v-for="r in REPEATS" :key="r" :value="r">{{ m.repeat[r] }}</option>
-          </select>
-        </label>
-        <label class="flex flex-col gap-1 text-sm text-muted">
-          <span class="pb-2">{{ m.editor.reminder }}</span>
-          <select v-model="reminder" :class="field">
-            <option v-for="r in REMINDERS" :key="String(r)" :value="r">{{ m.reminder(r) }}</option>
-          </select>
-          <span v-if="allDay && reminder !== null" class="text-xs">{{ m.editor.reminderAllDay }}</span>
-        </label>
-      </MoreOptions>
+      <fieldset class="grid grid-cols-2 gap-3">
+        <legend class="mb-1 text-sm font-medium pb-3">{{ m.editor.start }}</legend>
+        <DateInput v-model="startDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.start} ${m.editor.date}`" required :input-class="field" />
+        <TimeInput v-if="!allDay" v-model="startTime" :label="m.editor.time" :aria-label="`${m.editor.start} ${m.editor.time}`" :input-class="field" />
+      </fieldset>
+      <fieldset class="grid grid-cols-2 gap-3">
+        <legend class="mb-1 text-sm font-medium pb-3">{{ m.editor.end }}</legend>
+        <DateInput v-model="endDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.end} ${m.editor.date}`" required :input-class="field" />
+        <TimeInput v-if="!allDay" v-model="endTime" :label="m.editor.time" :aria-label="`${m.editor.end} ${m.editor.time}`" :input-class="field" />
+      </fieldset>
+      <label :class="fieldLabel">
+        <span class="pb-2">{{ m.editor.repeat }}</span>
+        <select v-model="repeat" :class="field">
+          <option v-for="r in REPEATS" :key="r" :value="r">{{ m.repeat[r] }}</option>
+        </select>
+      </label>
+      <label :class="fieldLabel">
+        <span class="pb-2">{{ m.editor.reminder }}</span>
+        <select v-model="reminder" :class="field">
+          <option v-for="r in REMINDERS" :key="String(r)" :value="r">{{ m.reminder(r) }}</option>
+        </select>
+        <span v-if="allDay && reminder !== null" class="text-xs">{{ m.editor.reminderAllDay }}</span>
+      </label>
+    </MoreOptions>
 
-      <!-- SPEC §5 Shared events: who's going, then inviting people, folded into Attendees. -->
-      <EventPeople
-        v-if="event && !event.cancelled_at"
-        v-model="people"
-        :event-id="event.id"
-        :is-new="isNew"
-        :start-date="startDate"
-        :start-time="allDay ? null : startTime"
-        :end-date="endDate || startDate"
-        :end-time="allDay ? null : endTime"
-        @suggest="useSuggestion"
-      >
-        <label class="flex items-center justify-between gap-4 text-sm">
-          <span><span class="font-medium">{{ c.showGuests }}</span><span class="block text-xs text-muted">{{ c.showGuestsHint }}</span></span>
-          <input v-model="showGuests" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
-        </label>
-      </EventPeople>
-      <p v-if="event?.cancelled_at" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ messages.invites.cancelledNote }}</p>
-      <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
-      <div class="flex gap-2">
-        <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
-        <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
-      </div>
+    <!-- SPEC §5 Shared events: who's going, then inviting people, folded into Attendees. -->
+    <EventPeople
+      v-if="event && !event.cancelled_at"
+      v-model="people"
+      :event-id="event.id"
+      :is-new="isNew"
+      :start-date="startDate"
+      :start-time="allDay ? null : startTime"
+      :end-date="endDate || startDate"
+      :end-time="allDay ? null : endTime"
+      @suggest="useSuggestion"
+    >
+      <label class="flex items-center justify-between gap-4 text-sm">
+        <span><span class="font-medium">{{ c.showGuests }}</span><span class="block text-xs text-muted">{{ c.showGuestsHint }}</span></span>
+        <input v-model="showGuests" type="checkbox" :class="checkbox">
+      </label>
+    </EventPeople>
+    <p v-if="event?.cancelled_at" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ messages.invites.cancelledNote }}</p>
+    <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
+    <template #actions>
       <button
         v-if="!isNew && event && !event.cancelled_at"
         type="button"
@@ -74,12 +75,8 @@
       >
         {{ messages.cancelEvent.button }}
       </button>
-      <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="askDelete">
-        {{ m.editor.delete }}
-      </button>
-    </form>
-    <CloseX @click="dialog?.close()" />
-  </dialog>
+    </template>
+  </EditorDialog>
 
   <ConfirmDialog
     ref="confirmDialog"
@@ -94,7 +91,7 @@
 <script setup lang="ts">
 // SPEC §5 Calendar and reminders: add or edit a personal event: title, start and end (or all day), repeat,
 // reminder, notes. Delete asks first; deleting a repeating event deletes the whole series.
-import CloseX from '@/components/CloseX.vue'
+import EditorDialog from '@/components/EditorDialog.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import DateInput from '@/components/DateInput.vue'
 import MoreOptions from '@/components/MoreOptions.vue'
@@ -108,7 +105,7 @@ import { eventProblem, nextWholeHour, REMINDERS, REPEATS } from '@/events/rules'
 import { messages } from '@/messages'
 import type { EventRepeat, EventRow } from '@/sync/types'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { field } from '@/ui/styles'
+import { checkbox, field, fieldLabel } from '@/ui/styles'
 import { dayLabel, timeLabel } from '@/ui/dates'
 
 const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
@@ -119,7 +116,6 @@ const c = messages.connections
 // Whether attendees see who else is going (SPEC §10 Connections).
 const showGuests = ref(true)
 
-const dialog = ref<HTMLDialogElement | null>(null)
 const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const title = ref('')
 const allDay = ref(false)
@@ -163,7 +159,7 @@ function useSuggestion(s: { date: string; start: string; end: string }) {
 watch(
   () => props.event,
   (e) => {
-    if (!e) return dialog.value?.close()
+    if (!e) return
     title.value = e.title
     allDay.value = !e.start_time
     startDate.value = e.start_date
@@ -177,7 +173,6 @@ watch(
     scheduleOpen.value = props.isNew
     error.value = ''
     people.value = []
-    dialog.value?.showModal()
   },
 )
 // Moving the start keeps the end after it.

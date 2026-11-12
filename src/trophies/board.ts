@@ -3,7 +3,7 @@
 import type { BadgeRow } from '@/sync/types'
 import { BADGES } from '@/celebrate/rules'
 import { CATEGORIES, levelFor, TIERS, TROPHIES, type TrophyCategory, type TrophyUnit } from '@/trophies/definitions'
-import { todayIn } from '@/tasks/days'
+import { dayOf } from '@/tasks/days'
 import { live } from '@/sync/live'
 import { messages } from '@/messages'
 
@@ -33,7 +33,7 @@ export interface BoardItem {
 /** Every trophy as the board shows it. `values` is null until my history has been worked out. */
 export function trophyBoard(badges: BadgeRow[], values: Record<string, number> | null, timeZone: string): BoardItem[] {
   const rows = new Map(live(badges).map((b) => [b.kind, b]))
-  const day = (iso: string) => todayIn(timeZone, new Date(iso))
+  const day = (iso: string) => dayOf(iso, timeZone)
   const firsts: BoardItem[] = BADGES.map((kind) => {
     const b = rows.get(kind)
     return {

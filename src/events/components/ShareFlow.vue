@@ -17,7 +17,7 @@
         <p class="rounded-xl bg-bg p-3 text-sm whitespace-pre-wrap" data-testid="share-body">{{ current.body }}</p>
         <a
           :href="shareHref(current) ?? undefined"
-          class="flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 font-semibold text-accent-ink"
+          class="flex items-center justify-center" :class="primaryButton"
           data-testid="share-open"
         >{{ current.phone ? m.openText : m.openEmail }}</a>
         <div class="flex gap-2">
@@ -27,7 +27,7 @@
       </template>
       <template v-else>
         <p role="status">{{ m.finished }}</p>
-        <button type="button" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="close">{{ m.done }}</button>
+        <button type="button" :class="primaryButton" @click="close">{{ m.done }}</button>
       </template>
     </div>
     <CloseX @click="close()" />
@@ -41,6 +41,7 @@ import CloseX from '@/components/CloseX.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { markShared, shareHref, type ShareTarget } from '@/events/sharing'
 import { messages } from '@/messages'
+import { primaryButton } from '@/ui/styles'
 
 const props = defineProps<{ targets: ShareTarget[]; kind: 'invite' | 'message' | 'cancel' | 'update' }>()
 /** done: how many messages I said I sent. */

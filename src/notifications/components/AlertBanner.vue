@@ -14,7 +14,7 @@
         <span v-if="current.body" class="text-sm text-muted [overflow-wrap:anywhere]">{{ current.body }}</span>
       </button>
       <button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-ink" :aria-label="m.closeBanner" @click="next">
-        <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+        <AppIcon name="close" size="size-5" />
       </button>
     </div>
   </div>
@@ -24,6 +24,7 @@
 // SPEC §6 In-app alerts: while the app is open, a new alert slides in at the top. Tapping it goes where I deal with
 // it (and counts it as seen), ✕ closes it, and it hides after 8 seconds unless the mouse or keyboard is on it.
 // Alerts that were waiting when the app opened don't pop up; several new ones show one after another.
+import AppIcon from '@/components/AppIcon.vue'
 import { onScopeDispose, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAlerts } from '@/notifications/useAlerts'

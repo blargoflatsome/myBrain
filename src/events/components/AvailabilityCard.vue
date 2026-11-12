@@ -11,7 +11,7 @@
       <ul class="flex flex-col gap-1">
         <li v-for="r in sortedRules" :key="r.id" class="flex items-center justify-between gap-2 text-sm" data-testid="availability-rule">
           <span>{{ dayNames[r.weekday] }} · {{ t(r.start_time) }} – {{ t(r.end_time) }}</span>
-          <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(`${dayNames[r.weekday]} ${t(r.start_time)}`)" @click="brain.deleteAvailabilityRule(r.id)">✕</button>
+          <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(`${dayNames[r.weekday]} ${t(r.start_time)}`)" @click="brain.remove('availability_rules', r.id)">✕</button>
         </li>
       </ul>
       <form v-if="addingRule" class="grid grid-cols-3 gap-2" @submit.prevent="addRule">
@@ -23,7 +23,7 @@
         <TimeInput v-model="ruleFrom" :label="m.from" label-class="text-xs text-muted" :input-class="fieldCompact" />
         <TimeInput v-model="ruleUntil" :label="m.until" label-class="text-xs text-muted" :input-class="fieldCompact" />
         <p v-if="ruleError" class="col-span-3 text-sm text-danger" role="alert">{{ ruleError }}</p>
-        <button type="submit" class="col-span-3 min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.add }}</button>
+        <button type="submit" class="col-span-3" :class="primaryButtonSmall">{{ m.add }}</button>
       </form>
       <button v-else type="button" class="min-h-11 self-start rounded-xl border border-dashed border-line px-3 text-sm" @click="addingRule = true">{{ m.addWeekly }}</button>
     </div>
@@ -38,7 +38,7 @@
             <span :class="x.kind === 'available' ? 'text-accent' : 'text-muted'">{{ m.kinds[x.kind] }}</span>
             <span v-if="x.note" class="text-muted"> · {{ x.note }}</span>
           </span>
-          <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(dayLabel(x.date))" @click="brain.deleteAvailabilityException(x.id)">✕</button>
+          <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(dayLabel(x.date))" @click="brain.remove('availability_exceptions', x.id)">✕</button>
         </li>
       </ul>
       <form v-if="addingException" class="flex flex-col gap-2" @submit.prevent="addException">
@@ -58,7 +58,7 @@
         </div>
         <label class="flex flex-col gap-1 text-xs text-muted">{{ m.note }}<input v-model="exNote" :class="fieldCompact"></label>
         <p v-if="exError" class="text-sm text-danger" role="alert">{{ exError }}</p>
-        <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.add }}</button>
+        <button type="submit" :class="primaryButtonSmall">{{ m.add }}</button>
       </form>
       <button v-else type="button" class="min-h-11 self-start rounded-xl border border-dashed border-line px-3 text-sm" @click="addingException = true">{{ m.addException }}</button>
     </div>
@@ -74,9 +74,10 @@ import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { todayIn, deviceTimeZone } from '@/tasks/days'
+import { formatTime } from '@/time/parse'
 import { messages } from '@/messages'
 import type { AvailabilityExceptionRow, AvailabilityRuleRow } from '@/sync/types'
-import { fieldCompact } from '@/ui/styles'
+import { fieldCompact, primaryButtonSmall } from '@/ui/styles'
 import { dayLabel } from '@/ui/dates'
 import { live } from '@/sync/live'
 
@@ -99,11 +100,7 @@ const today = todayIn(deviceTimeZone())
 const sortedRules = computed(() => [...rules.value].sort((a, b) => a.weekday - b.weekday || a.start_time.localeCompare(b.start_time)))
 const upcoming = computed(() => exceptions.value.filter((x) => x.date >= today).sort((a, b) => a.date.localeCompare(b.date)))
 
-const t = (time: string | null) => {
-  if (!time) return ''
-  const [h, mm] = time.split(':').map(Number)
-  return `${h! % 12 || 12}:${String(mm).padStart(2, '0')} ${h! < 12 ? 'am' : 'pm'}`
-}
+const t = (time: string | null) => (time ? formatTime(time, true) : '')
 
 // ---------- Weekly ----------
 const addingRule = ref(false)
@@ -114,7 +111,7 @@ const ruleError = ref('')
 async function addRule() {
   if (ruleUntil.value <= ruleFrom.value) return (ruleError.value = m.timeError)
   ruleError.value = ''
-  await brain.saveAvailabilityRule({ id: crypto.randomUUID(), user_id: auth.user?.id, weekday: ruleDay.value, start_time: ruleFrom.value, end_time: ruleUntil.value, deleted_at: null })
+  await brain.save('availability_rules', { id: crypto.randomUUID(), user_id: auth.user?.id, weekday: ruleDay.value, start_time: ruleFrom.value, end_time: ruleUntil.value, deleted_at: null })
   addingRule.value = false
 }
 
@@ -130,7 +127,7 @@ const exError = ref('')
 async function addException() {
   if (!exAllDay.value && exUntil.value <= exFrom.value) return (exError.value = m.timeError)
   exError.value = ''
-  await brain.saveAvailabilityException({
+  await brain.save('availability_exceptions', {
     id: crypto.randomUUID(),
     user_id: auth.user?.id,
     date: exDate.value,

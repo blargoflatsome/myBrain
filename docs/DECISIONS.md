@@ -153,3 +153,9 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 
 ## 2026-11-11 What not to test
 - If it can't break the website, don't test it: no tests that only check wording, the "past you" voice or that messages.ts is used; the instructions cover those and code review catches them. Wording may still be used to find something or confirm a behaviour happened. (User.) Added to the writing-tests skill.
+
+## 2026-11-11 Code review: speed and cleanup
+- The user asked for every item in Claude's review: speed fixes, shared pieces instead of copies, and removing unused code and wording. No behaviour change meant.
+- Claude's calls: editor windows build their form only while open (`EditorDialog.vue`); search builds its index only while open; the priority reminder reads only today's logs; sync downloads 6 tables at a time; an older queued copy of a row is not uploaded when a later save of it is waiting; Realtime changes wait 0.5 s per table, so a burst downloads once; the date library loads only where a date can be typed.
+- CI runs on pull requests only (main changes only by merging one that passed). Browser tests build with `vite build` (types are checked before them) and always start their own server, so a leftover one never tests an old build.
+- Wording no longer used anywhere was removed (old delete confirmations replaced by Undo, an unused streak message, and a few labels).

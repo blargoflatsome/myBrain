@@ -45,8 +45,8 @@
     <div class="flex flex-col gap-2" role="group" aria-labelledby="type-someone">
       <span id="type-someone" class="pb-2 text-sm font-medium">{{ m.typeSomeone }}</span>
       <div class="grid grid-cols-2 gap-2">
-        <label class="flex flex-col gap-1 text-sm text-muted"><span class="pb-2">{{ m.contact }}</span><input v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
-        <label class="flex flex-col gap-1 text-sm text-muted"><span class="pb-2">{{ m.contactName }}</span><input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
+        <label :class="fieldLabel"><span class="pb-2">{{ m.contact }}</span><input v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
+        <label :class="fieldLabel"><span class="pb-2">{{ m.contactName }}</span><input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
       </div>
       <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4 text-sm" @click="addContact">{{ m.addContact }}</button>
     </div>
@@ -75,7 +75,7 @@ import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
 import { useBrainStore } from '@/stores/brain'
 import { messages } from '@/messages'
 import type { PersonRow } from '@/sync/types'
-import { fieldCompact } from '@/ui/styles'
+import { fieldCompact, fieldLabel } from '@/ui/styles'
 
 const props = defineProps<{
   eventId: string

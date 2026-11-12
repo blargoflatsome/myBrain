@@ -43,7 +43,7 @@
               data-action="delete"
               @click="deleteNote(current)"
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+              <AppIcon name="close" size="size-5" :stroke-width="2.25" />
             </button>
             <template v-if="editingId === current.id">
               <RichTextEditor v-model="draft" :label="m.note(index + 1)" min-height="6rem" autofocus @update:model-value="editError = ''" />
@@ -70,7 +70,7 @@
               <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
               <div class="rich flex-1 pr-6 text-lg" data-testid="postit-body" v-html="cleanHtml(current.body)" />
               <button type="button" :class="[icon, '-mb-2 -ml-3 self-start']" :aria-label="m.edit" :title="m.edit" data-action="edit" @click="startEdit(current)">
-                <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16v4z" /><path d="M13.5 6.5l4 4" /></svg>
+                <AppIcon name="pencil" size="size-5" />
               </button>
             </template>
           </article>
@@ -128,6 +128,7 @@
 // SPEC §5 Dashboard: Post Its at the top, like sticky notes taped to the page. Several sit in a stack, newest on top,
 // shown one at a time (never automatic): Previous / Next on a computer; swipe or tap a dot on a phone; arrow keys.
 // On the note shown: an edit icon (bottom left) to edit in place, and an X (top right) that deletes it, with Undo.
+import AppIcon from '@/components/AppIcon.vue'
 import { computed, defineAsyncComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -247,7 +248,7 @@ function show(text: string, undo: string | null) {
 onScopeDispose(() => clearTimeout(noticeTimer))
 async function deleteNote(n: PostItRow) {
   followId.value = null
-  await brain.removePostIt(n.id)
+  await brain.remove('post_its', n.id)
   show(m.removed, n.id)
   await nextTick()
   document.querySelector<HTMLElement>('[data-testid="postit-undo"]')?.focus()
@@ -255,7 +256,7 @@ async function deleteNote(n: PostItRow) {
 async function undo() {
   if (!undoId.value) return
   followId.value = undoId.value
-  await brain.restorePostIt(undoId.value)
+  await brain.restore('post_its', undoId.value)
   notice.value = ''
   undoId.value = null
   await focusAction('delete')

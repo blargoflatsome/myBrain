@@ -15,6 +15,9 @@ function assertWritable(table: SyncTable) {
   if (READ_ONLY_TABLES.includes(table)) throw new Error(`${table} is read-only on this device`)
 }
 
+/** How many tables download at the same time. */
+const PULL_AT_ONCE = 6
+
 export class SyncEngine {
   private flushing: Promise<void> | null = null
   private flushAgain = false
@@ -69,9 +72,27 @@ export class SyncEngine {
 
   /** Soft delete (SPEC §7): the row is kept with deleted_at set, so the deletion syncs to other devices. */
   async remove<T extends SyncTable>(table: T, id: string): Promise<void> {
-    const row = await this.db.rows(table).get(id)
-    if (!row) return
-    await this.save(table, { ...row, deleted_at: new Date().toISOString() })
+    await this.removeMany(table, [id])
+  }
+
+  /** Soft delete several rows of one table in one step (clearing a list, deleting a bucket and its items). */
+  async removeMany<T extends SyncTable>(table: T, ids: readonly string[]): Promise<void> {
+    assertWritable(table)
+    if (!ids.length) return
+    const deletedAt = new Date().toISOString()
+    let changed = false
+    await this.db.transaction('rw', [this.db.rows(table), this.db.outbox], async () => {
+      for (const row of await this.db.rows(table).bulkGet([...ids])) {
+        if (!row) continue
+        const gone = { ...row, deleted_at: deletedAt } as RowTypes[T]
+        await this.db.rows(table).put(gone)
+        await this.db.outbox.add({ table, rowId: gone.id, row: gone })
+        changed = true
+      }
+    })
+    if (!changed) return
+    await this.refreshPending()
+    this.flush().catch(() => {})
   }
 
   /** Upload queued changes in order. Stops at the first network failure and keeps the rest queued. */
@@ -100,6 +121,11 @@ export class SyncEngine {
     for (;;) {
       const entry = await this.nextEntry()
       if (!entry) break
+      // Rows are queued whole, so an older copy that a later save of the same row replaces needn't be sent.
+      if (await this.supersededLater(entry)) {
+        await this.db.outbox.delete(entry.seq!)
+        continue
+      }
       await this.setState('syncing')
       try {
         const stored = await this.remote.upsert(entry.table, entry.row)
@@ -124,6 +150,11 @@ export class SyncEngine {
     return this.db.outbox.orderBy('seq').filter((e) => !e.error).first()
   }
 
+  private async supersededLater(entry: OutboxEntry): Promise<boolean> {
+    const later = await this.db.outbox.where('rowId').equals(entry.rowId).filter((e) => e.seq! > entry.seq! && e.table === entry.table && !e.error).count()
+    return later > 0
+  }
+
   /** Pull changes from the server. A row with changes still queued on this device is left alone. */
   async pull(tables: readonly SyncTable[] = SYNC_TABLES): Promise<void> {
     if (!this.isOnline()) {
@@ -131,7 +162,12 @@ export class SyncEngine {
       return
     }
     try {
-      for (const table of tables) await this.pullTable(table)
+      // A few tables at a time: one after another, a sync waited on every table's round trip in turn.
+      const queue = [...tables]
+      const worker = async () => {
+        for (let table = queue.shift(); table; table = queue.shift()) await this.pullTable(table)
+      }
+      await Promise.all(Array.from({ length: Math.min(PULL_AT_ONCE, queue.length) }, worker))
     } catch (err) {
       if (err instanceof NetworkError) {
         await this.setState('offline')
@@ -146,7 +182,8 @@ export class SyncEngine {
     const since = (await this.db.meta.get(key))?.value ?? null
     const rows = await this.remote.pullSince(table, since)
     // Note that this device has the server's copy of the table, even when it was empty.
-    await this.db.meta.put({ key: `downloaded:${table}`, value: 'yes' })
+    const downloaded = `downloaded:${table}`
+    if (!(await this.db.meta.get(downloaded))) await this.db.meta.put({ key: downloaded, value: 'yes' })
     if (!rows.length) return
     await this.db.transaction('rw', [this.db.rows(table), this.db.outbox, this.db.meta], async () => {
       let latest = since

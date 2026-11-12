@@ -16,8 +16,8 @@
     <div class="flex w-full max-w-md flex-col gap-4">
       <SlideToComplete :key="`${current.id}-${slider}`" :label="m.slide" :hint="m.slideHint" @complete="act('complete')" />
       <div class="grid grid-cols-2 gap-3">
-        <button type="button" class="min-h-12 rounded-xl border border-line px-4 font-medium" @click="act('snooze')">{{ m.snooze }}</button>
-        <button type="button" class="min-h-12 rounded-xl border border-line px-4 font-medium" @click="act('cancel')">{{ m.cancel }}</button>
+        <button type="button" class="font-medium" :class="secondaryButton" @click="act('snooze')">{{ m.snooze }}</button>
+        <button type="button" class="font-medium" :class="secondaryButton" @click="act('cancel')">{{ m.cancel }}</button>
       </div>
     </div>
     <p class="max-w-md text-xs text-muted">{{ m.reliability }}</p>
@@ -33,25 +33,30 @@ import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { duePriorities, type DuePriority } from '@/reminders/priority'
-import { deviceTimeZone } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { messages } from '@/messages'
 import type { HabitLogRow, HabitRow, PriorityTaskLogRow, PriorityTaskRow, ReminderStateRow } from '@/sync/types'
+import { secondaryButton } from '@/ui/styles'
 
 const brain = useBrainStore()
 const m = messages.priority
-
-const all = <T,>(table: 'habits' | 'habit_logs' | 'priority_tasks' | 'priority_task_logs' | 'reminder_state') =>
-  useLiveQuery<T[]>(async () => (brain.db ? ((await brain.db.table(table).toArray()) as T[]) : []), [], [() => brain.db])
-const habits = all<HabitRow>('habits')
-const habitLogs = all<HabitLogRow>('habit_logs')
-const tasks = all<PriorityTaskRow>('priority_tasks')
-const taskLogs = all<PriorityTaskLogRow>('priority_task_logs')
-const states = all<ReminderStateRow>('reminder_state')
 
 // Re-check every 20 seconds so a reminder appears on time and a snooze comes back.
 const now = ref(new Date())
 const tick = setInterval(() => (now.value = new Date()), 20_000)
 onScopeDispose(() => clearInterval(tick))
+const today = computed(() => todayIn(deviceTimeZone(), now.value))
+
+const all = <T,>(table: 'habits' | 'priority_tasks') =>
+  useLiveQuery<T[]>(async () => (brain.db ? ((await brain.db.table(table).toArray()) as T[]) : []), [], [() => brain.db])
+// Only today's logs and snoozes matter here, so the whole history isn't kept in memory.
+const todays = <T,>(table: 'habit_logs' | 'priority_task_logs' | 'reminder_state') =>
+  useLiveQuery<T[]>(async () => (brain.db ? ((await brain.db.table(table).where('date').equals(today.value).toArray()) as T[]) : []), [], [() => brain.db, today])
+const habits = all<HabitRow>('habits')
+const tasks = all<PriorityTaskRow>('priority_tasks')
+const habitLogs = todays<HabitLogRow>('habit_logs')
+const taskLogs = todays<PriorityTaskLogRow>('priority_task_logs')
+const states = todays<ReminderStateRow>('reminder_state')
 
 const due = computed(() =>
   duePriorities(habits.value, habitLogs.value, tasks.value, taskLogs.value, states.value, now.value, deviceTimeZone()),

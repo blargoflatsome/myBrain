@@ -14,13 +14,13 @@
       <p v-else-if="data.passed" class="rounded-xl bg-surface p-4 font-medium" role="status" data-testid="guest-passed">{{ m.passed }}</p>
       <div v-else-if="claim === 'claimed'" class="flex flex-col gap-2 rounded-2xl border border-accent p-4" role="status" data-testid="guest-claimed">
         <p>{{ m.claimed }}</p>
-        <RouterLink :to="`/calendar?date=${data.start_date}`" class="min-h-11 self-start rounded-xl bg-accent px-4 py-2.5 font-semibold text-accent-ink">{{ m.openCalendar }}</RouterLink>
+        <RouterLink :to="`/calendar?date=${data.start_date}`" class="self-start py-2.5" :class="primaryButtonSmall">{{ m.openCalendar }}</RouterLink>
       </div>
       <template v-else>
         <div v-if="claim === 'ask'" class="flex flex-col gap-2 rounded-2xl border border-accent p-4" data-testid="guest-accept-as">
           <p>{{ m.acceptAs(myName) }}</p>
           <span class="flex flex-wrap gap-2">
-            <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="acceptAsMe">{{ m.acceptAsButton }}</button>
+            <button type="button" :class="primaryButtonSmall" @click="acceptAsMe">{{ m.acceptAsButton }}</button>
             <button type="button" class="min-h-11 rounded-xl border border-line px-4" @click="claim = 'none'">{{ m.stayGuest }}</button>
           </span>
         </div>
@@ -36,7 +36,7 @@
         </div>
         <div v-if="offer && data.response !== 'pending' && data.response !== 'no'" class="flex flex-col gap-2 rounded-2xl border border-accent p-4" data-testid="guest-connect">
           <p>{{ m.connectOffer(host) }}</p>
-          <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="connectHost">{{ m.connect }}</button>
+          <button type="button" class="self-start" :class="primaryButtonSmall" @click="connectHost">{{ m.connect }}</button>
         </div>
         <p v-if="connectNote" class="text-sm" role="status" data-testid="guest-connect-sent">{{ connectNote }}</p>
         <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" @click="addToCalendar"><AppIcon name="calendar" class="mr-1" />{{ m.addToCalendar }}</button>
@@ -48,7 +48,7 @@
       </div>
 
       <form v-if="!data.passed && claim !== 'claimed'" class="flex flex-col gap-2" @submit.prevent="send">
-        <label class="flex flex-col gap-1 text-sm text-muted">
+        <label :class="fieldLabel">
           {{ m.message(host) }}
           <textarea v-model="message" rows="3" maxlength="2000" class="rounded-xl border border-line bg-surface px-3 py-2 text-base text-ink" :placeholder="m.messagePlaceholder" />
         </label>
@@ -80,6 +80,7 @@ import { useAuthStore } from '@/stores/auth'
 import { guestInvite, guestMessage, guestOptOut, guestRespond, whenText, type GuestInvite } from '@/events/sharing'
 import { downloadIcs } from '@/events/ics'
 import { messages } from '@/messages'
+import { fieldLabel, primaryButtonSmall } from '@/ui/styles'
 
 const route = useRoute()
 const m = messages.guest

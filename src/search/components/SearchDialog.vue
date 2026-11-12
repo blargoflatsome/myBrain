@@ -25,7 +25,7 @@
           :key="t.id"
           type="button"
           class="min-h-9 shrink-0 rounded-full border px-3 text-sm"
-          :class="chosenTags.includes(t.id) ? 'choice-on border-accent bg-accent/10 font-semibold text-ink' : 'border-line text-ink'"
+          :class="chosenTags.includes(t.id) ? selected : 'border-line text-ink'"
           :aria-pressed="chosenTags.includes(t.id)"
           @click="toggleTag(t.id)"
         >
@@ -73,6 +73,7 @@ import { messages } from '@/messages'
 import type { TagRow } from '@/sync/types'
 import { dayLabel, shortDayWithYear } from '@/ui/dates'
 import { live } from '@/sync/live'
+import { selected } from '@/ui/styles'
 
 const brain = useBrainStore()
 const store = useSearchStore()
@@ -85,10 +86,12 @@ const box = ref<HTMLInputElement | null>(null)
 const query = ref('')
 const chosenTags = ref<string[]>([])
 
+// Built only while the window is open: building it reads every searchable row, so keeping it up to date in the
+// background would redo that work after every save anywhere in the app.
 const docs = useLiveQuery<SearchDoc[]>(
   async () => {
     const db = brain.db
-    if (!db) return []
+    if (!db || !store.isOpen) return []
     return searchDocs({
       tasks: await db.tasks.toArray(),
       vaultItems: await db.vault_items.toArray(),
@@ -102,12 +105,12 @@ const docs = useLiveQuery<SearchDoc[]>(
     })
   },
   [],
-  [() => brain.db],
+  [() => brain.db, () => store.isOpen],
 )
 const tags = useLiveQuery<TagRow[]>(
-  async () => (brain.db ? live(await brain.db.tags.toArray()).sort((a, b) => a.name.localeCompare(b.name)) : []),
+  async () => (brain.db && store.isOpen ? live(await brain.db.tags.toArray()).sort((a, b) => a.name.localeCompare(b.name)) : []),
   [],
-  [() => brain.db],
+  [() => brain.db, () => store.isOpen],
 )
 
 const results = computed(() => search(docs.value, query.value, chosenTags.value))

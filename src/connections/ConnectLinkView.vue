@@ -5,7 +5,7 @@
     <template v-else-if="state === 'ready' && who">
       <img v-if="who.avatar_url" :src="who.avatar_url" alt="" class="mx-auto size-20 rounded-full" referrerpolicy="no-referrer">
       <p class="text-lg [overflow-wrap:anywhere]" data-testid="link-owner">{{ who.already_connected ? m.alreadyConnected(who.display_name) : m.connectWith(who.display_name) }}</p>
-      <button v-if="!who.already_connected" type="button" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="connect">{{ m.connect }}</button>
+      <button v-if="!who.already_connected" type="button" :class="primaryButton" @click="connect">{{ m.connect }}</button>
     </template>
     <p v-else-if="state === 'done'" role="status" data-testid="link-done">{{ m.accepted(name) }}</p>
     <p v-else role="alert" data-testid="link-problem">{{ problem || m.linkGone }}</p>
@@ -20,6 +20,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { previewLink, useLink, type LinkOwner } from '@/connections/connections'
 import { messages } from '@/messages'
+import { primaryButton } from '@/ui/styles'
 
 const m = messages.connections
 const route = useRoute()

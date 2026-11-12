@@ -319,11 +319,6 @@ export function newLevels(states: TrophyState[]): TrophyState[] {
 /** The shown level: whichever is higher, history or saved (a trophy is never taken away). */
 export const shownLevel = (s: TrophyState) => Math.max(s.level, s.saved)
 
-/** The next level's target, or null at the top. */
-export function nextTarget(s: TrophyState): number | null {
-  return s.trophy.levels[shownLevel(s)] ?? null
-}
-
 // ---------- Comebacks (SPEC §5 Trophies: messages, not trophies) ----------
 
 /** Days away from the app before opening it again is a comeback. */

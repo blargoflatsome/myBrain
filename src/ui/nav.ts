@@ -19,11 +19,3 @@ export const MORE_NAV: { to: string; label: string }[] = [
 /** Whether a page belongs under More (its tab or button shows as current). */
 export const inMore = (path: string) => MORE_NAV.some((i) => path === i.to || path.startsWith(`${i.to}/`))
 
-/** Simple line icons for the tabs (24×24, drawn with the current text color). */
-export const NAV_ICON_PATHS: Record<NavIcon | 'more', string[]> = {
-  tasks: ['M9 11l3 3 8-8', 'M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9'],
-  habits: ['M12 3v3', 'M12 18v3', 'M3 12h3', 'M18 12h3', 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'],
-  calendar: ['M8 2v4', 'M16 2v4', 'M3 10h18', 'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z'],
-  vault: ['M3 7h18v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7z', 'M2 3h20v4H2z', 'M10 11h4'],
-  more: ['M5 12h.01', 'M12 12h.01', 'M19 12h.01'],
-}

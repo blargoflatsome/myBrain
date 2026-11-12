@@ -1,9 +1,8 @@
 name: CI
 
+# Pull requests only: main changes only by merging a pull request that has already passed.
 on:
   pull_request:
-  push:
-    branches: [main]
 
 jobs:
   check:

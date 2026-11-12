@@ -5,7 +5,7 @@
       <p class="text-muted">{{ m.body }}</p>
     </div>
     <form class="flex flex-col gap-4" @submit.prevent="save">
-      <label class="flex flex-col gap-1 text-sm text-muted">
+      <label :class="fieldLabel">
         {{ m.phone }}
         <input v-model="phone" type="tel" autocomplete="tel" :class="fieldOnPage" @input="error = ''">
         <span class="text-xs">{{ m.phoneHint }}</span>
@@ -25,7 +25,7 @@
         <span class="text-xs text-muted">{{ m.notifyHint }}</span>
       </fieldset>
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
-      <button type="submit" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="saving">{{ m.save }}</button>
+      <button type="submit" :class="primaryButton" :disabled="saving">{{ m.save }}</button>
     </form>
   </main>
 </template>
@@ -40,7 +40,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
-import { fieldOnPage } from '@/ui/styles'
+import { fieldLabel, fieldOnPage, primaryButton } from '@/ui/styles'
 
 const auth = useAuthStore()
 const route = useRoute()

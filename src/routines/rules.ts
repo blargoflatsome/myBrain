@@ -3,7 +3,6 @@ import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRo
 import { addDays, onWeek } from '@/tasks/days'
 import { isScheduled as habitScheduled, weekdayOf } from '@/habits/rules'
 
-export const ALL_WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]
 
 /** A run-anytime routine has no weekdays: no reminder, never missed, progress kept until finished. */
 export function isAnytime(routine: RoutineRow): boolean {

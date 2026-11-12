@@ -2,13 +2,13 @@
   <form class="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-dashed border-line p-4 text-left" novalidate data-testid="dev-sign-in" @submit.prevent="signIn">
     <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
     <p class="text-sm text-muted">{{ m.hint }}</p>
-    <label class="flex flex-col gap-1 text-sm text-muted">
+    <label :class="fieldLabel">
       {{ m.who }}
       <select v-model="email" :class="field">
         <option v-for="u in users" :key="u.email" :value="u.email">{{ u.name }} ({{ u.email }})</option>
       </select>
     </label>
-    <label class="flex flex-col gap-1 text-sm text-muted">
+    <label :class="fieldLabel">
       {{ m.password }}
       <input v-model="password" type="password" autocomplete="current-password" :class="field">
     </label>
@@ -24,7 +24,7 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { messages } from '@/messages'
 import { takeReturn } from '@/router/returnTo'
-import { field } from '@/ui/styles'
+import { field, fieldLabel } from '@/ui/styles'
 
 const m = messages.devSignIn
 const users = [

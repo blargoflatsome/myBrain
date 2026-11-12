@@ -27,10 +27,10 @@
               <span class="font-medium">{{ m.ntfy }}</span>
               <span class="block text-xs text-muted">{{ m.ntfyHint }}</span>
             </span>
-            <input v-model="notifyNtfy" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+            <input v-model="notifyNtfy" type="checkbox" :class="checkbox">
           </label>
           <div v-if="notifyNtfy" class="flex flex-col gap-1">
-            <label class="flex flex-col gap-1 text-sm text-muted">
+            <label :class="fieldLabel">
               {{ m.ntfyTopic }}
               <input v-model="topic" :class="field" autocomplete="off" spellcheck="false">
             </label>
@@ -50,7 +50,7 @@
           </div>
           <label class="flex items-center justify-between gap-4 text-sm">
             {{ m.priorityQuiet }}
-            <input v-model="priorityRings" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+            <input v-model="priorityRings" type="checkbox" :class="checkbox">
           </label>
         </fieldset>
 
@@ -61,7 +61,7 @@
           <p class="-mt-2 text-xs text-muted">{{ m.journalReminderHint }}</p>
           <label class="flex items-center justify-between gap-4 text-sm">
             {{ m.journalOff }}
-            <input v-model="journalOff" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+            <input v-model="journalOff" type="checkbox" :class="checkbox">
           </label>
           <TimeInput v-if="!journalOff" v-model="journalTime" :label="m.journalTime" :input-class="field" />
         </fieldset>
@@ -69,7 +69,7 @@
     </div>
 
     <div v-if="loaded" class="flex flex-wrap items-center gap-3 border-t border-line pt-4">
-      <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="save">{{ m.save }}</button>
+      <button type="button" :class="primaryButtonSmall" @click="save">{{ m.save }}</button>
       <button type="button" class="min-h-11 rounded-xl border border-line px-4 text-sm" @click="test">{{ m.test }}</button>
       <p v-if="notice" class="text-sm text-muted" role="status">{{ notice }}</p>
     </div>
@@ -85,7 +85,7 @@ import { onMounted, ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { messages } from '@/messages'
-import { field } from '@/ui/styles'
+import { checkbox, field, fieldLabel, primaryButtonSmall } from '@/ui/styles'
 
 const auth = useAuthStore()
 const m = messages.notifications

@@ -5,7 +5,7 @@
       <p class="text-muted">{{ m.intro }}</p>
     </div>
 
-    <button type="button" class="min-h-12 self-start rounded-xl border border-line bg-surface px-4 font-medium" @click="startNew">{{ m.add }}</button>
+    <button type="button" class="self-start bg-surface font-medium" :class="secondaryButton" @click="startNew">{{ m.add }}</button>
     <p v-if="!routines.length" class="text-muted">{{ m.empty }}</p>
 
     <ul class="flex flex-col gap-3">
@@ -21,7 +21,7 @@
         <RouterLink
           v-if="row.scheduled && row.steps.length && !row.state.finished"
           :to="`/routines/${row.routine.id}/run`"
-          class="flex min-h-12 items-center justify-center rounded-xl bg-accent px-4 font-semibold text-accent-ink"
+          class="flex items-center justify-center" :class="primaryButton"
         >
           {{ row.state.started ? m.continue : m.start }}
         </RouterLink>
@@ -69,6 +69,7 @@ import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, isSchedu
 import { messages } from '@/messages'
 import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
 import { live } from '@/sync/live'
+import { primaryButton, secondaryButton } from '@/ui/styles'
 
 const brain = useBrainStore()
 const m = messages.routines

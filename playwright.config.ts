@@ -26,9 +26,11 @@ export default defineConfig({
     { name: 'iphone', use: { ...devices['iPhone 14'], serviceWorkers: 'block' }, grep: phoneOnly },
   ],
   webServer: {
-    command: 'npm run build && npm run preview',
+    // vite build, not npm run build: the quick checks and the full review type-check first, so the browser tests don't
+    // do it again. A fresh server every run, so a server left over from an earlier run never tests an old build.
+    command: 'npx vite build && npm run preview',
     url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
 })

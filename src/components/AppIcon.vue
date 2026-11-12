@@ -5,7 +5,7 @@
     :class="['inline-block shrink-0 align-[-0.15em]', size]"
     :fill="filled ? 'currentColor' : 'none'"
     stroke="currentColor"
-    stroke-width="2"
+    :stroke-width="strokeWidth"
     stroke-linecap="round"
     stroke-linejoin="round"
     :data-icon="name"
@@ -19,5 +19,5 @@
 // text next to it carries the meaning.
 import { ICONS, type IconName } from '@/ui/icons'
 
-withDefaults(defineProps<{ name: IconName; size?: string; filled?: boolean }>(), { size: 'size-[1.1em]', filled: false })
+withDefaults(defineProps<{ name: IconName; size?: string; filled?: boolean; strokeWidth?: number }>(), { size: 'size-[1.1em]', filled: false, strokeWidth: 2 })
 </script>

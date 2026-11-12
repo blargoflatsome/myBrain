@@ -18,6 +18,9 @@ function toUtcMidnight(date: string): number {
   return Date.UTC(y!, m! - 1, d!)
 }
 
+/** The "YYYY-MM-DD" day a stored moment (an ISO time) fell on, in a time zone. */
+export const dayOf = (iso: string, timeZone: string): string => todayIn(timeZone, new Date(iso))
+
 /** Whole calendar days from `from` to `to` (negative if `to` is earlier). */
 export function daysBetween(from: string, to: string): number {
   return Math.round((toUtcMidnight(to) - toUtcMidnight(from)) / 86_400_000)

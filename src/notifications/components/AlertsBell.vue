@@ -6,10 +6,7 @@
     data-testid="alerts-bell"
     @click="openList"
   >
-    <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-    </svg>
+    <AppIcon name="bell" size="size-5" />
     <span v-if="unread" class="absolute -top-1.5 -right-1.5 flex min-w-5 items-center justify-center rounded-full bg-danger px-1 text-xs font-bold text-danger-ink" data-testid="alerts-count" aria-hidden="true">
       {{ unread > 9 ? '9+' : unread }}
     </span>
@@ -33,7 +30,7 @@
             <span v-if="n.body" class="text-sm text-muted [overflow-wrap:anywhere]">{{ n.body }}</span>
           </button>
           <button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-bg hover:text-ink" :aria-label="m.clear(n.title)" @click="clear(n.id)">
-            <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            <AppIcon name="close" size="size-5" />
           </button>
         </li>
       </ul>
@@ -48,6 +45,7 @@
 <script setup lang="ts">
 // SPEC §6 In-app alerts: the bell in the header with how many alerts I haven't dealt with; it opens them all, newest
 // first, 5 per page (with none, a short "All caught up" message instead). Tapping one takes me where I deal with it and counts it as seen; ✕ or Clear all clears them.
+import AppIcon from '@/components/AppIcon.vue'
 import CloseX from '@/components/CloseX.vue'
 import { momentLabel } from '@/ui/dates'
 import { ref } from 'vue'

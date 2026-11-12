@@ -67,6 +67,17 @@ describe('Spec §2/§7: capturing works offline and syncs later', () => {
     expect(order).toEqual(['vault_buckets', 'vault_items'])
   })
 
+  it('a row saved several times while offline uploads once, as its latest copy', async () => {
+    remote.online = false
+    for (const title of ['buy', 'buy mi', 'buy milk']) await engine.save('tasks', task('t1', title))
+    remote.online = true
+    await engine.flush()
+
+    expect(remote.tables.tasks.get('t1')).toMatchObject({ title: 'buy milk' })
+    expect(remote.upserts).toBe(1)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
   it('keeps the rest of the queue when the connection drops mid-upload', async () => {
     remote.online = false
     await engine.save('tasks', task('t1', 'one'))
@@ -164,6 +175,16 @@ describe('Spec §7: deletions are soft deletes that sync to other devices', () =
 
     expect((await db.tasks.get('t1'))?.deleted_at).toBeTruthy()
     expect(remote.tables.tasks.get('t1')?.deleted_at).toBeTruthy()
+  })
+
+  it('removing several rows at once deletes each one and syncs every deletion', async () => {
+    for (const id of ['t1', 't2', 't3']) await engine.save('tasks', task(id, id))
+    await engine.flush()
+    await engine.removeMany('tasks', ['t1', 't3', 'not-here'])
+    await engine.flush()
+
+    expect([...remote.tables.tasks.values()].map((t) => [t.id, !!t.deleted_at])).toEqual([['t1', true], ['t2', false], ['t3', true]])
+    expect(await db.outbox.count()).toBe(0)
   })
 })
 

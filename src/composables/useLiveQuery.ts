@@ -1,9 +1,10 @@
 import { liveQuery } from 'dexie'
-import { onScopeDispose, ref, watch, type Ref, type WatchSource } from 'vue'
+import { onScopeDispose, shallowRef, watch, type Ref, type WatchSource } from 'vue'
 
 /** A Vue ref that follows a Dexie query and updates whenever the on-device data changes (SPEC §7: reads come from the local store). */
 export function useLiveQuery<T>(query: () => Promise<T> | T, initial: T, deps: WatchSource[] = []): Ref<T> {
-  const result = ref(initial) as Ref<T>
+  // Shallow: each change replaces the whole result, so making every row of it reactive would be wasted work.
+  const result = shallowRef(initial) as Ref<T>
   let sub: { unsubscribe(): void } | null = null
 
   const run = () => {

@@ -50,7 +50,7 @@
             <TrophyCard v-for="item in g.items" :key="item.id" :item="item" @open="openDetails" />
           </ul>
         </section>
-        <button type="button" class="min-h-12 self-start rounded-xl border border-line px-4" @click="lockedDialog?.close()">{{ t.close }}</button>
+        <button type="button" class="self-start" :class="secondaryButton" @click="lockedDialog?.close()">{{ t.close }}</button>
       </div>
       <CloseX @click="lockedDialog?.close()" />
     </dialog>
@@ -73,7 +73,7 @@
           </li>
         </ul>
         <p v-else-if="details.lastDay" class="text-sm text-muted">{{ t.earnedOn(dateWithYear(details.lastDay)) }}</p>
-        <button type="button" class="min-h-12 self-start rounded-xl border border-line px-4" @click="detailsDialog?.close()">{{ t.close }}</button>
+        <button type="button" class="self-start" :class="secondaryButton" @click="detailsDialog?.close()">{{ t.close }}</button>
       </div>
       <CloseX @click="detailsDialog?.close()" />
     </dialog>
@@ -93,7 +93,7 @@ import { byCategory, newest, trophyName, type BoardItem } from '@/trophies/board
 import { TIERS } from '@/trophies/definitions'
 import { messages } from '@/messages'
 import { dateWithYear } from '@/ui/dates'
-import { card, dialogBox } from '@/ui/styles'
+import { card, dialogBox, secondaryButton } from '@/ui/styles'
 
 const props = defineProps<{ items: BoardItem[] }>()
 const cm = messages.celebrations

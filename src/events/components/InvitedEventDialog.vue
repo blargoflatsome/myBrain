@@ -36,7 +36,7 @@
         </section>
         <label class="flex items-center justify-between gap-4 text-sm">
           <span><span class="font-medium">{{ c.showMe }}</span><span class="block text-xs text-muted">{{ c.showMeHint }}</span></span>
-          <input v-model="showMe" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]" @change="saveShowMe">
+          <input v-model="showMe" type="checkbox" :class="checkbox" @change="saveShowMe">
         </label>
         <form class="flex flex-col gap-2" @submit.prevent="send">
           <span class="text-sm font-medium">{{ m.message }}</span>
@@ -72,7 +72,7 @@ import { messageEvent, respondToInvite } from '@/events/sharing'
 import { connectViaEvent, eventAttendees, setEventVisibility, type Attendee } from '@/connections/connections'
 import { messages } from '@/messages'
 import type { EventInviteRow, EventRow } from '@/sync/types'
-import { choice } from '@/ui/styles'
+import { checkbox, choice } from '@/ui/styles'
 
 const props = defineProps<{ event: EventRow | null; invite: EventInviteRow | null }>()
 const emit = defineEmits<{ close: []; dropOut: [EventRow] }>()

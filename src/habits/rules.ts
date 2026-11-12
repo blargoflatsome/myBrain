@@ -6,6 +6,13 @@ import { addDays, onWeek, todayIn } from '@/tasks/days'
 export type DayStatus = 'not_scheduled' | 'completed' | 'missed' | 'open'
 export const ALL_WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]
 
+/** The chosen weekdays with one day switched on or off, in order; the last chosen day can't be switched off. */
+export function toggleWeekday(days: readonly number[], day: number): number[] {
+  const has = days.includes(day)
+  if (has && days.length === 1) return [...days]
+  return has ? days.filter((d) => d !== day) : [...days, day].sort()
+}
+
 /** 0 = Sunday ... 6 = Saturday for a YYYY-MM-DD date. */
 export function weekdayOf(date: string): number {
   const [y, m, d] = date.split('-').map(Number)

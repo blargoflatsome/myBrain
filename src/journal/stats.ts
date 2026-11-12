@@ -3,7 +3,7 @@ import type { HabitLogRow, HabitRow, JournalEntryRow, JournalStats, PriorityTask
 import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
 import { activeSteps, isAnytime, isScheduled as routineScheduled, runFor, stepsForDay } from '@/routines/rules'
 import { isTaskScheduled } from '@/reminders/priority'
-import { addDays, todayIn } from '@/tasks/days'
+import { addDays, dayOf } from '@/tasks/days'
 import { live } from '@/sync/live'
 
 export interface DayData {
@@ -20,7 +20,6 @@ export interface DayData {
   questLogs: QuestLogRow[]
 }
 
-const localDay = (iso: string, timeZone: string) => todayIn(timeZone, new Date(iso))
 
 /** A streak counts as reached from 2 days in a row; a reset is only noted when there was a streak to lose. */
 export const STREAK_MIN = 2
@@ -34,7 +33,7 @@ export function dayStats(data: DayData, date: string, now: Date, timeZone: strin
   const tasks = live(data.tasks).filter((t) => t.status !== 'cancelled')
   const doneDay = (t: TaskRow) => {
     if (t.status !== 'done' || !t.completed_at) return null
-    const d = localDay(t.completed_at, timeZone)
+    const d = dayOf(t.completed_at, timeZone)
     return t.due_date && t.due_date > d ? t.due_date : d
   }
   const counted = tasks.filter((t) => t.due_date === date || doneDay(t) === date)
@@ -72,7 +71,7 @@ export function dayStats(data: DayData, date: string, now: Date, timeZone: strin
       const steps = stepsForDay(activeSteps(data.routineSteps, r.id), data.habits, date)
       if (isAnytime(r)) {
         const runIds = new Set(data.routineRuns.filter((x) => x.routine_id === r.id && !x.deleted_at).map((x) => x.id))
-        const done = stepLogs.filter((l) => runIds.has(l.run_id) && l.status === 'completed' && localDay(l.logged_at, timeZone) === date).length
+        const done = stepLogs.filter((l) => runIds.has(l.run_id) && l.status === 'completed' && dayOf(l.logged_at, timeZone) === date).length
         return done ? { id: r.id, title: r.title, done: Math.min(done, steps.length), total: steps.length } : null
       }
       if (!routineScheduled(r, date)) return null

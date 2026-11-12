@@ -68,7 +68,7 @@
           />
           <SaveStatus class="-mt-2" :busy="busy.has(`${e.date}:body`)" :has-saved="true" test-id="save-status-writing" />
           <JournalTomorrow :date="e.date" :entry="e" min-height="12rem" @busy="track(e.date, 'tomorrow', $event)" />
-          <button type="button" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="finishEditing(e.date)">
+          <button type="button" class="self-start" :class="primaryButtonSmall" @click="finishEditing(e.date)">
             {{ m.done }}
           </button>
         </template>
@@ -108,6 +108,7 @@ import { shortDay } from '@/ui/dates'
 import { live } from '@/sync/live'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
+import { primaryButtonSmall } from '@/ui/styles'
 
 // The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
 const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))

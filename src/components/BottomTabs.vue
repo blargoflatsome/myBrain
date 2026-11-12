@@ -7,9 +7,7 @@
           class="flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 text-xs text-muted"
           active-class="!text-accent font-semibold"
         >
-          <svg aria-hidden="true" viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path v-for="d in NAV_ICON_PATHS[item.icon]" :key="d" :d="d" />
-          </svg>
+          <AppIcon :name="item.icon" size="size-6" />
           <span class="truncate">{{ item.label }}</span>
         </RouterLink>
       </li>
@@ -22,9 +20,7 @@
           aria-haspopup="dialog"
           @click="openMore"
         >
-          <svg aria-hidden="true" viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
-            <path v-for="d in NAV_ICON_PATHS.more" :key="d" :d="d" />
-          </svg>
+          <AppIcon name="more" size="size-6" :stroke-width="3" />
           <span>{{ messages.nav.more }}</span>
           <span v-if="inboxCount" class="absolute top-1 right-[calc(50%-1.5rem)] rounded-full bg-accent px-1.5 text-[0.65rem] text-accent-ink" aria-hidden="true">{{ inboxCount }}</span>
         </button>
@@ -48,7 +44,7 @@
           </RouterLink>
         </li>
       </ul>
-      <button type="button" class="mt-2 min-h-12 rounded-xl border border-line px-4" @click="sheet?.close()">{{ messages.nav.closeMore }}</button>
+      <button type="button" class="mt-2" :class="secondaryButton" @click="sheet?.close()">{{ messages.nav.closeMore }}</button>
     </div>
     <CloseX @click="sheet?.close()" />
   </dialog>
@@ -61,7 +57,9 @@ import CloseX from '@/components/CloseX.vue'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { messages } from '@/messages'
-import { MAIN_NAV, MORE_NAV, NAV_ICON_PATHS, inMore } from '@/ui/nav'
+import { MAIN_NAV, MORE_NAV, inMore } from '@/ui/nav'
+import AppIcon from '@/components/AppIcon.vue'
+import { secondaryButton } from '@/ui/styles'
 
 defineProps<{ inboxCount: number }>()
 const route = useRoute()
