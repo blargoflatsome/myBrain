@@ -31,14 +31,15 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Forms: optional details in More details, formatted notes', () => {
-  test('a task editor shows notes in view; only priority and tags are in More details', async ({ page }) => {
+  test('the task editor has the same fields as Capture, all in view: date, notes, priority, then tags', async ({ page }) => {
     server.seed('tasks', [{ id: 't1', title: 'pay rent', notes: null, due_date: DAY, priority: 1, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:01Z' }])
     await open(page, '/tasks')
     await page.getByText('pay rent').click()
     const dialog = page.getByRole('dialog', { name: msg.tasks.editor.heading })
-    await expect(dialog.getByTestId('task-more').getByRole('textbox', { name: msg.tasks.editor.notes })).toHaveCount(0)
-    await expect(dialog.getByTestId('task-more')).toContainText(msg.tasks.editor.moreSummary)
-    const notes = dialog.getByRole('textbox', { name: msg.tasks.editor.notes })
+    await expect(dialog.getByText(msg.forms.moreOptions)).toHaveCount(0)
+    await expect(dialog.getByRole('group', { name: msg.tasks.priorityLabel })).toBeVisible()
+    await expect(dialog.getByRole('combobox', { name: msg.tags.add })).toBeVisible()
+    const notes = dialog.getByRole('textbox', { name: msg.capture.notesLabel })
     await notes.click()
     await page.keyboard.type('Bring the ')
     await dialog.getByRole('button', { name: msg.editor.bold }).click()
@@ -47,11 +48,11 @@ test.describe('Spec §5 Forms: optional details in More details, formatted notes
     await expect.poll(() => lastWrite('tasks')?.notes).toBe('<p>Bring the <strong>checkbook</strong></p>')
   })
 
-  test('More details opens by itself when something in it is set, and old plain notes still show', async ({ page }) => {
+  test('old plain notes still show, and long ones wrap at 320 px', async ({ page }) => {
     server.seed('tasks', [{ id: 't1', title: 'pay rent', notes: `${LONG_LINE}\n${LONG_WORD}`, due_date: DAY, priority: 3, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:01Z' }])
     await open(page, '/tasks')
     await page.getByText('pay rent').click()
-    const notes = page.getByRole('dialog', { name: msg.tasks.editor.heading }).getByRole('textbox', { name: msg.tasks.editor.notes })
+    const notes = page.getByRole('dialog', { name: msg.tasks.editor.heading }).getByRole('textbox', { name: msg.capture.notesLabel })
     await expect(notes).toBeVisible()
     await expect(notes).toContainText(LONG_LINE)
     await page.setViewportSize({ width: 320, height: 700 })
@@ -69,7 +70,7 @@ test.describe('Spec §5 Forms: optional details in More details, formatted notes
     await expect.poll(() => lastWrite('tasks')).toMatchObject({ title: 'Buy stamps', priority: 3 })
   })
 
-  test('a form with only one optional extra has no More details: routine and priority task editors, Capture Vault', async ({ page }) => {
+  test('a form with only one optional extra has no More details: routine and priority task editors', async ({ page }) => {
     await open(page, '/routines')
     await page.getByRole('button', { name: /New routine/ }).click()
     const routine = page.getByRole('dialog', { name: msg.routines.editor.newHeading })
@@ -82,11 +83,6 @@ test.describe('Spec §5 Forms: optional details in More details, formatted notes
     const priority = page.getByRole('dialog', { name: msg.priority.editor.newHeading })
     await expect(priority.getByRole('textbox', { name: msg.capture.detailsLabel })).toBeVisible()
     await expect(priority.getByText(msg.forms.moreOptions)).toHaveCount(0)
-
-    await open(page, '/capture')
-    await page.getByRole('button', { name: msg.nav.vault, exact: true }).click()
-    await expect(page.getByRole('textbox', { name: msg.capture.notesLabel })).toBeVisible()
-    await expect(page.getByText(msg.forms.moreOptions)).toHaveCount(0)
   })
 
   test('Capture: a quest shows energy, time and details in view (no More details)', async ({ page }) => {
@@ -116,6 +112,18 @@ test.describe('Spec §5 Forms: an open fold-out stands out', () => {
     await page.getByTestId('account-group-reminders').evaluate((el) => ((el as HTMLDetailsElement).open = false))
     expect(await inner.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(outer)
     await expect.poll(() => inner.locator('svg').evaluate((el) => getComputedStyle(el).rotate)).not.toBe('180deg')
+  })
+})
+
+test.describe('Spec §5 Forms: + New is in the page heading', () => {
+  test('the Tasks page Priority tab puts New priority task in the heading, where New task is', async ({ page }) => {
+    await open(page, '/tasks')
+    const heading = page.getByRole('heading', { name: msg.tasks.heading, level: 1 }).locator('..')
+    await expect(heading.getByTestId('new-task')).toBeVisible()
+    await page.getByRole('tab', { name: msg.journal.priority }).click()
+    await expect(heading.getByTestId('new-priority')).toBeVisible()
+    await heading.getByTestId('new-priority').click()
+    await expect(page.getByRole('dialog', { name: msg.priority.editor.newHeading })).toBeVisible()
   })
 })
 

@@ -11,6 +11,7 @@
 - Secrets live only in `.env.local` (gitignored) and Netlify env vars. Only the Supabase anon key may reach the browser. Ask for each credential when first needed.
 - Every table: `id, user_id, created_at, updated_at (server-set), deleted_at`, with RLS.
 - All user-facing wording in the "past you" voice, kept in one messages file.
+- **Reuse, never copy** (CODING_STANDARDS §6 Forms and page parts): before writing a field, choice, button or row, find the shared component; each item type has one `*Fields.vue` used by Capture, its editor and Orphans. Lint enforces it.
 - Accessibility: everything meets WCAG 2.2 Level AA (SPEC §2). Keyboard and screen reader use, visible focus, contrast in light and dark, targets ≥24 px (44 px where practical), labels on every control. New pages get an axe check in `src/tests/e2e/accessibility/a11y.spec.ts`; review by hand what axe can't check.
 - Work on a branch per build step; merge to main once per step (Netlify free plan ≈ 20 production deploys/month).
 - Confirm before anything that removes data or affects other users.

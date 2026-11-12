@@ -10,10 +10,7 @@
     @delete="confirmDialog?.open()"
     @close="emit('close')"
   >
-    <label :class="fieldLabel">
-      <span class="pb-2">{{ m.editor.title }}</span>
-      <input v-model="title" maxlength="500" required :class="field">
-    </label>
+    <TitleField v-model="title" :label="m.editor.title" />
     <fieldset class="flex flex-col gap-2">
       <legend class="mb-1 text-sm font-medium pb-2">{{ m.editor.steps }}</legend>
       <p v-if="stepRows.length > 1" class="-mt-1 text-xs text-muted">{{ m.editor.dragHint }}</p>
@@ -101,6 +98,7 @@
 // one of my habits (SPEC §5 Routines). Delete asks first (SPEC §2).
 import AppIcon from '@/components/AppIcon.vue'
 import EditorDialog from '@/components/EditorDialog.vue'
+import TitleField from '@/components/TitleField.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import { computed, nextTick, ref, useId, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
@@ -113,7 +111,7 @@ import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
 import { ALL_WEEKDAYS } from '@/habits/rules'
 import { messages } from '@/messages'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { checkbox, field, fieldLabel, smallButton } from '@/ui/styles'
+import { checkbox, field, smallButton } from '@/ui/styles'
 import { live } from '@/sync/live'
 import WeekdayPicker from '@/components/WeekdayPicker.vue'
 

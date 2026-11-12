@@ -45,3 +45,6 @@ export function clampRating(value: number | null | undefined): number | null {
   if (!value) return null
   return Math.min(5, Math.max(1, Math.round(value)))
 }
+
+/** Up to this many buckets are chips; more become a dropdown (SPEC §5 Forms, user 2026-11-12). */
+export const BUCKET_CHIPS_MAX = 10

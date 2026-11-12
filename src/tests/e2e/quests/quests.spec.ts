@@ -95,8 +95,9 @@ test.describe('Spec §5 Random Quest', () => {
     await openQuests(page, 'Visit the planetarium')
     await page.getByRole('button', { name: /^Visit the planetarium/ }).click()
     const dialog = page.getByRole('dialog', { name: msg.quests.editor.heading })
-    await dialog.getByLabel(msg.quests.editor.energy).selectOption('ugh')
-    await dialog.getByLabel(msg.quests.editor.time).selectOption('2h')
+    // Energy and time are chips, as in Capture (SPEC §5 Forms).
+    await dialog.getByRole('group', { name: msg.quests.editor.energy }).getByRole('button', { name: msg.quests.energy.ugh }).click()
+    await dialog.getByRole('group', { name: msg.quests.editor.time }).getByRole('button', { name: msg.quests.time['2h'] }).click()
     await dialog.getByRole('button', { name: msg.capture.save }).click()
     await expect(page.getByRole('button', { name: /^Visit the planetarium/ })).toContainText(msg.quests.time["2h"])
     await expect.poll(() => server.written('quests').at(-1)).toMatchObject({ energy_level: 'ugh', time_bucket: '2h' })

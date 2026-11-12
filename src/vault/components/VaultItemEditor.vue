@@ -9,71 +9,41 @@
     @delete="deleteNow"
     @close="emit('close')"
   >
-    <label :class="fieldLabel">
-      <span class="pb-2">{{ m.itemEditor.title }}</span>
-      <input v-model="title" maxlength="500" required :class="field">
-    </label>
-    <NotesEditor v-model="notes" :label="m.itemEditor.notes" test-id="vault-notes" />
-    <MoreOptions :summary="m.itemEditor.moreSummary" :start-open="moreOpen" test-id="vault-more">
-      <fieldset class="flex flex-col gap-1">
-        <legend class="mb-1 text-sm text-muted pb-2">{{ m.itemEditor.rating }}</legend>
-        <div class="flex items-center gap-1" role="radiogroup" :aria-label="m.itemEditor.rating">
-          <button
-            v-for="n in 5"
-            :key="n"
-            type="button"
-            role="radio"
-            class="flex size-11 items-center justify-center rounded-lg text-2xl"
-            :class="rating && n <= rating ? 'text-star' : 'text-muted'"
-            :aria-checked="rating === n"
-            :aria-label="m.itemEditor.ratingStar(n)"
-            @click="rating = rating === n ? null : n"
-          >
-            <AppIcon name="star" :filled="!!rating && n <= rating" size="size-6" />
-          </button>
-          <button v-if="rating" type="button" class="ml-2 min-h-11 px-2 text-sm text-muted underline" @click="rating = null">
-            {{ m.itemEditor.clearRating }}
-          </button>
-        </div>
-      </fieldset>
-      <label :class="fieldLabel">
-        <span class="pb-2">{{ m.itemEditor.link }}</span>
-        <input v-model="link" :class="field" autocomplete="off" inputmode="url">
-        <span class="text-xs">{{ m.itemEditor.linkHint }}</span>
-      </label>
-      <label :class="fieldLabel">
-        <span class="pb-2">{{ m.itemEditor.bucket }}</span>
-        <select v-model="bucketId" :class="field">
-          <option v-for="b in buckets" :key="b.id" :value="b.id">{{ b.name }}</option>
-        </select>
-      </label>
-    </MoreOptions>
+    <TitleField v-model="title" :label="m.itemEditor.title" />
+    <VaultItemFields
+      v-model:bucket-id="bucketId"
+      v-model:new-bucket-name="newBucketName"
+      v-model:notes="notes"
+      v-model:rating="rating"
+      v-model:link="link"
+      :buckets="buckets"
+    />
   </EditorDialog>
 </template>
 
 <script setup lang="ts">
-// SPEC §5 The Vault: edit an item: title, notes, star rating, link or address, bucket. Delete asks first.
+// SPEC §5 The Vault: edit an item: title, then the shared Vault item fields (VaultItemFields). Delete asks first.
 import EditorDialog from '@/components/EditorDialog.vue'
-import AppIcon from '@/components/AppIcon.vue'
+import TitleField from '@/components/TitleField.vue'
+import VaultItemFields from '@/vault/components/VaultItemFields.vue'
+import { useBrainStore } from '@/stores/brain'
 import { ref, watch } from 'vue'
 import { clampRating } from '@/vault/rules'
 import { messages } from '@/messages'
 import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
-import MoreOptions from '@/components/MoreOptions.vue'
-import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
-import { field, fieldLabel } from '@/ui/styles'
 
 const props = withDefaults(defineProps<{ item: VaultItemRow | null; buckets: VaultBucketRow[]; isNew?: boolean }>(), { isNew: false })
 const emit = defineEmits<{ save: [VaultItemRow]; delete: [VaultItemRow]; close: [] }>()
 const m = messages.vault
 
-const moreOpen = ref(false)
+const brain = useBrainStore()
+const newBucketName = ref<string | null>(null)
 const title = ref('')
 const notes = ref('')
 const rating = ref<number | null>(null)
 const link = ref('')
-const bucketId = ref('')
+const bucketId = ref<string | null>(null)
 
 watch(
   () => props.item,
@@ -81,7 +51,7 @@ watch(
     if (!i) return
     title.value = i.title
     notes.value = i.notes ?? ''
-    moreOpen.value = !!(i.rating || i.link)
+    newBucketName.value = null
     rating.value = i.rating ?? null
     link.value = i.link ?? ''
     bucketId.value = i.bucket_id
@@ -90,13 +60,15 @@ watch(
 
 async function save() {
   if (!props.item || !title.value.trim()) return
+  // A new bucket chosen in the form is made when the item is saved (SPEC §5 Forms).
+  if (newBucketName.value?.trim()) bucketId.value = (await brain.createBucket(newBucketName.value)).id
   emit('save', {
     ...props.item,
     title: title.value.trim(),
     notes: storedNotes(notes.value),
     rating: clampRating(rating.value),
     link: link.value.trim() || null,
-    bucket_id: bucketId.value,
+    bucket_id: bucketId.value ?? props.item.bucket_id,
   })
 }
 

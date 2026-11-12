@@ -9,34 +9,24 @@
     @delete="deleteNow"
     @close="emit('close')"
   >
-    <label :class="fieldLabel">
-      <span class="pb-2">{{ m.editor.title }}</span>
-      <input v-model="title" maxlength="500" required :class="field">
-    </label>
-    <DateInput v-model="dueDate" :label="m.editor.date" :hint="m.editor.dateHint" :input-class="field" />
-    <NotesEditor v-model="notes" :label="m.editor.notes" test-id="task-notes" />
-    <MoreOptions :summary="m.editor.moreSummary" :start-open="hasExtras" test-id="task-more">
-      <PriorityPicker v-model="priority" />
-      <TagInput v-model="tags.names.value" />
-    </MoreOptions>
+    <TitleField v-model="title" :label="m.editor.title" />
+    <TaskFields v-model:due-date="dueDate" v-model:notes="notes" v-model:priority="priority" />
+    <TagInput v-model="tags.names.value" />
   </EditorDialog>
 </template>
 
 <script setup lang="ts">
-// Edit a task: title, notes, date (blank = Undated), priority; Delete asks first (SPEC §2 Confirm before impact).
+// Edit a task: title, the shared task fields (TaskFields), then tags; Delete asks first (SPEC §2 Confirm before impact).
 import EditorDialog from '@/components/EditorDialog.vue'
-import PriorityPicker from '@/tasks/components/PriorityPicker.vue'
+import TaskFields from '@/tasks/components/TaskFields.vue'
+import TitleField from '@/components/TitleField.vue'
 import { computed, ref, watch } from 'vue'
 import TagInput from '@/tags/components/TagInput.vue'
 import { useItemTags } from '@/tags/useItemTags'
 import type { TaskRow } from '@/sync/types'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { messages } from '@/messages'
-import DateInput from '@/components/DateInput.vue'
-import MoreOptions from '@/components/MoreOptions.vue'
-import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
-import { field, fieldLabel } from '@/ui/styles'
 
 const props = withDefaults(defineProps<{ task: TaskRow | null; isNew?: boolean }>(), { isNew: false })
 const emit = defineEmits<{ save: [TaskRow]; delete: [TaskRow]; close: [] }>()
@@ -47,11 +37,6 @@ const title = ref('')
 const notes = ref('')
 const dueDate = ref('')
 const priority = ref<number>(DEFAULT_PRIORITY)
-// More details opens by itself when something in it is already set.
-const hasExtras = ref(false)
-watch(() => tags.names.value.length, (n) => {
-  if (n) hasExtras.value = true
-})
 
 watch(
   () => props.task,
@@ -61,7 +46,6 @@ watch(
     notes.value = t.notes ?? ''
     dueDate.value = t.due_date ?? ''
     priority.value = t.priority ?? DEFAULT_PRIORITY
-    hasExtras.value = !!t.notes || priority.value !== DEFAULT_PRIORITY || tags.names.value.length > 0
   },
 )
 

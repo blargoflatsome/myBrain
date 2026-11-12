@@ -1,10 +1,7 @@
 <template>
   <section class="flex flex-col gap-3">
     <template v-if="!editorOnly">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <p class="min-w-0 text-muted">{{ m.tabIntro }}</p>
-        <NewButton :label="m.add" data-testid="new-priority" @click="open(null)" />
-      </div>
+      <p class="text-muted">{{ m.tabIntro }}</p>
       <p v-if="!sorted.length" class="text-muted">{{ m.empty }}</p>
       <ul class="flex flex-col gap-2">
         <li v-for="t in sorted" :key="t.id" class="flex items-start gap-3 rounded-2xl border border-line bg-surface p-3" data-testid="priority-row">
@@ -28,18 +25,14 @@
       @delete="(deleting = null), confirmDialog?.open()"
       @close="editing = null"
     >
-      <label :class="fieldLabel"><span class="pb-2">{{ m.editor.title }}</span><input v-model="title" maxlength="500" required :class="field"></label>
+      <TitleField v-model="title" :label="m.editor.title" />
       <TimeInput v-model="time" :label="m.editor.time" required :input-class="field" />
-      <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted pb-2">{{ m.editor.when }}</legend>
-        <div class="flex gap-2" role="group" :aria-label="m.editor.when">
-          <button type="button" :class="chip(mode === 'repeat')" :aria-pressed="mode === 'repeat'" @click="mode = 'repeat'">{{ m.editor.repeat }}</button>
-          <button type="button" :class="chip(mode === 'once')" :aria-pressed="mode === 'once'" @click="mode = 'once'">{{ m.editor.once }}</button>
-        </div>
+      <div class="flex flex-col gap-2">
+        <ChoiceChips v-model="mode" :label="m.editor.when" :options="modeOptions" />
         <WeekdayPicker v-if="mode === 'repeat'" v-model="weekdays" :aria-label="m.editor.repeat" />
         <HowOften v-if="mode === 'repeat'" v-model="weekInterval" />
         <DateInput v-else v-model="date" :label="m.editor.date" :min="todayIn(deviceTimeZone())" required :input-class="field" />
-      </fieldset>
+      </div>
       <NotesEditor v-model="description" :label="m.editor.description" test-id="priority-description" />
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
     </EditorDialog>
@@ -59,6 +52,8 @@
 // SPEC §5: priority tasks — one-off (a date) or repeating on chosen weekdays — with a reminder time.
 import AppIcon from '@/components/AppIcon.vue'
 import EditorDialog from '@/components/EditorDialog.vue'
+import ChoiceChips from '@/components/ChoiceChips.vue'
+import TitleField from '@/components/TitleField.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
@@ -71,8 +66,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import DateInput from '@/components/DateInput.vue'
 import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
-import { chip, field, fieldLabel } from '@/ui/styles'
-import NewButton from '@/components/NewButton.vue'
+import { field } from '@/ui/styles'
 import RowDelete from '@/components/RowDelete.vue'
 import { live } from '@/sync/live'
 import { firstFutureDay, isLater } from '@/reminders/priority'
@@ -110,6 +104,10 @@ const time = ref('08:00')
 const error = ref('')
 const nowTime = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
 const mode = ref<'once' | 'repeat'>('repeat')
+const modeOptions = [
+  { value: 'repeat' as const, label: m.editor.repeat },
+  { value: 'once' as const, label: m.editor.once },
+]
 const date = ref('')
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
 const weekInterval = ref(1)
@@ -187,4 +185,7 @@ function askDelete(t: PriorityTaskRow) {
   confirmDialog.value?.open()
 }
 
+
+// The page's heading holds the + New button (CODING_STANDARDS §6); it opens a new priority task here.
+defineExpose({ startNew: () => open(null) })
 </script>

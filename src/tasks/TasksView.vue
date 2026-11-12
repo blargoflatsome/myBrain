@@ -1,7 +1,8 @@
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <PageHeading :heading="m.heading" :intro="view === 'priority' ? m.intro : undefined" intro-test-id="tasks-intro">
-      <NewButton v-if="view !== 'priority'" :label="m.newTask" data-testid="new-task" @click="startNew" />
+      <NewButton v-if="view === 'priority'" :label="messages.priority.add" data-testid="new-priority" @click="priorityList?.startNew()" />
+      <NewButton v-else :label="m.newTask" data-testid="new-task" @click="startNew" />
     </PageHeading>
     <div class="flex gap-2 rounded-2xl bg-surface p-1" role="tablist">
       <button
@@ -33,7 +34,7 @@
       </button>
     </div>
 
-    <PriorityTasks v-if="view === 'priority'" :open-id="openPriority" @opened="(openPriority = null), router.replace({ query: {} })" />
+    <PriorityTasks v-if="view === 'priority'" ref="priorityList" :open-id="openPriority" @opened="(openPriority = null), router.replace({ query: {} })" />
     <template v-else>
       <!-- SPEC §5 Tasks: moving between days works like the Calendar (bordered arrows, Today when elsewhere). -->
       <div v-if="view === 'day'" class="flex items-center gap-1">
@@ -247,6 +248,8 @@ function startNew() {
 }
 const route = useRoute()
 const router = useRouter()
+// The Priority tab's + New sits in the page heading like every other page's (CODING_STANDARDS §6).
+const priorityList = ref<InstanceType<typeof PriorityTasks> | null>(null)
 // Opened with ?priority=<id> (from the calendar): show the Priority tab and open that priority task.
 const openPriority = ref<string | null>(null)
 watch(
