@@ -103,7 +103,7 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - One `CheckCircle.vue` (44 px target, drawn check) for tasks, habits and Vault items; one `PriorityPicker.vue` (Low, Medium, High) in Capture and the task editor; Tasks tabs and Calendar view switch get the check mark (its CSS mark is no longer read out by screen readers); Tasks day nav has bordered arrows and a Today button.
 - Red only for errors: missed habit ring muted, Most missed bars neutral, Cancel event and Drop out orange (`warningButton`, `warningOutline`). Icons on every menu item. 37 hand-written bordered buttons now use `smallButton`.
 - Account: groups no longer nested; Celebrations saves on change. Capture's Save looks like the editors' and says what it saves.
-- Tests: `src/tests/e2e/app/rows-and-adding.spec.ts` (new), plus updates where tests clicked the old Edit buttons or Capture's "Save". Quick checks: lint clean, Vitest passes, desktop browser tests 367 passed; 2 failed under load (a celebration message, search's first open) and passed 10/10 alone. No migration.
+- Tests: `src/tests/e2e/app/rows-and-adding.spec.ts` (new), plus updates where tests clicked the old Edit buttons or Capture's "Save". Full review (2026-11-12): Vitest 376, Playwright 710/711 (32 skipped); the one iPhone failure (a dropped test-server connection on the Connections scan) passed 4/4 alone. No migration.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
