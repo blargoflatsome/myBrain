@@ -122,6 +122,10 @@ html {
   scroll-padding-top: 5rem;
   scroll-padding-bottom: 6rem;
 }
+/* A formatted-text box keeps its toolbar (about 3.5rem, above the text) in view too when it's focused. */
+.rich[contenteditable='true'] {
+  scroll-margin-top: 3.5rem;
+}
 /* A clear focus ring for keyboard users on everything that can be focused (2.4.7, 2.4.13). */
 :focus-visible {
   outline: 3px solid var(--accent);
@@ -422,52 +426,24 @@ textarea:focus {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--done) 35%, transparent);
 }
 
-/* SPEC §5 Dashboard: Days since your worst day on a tear-off calendar page: a binding strip with two rings, a
-   perforated line, paper with a torn bottom edge, and the next page peeking out underneath. Paper stays light in dark
-   mode, like Post Its. */
-.tearpad {
-  position: relative;
-  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.15)) drop-shadow(0 8px 10px rgb(0 0 0 / 0.18));
+/* SPEC §5 Dashboard: the top of the Dashboard is a black slate chalkboard with faint smudges of old chalk: the
+   worst-day count chalked on it in chalk-white writing with a soft dusty edge, and the Post Its taped to it. A thin
+   edge keeps it apart from the dark background. The board looks the same in light and dark. */
+.chalkboard {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background:
+    radial-gradient(ellipse 40% 35% at 15% 30%, rgb(255 255 255 / 0.05), transparent 70%),
+    radial-gradient(ellipse 35% 30% at 80% 75%, rgb(255 255 255 / 0.04), transparent 70%),
+    #1e2124;
+  box-shadow: inset 0 0 24px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.2), 0 10px 18px -8px rgb(0 0 0 / 0.4);
 }
-.tearpad-binding {
-  position: relative;
-  height: 1.75rem;
-  border-radius: 0.5rem 0.5rem 0 0;
-  background: var(--accent);
+.chalk {
+  color: #f3f1e8;
+  text-shadow: 0 0 1px rgb(243 241 232 / 0.9), 0 0 6px rgb(243 241 232 / 0.25), 1px 1px 0 rgb(243 241 232 / 0.15);
+  font-family: 'Segoe Print', 'Bradley Hand', 'Chalkboard SE', 'Comic Sans MS', cursive;
 }
-.tearpad-binding span {
-  position: absolute;
-  top: -0.45rem;
-  width: 0.7rem;
-  height: 1.3rem;
-  border-radius: 999px;
-  background: #d9d4c8;
-  border: 2px solid #8a8577;
-}
-.tearpad-binding span:first-child { left: 28%; }
-.tearpad-binding span:last-child { right: 28%; }
-.tearpad-page {
-  position: relative;
-  background: #fffdf6;
-  color: #2a2620;
-  border-top: 2px dashed rgb(0 0 0 / 0.18);
-  /* The torn bottom edge: a row of small zig-zag teeth. */
-  --tooth: 0.75rem;
-  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%;
-  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%;
-}
-/* The next page underneath, peeking out below the torn edge. */
-.tearpad::after {
-  content: '';
-  position: absolute;
-  inset: 1.75rem 0.4rem -0.35rem;
-  z-index: -1;
-  background: #ece6d6;
-  border-radius: 0 0 0.25rem 0.25rem;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .tearpad-page { background: #ece6d6; color: #241f17; }
-  :root:not([data-theme='light']) .tearpad::after { background: #cfc7b3; }
-}
-:root[data-theme='dark'] .tearpad-page { background: #ece6d6; color: #241f17; }
-:root[data-theme='dark'] .tearpad::after { background: #cfc7b3; }
+/* The Post It stack's "2 of 5" and dots sit on the board, so they're drawn in chalk. */
+.chalkboard [data-testid='postit-count'] { color: rgb(243 241 232 / 0.85); }
+.chalkboard [data-testid='postit-dots'] .bg-ink { background: #f3f1e8; }
+.chalkboard [data-testid='postit-dots'] .border-control { border-color: rgb(243 241 232 / 0.7); }

@@ -5,11 +5,11 @@
       <p class="text-muted">{{ m.intro }}</p>
     </div>
 
-    <!-- The top row (SPEC §5 Dashboard): Days since your worst day beside the Post Its, to their left (under them on a
-         phone; on top without them), then Up next and yesterday. -->
-    <div class="flex flex-col gap-5 sm:flex-row sm:items-start" data-testid="dash-top">
+    <!-- The top row (SPEC §5 Dashboard): one chalkboard with Days since your worst day chalked on the left (on top on a
+         phone) and the Post Its taped on the right; the count alone without them. Then Up next and yesterday. -->
+    <div class="chalkboard flex flex-col items-stretch gap-6 p-5 sm:flex-row sm:items-center" data-testid="dash-top">
+      <WorstDayBoard v-if="stats" :days="stats.worstDay" />
       <div class="min-w-0 empty:hidden sm:flex-1"><PostItBoard /></div>
-      <WorstDayPad v-if="stats" :days="stats.worstDay" class="sm:order-first sm:mx-0" />
     </div>
     <UpNextCard />
     <!-- Yesterday (SPEC §5 Dashboard). -->
@@ -111,7 +111,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { daysSinceWorstDay, favoriteBuckets, yesterdayLeftovers, yesterdaySummary } from '@/dashboard/stats'
 import UpNextCard from '@/dashboard/components/UpNextCard.vue'
-import WorstDayPad from '@/dashboard/components/WorstDayPad.vue'
+import WorstDayBoard from '@/dashboard/components/WorstDayBoard.vue'
 import { cancelTask, moveTask } from '@/tasks/rules'
 import { useUndoStore } from '@/stores/undo'
 import type { TaskRow } from '@/sync/types'

@@ -39,7 +39,6 @@ test.describe('Spec §5 Post It', () => {
     await expect(board(page)).toHaveCount(1)
     await expect(board(page).locator('strong')).toHaveText('Call the vet')
     await expect(board(page)).toHaveClass(/note-blue/)
-    await expect(page.locator('main section').first()).toHaveAttribute('data-testid', 'dash-postits')
   })
 
   test('an empty Post It is not saved', async ({ page }) => {

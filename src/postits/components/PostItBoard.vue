@@ -9,7 +9,7 @@
   >
     <!-- On a computer, arrows sit either side of the stack and appear when the mouse is over it (or a key reaches them). -->
     <!-- px-3 on a phone leaves room for the tilted notes underneath, so they never stick out past the screen. -->
-    <div v-if="current" class="group relative w-full max-w-sm px-3 md:px-0" data-testid="postit-carousel">
+    <div v-if="current" class="group relative w-full max-w-sm px-3 sm:max-w-[calc(24rem-20px)] md:px-0" data-testid="postit-carousel">
       <!-- touch-pan-y: the page still scrolls up and down, but a sideways swipe comes to the stack instead of being
          taken by the browser (which would cancel the touch before it ends). -->
       <div
@@ -46,7 +46,7 @@
               <AppIcon name="close" size="size-5" :stroke-width="2.25" />
             </button>
             <template v-if="editingId === current.id">
-              <RichTextEditor v-model="draft" :label="m.note(index + 1)" min-height="6rem" autofocus @update:model-value="editError = ''" />
+              <RichTextEditor v-model="draft" :label="m.note(index + 1)" min-height="6rem" autofocus @update:model-value="editError = ''" @focus="revealNote" />
               <PostItColors v-model="draftColor" />
               <p v-if="editError" class="text-sm font-medium" role="alert">{{ editError }}</p>
               <div class="flex flex-wrap gap-2">
@@ -197,6 +197,7 @@ const draft = ref('')
 const draftColor = ref<PostItColor>('yellow')
 const editError = ref('')
 function startEdit(n: PostItRow) {
+  revealed = false
   editingId.value = n.id
   followId.value = n.id
   draft.value = n.body
@@ -211,6 +212,15 @@ async function saveEdit(n: PostItRow) {
   await brain.savePostIt({ ...n, body: draft.value, color: draftColor.value })
   editingId.value = null
   await focusAction('edit')
+}
+// Editing in place: bring the note's top (tape and toolbar) just under the header, not just the text the editor
+// focuses, so the toolbar is never left under the header on a phone (WCAG 2.4.11).
+// Once per edit: after the editor's own focus scroll, so tapping into the text later doesn't jump the page.
+let revealed = false
+function revealNote() {
+  if (revealed) return
+  revealed = true
+  requestAnimationFrame(() => document.querySelector('[data-testid="dash-postits"] [data-testid="postit"]')?.scrollIntoView({ block: 'start' }))
 }
 async function cancelEdit() {
   editingId.value = null

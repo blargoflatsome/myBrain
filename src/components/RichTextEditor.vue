@@ -127,7 +127,7 @@ import { toEditorHtml } from '@/journal/body'
 import { messages } from '@/messages'
 
 const props = defineProps<{ modelValue: string; label: string; placeholder?: string; minHeight?: string; autofocus?: boolean }>()
-const emit = defineEmits<{ 'update:modelValue': [html: string]; blur: [] }>()
+const emit = defineEmits<{ 'update:modelValue': [html: string]; blur: []; focus: [] }>()
 const m = messages.editor
 
 const editor = useEditor({
@@ -151,6 +151,8 @@ const editor = useEditor({
   },
   onUpdate: ({ editor: e }) => emit('update:modelValue', e.getHTML()),
   onBlur: () => emit('blur'),
+  // When the writing gets focus (autofocus included), so a parent can scroll its whole form into view.
+  onFocus: () => emit('focus'),
 })
 
 // Keep the editor in step when the saved text changes from elsewhere (another device), but not while typing.
