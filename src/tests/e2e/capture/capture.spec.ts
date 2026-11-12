@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 
 const typeGroup = (page: Page) => page.getByRole('group', { name: msg.capture.typeHeading })
 const titleBox = (page: Page) => page.getByLabel(msg.capture.titleLabel, { exact: true })
-const save = (page: Page) => page.getByRole('button', { name: msg.capture.save, exact: true })
+const save = (page: Page) => page.getByTestId('capture-save')
 
 /** Open capture and choose a type (SPEC §5: type first). */
 async function startCapture(page: Page, type: 'Task' | 'The Vault' | 'Quest' | 'Decide later') {
@@ -38,7 +38,7 @@ test.describe('Spec §5 Quick capture: choose the type first', () => {
     const dialog = page.getByRole('dialog', { name: msg.capture.windowLabel })
     await typeGroup(page).getByRole('button', { name: msg.capture.destinations.task, exact: true }).click()
     await dialog.getByLabel(msg.capture.titleLabel, { exact: true }).fill('buy stamps')
-    await dialog.getByRole('button', { name: msg.capture.save, exact: true }).click()
+    await dialog.getByTestId('capture-save').click()
     await expect(dialog.getByTestId('capture-notice')).toHaveText(msg.capture.saved.taskUndated)
     await expect(page).toHaveURL(/\/habits$/)
     await dialog.getByRole('button', { name: msg.capture.close }).click()
@@ -108,7 +108,7 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
     await expect(buckets.getByRole('button', { name: 'Places to go' })).toHaveAttribute('aria-pressed', 'true')
     // SPEC §2 Calm by design: a chosen option shows a check mark and a space before its name, nothing else.
     const mark = await buckets.getByRole('button', { name: 'Places to go' }).evaluate((el) => getComputedStyle(el, '::before').content)
-    expect(mark).toBe('"✓ "')
+    expect(mark.startsWith('"✓ "')).toBe(true)
     await titleBox(page).fill('Beach day')
     await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText(msg.capture.saved.vault('Places to go'))

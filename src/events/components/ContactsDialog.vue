@@ -12,7 +12,7 @@
               <span class="text-sm text-accent">✓ {{ m.added }}</span>
               <button type="button" class="min-h-11 rounded-xl px-3 text-sm underline" :aria-label="m.undoLabel(f.display_name)" @click="emit('undoConnection', f)">{{ m.undo }}</button>
             </span>
-            <button v-else type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-3 text-sm" :aria-label="m.addLabel(f.display_name)" @click="emit('addConnection', f)">
+            <button v-else type="button" :class="[smallButton, 'shrink-0']" :aria-label="m.addLabel(f.display_name)" @click="emit('addConnection', f)">
               {{ m.add }}
             </button>
           </li>
@@ -36,7 +36,7 @@
               <span class="text-sm text-accent">✓ {{ m.added }}</span>
               <button type="button" class="min-h-11 rounded-xl px-3 text-sm underline" :aria-label="m.undoLabel(personLabel(p))" @click="emit('undo', p)">{{ m.undo }}</button>
             </span>
-            <button v-else type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-3 text-sm" :aria-label="m.addLabel(personLabel(p))" @click="emit('add', p)">
+            <button v-else type="button" :class="[smallButton, 'shrink-0']" :aria-label="m.addLabel(personLabel(p))" @click="emit('add', p)">
               {{ m.add }}
             </button>
           </li>
@@ -68,7 +68,7 @@ import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { live } from '@/sync/live'
 import type { PersonRow } from '@/sync/types'
-import { dialogBox, fieldCompact, fieldLabel, primaryButton } from '@/ui/styles'
+import { dialogBox, fieldCompact, fieldLabel, primaryButton, smallButton } from '@/ui/styles'
 
 const props = defineProps<{ pending: PersonToInvite[]; invited: { email?: string | null; phone?: string | null; user_id?: string | null }[] }>()
 const emit = defineEmits<{ add: [PersonRow]; undo: [PersonRow]; addConnection: [Connection]; undoConnection: [Connection] }>()

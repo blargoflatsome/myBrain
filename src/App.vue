@@ -21,8 +21,8 @@
         </button>
         <ul class="flex flex-col gap-1">
           <li v-for="item in MAIN_NAV" :key="item.to">
-            <RouterLink :to="item.to" class="flex min-h-12 items-center rounded-xl px-3 text-base text-muted hover:bg-surface" active-class="!bg-surface !text-ink font-semibold">
-              {{ item.label }}
+            <RouterLink :to="item.to" class="flex min-h-12 items-center gap-3 rounded-xl px-3 text-base text-muted hover:bg-surface" active-class="!bg-surface !text-ink font-semibold">
+              <AppIcon :name="item.icon" size="size-5" />{{ item.label }}
             </RouterLink>
           </li>
         </ul>
@@ -42,8 +42,8 @@
         </button>
         <ul v-show="moreOpen" id="nav-more" class="flex flex-col gap-1 pl-2">
           <li v-for="item in MORE_NAV" :key="item.to">
-            <RouterLink :to="item.to" class="flex min-h-12 items-center justify-between rounded-xl px-3 text-base text-muted hover:bg-surface" exact-active-class="!bg-surface !text-ink font-semibold">
-              {{ item.label }}
+            <RouterLink :to="item.to" class="flex min-h-12 items-center gap-3 rounded-xl px-3 text-base text-muted hover:bg-surface" exact-active-class="!bg-surface !text-ink font-semibold">
+              <AppIcon :name="item.icon" size="size-5" /><span class="flex-1">{{ item.label }}</span>
               <span v-if="item.to === '/orphans' && inboxCount" class="rounded-full bg-accent px-2 text-xs text-accent-ink" data-testid="inbox-count">{{ inboxCount }}</span>
             </RouterLink>
           </li>

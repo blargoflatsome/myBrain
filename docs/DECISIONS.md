@@ -174,3 +174,10 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 ## 2026-11-11 Date box race
 - A date typed and saved within moments of the date box first showing could be lost: the reader for typed dates loads on first use, and Save ran before it arrived. Full dates (YYYY-MM-DD) are now read straight away without it (`time/isoDate.ts`). Claude's call; words like "tomorrow" still need the reader, which starts loading as soon as the box shows. (User asked for the fix.)
 
+
+## 2026-11-12 UI consistency (UI review branch B, docs/UI_REVIEW_TASKS.md)
+- Rows (user): tap the title to edit, a trash can at the end to delete (Undo, or confirm for habits and routines with history). Edit buttons removed. Journal days open by tapping the day and have no delete (nothing to delete before; unchanged).
+- Adding (user): the same "+ New …" button on every list page; Tasks and Vault buckets keep their quick-add box. Quests can now be added on the Quests page, not only through Capture.
+- One Priority control (Low, Medium, High chips) in Capture and the task editor; one check circle (44 px target, drawn check); Tasks day navigation like the Calendar (bordered arrows, Today button); icons on every menu item.
+- Red only for errors: missed habits muted, Most missed bars neutral, Cancel event orange (affects others).
+- Account page: groups no longer nested; Celebrations saves on change. Capture's Save button looks like every editor's and names what it saves.

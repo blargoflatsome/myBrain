@@ -40,7 +40,7 @@ test.describe('Spec §5 Calendar: event form sections', () => {
     server.seed('events', [{ id: 'e1', title: 'Lunch', notes: null, start_date: '2026-11-10', start_time: '12:30:00', end_date: '2026-11-10', end_time: '13:30:00', repeat: 'weekly', reminder_minutes: null }])
     server.rpcResults.event_people = [{ invite_id: 'inv-1', name: 'Pat', email: null, phone: '5550109000', response: 'yes', is_me: false }]
     await open(page, '/calendar?date=2026-11-10&event=e1')
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.tasks.edit }).click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
     const schedule = dialog.getByTestId('event-schedule')
     await expect(schedule.locator('summary')).toContainText('Tue, Nov 10 · 12:30 pm – 1:30 pm, every week')

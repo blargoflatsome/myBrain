@@ -96,6 +96,15 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - CI failed on every branch when it ran between 4 and 7 am UTC: two celebrations unit tests used the real clock and device timezone, so finishing a task earned Early bird too; and one test group kept localStorage between tests, so a leftover "trophies worked out" flag made catch-up announce a trophy instead of adding it quietly. Those test groups now run at a fixed midday in UTC and start each test with empty storage (`src/tests/unit/celebrate/celebrate.test.ts`). Vitest 375 passes in UTC, Los Angeles and Auckland. No app change.
 - UI review written as proposed spec changes in [docs/UI_REVIEW_TASKS.md](docs/UI_REVIEW_TASKS.md) (not in SPEC yet; user's choices filled in).
 
+## UI review B: consistency and forms (branch `ui-consistency`)
+- From [docs/UI_REVIEW_TASKS.md](docs/UI_REVIEW_TASKS.md) (C1–C8, M1–M2); SPEC §2 (Rows, Adding, Check circles, colours), §3 Navigation icons, §5 Tasks, Quick capture, Account page, Random Quest, Dashboard; DECISIONS 2026-11-12.
+- Rows (user's choice): title opens the editor, a trash can ends the row (`RowDelete.vue`); Edit buttons gone on tasks, priority tasks, routines, journal (tap the day) and my people. Habit, routine and priority-task trash cans ask first.
+- Adding: `PageHeading.vue` + `NewButton.vue` on Tasks, Habits, Routines, Priority, Calendar, Quests (new: + New quest), Vault (+ New bucket, + New item in a bucket); task, quest and Vault item editors have a new mode.
+- One `CheckCircle.vue` (44 px target, drawn check) for tasks, habits and Vault items; one `PriorityPicker.vue` (Low, Medium, High) in Capture and the task editor; Tasks tabs and Calendar view switch get the check mark (its CSS mark is no longer read out by screen readers); Tasks day nav has bordered arrows and a Today button.
+- Red only for errors: missed habit ring muted, Most missed bars neutral, Cancel event and Drop out orange (`warningButton`, `warningOutline`). Icons on every menu item. 37 hand-written bordered buttons now use `smallButton`.
+- Account: groups no longer nested; Celebrations saves on change. Capture's Save looks like the editors' and says what it saves.
+- Tests: `src/tests/e2e/app/rows-and-adding.spec.ts` (new), plus updates where tests clicked the old Edit buttons or Capture's "Save". Full review (2026-11-12): Vitest 376, Playwright 710/711 (32 skipped); the one iPhone failure (a dropped test-server connection on the Connections scan) passed 4/4 alone. No migration.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).

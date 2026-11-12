@@ -41,17 +41,13 @@
       >
         <div class="flex items-center justify-between gap-2">
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h3 class="font-semibold">{{ shortDay(e.date) }}</h3>
+            <h3 class="font-semibold">
+              <!-- SPEC §2 Rows look alike: tapping the day opens it for editing. -->
+              <button v-if="editingDate !== e.date" type="button" class="min-h-11 text-left underline-offset-4 hover:underline" :aria-label="m.editLabel(shortDay(e.date))" data-testid="journal-edit" @click="editingDate = e.date">{{ shortDay(e.date) }}</button>
+              <template v-else>{{ shortDay(e.date) }}</template>
+            </h3>
             <SaveStatus v-if="editingDate === e.date" :busy="isBusy(e.date)" :has-saved="true" />
           </div>
-          <button
-            v-if="editingDate !== e.date"
-            type="button"
-            class="min-h-11 rounded-xl border border-line px-3 text-sm"
-            @click="editingDate = e.date"
-          >
-            {{ m.edit }}
-          </button>
         </div>
         <JournalStatsCard v-if="hasStats(e.stats)" :stats="e.stats" />
         <p v-if="editingDate !== e.date && e.better_than_yesterday != null" class="text-sm text-muted" data-testid="journal-better">

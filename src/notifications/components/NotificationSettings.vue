@@ -70,7 +70,7 @@
 
     <div v-if="loaded" class="flex flex-wrap items-center gap-3 border-t border-line pt-4">
       <button type="button" :class="primaryButtonSmall" @click="save">{{ m.save }}</button>
-      <button type="button" class="min-h-11 rounded-xl border border-line px-4 text-sm" @click="test">{{ m.test }}</button>
+      <button type="button" :class="smallButton" @click="test">{{ m.test }}</button>
       <p v-if="notice" class="text-sm text-muted" role="status">{{ notice }}</p>
     </div>
   </section>
@@ -85,7 +85,7 @@ import TimeInput from '@/components/TimeInput.vue'
 import { onMounted, ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { messages } from '@/messages'
-import { checkbox, field, fieldLabel, primaryButtonSmall } from '@/ui/styles'
+import { checkbox, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
 
 const m = messages.notifications
 const VAPID = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined

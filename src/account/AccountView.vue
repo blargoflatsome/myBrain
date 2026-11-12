@@ -32,21 +32,19 @@
     </AccountGroup>
 
     <AccountGroup id="settings" :title="g.settingsTitle" :summary="g.settings">
-      <!-- SPEC §5 Celebrations: how lively celebrations are, saved to my profile with its own Save. -->
+      <!-- SPEC §5 Celebrations: how lively celebrations are, saved to my profile as soon as I change it (one choice
+           on its own saves on change, SPEC §5 Account page). -->
       <section class="rounded-xl border border-line px-4 py-3" :aria-label="cs.label" data-testid="celebrations-settings">
-        <form v-if="loaded" class="flex flex-col gap-3" @submit.prevent="saveCelebrations">
+        <div v-if="loaded" class="flex flex-col gap-3">
           <label :class="fieldLabel">
             <span class="pb-2">{{ cs.label }}</span>
-            <select v-model="celebrations" :class="field" data-testid="celebrations-setting">
+            <select v-model="celebrations" :class="field" data-testid="celebrations-setting" @change="saveCelebrations">
               <option v-for="c in CELEBRATION_SETTINGS" :key="c" :value="c">{{ cs.options[c] }}</option>
             </select>
             <span class="text-xs">{{ cs.hint }}</span>
           </label>
-          <div class="flex items-center gap-3">
-            <button type="submit" :class="primaryButtonSmall" :disabled="savingCelebrations">{{ cs.save }}</button>
-            <p v-if="celebrationsNotice" role="status" class="text-sm text-muted">{{ celebrationsNotice }}</p>
-          </div>
-        </form>
+          <p class="min-h-5 text-sm text-muted" role="status">{{ celebrationsNotice }}</p>
+        </div>
         <p v-else class="text-muted">{{ m.offline }}</p>
       </section>
 
@@ -58,54 +56,54 @@
         </span>
         <RouterLink to="/tags" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openTags }}</RouterLink>
       </section>
+    </AccountGroup>
 
-      <AccountGroup id="reminders" :title="messages.notifications.heading" :summary="g.reminders">
-        <NotificationSettings />
-      </AccountGroup>
+    <AccountGroup id="reminders" :title="messages.notifications.heading" :summary="g.reminders">
+      <NotificationSettings />
+    </AccountGroup>
 
-      <AccountGroup id="events" :title="g.eventsTitle" :summary="g.events">
-        <div class="grid items-start gap-4 lg:grid-cols-2">
-          <EventSettings />
-          <AvailabilityCard />
-        </div>
-      </AccountGroup>
+    <AccountGroup id="events" :title="g.eventsTitle" :summary="g.events">
+      <div class="grid items-start gap-4 lg:grid-cols-2">
+        <EventSettings />
+        <AvailabilityCard />
+      </div>
+    </AccountGroup>
 
-      <AccountGroup id="people" :title="g.peopleTitle" :summary="g.people">
-        <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4" aria-labelledby="account-connections">
-          <span class="min-w-0">
-            <h3 id="account-connections" class="font-semibold">{{ messages.connections.heading }}</h3>
-            <span class="block text-sm text-muted">{{ g.connectionsHint }}</span>
-          </span>
-          <RouterLink to="/connections" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openConnections }}</RouterLink>
+    <AccountGroup id="people" :title="g.peopleTitle" :summary="g.people">
+      <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4" aria-labelledby="account-connections">
+        <span class="min-w-0">
+          <h3 id="account-connections" class="font-semibold">{{ messages.connections.heading }}</h3>
+          <span class="block text-sm text-muted">{{ g.connectionsHint }}</span>
+        </span>
+        <RouterLink to="/connections" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openConnections }}</RouterLink>
+      </section>
+      <MyPeople />
+    </AccountGroup>
+
+
+
+    <AccountGroup id="data" :title="messages.dataExport.heading" :summary="g.data">
+      <div class="grid gap-4 sm:grid-cols-2" data-testid="data-export">
+        <section class="flex flex-col gap-2 rounded-xl border border-line p-4" :aria-label="messages.dataExport.button">
+          <p class="text-sm text-muted">{{ messages.dataExport.body }}</p>
+          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-line px-4" :disabled="exporting" @click="exportData">
+            {{ exporting ? messages.dataExport.working : messages.dataExport.button }}
+          </button>
+          <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
         </section>
-        <MyPeople />
-      </AccountGroup>
-
-
-
-      <AccountGroup id="data" :title="messages.dataExport.heading" :summary="g.data">
-        <div class="grid gap-4 sm:grid-cols-2" data-testid="data-export">
-          <section class="flex flex-col gap-2 rounded-xl border border-line p-4" :aria-label="messages.dataExport.button">
-            <p class="text-sm text-muted">{{ messages.dataExport.body }}</p>
-            <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-line px-4" :disabled="exporting" @click="exportData">
-              {{ exporting ? messages.dataExport.working : messages.dataExport.button }}
-            </button>
-            <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
-          </section>
-          <section class="flex flex-col gap-2 rounded-xl border border-warning/50 p-4" :aria-label="messages.deleteData.button" data-testid="delete-data">
-            <p class="text-sm text-muted">{{ messages.deleteData.hint }}</p>
-            <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-warning px-4 font-semibold text-warning" @click="askWipe">
-              {{ messages.deleteData.button }}
-            </button>
-            <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
-          </section>
-        </div>
-      </AccountGroup>
+        <section class="flex flex-col gap-2 rounded-xl border border-warning/50 p-4" :aria-label="messages.deleteData.button" data-testid="delete-data">
+          <p class="text-sm text-muted">{{ messages.deleteData.hint }}</p>
+          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-warning px-4 font-semibold text-warning" @click="askWipe">
+            {{ messages.deleteData.button }}
+          </button>
+          <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
+        </section>
+      </div>
     </AccountGroup>
 
     <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" :aria-label="messages.signOut.button" data-testid="sign-out">
       <p class="min-w-0 text-sm text-muted">{{ g.signOutHint }}</p>
-      <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-4 font-medium" @click="signOut(false)">
+      <button type="button" :class="[smallButton, 'shrink-0 font-medium']" @click="signOut(false)">
         {{ messages.signOut.button }}
       </button>
     </section>
@@ -200,7 +198,7 @@ import MyPeople from '@/events/components/MyPeople.vue'
 import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
 import { clearAppKeys } from '@/ui/storage'
-import { field, fieldLabel, primaryButtonSmall } from '@/ui/styles'
+import { field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { CELEBRATION_SETTINGS, parseSetting, type CelebrationSetting } from '@/celebrate/rules'
 
@@ -243,13 +241,10 @@ async function save() {
 }
 
 // Celebrations has its own Save in Account Settings.
-const savingCelebrations = ref(false)
 const celebrationsNotice = ref('')
 async function saveCelebrations() {
   celebrationsNotice.value = ''
-  savingCelebrations.value = true
   const ok = await profile.update({ celebrations: celebrations.value })
-  savingCelebrations.value = false
   if (ok) celebrate.setSetting(celebrations.value)
   celebrationsNotice.value = ok ? m.saved : m.offline
 }

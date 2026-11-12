@@ -22,7 +22,7 @@ sessions if wanted (B touches the most files; run it alone or last).
 - **F3 Carried-over task: easy options.** SPEC §5 Tasks: a task that carried over twice shows **Tomorrow** and
   **Undated** (one tap, with Undo) next to Edit and Cancel task. Tomorrow resets its carry-over count (new due date).
 
-## B. Consistency
+## B. Consistency (built 2026-11-12, branch `ui-consistency`)
 
 - **C1 One way to add.** (User chose, 2026-11-11.) Every list page has the same "+ New …" button at the top right
   of the heading (soft accent outline, not solid); Tasks and Vault keep their inline quick-add box as well, because it

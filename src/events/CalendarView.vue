@@ -2,15 +2,13 @@
   <main class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <button type="button" :class="primaryButtonSmall" @click="startNew(range.from <= today && today <= range.to ? today : range.from, null)">
-        {{ m.newEvent }}
-      </button>
+      <NewButton :label="m.newEvent" data-testid="new-event" @click="startNew(range.from <= today && today <= range.to ? today : range.from, null)" />
     </div>
 
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-1">
         <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line" :aria-label="m.previous" @click="api()?.prev()">‹</button>
-        <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="api()?.today()">{{ m.today }}</button>
+        <button type="button" :class="smallButton" @click="api()?.today()">{{ m.today }}</button>
         <button type="button" class="flex size-11 items-center justify-center rounded-xl border border-line" :aria-label="m.next" @click="api()?.next()">›</button>
         <h2 class="ml-2 text-lg font-semibold" data-testid="calendar-title">{{ title }}</h2>
       </div>
@@ -20,7 +18,7 @@
           :key="v.name"
           type="button"
           class="min-h-9 rounded-lg px-3 text-sm"
-          :class="view === v.name ? 'bg-accent/10 font-semibold text-ink' : 'text-muted'"
+          :class="view === v.name ? [selected, 'border'] : 'border border-transparent text-muted'"
           :aria-pressed="view === v.name"
           @click="changeView(v.name)"
         >
@@ -89,7 +87,8 @@ import { messages } from '@/messages'
 import type { EventInviteRow, EventRow, PriorityTaskRow, TaskRow } from '@/sync/types'
 import { live } from '@/sync/live'
 import { useUndoStore } from '@/stores/undo'
-import { primaryButtonSmall } from '@/ui/styles'
+import { selected, smallButton } from '@/ui/styles'
+import NewButton from '@/components/NewButton.vue'
 
 const brain = useBrainStore()
 const route = useRoute()

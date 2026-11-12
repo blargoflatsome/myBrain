@@ -1,8 +1,10 @@
 <template>
   <section class="flex flex-col gap-3">
     <template v-if="!editorOnly">
-      <p class="text-muted">{{ m.tabIntro }}</p>
-      <button type="button" class="self-start bg-surface font-medium" :class="secondaryButton" @click="open(null)">{{ m.add }}</button>
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="min-w-0 text-muted">{{ m.tabIntro }}</p>
+        <NewButton :label="m.add" data-testid="new-priority" @click="open(null)" />
+      </div>
       <p v-if="!sorted.length" class="text-muted">{{ m.empty }}</p>
       <ul class="flex flex-col gap-2">
         <li v-for="t in sorted" :key="t.id" class="flex items-start gap-3 rounded-2xl border border-line bg-surface p-3" data-testid="priority-row">
@@ -11,9 +13,7 @@
             <span class="text-base break-words">{{ t.title }}</span>
             <span class="text-xs text-muted" data-testid="priority-when">{{ when(t) }}</span>
           </button>
-          <button type="button" :class="rowAction" :aria-label="messages.tasks.editLabel(t.title)" @click="open(t)">
-            <AppIcon name="pencil" />{{ messages.tasks.edit }}
-          </button>
+          <RowDelete :label="m.deleteLabel(t.title)" @click="askDelete(t)" />
         </li>
       </ul>
     </template>
@@ -25,7 +25,7 @@
       :close-label="m.editor.close"
       :delete-label="isNew ? null : m.editor.delete"
       @save="save"
-      @delete="confirmDialog?.open()"
+      @delete="(deleting = null), confirmDialog?.open()"
       @close="editing = null"
     >
       <label :class="fieldLabel"><span class="pb-2">{{ m.editor.title }}</span><input v-model="title" maxlength="500" required :class="field"></label>
@@ -33,8 +33,8 @@
       <fieldset class="flex flex-col gap-2">
         <legend class="mb-1 text-sm text-muted pb-2">{{ m.editor.when }}</legend>
         <div class="flex gap-2" role="group" :aria-label="m.editor.when">
-          <button type="button" :class="dayChip(mode === 'repeat')" :aria-pressed="mode === 'repeat'" @click="mode = 'repeat'">{{ m.editor.repeat }}</button>
-          <button type="button" :class="dayChip(mode === 'once')" :aria-pressed="mode === 'once'" @click="mode = 'once'">{{ m.editor.once }}</button>
+          <button type="button" :class="chip(mode === 'repeat')" :aria-pressed="mode === 'repeat'" @click="mode = 'repeat'">{{ m.editor.repeat }}</button>
+          <button type="button" :class="chip(mode === 'once')" :aria-pressed="mode === 'once'" @click="mode = 'once'">{{ m.editor.once }}</button>
         </div>
         <WeekdayPicker v-if="mode === 'repeat'" v-model="weekdays" :aria-label="m.editor.repeat" />
         <HowOften v-if="mode === 'repeat'" v-model="weekInterval" />
@@ -47,7 +47,7 @@
     <ConfirmDialog
       ref="confirmDialog"
       :heading="m.confirmDelete.heading"
-      :body="m.confirmDelete.body(editing?.title ?? '')"
+      :body="m.confirmDelete.body((deleting ?? editing)?.title ?? '')"
       :confirm-label="m.confirmDelete.confirm"
       :keep-label="m.confirmDelete.keep"
       @confirm="remove"
@@ -71,7 +71,9 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import DateInput from '@/components/DateInput.vue'
 import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
-import { dayChip, field, fieldLabel, rowAction, secondaryButton } from '@/ui/styles'
+import { chip, field, fieldLabel } from '@/ui/styles'
+import NewButton from '@/components/NewButton.vue'
+import RowDelete from '@/components/RowDelete.vue'
 import { live } from '@/sync/live'
 import { firstFutureDay, isLater } from '@/reminders/priority'
 import { nextWholeHour } from '@/events/rules'
@@ -172,9 +174,17 @@ async function save() {
   editing.value = null
 }
 async function remove() {
-  if (editing.value) await brain.remove('priority_tasks', editing.value.id)
+  const target = deleting.value ?? editing.value
+  if (target) await brain.remove('priority_tasks', target.id)
   confirmDialog.value?.close()
-  editing.value = null
+  if (!deleting.value || deleting.value.id === editing.value?.id) editing.value = null
+  deleting.value = null
+}
+// SPEC §2 Rows look alike: the row's trash can asks first, like the editor's Delete.
+const deleting = ref<PriorityTaskRow | null>(null)
+function askDelete(t: PriorityTaskRow) {
+  deleting.value = t
+  confirmDialog.value?.open()
 }
 
 </script>

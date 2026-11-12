@@ -12,7 +12,7 @@
       {{ m.password }}
       <input v-model="password" type="password" autocomplete="current-password" :class="field">
     </label>
-    <button type="submit" class="min-h-11 rounded-xl border border-line px-4 font-medium" :disabled="busy">{{ m.button }}</button>
+    <button type="submit" :class="[smallButton, 'font-medium']" :disabled="busy">{{ m.button }}</button>
     <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
   </form>
 </template>
@@ -24,7 +24,7 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { messages } from '@/messages'
 import { takeReturn } from '@/router/returnTo'
-import { field, fieldLabel } from '@/ui/styles'
+import { field, fieldLabel, smallButton } from '@/ui/styles'
 
 const m = messages.devSignIn
 const users = [

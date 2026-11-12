@@ -67,7 +67,7 @@ test.describe('Spec §10 Connections: inviting a connection in the app', () => {
     server.rpcResults.my_connections = [{ friend_id: BOB, display_name: 'Bob Baker', avatar_url: null, since: '2026-11-01T00:00:00Z' }]
     server.rpcResults.invite_people = [{ invite_id: 'inv-bob', name: 'Bob Baker', email: null, phone: null, token: null }]
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.tasks.edit }).click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
     await openAttendees(dialog)
     await dialog.getByRole('button', { name: msg.invites.contacts }).click()
@@ -153,7 +153,7 @@ test.describe('Spec §10 Connections: connect from my people and from a guest in
     server.seed('people', [{ id: 'pe-carol', name: 'Carol', email: 'carol@example.com', phone: null }])
     server.rpcResults.people_with_accounts = [{ person_id: 'pe-carol' }]
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.tasks.edit }).click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     await openAttendees(page.getByRole('dialog', { name: msg.calendar.editor.heading }))
     await page.getByRole('dialog', { name: msg.calendar.editor.heading }).getByRole('button', { name: msg.invites.contacts }).click()
     const contacts = page.getByRole('dialog', { name: msg.contacts.heading })
@@ -204,7 +204,7 @@ test.describe('Spec §10 Connections: who’s going', () => {
   test('the host chooses whether guests can see who’s going', async ({ page }) => {
     server.seed('events', [{ ...event, user_id: undefined }])
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.tasks.edit }).click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
     await openAttendees(dialog)
     const box = dialog.getByRole('checkbox', { name: /Guests can see who’s going/ })

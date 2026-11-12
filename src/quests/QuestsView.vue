@@ -1,9 +1,8 @@
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
-    <div>
-      <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted">{{ m.intro }}</p>
-    </div>
+    <PageHeading :heading="m.heading" :intro="m.intro">
+      <NewButton :label="m.newQuest" data-testid="new-quest" @click="startNew" />
+    </PageHeading>
 
     <!-- The picker: what I have the energy and time for, then pick. -->
     <section class="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4" data-testid="quest-picker">
@@ -68,7 +67,7 @@
       <p v-if="!open.length" class="text-muted">{{ m.empty }}</p>
       <ul v-else class="divide-y divide-line rounded-2xl border border-line bg-surface" data-testid="quest-list">
         <li v-for="q in pageItems" :key="q.id" class="flex items-center gap-1 pr-1" data-testid="quest-row">
-          <button type="button" class="flex min-h-14 min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left hover:bg-bg" @click="editing = q">
+          <button type="button" class="flex min-h-14 min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left hover:bg-bg" @click="edit(q)">
             <span class="min-w-0 flex-1" data-testid="quest-title">{{ q.title }}</span>
             <span class="flex shrink-0 flex-wrap gap-1.5 text-xs">
               <span v-if="q.energy_level" :class="tag">{{ m.energy[q.energy_level] }}</span>
@@ -76,18 +75,16 @@
               <span v-if="doneCounts.get(q.id)" :class="tag" data-testid="quest-done-count">{{ m.doneCount(doneCounts.get(q.id)!) }}</span>
             </span>
           </button>
-          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-3 text-sm" :aria-label="m.pickThisLabel(q.title)" @click="pickThis(q)">
+          <button type="button" :class="[smallButton, 'shrink-0']" :aria-label="m.pickThisLabel(q.title)" @click="pickThis(q)">
             {{ m.pickThis }}
           </button>
-          <button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted hover:text-danger" :aria-label="m.deleteLabel(q.title)" data-testid="quest-delete" @click="remove(q)">
-            <AppIcon name="trash" size="size-5" />
-          </button>
+          <RowDelete :label="m.deleteLabel(q.title)" @click="remove(q)" />
         </li>
       </ul>
       <PageControls v-model:page="page" :page-count="pageCount" :label="m.allHeading" />
     </section>
 
-    <QuestEditor :quest="editing" @save="saveEdit" @delete="remove" @close="editing = null" />
+    <QuestEditor :quest="editing" :is-new="isNew" @save="saveEdit" @delete="remove" @close="editing = null" />
   </main>
 </template>
 
@@ -97,6 +94,11 @@ import AppIcon from '@/components/AppIcon.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import QuestEditor from '@/quests/components/QuestEditor.vue'
+import PageHeading from '@/components/PageHeading.vue'
+import NewButton from '@/components/NewButton.vue'
+import RowDelete from '@/components/RowDelete.vue'
+import { useAuthStore } from '@/stores/auth'
+import { DEFAULT_QUEST_ENERGY, DEFAULT_QUEST_TIME } from '@/capture/capture'
 import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -106,7 +108,7 @@ import { messages } from '@/messages'
 import type { EnergyLevel, QuestLogRow, QuestRow, TimeBucket } from '@/sync/types'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
-import { filterChip, primaryButtonSmall } from '@/ui/styles'
+import { filterChip, primaryButtonSmall, smallButton } from '@/ui/styles'
 
 const QUESTS_PER_PAGE = 10
 const brain = useBrainStore()
@@ -165,6 +167,17 @@ async function finish(q: QuestRow) {
 }
 
 const editing = ref<QuestRow | null>(null)
+const isNew = ref(false)
+function edit(q: QuestRow) {
+  isNew.value = false
+  editing.value = q
+}
+// SPEC §5 Random Quest: + New quest, starting as Ugh and 30 min like every new quest.
+const auth = useAuthStore()
+function startNew() {
+  isNew.value = true
+  editing.value = { id: crypto.randomUUID(), user_id: auth.user?.id ?? '', title: '', details: null, energy_level: DEFAULT_QUEST_ENERGY, time_bucket: DEFAULT_QUEST_TIME, status: 'open', times_picked: 0, deleted_at: null }
+}
 // Opened with ?quest=<id> (from search): open that quest's editor.
 const route = useRoute()
 const router = useRouter()
@@ -174,7 +187,7 @@ watch(
     if (typeof id !== 'string') return
     const quest = all.value.find((q) => q.id === id && !q.deleted_at)
     if (!quest) return
-    editing.value = quest
+    edit(quest)
     void router.replace({ query: {} })
   },
   { immediate: true },
@@ -186,7 +199,7 @@ async function saveEdit(q: QuestRow) {
 async function remove(q: QuestRow) {
   await brain.remove('quests', q.id)
   if (currentId.value === q.id) currentId.value = null
-  editing.value = null
+  if (editing.value?.id === q.id) editing.value = null
   undo.offer(messages.undo.deleted(q.title), () => brain.restore('quests', q.id))
 }
 

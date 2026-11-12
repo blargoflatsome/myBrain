@@ -42,7 +42,7 @@ test.describe('Spec §5 Celebrations: small, every time', () => {
     server.seed('tasks', [task('a', 'water plants'), task('bb', 'pay rent')])
     await open(page, '/tasks')
     await page.getByRole('button', { name: 'Cross off water plants' }).click()
-    await expect(page.getByTestId('task-check').first()).toHaveClass(/celebrate-draw/)
+    await expect(page.getByTestId('check-mark').first()).toHaveClass(/celebrate-draw/)
     await expect(page.getByTestId('confetti').first()).toHaveAttribute('data-size', 'small')
     await expect(message(page)).toHaveText(msg.celebrations.badgeEarned(msg.celebrations.badges.first_task))
     await expect.poll(() => server.written('badges').map((b) => b.kind)).toEqual(['first_task'])
@@ -162,12 +162,11 @@ test.describe('Spec §5 Dashboard: Trophies (yesterday)', () => {
 })
 
 test.describe('Spec §5 Celebrations: the setting', () => {
-  test('Celebrations on the Account page saves Full, Gentle or Off to my profile', async ({ page }) => {
+  test('Celebrations on the Account page saves Full, Gentle or Off to my profile as soon as I change it', async ({ page }) => {
     await open(page, '/account')
     const setting = page.getByTestId('celebrations-setting')
     await expect(setting).toHaveValue('full')
     await setting.selectOption('off')
-    await page.getByTestId('celebrations-settings').getByRole('button', { name: msg.capture.save }).click()
     await expect.poll(() => server.profile.celebrations).toBe('off')
   })
 

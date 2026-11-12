@@ -1,21 +1,18 @@
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
-    <div>
-      <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted">{{ m.intro }}</p>
-    </div>
-
-    <button type="button" class="self-start bg-surface font-medium" :class="secondaryButton" @click="startNew">{{ m.add }}</button>
+    <PageHeading :heading="m.heading" :intro="m.intro">
+      <NewButton :label="m.add" data-testid="new-routine" @click="startNew" />
+    </PageHeading>
     <p v-if="!routines.length" class="text-muted">{{ m.empty }}</p>
 
     <ul class="flex flex-col gap-3">
       <li v-for="row in rows" :key="row.routine.id" class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4" :data-testid="`routine-${row.routine.id}`">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
+        <div class="-mr-2 flex items-start gap-1">
+          <button type="button" class="min-w-0 flex-1 text-left" @click="edit(row.routine)">
             <h2 class="text-lg font-semibold break-words">{{ row.routine.title }}</h2>
             <p class="text-sm text-muted" data-testid="routine-status">{{ statusText(row) }}</p>
-          </div>
-          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-3 text-sm" @click="edit(row.routine)">{{ m.edit }}</button>
+          </button>
+          <RowDelete :label="m.deleteLabel(row.routine.title)" @click="askDelete(row.routine)" />
         </div>
 
         <RouterLink
@@ -54,6 +51,15 @@
     </ul>
 
     <RoutineEditor :routine="editing" :steps="editingSteps" :is-new="isNew" @save="save" @delete="remove" @close="editing = null" />
+    <!-- SPEC §2 Confirm before impact: a routine goes with its history, so the row's trash can asks first. -->
+    <ConfirmDialog
+      ref="confirmDialog"
+      :heading="m.confirmDelete.heading"
+      :body="m.confirmDelete.body(deleting?.title ?? '')"
+      :confirm-label="m.confirmDelete.confirm"
+      :keep-label="m.confirmDelete.keep"
+      @confirm="deleting && remove(deleting)"
+    />
   </main>
 </template>
 
@@ -69,7 +75,11 @@ import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, isSchedu
 import { messages } from '@/messages'
 import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
 import { live } from '@/sync/live'
-import { primaryButton, secondaryButton } from '@/ui/styles'
+import { primaryButton } from '@/ui/styles'
+import PageHeading from '@/components/PageHeading.vue'
+import NewButton from '@/components/NewButton.vue'
+import RowDelete from '@/components/RowDelete.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const brain = useBrainStore()
 const m = messages.routines
@@ -140,6 +150,14 @@ async function save(r: RoutineRow, s: { id?: string; title: string; habitId?: st
 }
 async function remove(r: RoutineRow) {
   await brain.deleteRoutine(r.id)
-  editing.value = null
+  confirmDialog.value?.close()
+  if (editing.value?.id === r.id) editing.value = null
+  deleting.value = null
+}
+const deleting = ref<RoutineRow | null>(null)
+const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
+function askDelete(r: RoutineRow) {
+  deleting.value = r
+  confirmDialog.value?.open()
 }
 </script>

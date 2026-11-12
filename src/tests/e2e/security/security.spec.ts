@@ -120,7 +120,7 @@ test.describe('Spec §8 Typed text never runs as code', () => {
     await page.goto('/capture')
     await page.getByRole('group', { name: msg.capture.typeHeading }).getByRole('button', { name: msg.search.type.task, exact: true }).click()
     await page.getByLabel(msg.capture.titleLabel, { exact: true }).fill(ATTACKS[0]!)
-    await page.getByRole('button', { name: msg.capture.save, exact: true }).click()
+    await page.getByTestId('capture-save').click()
     await expect.poll(() => server.written('tasks').at(-1)?.title).toBe(ATTACKS[0])
     await page.goto('/tasks')
     await page.getByRole('tab', { name: msg.tasks.undatedHeading }).click()

@@ -12,7 +12,7 @@
           <p class="text-sm break-words">{{ m.clash(clash.name) }}</p>
           <div class="flex flex-wrap gap-2">
             <button type="button" :class="primaryButtonSmall" @click="mergeInto(clash)">{{ m.clashYes }}</button>
-            <button type="button" class="min-h-11 rounded-xl border border-line px-4" @click="clash = null">{{ m.clashNo }}</button>
+            <button type="button" :class="smallButton" @click="clash = null">{{ m.clashNo }}</button>
           </div>
         </div>
         <div v-else class="flex gap-2">
@@ -50,7 +50,7 @@ import CloseX from '@/components/CloseX.vue'
 import { TAG_MAX } from '@/tags/rules'
 import { messages } from '@/messages'
 import type { TagRow } from '@/sync/types'
-import { dialogBox, field, fieldLabel, primaryButton, primaryButtonSmall, secondaryButton } from '@/ui/styles'
+import { dialogBox, field, fieldLabel, primaryButton, primaryButtonSmall, secondaryButton, smallButton } from '@/ui/styles'
 
 const props = defineProps<{ tag: TagRow | null; tags: TagRow[] }>()
 const emit = defineEmits<{

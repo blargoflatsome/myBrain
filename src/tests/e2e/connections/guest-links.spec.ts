@@ -76,7 +76,7 @@ test.describe('Spec §10 Connections part 4: the guest page', () => {
     server.rpcResults.event_people = [{ invite_id: 'inv-carol', name: 'Carol', email: 'carol@example.com', phone: null, response: 'pending', is_me: false }]
     server.rpcResults.new_invite_link = 'newtoken123'
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.tasks.edit }).click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
     await openSchedule(dialog)
     await openAttendees(dialog)
@@ -92,7 +92,7 @@ test.describe('Spec §10 Connections part 4: the guest page', () => {
     server.seed('event_invites', [{ id: 'inv-pat', event_id: EVENT, host_name: 'Test Person', name: 'Pat', email: null, phone: '5550109000', response: 'pending' }])
     server.rpcResults.event_changed = [{ invite_id: 'inv-pat', name: 'Pat', email: null, phone: '5550109000', body: 'Hi Pat, Test Person changed Birthday party: it’s now on Wednesday, November 11 at 7:00 pm.' }]
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.tasks.edit }).click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
     await openSchedule(dialog)
     await openAttendees(dialog)
@@ -109,7 +109,7 @@ test.describe('Spec §10 Connections part 4: the guest page', () => {
     server.seed('events', [{ id: EVENT, title: 'Birthday party', notes: null, start_date: '2026-11-10', start_time: '19:00:00', end_date: '2026-11-10', end_time: '22:00:00', repeat: 'never', reminder_minutes: null, cancelled_at: null }])
     server.seed('event_invites', [{ id: 'inv-pat', event_id: EVENT, host_name: 'Test Person', name: 'Pat', email: null, phone: '5550109000', response: 'pending' }])
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.tasks.edit }).click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
     await openSchedule(dialog)
     await openAttendees(dialog)

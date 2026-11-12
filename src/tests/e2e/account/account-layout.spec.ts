@@ -4,7 +4,7 @@ import { FakeSupabase } from '../support/fakeSupabase'
 import { messages as msg } from '../../../messages'
 
 test.describe('Spec §5 Account page: grouped into sections that open and close', () => {
-  test('only Your profile starts open; Account Settings holds the other groups, which open with a tap and stay as I left them', async ({ page }) => {
+  test('only Your profile starts open; the other groups sit beside it (none inside another), open with a tap and stay as I left them', async ({ page }) => {
     const server = new FakeSupabase()
     server.openAccountGroups = false
     await server.install(page)
@@ -25,7 +25,8 @@ test.describe('Spec §5 Account page: grouped into sections that open and close'
       ['people', 'People'],
       ['data', 'Your data'],
     ] as const) {
-      await expect(settings.getByTestId(`account-group-${id}`).getByRole('heading', { name, level: 2 })).toBeVisible()
+      await expect(page.getByTestId(`account-group-${id}`).getByRole('heading', { name, level: 2 })).toBeVisible()
+      await expect(settings.getByTestId(`account-group-${id}`)).toHaveCount(0)
     }
     await expect(page.getByTestId('event-settings')).toBeHidden()
 
@@ -59,8 +60,8 @@ test.describe('Spec §5 Account page: Sign out and Delete account', () => {
     const signOut = page.getByTestId('sign-out')
     await expect(signOut.getByRole('button', { name: msg.signOut.button })).toBeVisible()
     await expect(page.getByTestId('delete-account')).toBeVisible()
-    // It comes straight after the Account Settings group, and before Delete account.
-    const next = await page.getByTestId('account-group-settings').evaluate((el) => el.nextElementSibling?.getAttribute('data-testid'))
+    // It comes straight after the last group (Your data), and before Delete account.
+    const next = await page.getByTestId('account-group-data').evaluate((el) => el.nextElementSibling?.getAttribute('data-testid'))
     expect(next).toBe('sign-out')
     expect(await signOut.evaluate((el) => el.nextElementSibling?.getAttribute('data-testid'))).toBe('delete-account')
     await signOut.getByRole('button', { name: msg.signOut.button }).click()
@@ -82,7 +83,7 @@ test.describe('Spec §5 Account page: Sign out and Delete account', () => {
     await context.setOffline(true)
     await capture.getByRole('button', { name: msg.capture.destinations.later, exact: true }).click()
     await capture.getByLabel(msg.capture.placeholder).fill('idea on the subway')
-    await capture.getByRole('button', { name: msg.capture.save, exact: true }).click()
+    await capture.getByTestId('capture-save').click()
     await expect(page.getByTestId('sync-indicator')).toContainText(msg.sync.pending(1))
     await capture.getByRole('button', { name: msg.capture.close }).click()
     await page.getByTestId('sign-out').getByRole('button', { name: msg.signOut.button }).click()

@@ -19,7 +19,7 @@
       <p v-else-if="!error" class="text-sm text-muted">{{ m.nobody }}</p>
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
       <div class="flex gap-2">
-        <button type="button" class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink disabled:opacity-50" :disabled="busy || !brain.online" @click="confirm">
+        <button type="button" :class="[warningButton, 'flex-1 disabled:opacity-50']" :disabled="busy || !brain.online" @click="confirm">
           {{ mode === 'cancel' ? m.confirmCancel : m.confirmDrop }}
         </button>
         <button type="button" class="flex-1" :class="secondaryButton" @click="dialog?.close()">{{ m.keep }}</button>
@@ -39,7 +39,7 @@ import { useBrainStore } from '@/stores/brain'
 import { cancelEvent, dropOut, eventPeople, whenText, type EventPerson, type ShareTarget } from '@/events/sharing'
 import { messages } from '@/messages'
 import type { EventRow } from '@/sync/types'
-import { secondaryButton } from '@/ui/styles'
+import { secondaryButton, warningButton } from '@/ui/styles'
 
 const props = defineProps<{ event: EventRow | null; mode: 'cancel' | 'drop' }>()
 const emit = defineEmits<{ done: [ShareTarget[]]; close: [] }>()

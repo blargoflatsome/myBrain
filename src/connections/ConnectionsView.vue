@@ -24,7 +24,7 @@
           {{ m.codeLabel }}
           <input v-model="code" :class="[field, 'uppercase tracking-widest']" autocomplete="off" maxlength="8">
         </label>
-        <button type="submit" class="min-h-11 self-start rounded-xl border border-line px-4" :disabled="!brain.online">{{ m.findCode }}</button>
+        <button type="submit" :class="[smallButton, 'self-start']" :disabled="!brain.online">{{ m.findCode }}</button>
       </form>
       <div v-if="codeOwner" class="flex flex-wrap items-center gap-2" data-testid="code-owner">
         <span class="font-medium [overflow-wrap:anywhere]">{{ codeOwner.already_connected ? m.alreadyConnected(codeOwner.display_name) : m.connectWith(codeOwner.display_name) }}</span>
@@ -36,15 +36,15 @@
     <section :class="card" aria-labelledby="link-heading">
       <h2 id="link-heading" class="text-lg font-semibold">{{ m.linkSection }}</h2>
       <p class="text-sm text-muted">{{ m.linkHint }}</p>
-      <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" :disabled="!brain.online" @click="makeLink">{{ m.makeLink }}</button>
+      <button type="button" :class="[smallButton, 'self-start']" :disabled="!brain.online" @click="makeLink">{{ m.makeLink }}</button>
       <div v-if="fresh" class="flex flex-col gap-2 rounded-xl bg-bg p-3" data-testid="new-link">
         <span class="text-sm text-muted">{{ m.yourLink }}</span>
         <span class="text-sm [overflow-wrap:anywhere]" data-testid="new-link-url">{{ freshUrl }}</span>
         <span class="text-sm text-muted">{{ m.yourCode }}</span>
         <span class="text-2xl font-bold tracking-widest" data-testid="new-link-code">{{ fresh.code }}</span>
         <span class="flex flex-wrap gap-2">
-          <button type="button" class="min-h-11 rounded-xl border border-line px-4 text-sm" @click="copyLink">{{ m.copy }}</button>
-          <button v-if="canShare" type="button" class="min-h-11 rounded-xl border border-line px-4 text-sm" @click="shareLink">{{ m.share }}</button>
+          <button type="button" :class="smallButton" @click="copyLink">{{ m.copy }}</button>
+          <button v-if="canShare" type="button" :class="smallButton" @click="shareLink">{{ m.share }}</button>
         </span>
       </div>
       <p class="text-sm text-muted" role="status">{{ linkStatus }}</p>
@@ -53,7 +53,7 @@
         <ul class="flex flex-col gap-2">
           <li v-for="l in links" :key="l.id" class="flex items-center justify-between gap-2 text-sm" data-testid="active-link">
             <span>{{ m.linkExpires(when(l.expires_at)) }}</span>
-            <button type="button" class="min-h-11 rounded-xl border border-line px-3" @click="cancelOne(l.id)">{{ m.cancelLink }}</button>
+            <button type="button" :class="smallButton" @click="cancelOne(l.id)">{{ m.cancelLink }}</button>
           </li>
         </ul>
       </template>
@@ -69,7 +69,7 @@
           </span>
           <span class="flex flex-wrap gap-2">
             <button type="button" :class="primaryButtonSmall" @click="answer(r, 'accept')">{{ m.accept }}</button>
-            <button type="button" class="min-h-11 rounded-xl border border-line px-4" @click="answer(r, 'decline')">{{ m.decline }}</button>
+            <button type="button" :class="smallButton" @click="answer(r, 'decline')">{{ m.decline }}</button>
             <button type="button" class="min-h-11 rounded-xl border border-line px-4 text-danger" @click="answer(r, 'block')">{{ m.block }}</button>
           </span>
         </li>
@@ -86,7 +86,7 @@
             <span class="font-medium [overflow-wrap:anywhere]">{{ c.display_name }}</span>
           </span>
           <span class="flex shrink-0 gap-1">
-            <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" :aria-label="m.removeLabel(c.display_name)" @click="askEnd(c, false)">{{ m.remove }}</button>
+            <button type="button" :class="smallButton" :aria-label="m.removeLabel(c.display_name)" @click="askEnd(c, false)">{{ m.remove }}</button>
             <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm text-danger" :aria-label="m.blockLabel(c.display_name)" @click="askEnd(c, true)">{{ m.block }}</button>
           </span>
         </li>
@@ -98,7 +98,7 @@
       <ul class="flex flex-col gap-2">
         <li v-for="r in sent" :key="r.id" class="flex min-w-0 items-center justify-between gap-2" data-testid="sent-request">
           <span class="min-w-0 text-sm [overflow-wrap:anywhere]">{{ r.contact }} <span class="text-muted">· {{ m.sent }}</span></span>
-          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-3 text-sm" :aria-label="m.cancelLabel(r.contact)" @click="cancel(r)">{{ m.cancel }}</button>
+          <button type="button" :class="[smallButton, 'shrink-0']" :aria-label="m.cancelLabel(r.contact)" @click="cancel(r)">{{ m.cancel }}</button>
         </li>
       </ul>
     </section>
@@ -145,7 +145,7 @@ import { isEmail, isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
 import { momentLabel } from '@/ui/dates'
 import { useBrainStore } from '@/stores/brain'
-import { card, field, fieldLabel, primaryButtonSmall } from '@/ui/styles'
+import { card, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
 
 const m = messages.connections
 const brain = useBrainStore()

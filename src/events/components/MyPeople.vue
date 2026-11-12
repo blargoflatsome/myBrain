@@ -3,20 +3,19 @@
     <h3 id="my-people-settings" class="font-semibold">{{ m.heading }}</h3>
     <p class="text-sm text-muted">{{ m.hint }}</p>
     <div>
-      <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="startAdd">{{ m.add }}</button>
+      <button type="button" :class="smallButton" @click="startAdd">{{ m.add }}</button>
     </div>
     <p class="text-sm text-muted" role="status" data-testid="people-notice">{{ notice }}</p>
     <p v-if="!people.length" class="text-muted">{{ m.empty }}</p>
     <ul v-else class="flex flex-col gap-2">
       <li v-for="p in pageItems" :key="p.id" class="flex min-w-0 items-center justify-between gap-2" data-testid="saved-person">
-        <span class="min-w-0 text-sm [overflow-wrap:anywhere]">
+        <button type="button" class="min-h-11 min-w-0 flex-1 text-left text-sm [overflow-wrap:anywhere]" :aria-label="m.editLabel(personLabel(p))" @click="startEdit(p)">
           <span class="font-medium">{{ personLabel(p) }}</span>
           <span v-if="p.name" class="text-muted"> · {{ p.email || p.phone }}</span>
-        </span>
+        </button>
         <span class="flex shrink-0 flex-wrap justify-end gap-1">
           <button v-if="withAccounts.has(p.id)" type="button" class="min-h-11 rounded-xl border border-accent px-3 text-sm" :aria-label="c.connectPersonLabel(personLabel(p))" @click="connect(p)">{{ c.connectPerson }}</button>
-          <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" :aria-label="m.editLabel(personLabel(p))" @click="startEdit(p)">{{ m.edit }}</button>
-          <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm text-danger" :aria-label="m.removeLabel(personLabel(p))" @click="askRemove(p)">{{ m.remove }}</button>
+          <RowDelete :label="m.removeLabel(personLabel(p))" @click="askRemove(p)" />
         </span>
       </li>
     </ul>
@@ -41,6 +40,7 @@
 
 <script setup lang="ts">
 // SPEC §5 Calendar, my people: on the Account page I can fix a saved person's name, email or phone, or remove them.
+import RowDelete from '@/components/RowDelete.vue'
 import CloseX from '@/components/CloseX.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useUndoStore } from '@/stores/undo'
@@ -54,7 +54,7 @@ import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { live } from '@/sync/live'
 import type { PersonRow } from '@/sync/types'
-import { dialogBox, field, fieldLabel, primaryButton, secondaryButton } from '@/ui/styles'
+import { dialogBox, field, fieldLabel, primaryButton, secondaryButton, smallButton } from '@/ui/styles'
 
 const m = messages.myPeople
 const c = messages.connections

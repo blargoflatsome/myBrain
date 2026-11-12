@@ -38,7 +38,7 @@
       </div>
     </div>
 
-    <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4 text-sm font-medium" data-testid="open-contacts" @click="contacts?.open()">
+    <button type="button" :class="[smallButton, 'self-start font-medium']" data-testid="open-contacts" @click="contacts?.open()">
       {{ m.contacts }}
     </button>
 
@@ -48,7 +48,7 @@
         <label :class="fieldLabel"><span class="pb-2">{{ m.contact }}</span><input v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
         <label :class="fieldLabel"><span class="pb-2">{{ m.contactName }}</span><input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
       </div>
-      <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4 text-sm" @click="addContact">{{ m.addContact }}</button>
+      <button type="button" :class="[smallButton, 'self-start']" @click="addContact">{{ m.addContact }}</button>
     </div>
     <p v-if="contactError" class="text-sm text-danger" role="alert" data-testid="people-error">{{ contactError }}</p>
     <p class="text-sm text-muted" role="status" data-testid="people-status">{{ status }}</p>
@@ -75,7 +75,7 @@ import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
 import { useBrainStore } from '@/stores/brain'
 import { messages } from '@/messages'
 import type { PersonRow } from '@/sync/types'
-import { fieldCompact, fieldLabel } from '@/ui/styles'
+import { fieldCompact, fieldLabel, smallButton } from '@/ui/styles'
 
 const props = defineProps<{
   eventId: string

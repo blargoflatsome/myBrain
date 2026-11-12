@@ -75,7 +75,7 @@ test.describe('Spec §2: one thing goes straight away, with Undo', () => {
     server.seed('events', [{ id: 'e1', title: 'Party', notes: null, start_date: DAY, start_time: '19:00', end_date: DAY, end_time: '21:00', repeat: 'never', reminder_minutes: null }])
     server.seed('event_invites', [{ id: 'i1', event_id: 'e1', host_name: 'Test Person', name: 'Pat', email: null, phone: '5550109000', response: 'pending' }])
     await open(page, `/calendar?date=${DAY}&event=e1`)
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.tasks.edit }).click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     await page.getByRole('dialog', { name: msg.calendar.editor.heading }).getByRole('button', { name: msg.calendar.editor.delete }).click()
     await expect(page.getByRole('alertdialog', { name: msg.calendar.confirmDelete.heading })).toBeVisible()
   })
@@ -134,17 +134,16 @@ test.describe('UI consistency (feedback, 2026-11-10)', () => {
     await expect(dialog.getByRole('group', { name: msg.forms.reminders })).toHaveCount(0)
   })
 
-  test('every task row has the same Edit button: today, Undated and Priority', async ({ page }) => {
+  test('every task row ends in the same trash can, and its title opens the editor: today, Undated and Priority', async ({ page }) => {
     server.seed('tasks', [task('t1', 'pay rent'), task('t2', 'someday', { due_date: null })])
     server.seed('priority_tasks', [{ id: 'p1', title: 'Insulin', description: null, reminder_time: '20:00', due_date: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' }])
     await open(page, '/tasks')
-    await page.getByRole('button', { name: 'Edit pay rent' }).click()
-    await expect(page.getByRole('dialog', { name: msg.tasks.editor.heading })).toBeVisible()
-    await page.keyboard.press('Escape')
+    await expect(page.getByRole('button', { name: msg.tasks.deleteLabel('pay rent') })).toBeVisible()
     await page.getByRole('tab', { name: msg.tasks.undatedHeading }).click()
-    await expect(page.getByRole('button', { name: 'Edit someday' })).toBeVisible()
+    await expect(page.getByRole('button', { name: msg.tasks.deleteLabel('someday') })).toBeVisible()
     await page.getByRole('tab', { name: msg.journal.priority }).click()
-    await page.getByRole('button', { name: 'Edit Insulin' }).click()
+    await expect(page.getByRole('button', { name: msg.priority.deleteLabel('Insulin') })).toBeVisible()
+    await page.getByText('Insulin').click()
     await expect(page.getByRole('dialog', { name: msg.priority.editor.heading })).toBeVisible()
   })
 

@@ -187,7 +187,7 @@ for (const scheme of ['light', 'dark'] as const) {
       const view = page.getByTestId('calendar-item')
       await expect(view).toBeVisible()
       await scan(page, 'Calendar item window')
-      await view.getByRole('button', { name: msg.tasks.edit }).click()
+      await view.getByRole('button', { name: msg.calendar.view.edit }).click()
       const editor = page.getByRole('dialog', { name: msg.calendar.editor.heading })
       await editor.getByTestId('event-schedule').locator('summary').click()
       if (!isPhone(info)) await editor.getByRole('combobox', { name: 'Starts Date' }).click()
@@ -309,7 +309,7 @@ test.describe('Spec §2 WCAG 2.2 AA: by hand checks made automatic', () => {
 
   test('routine steps can be sorted by tapping instead of dragging (2.5.7)', async ({ page }) => {
     await page.goto('/routines')
-    await page.getByRole('button', { name: msg.tasks.edit }).first().click()
+    await page.locator('[data-testid^="routine-"]').first().getByRole('heading').click()
     const dialog = page.getByRole('dialog')
     const steps = dialog.getByTestId('routine-step-row').locator('input')
     await expect(steps.first()).toHaveValue('Brush teeth')

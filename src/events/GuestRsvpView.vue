@@ -21,7 +21,7 @@
           <p>{{ m.acceptAs(myName) }}</p>
           <span class="flex flex-wrap gap-2">
             <button type="button" :class="primaryButtonSmall" @click="acceptAsMe">{{ m.acceptAsButton }}</button>
-            <button type="button" class="min-h-11 rounded-xl border border-line px-4" @click="claim = 'none'">{{ m.stayGuest }}</button>
+            <button type="button" :class="smallButton" @click="claim = 'none'">{{ m.stayGuest }}</button>
           </span>
         </div>
         <div class="flex flex-col gap-3 rounded-2xl border border-line p-4">
@@ -39,12 +39,12 @@
           <button type="button" class="self-start" :class="primaryButtonSmall" @click="connectHost">{{ m.connect }}</button>
         </div>
         <p v-if="connectNote" class="text-sm" role="status" data-testid="guest-connect-sent">{{ connectNote }}</p>
-        <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" @click="addToCalendar"><AppIcon name="calendar" class="mr-1" />{{ m.addToCalendar }}</button>
+        <button type="button" :class="[smallButton, 'self-start']" @click="addToCalendar"><AppIcon name="calendar" class="mr-1" />{{ m.addToCalendar }}</button>
       </template>
 
       <div v-if="!signedIn && !data.passed && !data.cancelled" class="flex flex-col gap-2 rounded-2xl bg-surface p-4" data-testid="guest-sign-up">
         <p class="text-sm">{{ m.signUp }}</p>
-        <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4" @click="signUp">{{ m.signUpButton }}</button>
+        <button type="button" :class="[smallButton, 'self-start']" @click="signUp">{{ m.signUpButton }}</button>
       </div>
 
       <form v-if="!data.passed && claim !== 'claimed'" class="flex flex-col gap-2" @submit.prevent="send">
@@ -52,7 +52,7 @@
           {{ m.message(host) }}
           <textarea v-model="message" rows="3" maxlength="2000" class="rounded-xl border border-line bg-surface px-3 py-2 text-base text-ink" :placeholder="m.messagePlaceholder" />
         </label>
-        <button type="submit" class="min-h-11 self-start rounded-xl border border-line px-4">{{ m.send }}</button>
+        <button type="submit" :class="[smallButton, 'self-start']">{{ m.send }}</button>
         <p v-if="messageSent" class="text-sm" role="status">{{ m.sent }}</p>
       </form>
 
@@ -80,7 +80,7 @@ import { useAuthStore } from '@/stores/auth'
 import { guestInvite, guestMessage, guestOptOut, guestRespond, whenText, type GuestInvite } from '@/events/sharing'
 import { downloadIcs } from '@/events/ics'
 import { messages } from '@/messages'
-import { fieldLabel, primaryButtonSmall } from '@/ui/styles'
+import { fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
 
 const route = useRoute()
 const m = messages.guest

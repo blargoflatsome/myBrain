@@ -38,7 +38,7 @@ test.describe('Spec §5 Calendar: a new event starts at a time', () => {
   test('turning All day off fills in a time', async ({ page }) => {
     server.seed('events', [{ id: 'e1', title: 'Holiday', notes: null, start_date: '2026-11-10', start_time: null, end_date: '2026-11-10', end_time: null, repeat: 'never', reminder_minutes: null }])
     await open(page, '/calendar?date=2026-11-10&event=e1')
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.tasks.edit }).click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
     await openSchedule(dialog)
     await dialog.getByRole('checkbox', { name: msg.availability.allDay }).uncheck()
