@@ -1,7 +1,7 @@
 import { rememberReturn, takeReturn } from '@/router/returnTo'
 import { createRouter, createWebHistory } from 'vue-router'
 import { messages } from '@/messages'
-import DashboardView from '@/views/DashboardView.vue'
+import DashboardView from '@/dashboard/DashboardView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { authRedirect } from './guard'
 
@@ -15,29 +15,29 @@ declare module 'vue-router' {
 
 export const routes = [
   { path: '/', name: 'dashboard', component: DashboardView },
-  { path: '/tasks', name: 'home', component: () => import('@/views/TasksView.vue') },
-  { path: '/capture', name: 'capture', component: () => import('@/views/CaptureView.vue') },
-  { path: '/routines', name: 'routines', component: () => import('@/views/RoutinesView.vue') },
-  { path: '/routines/:id/run', name: 'routine-run', component: () => import('@/views/RoutineRunView.vue') },
-  { path: '/journal', name: 'journal', component: () => import('@/views/JournalView.vue') },
-  { path: '/vault', name: 'vault', component: () => import('@/views/VaultView.vue') },
-  { path: '/calendar', name: 'calendar', component: () => import('@/views/CalendarView.vue') },
-  { path: '/habits', name: 'habits', component: () => import('@/views/HabitsView.vue') },
-  { path: '/account', name: 'account', component: () => import('@/views/AccountView.vue') },
-  { path: '/tags', name: 'tags', component: () => import('@/views/TagsView.vue') },
-  { path: '/connections', name: 'connections', component: () => import('@/views/ConnectionsView.vue') },
-  { path: '/connect/:token', name: 'connect', component: () => import('@/views/ConnectLinkView.vue'), meta: { returnAfterSignIn: true } },
+  { path: '/tasks', name: 'home', component: () => import('@/tasks/TasksView.vue') },
+  { path: '/capture', name: 'capture', component: () => import('@/capture/CaptureView.vue') },
+  { path: '/routines', name: 'routines', component: () => import('@/routines/RoutinesView.vue') },
+  { path: '/routines/:id/run', name: 'routine-run', component: () => import('@/routines/RoutineRunView.vue') },
+  { path: '/journal', name: 'journal', component: () => import('@/journal/JournalView.vue') },
+  { path: '/vault', name: 'vault', component: () => import('@/vault/VaultView.vue') },
+  { path: '/calendar', name: 'calendar', component: () => import('@/events/CalendarView.vue') },
+  { path: '/habits', name: 'habits', component: () => import('@/habits/HabitsView.vue') },
+  { path: '/account', name: 'account', component: () => import('@/account/AccountView.vue') },
+  { path: '/tags', name: 'tags', component: () => import('@/tags/TagsView.vue') },
+  { path: '/connections', name: 'connections', component: () => import('@/connections/ConnectionsView.vue') },
+  { path: '/connect/:token', name: 'connect', component: () => import('@/connections/ConnectLinkView.vue'), meta: { returnAfterSignIn: true } },
   // The page was called Profile before; old links still work.
   { path: '/profile', redirect: '/account' },
-  { path: '/quests', name: 'quests', component: () => import('@/views/QuestsView.vue') },
-  { path: '/orphans', name: 'inbox', component: () => import('@/views/InboxView.vue') },
+  { path: '/quests', name: 'quests', component: () => import('@/quests/QuestsView.vue') },
+  { path: '/orphans', name: 'inbox', component: () => import('@/capture/InboxView.vue') },
   // Orphans was called Inbox before; old links still work.
   { path: '/inbox', redirect: '/orphans' },
-  { path: '/welcome', name: 'welcome', component: () => import('@/views/WelcomeView.vue') },
-  { path: '/rsvp/:invite/:token', name: 'rsvp', component: () => import('@/views/GuestRsvpView.vue'), meta: { public: true, guest: true } },
-  { path: '/privacy', name: 'privacy', component: () => import('@/views/PrivacyView.vue'), meta: { public: true, guest: true } },
-  { path: '/terms', name: 'terms', component: () => import('@/views/TermsView.vue'), meta: { public: true, guest: true } },
-  { path: '/sign-in', name: 'sign-in', component: () => import('@/views/SignInView.vue'), meta: { public: true } },
+  { path: '/welcome', name: 'welcome', component: () => import('@/auth/WelcomeView.vue') },
+  { path: '/rsvp/:invite/:token', name: 'rsvp', component: () => import('@/events/GuestRsvpView.vue'), meta: { public: true, guest: true } },
+  { path: '/privacy', name: 'privacy', component: () => import('@/legal/PrivacyView.vue'), meta: { public: true, guest: true } },
+  { path: '/terms', name: 'terms', component: () => import('@/legal/TermsView.vue'), meta: { public: true, guest: true } },
+  { path: '/sign-in', name: 'sign-in', component: () => import('@/auth/SignInView.vue'), meta: { public: true } },
 ]
 
 export const router = createRouter({

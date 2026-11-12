@@ -1,0 +1,204 @@
+<template>
+  <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
+    <div>
+      <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
+      <p class="text-muted">{{ m.intro }}</p>
+    </div>
+
+    <!-- The picker: what I have the energy and time for, then pick. -->
+    <section class="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4" data-testid="quest-picker">
+      <fieldset class="flex flex-col gap-2">
+        <legend class="mb-1 text-sm font-medium">{{ m.energyLabel }}</legend>
+        <div class="flex flex-wrap gap-2" role="group" :aria-label="m.energyLabel">
+          <button type="button" :class="filterChip(!energy)" :aria-pressed="!energy" @click="energy = null">
+            {{ m.any }}
+          </button>
+          <button v-for="e in ENERGY_LEVELS" :key="e" type="button" :class="filterChip(energy === e)" :aria-pressed="energy === e" @click="energy = e">
+            {{ m.energy[e] }}
+          </button>
+        </div>
+      </fieldset>
+
+      <fieldset class="flex flex-col gap-2">
+        <legend class="mb-1 text-sm font-medium">{{ m.timeLabel }}</legend>
+        <div class="flex flex-wrap gap-2" role="group" :aria-label="m.timeLabel">
+          <button type="button" :class="filterChip(!time)" :aria-pressed="!time" @click="time = null">
+            {{ m.any }}
+          </button>
+          <button v-for="t in TIME_BUCKETS" :key="t" type="button" :class="filterChip(time === t)" :aria-pressed="time === t" @click="time = t">
+            {{ m.time[t] }}
+          </button>
+        </div>
+      </fieldset>
+
+      <button type="button" class="min-h-12 self-start rounded-xl bg-accent px-5 font-semibold text-accent-ink" @click="pick">
+        <AppIcon name="shuffle" class="mr-1" />{{ m.pick }}
+      </button>
+    </section>
+
+    <section v-if="current" ref="resultBox" tabindex="-1" class="flex flex-col gap-3 rounded-2xl border border-line border-l-4 border-l-accent bg-surface p-4" data-testid="quest-result" aria-live="polite">
+      <p class="text-sm text-muted">{{ m.resultHeading }}</p>
+      <h2 class="text-xl font-semibold">{{ current.title }}</h2>
+      <RichNotes :value="current.details" />
+      <p class="flex flex-wrap gap-2 text-sm">
+        <span v-if="current.energy_level" :class="tag">{{ m.energy[current.energy_level] }}</span>
+        <span v-if="current.time_bucket" :class="tag">{{ m.time[current.time_bucket] }}</span>
+        <span v-if="(current.times_picked ?? 0) > 1" class="text-muted">{{ m.pickedCount((current.times_picked ?? 1) - 1) }}</span>
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="accept(current)">{{ m.accept }}</button>
+        <button type="button" :class="quiet" @click="pick">{{ m.reroll }}</button>
+        <button type="button" :class="quiet" @click="finish(current)">{{ m.done }}</button>
+      </div>
+    </section>
+    <p v-if="notice" class="rounded-xl border border-line bg-surface p-3" role="status" data-testid="quest-notice">{{ notice }}</p>
+
+    <section v-if="inProgress.length" class="flex flex-col gap-2">
+      <h2 class="text-lg font-semibold">{{ m.inProgress }}</h2>
+      <ul class="divide-y divide-line rounded-2xl border border-line bg-surface">
+        <li v-for="q in inProgress" :key="q.id" class="flex items-center gap-3 px-3 py-2">
+          <span class="min-w-0 flex-1">{{ q.title }}</span>
+          <button type="button" :class="quiet" :aria-label="`${m.done}: ${q.title}`" @click="finish(q)">{{ m.done }}</button>
+        </li>
+      </ul>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <h2 class="text-lg font-semibold">{{ m.allHeading }}</h2>
+      <p v-if="!open.length" class="text-muted">{{ m.empty }}</p>
+      <ul v-else class="divide-y divide-line rounded-2xl border border-line bg-surface" data-testid="quest-list">
+        <li v-for="q in pageItems" :key="q.id" class="flex items-center gap-1 pr-1" data-testid="quest-row">
+          <button type="button" class="flex min-h-14 min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left hover:bg-bg" @click="editing = q">
+            <span class="min-w-0 flex-1" data-testid="quest-title">{{ q.title }}</span>
+            <span class="flex shrink-0 flex-wrap gap-1.5 text-xs">
+              <span v-if="q.energy_level" :class="tag">{{ m.energy[q.energy_level] }}</span>
+              <span v-if="q.time_bucket" :class="tag">{{ m.time[q.time_bucket] }}</span>
+              <span v-if="doneCounts.get(q.id)" :class="tag" data-testid="quest-done-count">{{ m.doneCount(doneCounts.get(q.id)!) }}</span>
+            </span>
+          </button>
+          <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-3 text-sm" :aria-label="m.pickThisLabel(q.title)" @click="pickThis(q)">
+            {{ m.pickThis }}
+          </button>
+          <button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted hover:text-danger" :aria-label="m.deleteLabel(q.title)" data-testid="quest-delete" @click="remove(q)">
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" /></svg>
+          </button>
+        </li>
+      </ul>
+      <PageControls v-model:page="page" :page-count="pageCount" :label="m.allHeading" />
+    </section>
+
+    <QuestEditor :quest="editing" @save="saveEdit" @delete="remove" @close="editing = null" />
+  </main>
+</template>
+
+<script setup lang="ts">
+// SPEC §5 Random Quest: pick a project from the bucket list when bored, filtered by time and energy.
+import AppIcon from '@/components/AppIcon.vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import QuestEditor from '@/quests/components/QuestEditor.vue'
+import RichNotes from '@/components/RichNotes.vue'
+import { useBrainStore } from '@/stores/brain'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { acceptQuest, byEffort, ENERGY_LEVELS, markPicked, pickQuest, TIME_BUCKETS } from '@/quests/picker'
+import { useUndoStore } from '@/stores/undo'
+import { messages } from '@/messages'
+import type { EnergyLevel, QuestLogRow, QuestRow, TimeBucket } from '@/sync/types'
+import PageControls from '@/components/PageControls.vue'
+import { usePagination } from '@/composables/usePagination'
+import { filterChip } from '@/ui/styles'
+
+const QUESTS_PER_PAGE = 10
+const brain = useBrainStore()
+const m = messages.quests
+
+const all = useLiveQuery<QuestRow[]>(async () => (brain.db ? brain.db.quests.toArray() : []), [], [() => brain.db])
+const live = computed(() => all.value.filter((q) => !q.deleted_at))
+// Easiest first, 10 at a time (SPEC §5 Random Quest).
+const open = computed(() => live.value.filter((q) => q.status === 'open').sort(byEffort))
+const { page, pageCount, pageItems } = usePagination(open, QUESTS_PER_PAGE)
+const inProgress = computed(() => live.value.filter((q) => q.status === 'accepted'))
+
+const energy = ref<EnergyLevel | null>(null)
+const time = ref<TimeBucket | null>(null)
+const currentId = ref<string | null>(null)
+const current = computed(() => live.value.find((q) => q.id === currentId.value) ?? null)
+const notice = ref('')
+
+async function pick() {
+  notice.value = ''
+  const choice = pickQuest(live.value, { energy: energy.value, time: time.value })
+  if (!choice) {
+    currentId.value = null
+    notice.value = m.nothingFits
+    return
+  }
+  await brain.saveQuest(markPicked(choice))
+  currentId.value = choice.id
+}
+
+async function accept(q: QuestRow) {
+  await brain.saveQuest(acceptQuest(q))
+  currentId.value = null
+  notice.value = m.accepted
+}
+
+// I can choose one myself instead of rolling (SPEC §5 Random Quest); it counts as a pick like any other.
+const resultBox = ref<HTMLElement | null>(null)
+async function pickThis(q: QuestRow) {
+  notice.value = ''
+  await brain.saveQuest(markPicked(q))
+  currentId.value = q.id
+  await nextTick()
+  resultBox.value?.scrollIntoView({ block: 'nearest' })
+  resultBox.value?.focus()
+}
+
+// Done and delete happen straight away, with Undo (SPEC §2).
+const undo = useUndoStore()
+async function finish(q: QuestRow) {
+  const before = { ...q }
+  const logId = await brain.finishQuest(q)
+  if (currentId.value === q.id) currentId.value = null
+  notice.value = ''
+  undo.offer(messages.undo.questDone(q.title), () => brain.unfinishQuest(before, logId))
+}
+
+const editing = ref<QuestRow | null>(null)
+// Opened with ?quest=<id> (from search): open that quest's editor.
+const route = useRoute()
+const router = useRouter()
+watch(
+  [() => route.query.quest, all],
+  ([id]) => {
+    if (typeof id !== 'string') return
+    const quest = all.value.find((q) => q.id === id && !q.deleted_at)
+    if (!quest) return
+    editing.value = quest
+    void router.replace({ query: {} })
+  },
+  { immediate: true },
+)
+async function saveEdit(q: QuestRow) {
+  await brain.saveQuest(q)
+  editing.value = null
+}
+async function remove(q: QuestRow) {
+  await brain.deleteQuest(q.id)
+  if (currentId.value === q.id) currentId.value = null
+  editing.value = null
+  undo.offer(messages.undo.deleted(q.title), () => brain.restore('quests', q.id))
+}
+
+// How many times each quest has been done (they can be done again).
+const logs = useLiveQuery<QuestLogRow[]>(async () => (brain.db ? (await brain.db.quest_logs.toArray()).filter((l) => !l.deleted_at) : []), [], [() => brain.db])
+const doneCounts = computed(() => {
+  const counts = new Map<string, number>()
+  for (const l of logs.value) counts.set(l.quest_id, (counts.get(l.quest_id) ?? 0) + 1)
+  return counts
+})
+
+const quiet = 'min-h-11 rounded-xl border border-line px-4'
+/** A small grey label for energy and time. */
+const tag = 'rounded-full bg-bg px-2 py-0.5 text-muted'
+</script>

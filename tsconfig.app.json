@@ -8,6 +8,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "tests/**/*.ts"],
-  "exclude": ["src/sw.ts"]
+  "include": ["src/**/*.ts", "src/**/*.vue"],
+  "exclude": ["src/sw.ts", "src/tests/e2e/**"]
 }

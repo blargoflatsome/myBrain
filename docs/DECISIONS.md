@@ -145,3 +145,8 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 ## 2026-11-11 Account page regrouped
 - The user regrouped the Account page: Your profile, then Account Settings (Tags, Reminders, Events, People, Your data), then Sign out and Delete account outside the groups. Celebrations moved from Your profile into Account Settings with its own Save. (User.) Claude moved the group's title and summary into messages.ts, gave Celebrations its own "Save celebrations" button, and tidied whitespace the linter flagged; the user's layout is unchanged.
 - Trophies section: the perfect-days number is removed; tapping an earned trophy opens what I did to earn it. (User.)
+
+## 2026-11-11 Project folders reorganized
+- Feature folders: each page, its rules and its own components live in `src/<feature>/` (components in `components/`); a component two features use stays with the feature it belongs to; `src/components/` is for app-wide pieces only. All tests under `src/tests/` by kind (unit, integration, e2e, db), then by what they test. (User's choices.)
+- Done as file moves only; the test cleanup (wording from messages, fewer brittle checks, splitting the cross-feature files) comes after, as its own step. (User.)
+- Claude's calls: Connections got its own folder; Orphans (InboxView) sits with Capture; priority reminders' screens with `reminders/`; `EntryTags.vue` (unused) deleted; `fakeRemote.ts` moved to `src/tests/support/`.

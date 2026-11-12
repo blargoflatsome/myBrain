@@ -30,7 +30,7 @@
 import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
-import AlertsBell from '@/components/AlertsBell.vue'
+import AlertsBell from '@/notifications/components/AlertsBell.vue'
 import SyncIndicator from '@/components/SyncIndicator.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchStore } from '@/stores/search'
