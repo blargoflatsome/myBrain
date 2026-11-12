@@ -71,9 +71,9 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Testing skill `.claude/skills/writing-tests/SKILL.md` (adapted from PostHog's general rules; CLAUDE.md and CODING_STANDARDS §11 point to it). Test review against it: about 1,000 typed-out wordings in browser tests now come from `messages.ts` (exact matches, plus messages built from values); 5 pixel-gap checks removed (styling checks that are spec rules kept); 4 tests removed (a wording-only test and three duplicates); unit tests read wording from messages too. Fixed waits left on purpose: the security "nothing must happen" wait, the 320 px reflow settle, the drag helper's human pacing, and the unit-test settle helpers.
 
 
-## Tests regrouped, wording tests removed (branch `regroup-tests`)
+## Tests regrouped, wording tests removed (merged via PR #56, branch `regroup-tests`)
 - The old feedback-round and step 9 test files are split by feature into `src/tests/{unit,e2e}/<feature>/` (new folders: `e2e/app`, `e2e/sync`, `e2e/focus`, `e2e/search`, `e2e/vault`, `unit/vault`, `unit/search`, `unit/focus`); Account page and navigation tests moved out of `e2e/habits/habits.spec.ts` into `e2e/account/account-page.spec.ts` and `e2e/app/navigation.spec.ts`.
-- User rule (writing-tests skill): if it can't break the website, don't test it. No tests of wording, past-you voice or that messages.ts is used. Removed 7 wording-only tests (empty states, "past you would be proud", "nothing fits") and wording-only lines (intro and hint text) inside others. Quick checks pass: Vitest 368 (47 files), desktop browser 359.
+- User rule (writing-tests skill): if it can't break the website, don't test it. No tests of wording, past-you voice or that messages.ts is used. Removed 7 wording-only tests (empty states, "past you would be proud", "nothing fits") and wording-only lines (intro and hint text) inside others. Full review (2026-11-11): Vitest 368 (47 files), Playwright 696/697; the iPhone failure was the nine-page security test running near the 30 s limit, now `test.slow()` and passing 21/21.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
