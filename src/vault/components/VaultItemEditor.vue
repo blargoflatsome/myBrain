@@ -1,10 +1,10 @@
 <template>
   <EditorDialog
     :open="!!item"
-    :heading="isNew ? m.itemEditor.newHeading : m.itemEditor.heading"
+    :heading="m.itemEditor.heading"
     :save-label="m.itemEditor.save"
     :close-label="m.itemEditor.close"
-    :delete-label="isNew ? null : m.itemEditor.delete"
+    :delete-label="m.itemEditor.delete"
     @save="save"
     @delete="deleteNow"
     @close="emit('close')"
@@ -33,7 +33,7 @@ import { messages } from '@/messages'
 import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { storedNotes } from '@/journal/body'
 
-const props = withDefaults(defineProps<{ item: VaultItemRow | null; buckets: VaultBucketRow[]; isNew?: boolean }>(), { isNew: false })
+const props = defineProps<{ item: VaultItemRow | null; buckets: VaultBucketRow[] }>()
 const emit = defineEmits<{ save: [VaultItemRow]; delete: [VaultItemRow]; close: [] }>()
 const m = messages.vault
 

@@ -42,7 +42,8 @@
         <button type="button" :class="[smallButton, 'self-start']" @click="addToCalendar"><AppIcon name="calendar" class="mr-1" />{{ m.addToCalendar }}</button>
       </template>
 
-      <div v-if="!signedIn && !data.passed && !data.cancelled" class="flex flex-col gap-2 rounded-2xl bg-surface p-4" data-testid="guest-sign-up">
+      <!-- Only once they've answered, and plainly optional, so it never looks like a step to answering (SPEC §10). -->
+      <div v-if="!signedIn && !data.passed && !data.cancelled && data.response !== 'pending'" class="flex flex-col gap-2 rounded-2xl bg-surface p-4" data-testid="guest-sign-up">
         <p class="text-sm">{{ m.signUp }}</p>
         <button type="button" :class="[smallButton, 'self-start']" @click="signUp">{{ m.signUpButton }}</button>
       </div>

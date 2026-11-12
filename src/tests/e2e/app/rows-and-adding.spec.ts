@@ -101,16 +101,6 @@ test.describe('SPEC §2 Adding looks alike: + New … on every list page', () =>
     await expect(page.getByTestId('quest-title')).toHaveText(['Build a birdhouse'])
     await expect.poll(() => server.written('quests').at(-1)).toMatchObject({ title: 'Build a birdhouse', energy_level: 'ugh', time_bucket: '30m', status: 'open' })
   })
-
-  test('+ New item in a bucket saves the item into that bucket', async ({ page }) => {
-    await open(page, '/vault?bucket=bucket-1')
-    await page.getByRole('button', { name: msg.vault.newItem }).click()
-    const dialog = page.getByRole('dialog', { name: msg.vault.itemEditor.newHeading })
-    await dialog.getByLabel(msg.vault.itemEditor.title).fill('Luigi’s')
-    await dialog.getByRole('button', { name: msg.vault.itemEditor.save }).click()
-    await expect(page.getByTestId('vault-item')).toHaveCount(1)
-    await expect.poll(() => server.written('vault_items').at(-1)).toMatchObject({ title: 'Luigi’s', bucket_id: 'bucket-1' })
-  })
 })
 
 test.describe('SPEC §5 Tasks: moving between days', () => {

@@ -37,7 +37,7 @@
     <CalendarItemDialog :item="viewItem" @edit="editItem" @close="viewItem = null" />
     <TaskEditor :task="editingTask" @save="saveTask" @delete="deleteTask" @close="editingTask = null" />
     <PriorityTasks editor-only :open-id="editPriority" @opened="editPriority = null" />
-    <EventEditor :event="editing" :is-new="isNew" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="editing = null" />
+    <EventEditor :event="editing" :is-new="isNew" :with-people="startPeople" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="editing = null" />
     <InvitedEventDialog :event="viewing" :invite="viewingInvite" @drop-out="startDropOut" @close="viewing = null" />
     <CancelEventDialog :event="cancelling" :mode="cancelMode" @done="cancelled" @close="cancelling = null" />
     <ConfirmDialog
@@ -79,6 +79,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { eventChanged } from '@/connections/connections'
 import ShareFlow from '@/events/components/ShareFlow.vue'
 import { invitePeople, inviteLink, inviteMessage, type PersonToInvite, type ShareTarget } from '@/events/sharing'
+import { takeStartWith } from '@/events/startWith'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
@@ -175,7 +176,10 @@ function changeView(name: ViewName) {
 const editing = ref<EventRow | null>(null)
 const isNew = ref(false)
 // A new event starts at a time (the next whole hour, or the time tapped); All day is something I turn on (SPEC §5).
-function startNew(date: string, time: string | null) {
+// Someone already added to a new event (SPEC §5 Profiles: New event from a connection's profile).
+const startPeople = ref<PersonToInvite[]>([])
+function startNew(date: string, time: string | null, people: PersonToInvite[] = []) {
+  startPeople.value = people
   isNew.value = true
   editing.value = newEvent(brain.userId ?? '', date, time ?? nextWholeHour())
 }
@@ -332,5 +336,7 @@ watch(
 )
 onMounted(() => {
   if (typeof route.query.date === 'string') api()?.gotoDate(route.query.date)
+  const person = takeStartWith()
+  if (person) startNew(today.value, null, [person])
 })
 </script>

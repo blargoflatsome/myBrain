@@ -108,7 +108,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { checkbox, field, fieldLabel, warningOutline } from '@/ui/styles'
 import { dayLabel, timeLabel } from '@/ui/dates'
 
-const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
+const props = defineProps<{ event: EventRow | null; isNew: boolean; withPeople?: PersonToInvite[] }>()
 const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow, boolean]; close: []; cancel: [EventRow] }>()
 const brain = useBrainStore()
 const m = messages.calendar
@@ -172,7 +172,7 @@ watch(
     notes.value = e.notes ?? ''
     scheduleOpen.value = props.isNew
     error.value = ''
-    people.value = []
+    people.value = props.isNew ? [...(props.withPeople ?? [])] : []
   },
 )
 // Moving the start keeps the end after it.

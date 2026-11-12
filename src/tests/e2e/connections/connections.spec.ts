@@ -62,6 +62,24 @@ test.describe('Spec §10 Connections: ask, answer, remove', () => {
 })
 
 test.describe('Spec §10 Connections: inviting a connection in the app', () => {
+  test('a saved person who is also a connection shows once in Contacts, as the connection', async ({ page }) => {
+    server.seed('events', [{ id: EVENT, title: 'Birthday party', notes: null, start_date: '2026-11-10', start_time: '19:00:00', end_date: '2026-11-10', end_time: '22:00:00', repeat: 'never', reminder_minutes: null, cancelled_at: null }])
+    server.seed('people', [
+      { id: 'pe-bob', name: 'Bob Baker', email: null, phone: '5094348303' },
+      { id: 'pe-sam', name: 'Sam', email: 'sam@example.com', phone: null },
+    ])
+    server.rpcResults.my_connections = [{ friend_id: BOB, display_name: 'Bob Baker', avatar_url: null, since: '2026-11-01T00:00:00Z' }]
+    server.rpcResults.people_who_are_connections = [{ person_id: 'pe-bob', friend_id: BOB }]
+    await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
+    const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
+    await openAttendees(dialog)
+    await dialog.getByRole('button', { name: msg.invites.contacts }).click()
+    const contacts = page.getByRole('dialog', { name: msg.contacts.heading })
+    await expect(contacts.getByTestId('contact-connection')).toHaveText([/Bob Baker/])
+    await expect(contacts.getByTestId('contact')).toHaveText([/Sam/])
+  })
+
   test('connections are listed first in Contacts, and adding one invites them in the app by their account', async ({ page }) => {
     server.seed('events', [{ id: EVENT, title: 'Birthday party', notes: null, start_date: '2026-11-10', start_time: '19:00:00', end_date: '2026-11-10', end_time: '22:00:00', repeat: 'never', reminder_minutes: null, cancelled_at: null }])
     server.rpcResults.my_connections = [{ friend_id: BOB, display_name: 'Bob Baker', avatar_url: null, since: '2026-11-01T00:00:00Z' }]

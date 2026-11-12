@@ -213,3 +213,16 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 - User: a finished run with skipped steps offers Resume, which shows only those steps. Claude's calls: completing one changes its existing log (no new row, so stats count it once); skipping again ends that pass but Resume stays; scheduled routines resume today's run only; run anytime resumes its latest finished run until a new one starts, with Start again offered on the resume screen so a fresh run is never blocked.
 - User: footer credit "Conceived of by Jordan Buermann © 2026" with the name linking to LinkedIn, on every page, clear of the tab bar and Capture button. CLAUDE.md asks anyone building their own copy to keep it, and a browser test fails if it's removed. README explains how to run your own copy.
 - User: the footer year is the current year (2027 next year), not a fixed 2026. The project is MIT licensed (`LICENSE`, `package.json`), so copies must keep the copyright notice.
+
+## 2026-11-12 No SMS; email once the domain is bought
+- User: no SMS service at all, so phone numbers are never verified (Twilio Verify was about $0.058 per phone). Accounts are matched by email only; typed phone numbers stay guests, reached through the one-at-a-time sharing flow as now.
+- User: emails go out through Resend's free plan once the domain is bought. Claude's note: Resend's 100-a-day limit is shared by the whole app, not per user.
+- User: Discord server invites are planned for Phase 3 (SPEC section 10). Claude's recommendation, accepted: the bot posts each event to a chosen channel with Yes / Maybe / No buttons, rather than messaging every member privately. Contact syncing isn't possible on Discord or Telegram.
+
+## 2026-11-12 Profiles
+- User: a connection's profile shows their Google picture, name, earned trophies (small tier icons) and an Invite to event button (pick one of my upcoming events, or start a new event with them added). It opens by tapping a connection's name; only connections, only signed in. No online/offline status.
+- User: no habit streaks on profiles. Claude's note: streaks are worked out on each device, so sharing them would have needed a posted summary that goes stale.
+- User: trophies show even when they come from private habits, since they never name a habit (Claude had flagged that a long habit-streak trophy can hint at a private habit).
+- User: the "Who sees my profile" (streak visibility) setting is removed; profiles work the same for everyone. The `streak_visibility` column is dropped.
+- User: nothing is indexed by search engines except the sign-in page; pages that must stay public (guest invitation, Privacy, Terms) get noindex; a robots.txt is added.
+- Claude's calls: names in the event editor's Contacts window stay Add buttons (opening a profile there would leave the event behind); `invite_people` now skips a connection already invited to the event, so the profile's Send invite can't make a second invitation.

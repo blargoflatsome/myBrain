@@ -1,29 +1,23 @@
 <template>
   <main class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div class="flex items-center gap-4">
-      <img v-if="avatarUrl" :src="avatarUrl" alt="" class="size-16 rounded-full border border-line" referrerpolicy="no-referrer">
-      <div v-else class="flex size-16 items-center justify-center rounded-full bg-surface text-muted" aria-hidden="true"><AppIcon name="user" size="size-12" /></div>
+      <UserAvatar :url="avatarUrl" size="lg" />
       <h1 class="text-2xl font-bold">{{ displayName || m.heading }}</h1>
     </div>
 
     <AccountGroup id="profile" :title="m.settingsHeading" :summary="g.profile">
       <section data-testid="profile-settings" :aria-label="m.settingsHeading">
         <form v-if="loaded" class="flex flex-col gap-4" @submit.prevent="save">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <label :class="fieldLabel">
-              {{ m.displayName }}
-              <input v-model="displayName" maxlength="120" :class="field">
-            </label>
-            <label :class="fieldLabel">
-              {{ m.visibility }}
-              <select v-model="visibility" :class="field">
-                <option v-for="v in visibilities" :key="v" :value="v">{{ m.visibilityOptions[v] }}</option>
-              </select>
-              <span class="text-xs">{{ m.visibilityHint }}</span>
-            </label>
-          </div>
-          <div class="flex items-center gap-3">
+          <label :class="[fieldLabel, 'sm:max-w-sm']">
+            {{ m.displayName }}
+            <input v-model="displayName" maxlength="120" :class="field">
+          </label>
+          <div class="flex flex-wrap items-center gap-3">
             <button type="submit" :class="primaryButtonSmall" :disabled="saving">{{ m.save }}</button>
+            <!-- SPEC §5 Profiles: my profile as my connections see it. -->
+            <RouterLink v-if="brain.userId" :to="`/people/${brain.userId}`" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 text-sm font-medium" data-testid="view-my-profile">
+              <AppIcon name="user" size="size-5" />{{ messages.personProfile.viewMine }}
+            </RouterLink>
             <p v-if="notice" role="status" class="text-sm text-muted">{{ notice }}</p>
           </div>
         </form>
@@ -204,9 +198,10 @@
 </template>
 
 <script setup lang="ts">
-// SPEC §5 Account page: display name, avatar and streak visibility, then settings. Streaks are on the Dashboard.
+// SPEC §5 Account page: display name and avatar, then settings. Streaks are on the Habits page.
 import { useProfileStore } from '@/stores/profile'
 import AppIcon from '@/components/AppIcon.vue'
+import UserAvatar from '@/components/UserAvatar.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import TypeToConfirmDialog from '@/components/TypeToConfirmDialog.vue'
 import { computed, onMounted, ref } from 'vue'
@@ -232,8 +227,6 @@ import type { HabitPauseRow } from '@/sync/types'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { CELEBRATION_SETTINGS, parseSetting, type CelebrationSetting } from '@/celebrate/rules'
 
-type Visibility = 'private' | 'approved'
-
 const auth = useAuthStore()
 const brain = useBrainStore()
 const profile = useProfileStore()
@@ -246,7 +239,6 @@ const celebrations = ref<CelebrationSetting>(celebrate.setting)
 
 const displayName = ref('')
 const avatarUrl = ref<string | null>(null)
-const visibility = ref<Visibility>('private')
 const loaded = ref(false)
 const saving = ref(false)
 const notice = ref('')
@@ -256,7 +248,6 @@ onMounted(async () => {
   if (data) {
     displayName.value = data.display_name ?? ''
     avatarUrl.value = data.avatar_url
-    visibility.value = data.streak_visibility as Visibility
     celebrations.value = parseSetting(data.celebrations)
     loaded.value = true
   }
@@ -265,7 +256,7 @@ onMounted(async () => {
 async function save() {
   notice.value = ''
   saving.value = true
-  const ok = await profile.update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value })
+  const ok = await profile.update({ display_name: displayName.value.trim() || null })
   saving.value = false
   notice.value = ok ? m.saved : m.offline
 }
@@ -386,5 +377,4 @@ async function signOut(discardUnsent: boolean) {
   await router.push({ name: 'sign-in' })
 }
 
-const visibilities: Visibility[] = ['private', 'approved']
 </script>

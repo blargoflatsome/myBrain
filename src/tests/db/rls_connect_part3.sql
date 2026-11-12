@@ -23,6 +23,20 @@ begin
   select count(*) into n from public.people_with_accounts();
   if n <> 0 then raise exception 'FAIL: Spec §10: someone I already asked doesn''t show Connect again'; end if;
 
+  -- A saved person who is a connection shows once in Contacts: matched by email, or by phone in any format.
+  execute 'reset role';
+  insert into public.connections (user_id, friend_id) values (alice, carol);
+  update public.profiles set phone = '+1 (509) 434-8303' where user_id = carol;
+  insert into public.people (user_id, name, phone) values (alice, 'Carol again', '5094348303'), (alice, 'Short', '434');
+  execute 'set local role authenticated';
+  select count(*) into n from public.people_who_are_connections() where friend_id = carol;
+  if n <> 2 then raise exception 'FAIL: Spec §5 Contacts: saved people who are connections are matched by email and phone (got %)', n; end if;
+  execute 'reset role';
+  delete from public.connections where user_id = alice and friend_id = carol;
+  execute 'set local role authenticated';
+  select count(*) into n from public.people_who_are_connections();
+  if n <> 0 then raise exception 'FAIL: Spec §5 Contacts: only connections hide a saved person'; end if;
+
   -- Carol, invited as a guest (not connected), is offered to connect with the host after opening her link.
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
   select * into inv from public.invite_people(ev, '[{"email": "carol@test.invalid", "name": "Carol"}]'::jsonb);

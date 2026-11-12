@@ -12,6 +12,7 @@ import { messages as msg } from '../../../messages'
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
 const NOW = new Date('2026-11-11T01:00:00Z') // Tue Nov 10 2026, 8:00 pm in New York
 const RID = 'aaaaaaaa-0000-4000-8000-000000000001'
+const FRIEND = '22222222-2222-4222-8222-222222222222'
 const WCAG_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
 let server: FakeSupabase
 
@@ -45,6 +46,18 @@ ${LONG_WORD}`, due_date: day, priority: 2, status: 'open', source: 'manual', cre
     { id: 'nt2', kind: 'event_message', item_id: null, title: LONG_LINE, body: `${PARAGRAPH} ${LONG_WORD}`, url: '/calendar', local_date: day, sent_at: '2026-11-10T14:00:00Z' },
   ])
   server.seed('item_tags', [{ id: 'it-long', item_type: 'journal_entry', item_id: 'j8', tag_id: 'tag-long' }])
+  // A connection's profile (SPEC §5 Profiles) with a name pasted as one unbroken string, and trophies at several levels.
+  server.rpcResults.connection_profile = [{
+    display_name: LONG_WORD,
+    avatar_url: null,
+    badges: [
+      { kind: 'first_task', earned_at: '2026-11-01T00:00:00Z', levels: [] },
+      { kind: 'habit_streak', earned_at: '2026-11-01T00:00:00Z', levels: [1, 2, 3, 4, 5, 6].map((d) => `2026-10-0${d}T00:00:00Z`) },
+      { kind: 'journal_streak', earned_at: '2026-11-01T00:00:00Z', levels: ['2026-10-01T00:00:00Z', '2026-10-02T00:00:00Z', '2026-10-03T00:00:00Z'] },
+      { kind: 'tasks_completed', earned_at: '2026-11-01T00:00:00Z', levels: ['2026-10-01T00:00:00Z'] },
+    ],
+    invited_events: [],
+  }]
 }
 
 function seedData() {
@@ -110,6 +123,7 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Calendar', '/calendar', (p) => expect(p.locator('.cal-wrap').getByText('pay rent').first()).toBeVisible()],
   ['Account', '/account', (p) => expect(p.getByRole('heading', { name: msg.profile.settingsHeading, level: 2 })).toBeVisible()],
   ['Connections', '/connections', (p) => expect(p.getByRole('heading', { name: msg.nav.connections, level: 1 })).toBeVisible()],
+  ['Profile', `/people/${FRIEND}`, (p) => expect(p.getByTestId('profile-trophies')).toBeVisible()],
   ['Tags', '/tags', (p) => expect(p.getByTestId('tag-row').first()).toBeVisible()],
   ['Capture page', '/capture', (p) => expect(p.getByRole('heading', { name: msg.capture.typeHeading })).toBeVisible()],
   ['Privacy', '/privacy', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
@@ -133,6 +147,13 @@ for (const scheme of ['light', 'dark'] as const) {
         await scan(page, name)
       })
     }
+
+    test('Invite to event window on a profile', async ({ page }) => {
+      await page.goto(`/people/${FRIEND}`)
+      await page.getByRole('button', { name: msg.personProfile.invite }).click()
+      await expect(page.getByTestId('invite-event-choice')).toBeVisible()
+      await scan(page, 'Invite to event window')
+    })
 
     test('Capture window, with the Habit form', async ({ page }) => {
       await page.goto('/habits')
