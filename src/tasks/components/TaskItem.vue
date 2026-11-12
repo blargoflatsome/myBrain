@@ -20,16 +20,19 @@
     <p v-if="carried === 1" class="text-sm text-muted">{{ m.carriedOnce }}</p>
     <template v-else-if="needsDecision(task, today)">
       <p class="text-sm text-muted">{{ m.carriedMany(carried) }}</p>
-      <button type="button" :class="[rowAction, 'self-start']" @click="emit('cancel')">
-        {{ m.cancel }}
-      </button>
+      <!-- SPEC §5 Tasks: easy ways out, one tap each, with Undo. -->
+      <div class="flex flex-wrap gap-2">
+        <button type="button" :class="rowAction" data-testid="task-tomorrow" @click="emit('tomorrow')">{{ m.moveTomorrow }}</button>
+        <button type="button" :class="rowAction" data-testid="task-undated" @click="emit('undated')">{{ m.moveUndated }}</button>
+        <button type="button" :class="rowAction" @click="emit('cancel')">{{ m.cancel }}</button>
+      </div>
     </template>
   </li>
 </template>
 
 <script setup lang="ts">
 // One task (SPEC §5 Tasks): cross off, priority dot, carry-over colour, the title opens the editor, the trash can
-// deletes (SPEC §2 Rows look alike), Cancel task after two carry-overs.
+// deletes (SPEC §2 Rows look alike); after two carry-overs, Tomorrow, Undated and Cancel task.
 import { computed, ref, watch } from 'vue'
 import type { TaskRow } from '@/sync/types'
 import { carryOverCount, needsDecision, priorityKey } from '@/tasks/rules'
@@ -39,7 +42,7 @@ import CheckCircle from '@/components/CheckCircle.vue'
 import RowDelete from '@/components/RowDelete.vue'
 
 const props = defineProps<{ task: TaskRow; today: string }>()
-const emit = defineEmits<{ toggle: []; edit: []; delete: []; cancel: [] }>()
+const emit = defineEmits<{ toggle: []; edit: []; delete: []; cancel: []; tomorrow: []; undated: [] }>()
 const m = messages.tasks
 
 const carried = computed(() => carryOverCount(props.task, props.today))

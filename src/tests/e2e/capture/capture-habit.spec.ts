@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
 test.describe('Spec §5 Quick capture: Habit', () => {
   test('capture can add a habit with the full habit form', async ({ page }) => {
     await open(page, '/capture')
-    await page.getByRole('group', { name: msg.capture.typeHeading }).getByRole('button', { name: msg.search.type.habit, exact: true }).click()
+    await page.getByRole('group', { name: msg.capture.whereHeading }).getByRole('button', { name: msg.search.type.habit, exact: true }).click()
     await page.getByLabel(msg.capture.titleLabel, { exact: true }).fill('Floss')
     const days = page.getByRole('group', { name: msg.habits.editor.weekdays })
     await expect(days.getByRole('button', { pressed: true })).toHaveCount(7)

@@ -23,7 +23,7 @@ export function carryOverCount(task: TaskRow, today: string): number {
   return Math.max(0, daysBetween(task.due_date, today))
 }
 
-/** A task that carried over a second time gets Cancel and Edit buttons. */
+/** A task that carried over a second time gets Tomorrow, Undated and Cancel task (SPEC §5 Tasks). */
 export function needsDecision(task: TaskRow, today: string): boolean {
   return carryOverCount(task, today) >= 2
 }
@@ -77,4 +77,9 @@ export function toggleDone(task: TaskRow, now: Date = new Date()): TaskRow {
 
 export function cancelTask(task: TaskRow): TaskRow {
   return { ...task, status: 'cancelled' }
+}
+
+/** The task moved to another day, or to Undated with null; its carry-over starts again from the new day. */
+export function moveTask(task: TaskRow, dueDate: string | null): TaskRow {
+  return { ...task, due_date: dueDate }
 }

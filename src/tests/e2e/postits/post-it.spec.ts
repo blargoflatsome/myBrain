@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
 test.describe('Spec §5 Post It', () => {
   test('Capture has a Post It: a small formatted note and a color; it goes to the top of the Dashboard', async ({ page }) => {
     await open(page, '/capture')
-    await page.getByRole('group', { name: msg.capture.typeHeading }).getByRole('button', { name: msg.postIts.label, exact: true }).click()
+    await page.getByRole('group', { name: msg.capture.whereHeading }).getByRole('button', { name: msg.postIts.label, exact: true }).click()
     const editor = page.getByRole('textbox', { name: msg.postIts.label })
     await expect(editor).toBeFocused()
     await page.getByRole('toolbar', { name: 'Formatting: Post It' }).getByRole('button', { name: msg.editor.bold }).click()
@@ -44,7 +44,7 @@ test.describe('Spec §5 Post It', () => {
 
   test('an empty Post It is not saved', async ({ page }) => {
     await open(page, '/capture')
-    await page.getByRole('group', { name: msg.capture.typeHeading }).getByRole('button', { name: msg.postIts.label, exact: true }).click()
+    await page.getByRole('group', { name: msg.capture.whereHeading }).getByRole('button', { name: msg.postIts.label, exact: true }).click()
     await page.getByTestId('capture-save').click()
     await expect(page.getByRole('alert')).toHaveText(msg.postIts.emptyError)
     expect(server.written('post_its')).toHaveLength(0)

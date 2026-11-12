@@ -10,7 +10,7 @@ Suggested branches (one merge each): **A** Flow (F1–F3), **B** Consistency + f
 **D** New features (N1–N3; N2 and N3 need migrations). Branch A to D are separate, so they can run in parallel
 sessions if wanted (B touches the most files; run it alone or last).
 
-## A. Flow
+## A. Flow (built 2026-11-12, branch `ui-flow`)
 
 - **F1 Capture: type box first.** SPEC §2.1 and §5 Quick capture ("Choose the type first") change to: Capture opens
   with the text box focused; the type chips (Task, Vault, Quest, Habit, Post It, Decide later) sit under it, with

@@ -67,6 +67,19 @@ test.describe('Spec §5 Tasks: carry-over', () => {
     await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 'a', status: 'cancelled', deleted_at: null })
   })
 
+  for (const [button, dueDate] of [[msg.tasks.moveTomorrow, '2026-11-11'], [msg.tasks.moveUndated, null]] as const) {
+    test(`carried over a second time: ${button} moves it in one tap, and Undo puts it back`, async ({ page }) => {
+      server.seed('tasks', [task('a', 'clean garage', '2026-11-08')])
+      await open(page)
+      await item(page, 'clean garage').getByRole('button', { name: button, exact: true }).click()
+      await expect(item(page, 'clean garage')).toHaveCount(0)
+      await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 'a', due_date: dueDate, status: 'open' })
+      await page.getByRole('button', { name: msg.undo.undo, exact: true }).click()
+      await expect(item(page, 'clean garage')).toContainText(msg.tasks.carriedMany(2))
+      await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 'a', due_date: '2026-11-08' })
+    })
+  }
+
   test('editing makes it easier: moving it to today clears the carry-over', async ({ page }) => {
     server.seed('tasks', [task('a', 'clean garage', '2026-11-08')])
     await open(page)

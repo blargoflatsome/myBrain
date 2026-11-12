@@ -78,6 +78,8 @@
           @edit="edit(t)"
           @delete="remove(t)"
           @cancel="brain.saveTask(cancelTask(t))"
+          @tomorrow="move(t, addDays(today, 1))"
+          @undated="move(t, null)"
         />
       </ul>
     </template>
@@ -99,7 +101,7 @@ import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { addDays, daysBetween } from '@/tasks/days'
-import { cancelTask, clearDone, clearedForDay, DEFAULT_PRIORITY, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
+import { cancelTask, clearDone, clearedForDay, DEFAULT_PRIORITY, moveTask, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
 import { messages } from '@/messages'
 import type { TaskRow } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
@@ -218,6 +220,12 @@ async function saveEdit(t: TaskRow) {
   await brain.saveTask(t)
   editing.value = null
 }
+// SPEC §5 Tasks: a task that keeps slipping moves to tomorrow or Undated in one tap, with Undo.
+async function move(t: TaskRow, dueDate: string | null) {
+  await brain.saveTask(moveTask(t, dueDate))
+  undo.offer(dueDate ? messages.undo.movedTomorrow(t.title) : messages.undo.movedUndated(t.title), () => brain.saveTask(t))
+}
+
 async function remove(t: TaskRow) {
   await brain.remove('tasks', t.id)
   if (editing.value?.id === t.id) editing.value = null

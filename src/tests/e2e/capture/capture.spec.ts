@@ -11,25 +11,27 @@ test.beforeEach(async ({ page }) => {
   await server.install(page)
 })
 
-const typeGroup = (page: Page) => page.getByRole('group', { name: msg.capture.typeHeading })
+const typeGroup = (page: Page) => page.getByRole('group', { name: msg.capture.whereHeading })
 const titleBox = (page: Page) => page.getByLabel(msg.capture.titleLabel, { exact: true })
+const laterBox = (page: Page) => page.getByLabel(msg.capture.placeholder)
 const save = (page: Page) => page.getByTestId('capture-save')
 
-/** Open capture and choose a type (SPEC §5: type first). */
-async function startCapture(page: Page, type: 'Task' | 'The Vault' | 'Quest' | 'Decide later') {
+/** Open capture and choose a type. */
+async function startCapture(page: Page, type: 'Task' | 'The Vault' | 'Quest') {
   await page.goto('/capture')
   await typeGroup(page).getByRole('button', { name: type, exact: true }).click()
 }
 
-test.describe('Spec §5 Quick capture: choose the type first', () => {
-  test('a persistent Capture button opens capture over the current page, which asks for the type first', async ({ page }) => {
+test.describe('Spec §5 Quick capture: the text box first', () => {
+  test('a persistent Capture button opens capture over the current page, with the text box focused and Decide later chosen', async ({ page }) => {
     await page.goto('/habits')
     await page.getByRole('button', { name: '+ Capture' }).click()
     const dialog = page.getByRole('dialog', { name: msg.capture.windowLabel })
     await expect(dialog).toBeVisible()
     await expect(page).toHaveURL(/\/habits$/)
-    await expect(dialog.getByRole('heading', { name: msg.capture.typeHeading })).toBeVisible()
+    await expect(laterBox(page)).toBeFocused()
     await expect(typeGroup(page).getByRole('button')).toHaveText(['Task', 'The Vault', 'Quest', 'Habit', 'Post It', 'Decide later'])
+    await expect(typeGroup(page).getByRole('button', { name: msg.capture.destinations.later })).toHaveAttribute('aria-pressed', 'true')
   })
 
   test('the Capture window saves without leaving the page, and closing it returns to the page', async ({ page }) => {
@@ -55,12 +57,15 @@ test.describe('Spec §5 Quick capture: choose the type first', () => {
     await expect(page.getByRole('dialog', { name: msg.capture.windowLabel })).toBeHidden()
   })
 
-  test('Back returns to the type choice without saving', async ({ page }) => {
-    await startCapture(page, 'Quest')
-    await titleBox(page).fill('never mind')
-    await page.getByRole('button', { name: msg.capture.back }).click()
-    await expect(page.getByRole('heading', { name: msg.capture.typeHeading })).toBeVisible()
-    expect(server.writes).toHaveLength(0)
+  test('choosing a type keeps what I typed: the first line is the title, the rest the notes', async ({ page }) => {
+    await page.goto('/capture')
+    await laterBox(page).fill('call the plumber\nask about the leak under the sink')
+    await typeGroup(page).getByRole('button', { name: msg.capture.destinations.task, exact: true }).click()
+    await expect(titleBox(page)).toHaveValue('call the plumber')
+    await expect(page.getByRole('textbox', { name: msg.capture.notesLabel })).toHaveText('ask about the leak under the sink')
+    // Back to Decide later, nothing is lost either.
+    await typeGroup(page).getByRole('button', { name: msg.capture.destinations.later }).click()
+    await expect(laterBox(page)).toHaveValue('call the plumber\nask about the leak under the sink')
   })
 
   test('only the title is required: an empty title is not saved', async ({ page }) => {
@@ -74,7 +79,6 @@ test.describe('Spec §5 Quick capture: choose the type first', () => {
 test.describe('Spec §5 Quick capture: Task form', () => {
   test('title only: saved as Low priority to the Undated list', async ({ page }) => {
     await startCapture(page, 'Task')
-    await expect(titleBox(page)).toBeFocused()
     await titleBox(page).fill('call the plumber')
     await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText(msg.capture.saved.taskUndated)
@@ -173,8 +177,9 @@ test.describe('Spec §5 Quick capture: Quest form', () => {
 
 test.describe('Spec §5: Decide later, then sort it when I have time', () => {
   test('Decide later saves the text to Orphans, and filing it as a Quest gives Ugh / 30 min', async ({ page }) => {
-    await startCapture(page, 'Decide later')
-    await page.getByLabel("What's on your mind?").fill('maybe learn Portuguese')
+    // No chip chosen: Save goes to Orphans.
+    await page.goto('/capture')
+    await laterBox(page).fill('maybe learn Portuguese')
     await save(page).click()
     await expect(page.getByTestId('capture-notice')).toHaveText(msg.capture.saved.later)
 
@@ -197,8 +202,7 @@ test.describe('Spec §2/§5/§7: capture works offline and syncs later', () => {
     await expect(page.getByTestId('sync-indicator')).toHaveText(msg.sync.online)
 
     await context.setOffline(true)
-    await typeGroup(page).getByRole('button', { name: msg.capture.destinations.later }).click()
-    await page.getByLabel("What's on your mind?").fill('idea on the subway')
+    await laterBox(page).fill('idea on the subway')
     await save(page).click()
 
     await expect(page.getByTestId('capture-notice')).toHaveText("Saved on this device. It'll sync when you're back online.")
@@ -229,9 +233,9 @@ test.describe('Spec §3: PWA install, home-screen shortcut, Web Share Target', (
     expect(manifest.icons.map((i: { sizes: string }) => i.sizes)).toEqual(expect.arrayContaining(['192x192', '512x512']))
   })
 
-  test('shared text waits while I pick the type, then fills the title and notes', async ({ page }) => {
+  test('shared text fills the box, and choosing a type splits it into title and notes', async ({ page }) => {
     await page.goto('/capture?title=Great%20recipe&text=https%3A%2F%2Fexample.com%2Fsoup')
-    await expect(page.getByTestId('shared-text')).toHaveText('Great recipe\nhttps://example.com/soup')
+    await expect(laterBox(page)).toHaveValue('Great recipe\nhttps://example.com/soup')
     await expect(page).toHaveURL(/\/capture$/)
     await typeGroup(page).getByRole('button', { name: msg.capture.destinations.vault }).click()
     await expect(titleBox(page)).toHaveValue('Great recipe')

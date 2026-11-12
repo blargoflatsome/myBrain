@@ -123,19 +123,20 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 ### Quick capture
 - One-tap access from the home screen shortcut and a persistent button in the app. In the app, Capture opens as a window over the page I'm on, so it never takes me away (for example, I can add tasks while writing in my journal); closing it returns me exactly where I was. The home screen shortcut and text shared from other apps open the Capture page.
-- **Choose the type first**, then fill in a form that fits it. Only the title is required; everything else is optional or has a default, and optional details sit in **More details** (see Forms):
+- **The text box comes first (2026-11-12):** Capture opens with the text box focused, so I can start typing at once. The type chips (Task, The Vault, Quest, Habit, Post It, Decide later) sit under it with **Decide later chosen**, so Save with no other chip saves to Orphans. Choosing a chip shows that type's fields below and keeps what I typed: the first line becomes the title and the rest the notes or details (between two types that both have a title and notes, both stay as they are). Only the title is required; everything else is optional or has a default, and optional details sit in **More details** (see Forms):
    - **Task:** Title, Date (blank = the Undated list), Notes (formatted), Priority (default Low), all in view.
    - **The Vault:** Bucket (pick one, or make a new one; the first bucket is preselected), Title, Notes (formatted).
    - **Quest:** Title; then Energy needed (default Ugh), Time needed (default 30 min) and Details (formatted), all in view with extra space between them (no More details).
    - **Habit:** the full habit form, laid out like the habit editor (see Habits).
-   - **Post It:** a small formatted text box (the journal's editor, smaller) and a color (yellow by default, or blue or green; pink was removed, and older pink notes still show pink). No title; the note itself is required. It goes to the top of the Dashboard.
+   - **Post It:** a small formatted text box (the journal's editor, smaller, in place of the text box) and a color (yellow by default, or blue or green; pink was removed, and older pink notes still show pink). No title; the note itself is required. It goes to the top of the Dashboard.
    - **Decide later:** just the text, saved to **Orphans**.
 - **The Save button** looks like every editor's (normal size and shape) and says what it saves: "Save task", "Save to the Vault", "Save quest", "Save habit", "Save Post It", "Save to Orphans" (2026-11-12).
-- Text shared from another app is kept while I pick the type: its first line fills the title and the rest fills notes or details.
+- Text shared from another app fills the text box; choosing a type splits it as above (first line the title, the rest notes or details).
 - Works offline; items are queued and synced later.
 
 - **Decide later** saves the text to **Orphans** (the menu item and page formerly called Inbox) so I can sort it when I have time.
-- A microphone button fills in the title (or the Decide later text) using the device's speech recognition (free; verify browser support). Accepted: on Chrome this sends the audio to Google's servers for transcription. Hide the button where the browser has no speech recognition.
+- **Orphans one at a time (2026-11-12):** the Orphans page shows the oldest orphan as a card with "1 of 10", like the routine run screen. The card has a file button for each type (Task, The Vault, Quest, Habit, Post It: Task asks for an optional date, The Vault for a bucket), a trash can (Delete, with Undo) and **Skip**, which moves it to the back of the line while I'm on the page (the next visit starts from the oldest again). Filing or deleting shows the next one. Filed as a Habit, it gets the habit defaults (every day, starting today) and the first line as its name; as a Post It, all the words become a yellow note.
+- A microphone button fills the text box using the device's speech recognition (free; verify browser support). Accepted: on Chrome this sends the audio to Google's servers for transcription. Hide the button where the browser has no speech recognition.
 - Any item can later be converted to another type, for example a vault item into a task.
 
 ### Tasks
@@ -143,8 +144,8 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - An Undated list holds tasks with no due date. Undated tasks never carry over; giving one a date moves it onto that day's list.
 - Completing a task crosses it off. **Clear crossed-off (N)** above the list (day or Undated, shown when something is crossed off) hides the crossed-off tasks from that list. They aren't deleted: they stay in history and every count (Journal, Dashboard, achievements), and a day whose tasks were all done and cleared still says everything is done. Un-crossing a task (from search or the calendar) brings it back.
 - The day ends at **midnight in my timezone**. A task not completed by then carries over to the next day, its title shown in **muted terracotta** (the calm stand-in for red, SPEC §2) with a note saying it carried over.
-- If it carries over a second time, show **Cancel** and **Edit** buttons so I can make it easier or remove it. Cancel marks the task cancelled (it leaves the list but stays in history); Delete, inside Edit, asks for confirmation first.
-- Every task row, in the day list, Undated and Priority, opens its editor when I tap the title and ends in a trash can (Delete, with Undo; §2 Rows look alike); a task that carried over twice also shows **Cancel task**.
+- If it carries over a second time, show **Tomorrow**, **Undated** and **Cancel task** so I can make it easier or let it go (2026-11-12). Tomorrow and Undated move it in one tap, with Undo; its carry-over starts again from the new day. Cancel marks the task cancelled (it leaves the list but stays in history). Tapping the title still opens the editor.
+- Every task row, in the day list, Undated and Priority, opens its editor when I tap the title and ends in a trash can (Delete, with Undo; §2 Rows look alike); a task that carried over twice also shows **Tomorrow**, **Undated** and **Cancel task**.
 - **Moving between days (2026-11-12):** bordered **‹** and **›** buttons either side of the day's name, and a **Today** button when I'm on another day, like the Calendar.
 - "Today" is the calendar date in the device's current timezone, so carry-over follows me when I travel. The profile's timezone is kept in step with the device for server-side jobs (notifications).
 - Priority levels change how the task is rendered (for example emphasis, order, color). Three levels: **Low** (sage), **Medium** (soft ochre), **High** (muted terracotta), shown as a colored dot and label beside the task. New tasks default to Low. Open tasks are ordered High, Medium, Low, then oldest first. Coloured title text is reserved for carried-over tasks; priority only colours the dot, so the two never look alike.
