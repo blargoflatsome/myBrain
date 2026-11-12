@@ -92,6 +92,10 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 ## Date box race fixed (branch `fix-date-race`)
 - A full date (YYYY-MM-DD) typed or pasted is used at once, before the typed-date reader loads (`time/isoDate.ts`, `DateInput.vue`), so a quick Save never loses it (SPEC §5 Date fields; DECISIONS 2026-11-11). Test `src/tests/unit/time/date-input.test.ts`. The two flaky date tests passed 30/30 under load. No migration. Full review (2026-11-11): Vitest 376, Playwright 700/700, no failures.
 
+## Celebrations test clock (branch `fix-celebrate-clock`)
+- CI failed on every branch when it ran between 4 and 7 am UTC: two celebrations unit tests used the real clock and device timezone, so finishing a task earned Early bird too; and one test group kept localStorage between tests, so a leftover "trophies worked out" flag made catch-up announce a trophy instead of adding it quietly. Those test groups now run at a fixed midday in UTC and start each test with empty storage (`src/tests/unit/celebrate/celebrate.test.ts`). Vitest 375 passes in UTC, Los Angeles and Auckland. No app change.
+- UI review written as proposed spec changes in [docs/UI_REVIEW_TASKS.md](docs/UI_REVIEW_TASKS.md) (not in SPEC yet; user's choices filled in).
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).
