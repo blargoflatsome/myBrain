@@ -12,6 +12,15 @@ export default defineConfig({
     vue(),
     tailwindcss(),
     seo(),
+    // `vite preview` only (the browser tests; Netlify serves the real site). Keep idle connections open: WebKit (the
+    // iPhone tests) reuses one connection across tests, and Node closing it after 5 idle seconds could reset a test's
+    // first page load ("Failure when receiving data from the peer"). Chromium opens a new connection per test.
+    {
+      name: 'preview-keep-alive',
+      configurePreviewServer(server) {
+        if ('keepAliveTimeout' in server.httpServer) server.httpServer.keepAliveTimeout = 0
+      },
+    },
     // SPEC §3: installable PWA with a service worker, home-screen capture shortcut, and Web Share Target.
     VitePWA({
       registerType: 'autoUpdate',
