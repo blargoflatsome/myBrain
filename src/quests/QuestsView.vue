@@ -78,9 +78,10 @@
       <p v-if="!open.length" class="text-muted">{{ m.empty }}</p>
       <ul v-else class="divide-y divide-line rounded-2xl border border-line bg-surface" data-testid="quest-list">
         <li v-for="q in pageItems" :key="q.id" class="flex items-center gap-1 pr-1" data-testid="quest-row">
-          <button type="button" class="flex min-h-14 min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-left hover:bg-bg" @click="edit(q)">
-            <span class="min-w-0 flex-1" data-testid="quest-title">{{ q.title }}</span>
-            <span class="flex shrink-0 flex-wrap gap-1.5 text-xs">
+          <!-- The title gets the full width, with its chips on a line under it, so a long title never squeezes. -->
+          <button type="button" class="flex min-h-14 min-w-0 flex-1 flex-col items-start gap-1 px-3 py-2 text-left hover:bg-bg" @click="edit(q)">
+            <span class="max-w-full break-words" data-testid="quest-title">{{ q.title }}</span>
+            <span class="flex flex-wrap gap-1.5 text-xs">
               <span v-if="q.energy_level" :class="tag">{{ m.energy[q.energy_level] }}</span>
               <span v-if="q.time_bucket" :class="tag">{{ m.time[q.time_bucket] }}</span>
               <span v-if="doneCounts.get(q.id)" :class="tag" data-testid="quest-done-count">{{ m.doneCount(doneCounts.get(q.id)!) }}</span>

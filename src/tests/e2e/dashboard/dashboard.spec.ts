@@ -61,42 +61,35 @@ test.describe('Spec §5 Dashboard', () => {
     await open(page)
     const section = page.getByTestId('dash-yesterday')
     await expect(section.getByRole('heading', { name: msg.dashboard.yesterdayHeading })).toBeVisible()
-    // Up next comes first without Post Its, then yesterday (SPEC §5 Dashboard).
-    await expect(page.locator('main section').first()).toHaveAttribute('data-testid', 'up-next')
+    // Without Post Its, Days since your worst day is at the top, then Up next, then yesterday (SPEC §5 Dashboard).
+    await expect(page.getByTestId('dash-yesterday')).toBeVisible()
+    const order = await page.locator('main section[data-testid]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')))
+    expect(order.slice(0, 3)).toEqual(['dash-key', 'up-next', 'dash-yesterday'])
     await expect(section.getByTestId('dash-yesterday-habits')).toHaveText('1 of 2')
     await expect(section.getByTestId('dash-yesterday-routines')).toHaveText('1 of 2')
     await expect(section.getByTestId('dash-yesterday-tasks')).toHaveText('1 of 2')
     await expect(section.getByTestId('dash-yesterday-routine')).toHaveText(['✓ Morning 2/2', 'Night 1/3'])
   })
 
-  test('on a wide screen, How past you did yesterday sits to the left of the Post Its; on a narrower one, below them', async ({ page }, info) => {
-    test.skip(isPhone(info), 'computer widths')
+  test('Days since your worst day sits to the left of the Post Its; on a phone, under them', async ({ page }, info) => {
+    test.skip(isPhone(info), 'sets its own widths')
     server.seed('post_its', [{ id: 'p1', body: '<p>Call the vet</p>', color: 'yellow', position: 0 }])
-    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.setViewportSize({ width: 1024, height: 900 })
     await open(page)
-    const yesterday = page.getByTestId('dash-yesterday')
+    const pad = page.getByTestId('dash-key')
     const notes = page.getByTestId('dash-postits')
     await expect(notes).toBeVisible()
-    let y = (await yesterday.boundingBox())!
+    let p = (await pad.boundingBox())!
     let n = (await notes.boundingBox())!
-    expect(y.x + y.width).toBeLessThanOrEqual(n.x)
-    expect(Math.abs(y.y - n.y)).toBeLessThan(40)
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+    expect(p.x + p.width).toBeLessThanOrEqual(n.x)
+    expect(Math.abs(p.y - n.y)).toBeLessThan(40)
 
-    await page.setViewportSize({ width: 1100, height: 900 })
-    await expect.poll(async () => (await yesterday.boundingBox())!.y > (await notes.boundingBox())!.y + (await notes.boundingBox())!.height - 1).toBe(true)
-    y = (await yesterday.boundingBox())!
+    await page.setViewportSize({ width: 390, height: 900 })
+    await expect.poll(async () => (await pad.boundingBox())!.y >= (await notes.boundingBox())!.y + (await notes.boundingBox())!.height - 1).toBe(true)
+    p = (await pad.boundingBox())!
     n = (await notes.boundingBox())!
-    expect(y.y).toBeGreaterThanOrEqual(n.y + n.height - 1)
-  })
-
-  test('without Post Its, How past you did yesterday takes the full width on a wide screen', async ({ page }, info) => {
-    test.skip(isPhone(info), 'computer widths')
-    await page.setViewportSize({ width: 1440, height: 900 })
-    await open(page)
-    const top = (await page.getByTestId('dash-top').boundingBox())!
-    const y = (await page.getByTestId('dash-yesterday').boundingBox())!
-    expect(y.width).toBeGreaterThan(top.width - 2)
+    expect(p.y).toBeGreaterThanOrEqual(n.y + n.height - 1)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   })
 
   test('the app opens on the Dashboard, the first item in the menu', async ({ page }) => {

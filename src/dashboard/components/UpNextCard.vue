@@ -1,6 +1,6 @@
 <template>
   <!-- SPEC §5 Dashboard Up next: one suggestion at a time, never a list. -->
-  <section :class="[card, 'xl:col-span-2']" data-testid="up-next" aria-labelledby="up-next-heading">
+  <section :class="card" data-testid="up-next" aria-labelledby="up-next-heading">
     <h2 id="up-next-heading" class="text-sm font-semibold text-muted">{{ u.heading }}</h2>
     <div class="flex min-w-0 flex-col gap-1" aria-live="polite">
       <p v-if="reason" class="text-sm text-muted" data-testid="up-next-reason">{{ reason }}</p>

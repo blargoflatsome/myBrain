@@ -42,3 +42,22 @@ test.describe('Spec §5 Random Quest: calmer page, sorted by effort, in pages', 
   })
 })
 
+test.describe('Spec §5 Random Quest: rows on a phone', () => {
+  test('the title gets the full width with its chips under it, and a long link wraps without sideways scrolling', async ({ page }) => {
+    const link = 'https://example.com/a/really/long/link/that/someone/pasted/without/any/spaces/in/it/at/all?with=query&and=more'
+    server.seed('quests', [
+      { id: 'q1', title: '3dPrint', energy_level: 'fun', time_bucket: '30m', status: 'open' },
+      { id: 'q2', title: link, energy_level: 'fun', time_bucket: '2h', status: 'open' },
+    ])
+    await page.setViewportSize({ width: 320, height: 900 })
+    await open(page, '/quests')
+    const row = page.getByTestId('quest-row').filter({ hasText: '3dPrint' })
+    const title = (await row.getByTestId('quest-title').boundingBox())!
+    const chip = (await row.getByText(msg.quests.energy.fun).boundingBox())!
+    // The chips sit under the title, never beside it squeezing it (SPEC §5 Random Quest).
+    expect(chip.y).toBeGreaterThanOrEqual(title.y + title.height - 1)
+    await expect(page.getByTestId('quest-title').filter({ hasText: link })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+  })
+})
+

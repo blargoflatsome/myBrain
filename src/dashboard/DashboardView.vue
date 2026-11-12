@@ -1,85 +1,76 @@
 <template>
-  <main class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28 xl:max-w-5xl">
+  <main class="mx-auto flex w-full max-w-3xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div>
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
       <p class="text-muted">{{ m.intro }}</p>
     </div>
 
-    <!-- The top row (SPEC §5 Dashboard): Post Its, Up next, then yesterday; on a wide screen with Post Its, yesterday sits to
-         their left and Up next goes under them, full width. -->
-    <div class="flex flex-col gap-5 xl:has-[[data-testid=dash-postits]]:grid xl:has-[[data-testid=dash-postits]]:grid-cols-[minmax(0,1fr)_32rem] xl:has-[[data-testid=dash-postits]]:items-start" data-testid="dash-top">
-      <PostItBoard />
-      <UpNextCard />
-      <!-- Yesterday (SPEC §5 Dashboard). Not affected by the period. -->
-      <section v-if="stats" :class="[card, 'xl:order-first']" data-testid="dash-yesterday" aria-labelledby="dash-yesterday-heading">
-        <h2 id="dash-yesterday-heading" class="text-lg font-semibold">{{ m.yesterdayHeading }}</h2>
-        <p v-if="stats.yesterday.empty" class="text-muted">{{ m.yesterdayEmpty }}</p>
-        <template v-else>
-          <dl class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div class="flex flex-col">
-              <dt class="text-sm text-muted">{{ m.yesterdayHabits }}</dt>
-              <dd :class="smallNumber" data-testid="dash-yesterday-habits">{{ m.ofTotal(stats.yesterday.habits.kept, stats.yesterday.habits.scheduled) }}</dd>
-            </div>
-            <div class="flex flex-col">
-              <dt class="text-sm text-muted">{{ m.yesterdayRoutines }}</dt>
-              <dd :class="smallNumber" data-testid="dash-yesterday-routines">{{ m.ofTotal(stats.yesterday.routines.finished, stats.yesterday.routines.total) }}</dd>
-            </div>
-            <div class="flex flex-col">
-              <dt class="text-sm text-muted">{{ m.yesterdayTasks }}</dt>
-              <dd :class="smallNumber" data-testid="dash-yesterday-tasks">{{ m.ofTotal(stats.yesterday.tasks.done, stats.yesterday.tasks.due) }}</dd>
-            </div>
-            <div class="flex flex-col">
-              <dt class="text-sm text-muted">{{ m.yesterdayQuests }}</dt>
-              <dd :class="smallNumber" data-testid="dash-yesterday-quests">{{ stats.yesterday.quests.length }}</dd>
-            </div>
-          </dl>
-          <ul v-if="stats.yesterday.quests.length" class="flex flex-wrap gap-2 text-sm" :aria-label="m.yesterdayQuests">
-            <li v-for="(q, i) in stats.yesterday.quests" :key="i" class="rounded-full border border-line px-3 py-1" data-testid="dash-yesterday-quest">✓ {{ q }}</li>
-          </ul>
-          <ul v-if="stats.yesterday.routines.list.length" class="flex flex-wrap gap-2 text-sm" :aria-label="m.yesterdayRoutines">
-            <li
-              v-for="r in stats.yesterday.routines.list"
-              :key="r.id"
-              class="rounded-full border border-line px-3 py-1"
-              data-testid="dash-yesterday-routine"
-            >
-              {{ r.done >= r.total ? '✓ ' : '' }}{{ r.title }} {{ r.done }}/{{ r.total }}
-            </li>
-          </ul>
-        </template>
-        <!-- Yesterday's leftovers (SPEC §5 Dashboard): tasks due yesterday still open, with Undated and Let it go. -->
-        <div v-if="stats.leftovers.length" class="flex flex-col gap-2" data-testid="dash-leftovers">
-          <h3 class="text-sm font-semibold">{{ m.leftoversHeading }}</h3>
-          <ul class="flex flex-col gap-2">
-            <li v-for="task in stats.leftovers" :key="task.id" class="flex flex-wrap items-center justify-between gap-2" data-testid="dash-leftover">
-              <span class="min-w-0 break-words">{{ task.title }}</span>
-              <span class="flex shrink-0 gap-2">
-                <button type="button" :class="smallButton" :aria-label="m.leftoverUndated(task.title)" @click="leftoverUndated(task)">{{ m.undated }}</button>
-                <button type="button" :class="smallButton" :aria-label="m.leftoverLetGo(task.title)" @click="leftoverLetGo(task)">{{ m.letGo }}</button>
-              </span>
-            </li>
-          </ul>
-        </div>
-        <ul v-if="yesterdayTrophies.length" class="flex flex-wrap gap-2 text-sm" :aria-label="t.yesterday">
-          <li v-for="item in yesterdayTrophies" :key="item.id" class="flex items-center gap-1 rounded-full border border-line px-3 py-1" data-testid="dash-yesterday-trophy">
-            <AppIcon name="trophy" class="text-done" />{{ trophyName(item) }}
+    <!-- The top row (SPEC §5 Dashboard): Days since your worst day beside the Post Its, to their left (under them on a
+         phone; on top without them), then Up next and yesterday. -->
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-start" data-testid="dash-top">
+      <div class="min-w-0 empty:hidden sm:flex-1"><PostItBoard /></div>
+      <WorstDayPad v-if="stats" :days="stats.worstDay" class="sm:order-first sm:mx-0" />
+    </div>
+    <UpNextCard />
+    <!-- Yesterday (SPEC §5 Dashboard). -->
+    <section v-if="stats" :class="card" data-testid="dash-yesterday" aria-labelledby="dash-yesterday-heading">
+      <h2 id="dash-yesterday-heading" class="text-lg font-semibold">{{ m.yesterdayHeading }}</h2>
+      <p v-if="stats.yesterday.empty" class="text-muted">{{ m.yesterdayEmpty }}</p>
+      <template v-else>
+        <dl class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="flex flex-col">
+            <dt class="text-sm text-muted">{{ m.yesterdayHabits }}</dt>
+            <dd :class="smallNumber" data-testid="dash-yesterday-habits">{{ m.ofTotal(stats.yesterday.habits.kept, stats.yesterday.habits.scheduled) }}</dd>
+          </div>
+          <div class="flex flex-col">
+            <dt class="text-sm text-muted">{{ m.yesterdayRoutines }}</dt>
+            <dd :class="smallNumber" data-testid="dash-yesterday-routines">{{ m.ofTotal(stats.yesterday.routines.finished, stats.yesterday.routines.total) }}</dd>
+          </div>
+          <div class="flex flex-col">
+            <dt class="text-sm text-muted">{{ m.yesterdayTasks }}</dt>
+            <dd :class="smallNumber" data-testid="dash-yesterday-tasks">{{ m.ofTotal(stats.yesterday.tasks.done, stats.yesterday.tasks.due) }}</dd>
+          </div>
+          <div class="flex flex-col">
+            <dt class="text-sm text-muted">{{ m.yesterdayQuests }}</dt>
+            <dd :class="smallNumber" data-testid="dash-yesterday-quests">{{ stats.yesterday.quests.length }}</dd>
+          </div>
+        </dl>
+        <ul v-if="stats.yesterday.quests.length" class="flex flex-wrap gap-2 text-sm" :aria-label="m.yesterdayQuests">
+          <li v-for="(q, i) in stats.yesterday.quests" :key="i" class="rounded-full border border-line px-3 py-1" data-testid="dash-yesterday-quest">✓ {{ q }}</li>
+        </ul>
+        <ul v-if="stats.yesterday.routines.list.length" class="flex flex-wrap gap-2 text-sm" :aria-label="m.yesterdayRoutines">
+          <li
+            v-for="r in stats.yesterday.routines.list"
+            :key="r.id"
+            class="rounded-full border border-line px-3 py-1"
+            data-testid="dash-yesterday-routine"
+          >
+            {{ r.done >= r.total ? '✓ ' : '' }}{{ r.title }} {{ r.done }}/{{ r.total }}
           </li>
         </ul>
-      </section>
-    </div>
+      </template>
+      <!-- Yesterday's leftovers (SPEC §5 Dashboard): tasks due yesterday still open, with Undated and Let it go. -->
+      <div v-if="stats.leftovers.length" class="flex flex-col gap-2" data-testid="dash-leftovers">
+        <h3 class="text-sm font-semibold">{{ m.leftoversHeading }}</h3>
+        <ul class="flex flex-col gap-2">
+          <li v-for="task in stats.leftovers" :key="task.id" class="flex flex-wrap items-center justify-between gap-2" data-testid="dash-leftover">
+            <span class="min-w-0 break-words">{{ task.title }}</span>
+            <span class="flex shrink-0 gap-2">
+              <button type="button" :class="smallButton" :aria-label="m.leftoverUndated(task.title)" @click="leftoverUndated(task)">{{ m.undated }}</button>
+              <button type="button" :class="smallButton" :aria-label="m.leftoverLetGo(task.title)" @click="leftoverLetGo(task)">{{ m.letGo }}</button>
+            </span>
+          </li>
+        </ul>
+      </div>
+      <ul v-if="yesterdayTrophies.length" class="flex flex-wrap gap-2 text-sm" :aria-label="t.yesterday">
+        <li v-for="item in yesterdayTrophies" :key="item.id" class="flex items-center gap-1 rounded-full border border-line px-3 py-1" data-testid="dash-yesterday-trophy">
+          <AppIcon name="trophy" class="text-done" />{{ trophyName(item) }}
+        </li>
+      </ul>
+    </section>
 
 
     <template v-if="stats">
-      <!-- SPEC §5 Dashboard: days since your worst day, then the favorite buckets and Trophies. -->
-      <section class="flex flex-col gap-3" data-testid="dash-key" :aria-label="m.keyHeading">
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div :class="card" data-testid="dash-key-worst-day">
-            <span class="text-sm text-muted">{{ m.worstDay }}</span>
-            <span :class="bigNumber" data-testid="dash-worst-day">{{ stats.worstDay }}</span>
-          </div>
-        </div>
-      </section>
-
       <!-- Favorite Vault buckets (SPEC §5 The Vault) -->
       <section v-if="stats.favorites.length" class="flex flex-col gap-3" data-testid="dash-favorites">
         <h2 class="text-lg font-semibold">{{ m.favoritesHeading }}</h2>
@@ -120,12 +111,13 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { daysSinceWorstDay, favoriteBuckets, yesterdayLeftovers, yesterdaySummary } from '@/dashboard/stats'
 import UpNextCard from '@/dashboard/components/UpNextCard.vue'
+import WorstDayPad from '@/dashboard/components/WorstDayPad.vue'
 import { cancelTask, moveTask } from '@/tasks/rules'
 import { useUndoStore } from '@/stores/undo'
 import type { TaskRow } from '@/sync/types'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
-import { bigNumber, card, smallButton, smallNumber } from '@/ui/styles'
+import { card, smallButton, smallNumber } from '@/ui/styles'
 import TrophiesSection from '@/trophies/components/TrophiesSection.vue'
 import { useTrophyBoard } from '@/trophies/useTrophyBoard'
 import { earnedOn, trophyName } from '@/trophies/board'
