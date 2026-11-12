@@ -89,6 +89,10 @@ test.describe('Spec §5 Dashboard', () => {
 
     await page.setViewportSize({ width: 390, height: 900 })
     await expect.poll(async () => (await notes.boundingBox())!.y >= (await pad.boundingBox())!.y + (await pad.boundingBox())!.height - 1).toBe(true)
+    // On a phone a short Post It still fills the board's width, not just its words.
+    const board = (await page.getByTestId('dash-top').boundingBox())!
+    const note = (await page.getByTestId('postit-carousel').boundingBox())!
+    expect(note.width).toBeGreaterThan(board.width - 60)
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   })
 

@@ -7,7 +7,7 @@
 
     <!-- The top row (SPEC §5 Dashboard): one chalkboard with Days since your worst day chalked on the left (on top on a
          phone) and the Post Its taped on the right; the count alone without them. Then Up next and yesterday. -->
-    <div class="chalkboard flex flex-col items-center gap-6 p-5 sm:flex-row" data-testid="dash-top">
+    <div class="chalkboard flex flex-col items-stretch gap-6 p-5 sm:flex-row sm:items-center" data-testid="dash-top">
       <WorstDayBoard v-if="stats" :days="stats.worstDay" />
       <div class="min-w-0 empty:hidden sm:flex-1"><PostItBoard /></div>
     </div>
