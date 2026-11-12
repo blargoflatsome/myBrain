@@ -1033,7 +1033,6 @@ export const messages = {
     yesterdayQuests: 'Quests done',
     ofTotal: (done: number, total: number) => `${done} of ${total}`,
     yesterdayEmpty: 'Past you had nothing scheduled yesterday. Today is a clean slate.',
-    keyHeading: 'At a glance',
     worstDay: 'Days since your worst day',
     favoritesHeading: 'Favorite buckets',
     /** SPEC §5 Dashboard: tasks due yesterday that are still open. */

@@ -148,3 +148,4 @@ See [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Quest rows on phones (branch `quest-rows`, not merged)
 - User: short quest titles were squeezed into a column of letters on a phone by the chips beside them. The title now gets the full row width, chips under it (`QuestsView.vue`; SPEC §5 Random Quest). Test in `src/tests/e2e/quests/quest-list.spec.ts` (fails on the old layout). Also made a Capture quest test match "Ugh" exactly (it could hit the Strikethrough button). Quick checks pass.
+- Also on this branch: Days since your worst day moved beside the Post Its (left of them; under them on a phone; on top without them), drawn as a tear-off calendar page (`src/dashboard/components/WorstDayPad.vue`, `.tearpad` in `style.css`); yesterday moved under Up next; the Dashboard is no longer wider on big screens. SPEC §5 Dashboard. Layout tests in `src/tests/e2e/dashboard/dashboard.spec.ts`. Quick checks pass (Vitest 390, desktop 383); not looked at in a browser.

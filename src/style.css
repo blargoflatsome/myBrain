@@ -421,3 +421,53 @@ textarea:focus {
 [data-celebrate='gentle'] .celebrate-glow {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--done) 35%, transparent);
 }
+
+/* SPEC §5 Dashboard: Days since your worst day on a tear-off calendar page: a binding strip with two rings, a
+   perforated line, paper with a torn bottom edge, and the next page peeking out underneath. Paper stays light in dark
+   mode, like Post Its. */
+.tearpad {
+  position: relative;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.15)) drop-shadow(0 8px 10px rgb(0 0 0 / 0.18));
+}
+.tearpad-binding {
+  position: relative;
+  height: 1.75rem;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: var(--accent);
+}
+.tearpad-binding span {
+  position: absolute;
+  top: -0.45rem;
+  width: 0.7rem;
+  height: 1.3rem;
+  border-radius: 999px;
+  background: #d9d4c8;
+  border: 2px solid #8a8577;
+}
+.tearpad-binding span:first-child { left: 28%; }
+.tearpad-binding span:last-child { right: 28%; }
+.tearpad-page {
+  position: relative;
+  background: #fffdf6;
+  color: #2a2620;
+  border-top: 2px dashed rgb(0 0 0 / 0.18);
+  /* The torn bottom edge: a row of small zig-zag teeth. */
+  --tooth: 0.75rem;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%;
+}
+/* The next page underneath, peeking out below the torn edge. */
+.tearpad::after {
+  content: '';
+  position: absolute;
+  inset: 1.75rem 0.4rem -0.35rem;
+  z-index: -1;
+  background: #ece6d6;
+  border-radius: 0 0 0.25rem 0.25rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .tearpad-page { background: #ece6d6; color: #241f17; }
+  :root:not([data-theme='light']) .tearpad::after { background: #cfc7b3; }
+}
+:root[data-theme='dark'] .tearpad-page { background: #ece6d6; color: #241f17; }
+:root[data-theme='dark'] .tearpad::after { background: #cfc7b3; }
