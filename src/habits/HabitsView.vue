@@ -28,7 +28,6 @@
               <svg v-if="justDone === h.id" aria-hidden="true" viewBox="0 0 36 36" class="celebrate-ring pointer-events-none absolute -inset-1.5 size-11 -rotate-90" data-testid="habit-ring">
                 <circle cx="18" cy="18" r="16" fill="none" stroke="var(--done)" stroke-width="3" stroke-linecap="round" />
               </svg>
-              <span v-if="status(h) === 'missed'" aria-hidden="true">✕</span>
             </CheckCircle>
             <button type="button" class="flex min-w-0 flex-1 flex-col items-start gap-1 text-left" @click="edit(h)">
               <span class="text-base break-words" :class="status(h) === 'completed' ? 'text-muted' : ''">{{ h.title }}</span>
@@ -38,6 +37,7 @@
                 }}</span>
                 <span data-testid="habit-streak" :class="{ 'celebrate-bounce': justDone === h.id }"><AppIcon name="flame" class="mr-1" />{{ m.streak(streakOf(h).current) }}</span>
                 <span data-testid="habit-best">{{ m.best(streakOf(h).best) }}</span>
+                <span v-if="keptOf(h).total" data-testid="habit-kept">{{ m.keptLately(keptOf(h).kept, keptOf(h).total) }}</span>
                 <span v-if="h.is_private"><AppIcon name="lock" class="mr-1" />{{ m.privateBadge }}</span>
                 <span v-if="h.is_priority" class="text-carried"><AppIcon name="alert" class="mr-1" />{{ m.priorityBadge }}</span>
               </span>
@@ -60,6 +60,7 @@
               <span>{{ h.weekdays.map((d) => m.weekdayNames[d]).join(' ') }}</span>
               <span><AppIcon name="flame" class="mr-1" />{{ m.streak(streakOf(h).current) }}</span>
               <span>{{ m.best(streakOf(h).best) }}</span>
+              <span v-if="keptOf(h).total">{{ m.keptLately(keptOf(h).kept, keptOf(h).total) }}</span>
             </span>
           </button>
           <RowDelete :label="m.deleteLabel(h.title)" @click="askDelete(h)" />
@@ -90,7 +91,7 @@ import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { dayStatus, deadline, dueByMidnight, isScheduled, newHabit, streaks, type DayStatus } from '@/habits/rules'
+import { dayStatus, deadline, dueByMidnight, isScheduled, keptLately, newHabit, streaks, type DayStatus } from '@/habits/rules'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import { momentLabel } from '@/ui/dates'
@@ -144,17 +145,19 @@ const notToday = computed(() => habits.value.filter((h) => !isScheduled(h, today
  * are refreshed), worked out once per change rather than for every place the page shows them.
  */
 const byHabit = computed(() => {
-  const map = new Map<string, { status: DayStatus; streak: { current: number; best: number } }>()
+  const map = new Map<string, { status: DayStatus; streak: { current: number; best: number }; kept: { kept: number; total: number } }>()
   for (const h of habits.value) {
     map.set(h.id, {
       status: dayStatus(h, today.value, logs.value, now.value, timeZone.value),
       streak: streaks(h, logs.value, now.value, timeZone.value),
+      kept: keptLately(h, logs.value, now.value, timeZone.value),
     })
   }
   return map
 })
-const none = { status: 'not_scheduled' as DayStatus, streak: { current: 0, best: 0 } }
+const none = { status: 'not_scheduled' as DayStatus, streak: { current: 0, best: 0 }, kept: { kept: 0, total: 0 } }
 const streakOf = (h: HabitRow) => (byHabit.value.get(h.id) ?? none).streak
+const keptOf = (h: HabitRow) => (byHabit.value.get(h.id) ?? none).kept
 const status = (h: HabitRow) => (byHabit.value.get(h.id) ?? none).status
 function dueText(h: HabitRow) {
   if (dueByMidnight(h, today.value)) return m.dueToday

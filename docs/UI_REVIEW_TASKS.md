@@ -53,7 +53,7 @@ sessions if wanted (B touches the most files; run it alone or last).
 - **M2 Capture button.** Capture's button matches the editors: normal size and shape, saying what it saves ("Save
   task", "Save to Orphans", …).
 
-## C. ADHD fit
+## C. ADHD fit (built 2026-11-12, branch `ui-adhd`)
 
 - **H1 Missed habits aren't failure.** A missed day shows the muted style (no red ✕, no disabled look); each habit
   shows "kept 26 of the last 30 days" beside the streak (scheduled days only). Dashboard "Most missed" becomes
