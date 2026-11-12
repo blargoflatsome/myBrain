@@ -2,6 +2,8 @@
   "name": "my-brain",
   "private": true,
   "version": "0.1.0",
+  "author": "Jordan Buermann (https://www.linkedin.com/in/jordanbuermann/)",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=22"

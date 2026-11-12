@@ -1353,7 +1353,7 @@ export const messages = {
   footer: {
     conceivedBy: 'Conceived of by',
     name: 'Jordan Buermann',
-    year: '© 2026',
+    year: (year: number) => `© ${year}`,
   },
   pages: { previous: 'Previous', next: 'Next', position: (page: number, count: number) => `Page ${page} of ${count}` },
   timeInput: { placeholder: 'Type a time, like 8:30 am', listLabel: 'Suggested times' },

@@ -3,7 +3,7 @@
   <footer class="px-5 pt-4 pb-20 text-center text-sm text-muted md:px-8" data-testid="app-footer">
     {{ m.conceivedBy }}
     <a :href="LINKEDIN" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-6 items-center underline" data-testid="credit-link">{{ m.name }}</a>
-    {{ m.year }}
+    {{ m.year(new Date().getFullYear()) }}
   </footer>
 </template>
 

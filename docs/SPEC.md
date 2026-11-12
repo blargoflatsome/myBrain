@@ -44,7 +44,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 1. **Long lists come in pages.** Any list that can grow long is shown a page at a time with a shared page control (Previous, "Page 2 of 5", Next), so pages never get endlessly long.
 1. **Sort by dragging.** Anywhere I put things in my own order (routine steps, and any list added later), I drag them by a handle (⠿) with mouse or touch. The arrow keys on the handle move an item too, for keyboard use, and tapping the handle shows **Move up** and **Move down** buttons, so nothing needs dragging (WCAG 2.5.7).
 
-1. **Credit (2026-11-12, user).** Every page ends with a footer: "Conceived of by Jordan Buermann © 2026", the name linking to https://www.linkedin.com/in/jordanbuermann/ (opens in a new tab). It sits above the phone tab bar and clear of the Capture button. It stays in every copy of the project (CLAUDE.md "Credit in the footer").
+1. **Credit (2026-11-12, user).** Every page ends with a footer: "Conceived of by Jordan Buermann © <this year>" (the current year, so it reads 2027 next year), the name linking to https://www.linkedin.com/in/jordanbuermann/ (opens in a new tab). It sits above the phone tab bar and clear of the Capture button. It stays in every copy of the project (CLAUDE.md "Credit in the footer").
 
 ### Voice and tone: "past you"
 - The whole app speaks to the user in one consistent voice: it reminds them of what **past them** established. Nothing is ever the current user's fault. Past you made the plan, and present you gets to decide what to do about it. The tone is friendly and light, never scolding or guilt-inducing.

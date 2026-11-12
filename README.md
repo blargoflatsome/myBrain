@@ -17,7 +17,9 @@ npm run dev
 ```
 
 ## Run your own copy
-Anything made with AI should be free, so you're welcome to build your own My Brain. All I ask is that you keep the footer credit ("Conceived of by Jordan Buermann © 2026", linking to my LinkedIn) so I get credit for my part of the work.
+Anything made with AI should be free, so you're welcome to build your own My Brain. All I ask is that you keep the footer credit ("Conceived of by Jordan Buermann © <this year>", linking to my LinkedIn) so I get credit for my part of the work.
+
+The code is under the [MIT License](LICENSE): use, change and share it freely, as long as copies keep the copyright notice.
 
 Everything below uses free tiers. You need Node 22+, Git, a GitHub account, a Supabase account and a Netlify account.
 
@@ -61,3 +63,6 @@ See `.env.example`. Only `VITE_`-prefixed values reach the browser; everything e
 
 ## Key decisions
 See [docs/DECISIONS.md](docs/DECISIONS.md).
+
+## License
+[MIT](LICENSE) © Jordan Buermann

@@ -155,6 +155,6 @@ See [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Routines finish and resume, footer credit (branch `routines-credit`)
 - Routines (SPEC §5 Routines, DECISIONS 2026-11-12): finishing the last step goes back to the Routines page (the run-anytime "finished, Start again" screen is gone; Start begins a fresh run). A finished run with skipped steps shows Resume ("Done today, 2 skipped"), which goes over just those steps; Completed turns the step's log into completed (`resumableRun`, `skippedSteps`, `completeSkipped` in `routines/rules.ts`, `completeSkippedStep` in `routines/actions.ts`). No migration.
-- Footer credit (SPEC §2 Credit): `src/components/AppFooter.vue` in `App.vue`, "Conceived of by Jordan Buermann © 2026" linking to LinkedIn, clear of the tab bar and Capture button. CLAUDE.md "Credit in the footer" asks anyone building a copy to keep it. README has "Run your own copy".
+- Footer credit (SPEC §2 Credit): `src/components/AppFooter.vue` in `App.vue`, "Conceived of by Jordan Buermann © <this year>" linking to LinkedIn, clear of the tab bar and Capture button. CLAUDE.md "Credit in the footer" asks anyone building a copy to keep it. README has "Run your own copy".
 - Tests: unit `routines/rules.test.ts` (Resume), e2e `routines/routines.spec.ts` (finish goes back, Resume), `app/header.spec.ts` (credit link, not covered at 320 px; fails when the room is removed), celebration test updated, © allowed in the no-emoji check. Quick checks pass (Vitest 392, desktop 385). Full review not run yet.
 
