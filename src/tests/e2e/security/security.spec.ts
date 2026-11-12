@@ -66,6 +66,8 @@ test.describe('Spec §8 Security headers', () => {
 
 test.describe('Spec §8 Typed text never runs as code', () => {
   test('in tasks, habits, quests, Orphans and the Vault', async ({ page }) => {
+    // Visits nine pages and waits for each to settle, so it gets more than the usual 30 seconds.
+    test.slow()
     server.seed('tasks', [{ id: 't1', title: ATTACK, notes: ATTACK, due_date: '2026-11-10', priority: 1, status: 'open', source: 'manual' }])
     server.seed('habits', [{ id: 'h1', title: ATTACK, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false, current_streak: 0, best_streak: 0 }])
     server.seed('quests', [{ id: 'q1', title: ATTACK, details: ATTACK, energy: 'meh', minutes: 30 }])
