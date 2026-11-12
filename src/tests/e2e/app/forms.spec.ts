@@ -90,8 +90,8 @@ test.describe('Spec §5 Forms: optional details in More details, formatted notes
     await page.getByRole('button', { name: msg.search.type.quest, exact: true }).click()
     await expect(page.getByText(msg.forms.moreOptions)).toHaveCount(0)
     const quest = page.getByTestId('capture-quest')
-    await expect(quest.getByRole('button', { name: msg.quests.energy.ugh })).toBeVisible()
-    await expect(quest.getByRole('button', { name: msg.quests.time["30m"] })).toBeVisible()
+    await expect(quest.getByRole('button', { name: msg.quests.energy.ugh, exact: true })).toBeVisible()
+    await expect(quest.getByRole('button', { name: msg.quests.time["30m"], exact: true })).toBeVisible()
   })
 })
 
