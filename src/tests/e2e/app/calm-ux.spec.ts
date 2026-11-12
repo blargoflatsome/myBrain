@@ -90,7 +90,7 @@ test.describe('Spec §2 Calm by design', () => {
       await expect(page.locator('main')).toBeVisible()
       await page.waitForLoadState('networkidle')
       const text = await page.locator('body').innerText()
-      expect(text.replace(/[✓✕]/g, ''), path).not.toMatch(emoji)
+      expect(text.replace(/[✓✕©]/g, ''), path).not.toMatch(emoji)
     }
     await open(page, '/account')
     await expect(page.locator('[data-icon="user"]').first()).toBeVisible()

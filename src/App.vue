@@ -59,6 +59,7 @@
       <!-- On phones, room for the bottom tabs so nothing is hidden behind them. -->
       <div id="content" class="flex flex-1 flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0">
         <RouterView class="flex-1" />
+        <AppFooter />
       </div>
     </div>
 
@@ -92,6 +93,7 @@ import { parseSetting } from '@/celebrate/rules'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref, watch } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
+import AppFooter from '@/components/AppFooter.vue'
 import UndoBar from '@/components/UndoBar.vue'
 import AlertBanner from '@/notifications/components/AlertBanner.vue'
 import BottomTabs from '@/components/BottomTabs.vue'
