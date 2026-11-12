@@ -39,7 +39,6 @@ test.describe('SPEC §5 Trophies on the Dashboard', () => {
     ])
     await open(page)
     const trophies = page.getByTestId('dash-trophies')
-    await expect(page.getByTestId('dash-more').getByTestId('dash-trophies')).toHaveCount(0)
     const shown = trophies.locator('#dash-trophy-list [data-testid^="trophy-"][data-level]')
     await expect(shown).toHaveCount(3)
     await expect(shown.first()).toHaveAttribute('data-testid', 'trophy-first_journal')

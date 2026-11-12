@@ -96,24 +96,6 @@ test.describe('Spec §2 Calm by design', () => {
     await expect(page.locator('[data-icon="user"]').first()).toBeVisible()
   })
 
-  test('the Dashboard shows key numbers and favorite buckets first; More stats starts closed and is remembered', async ({ page }) => {
-    // Fresh storage for More stats on the first visit only (the fake server opens it for other tests).
-    await page.addInitScript(() => {
-      if (!sessionStorage.getItem('fresh')) {
-        localStorage.setItem('my-brain:dashboard-more', 'closed')
-        sessionStorage.setItem('fresh', '1')
-      }
-    })
-    server.seed('vault_buckets', [{ id: 'b1', name: 'Books', position: 0, checkable: false, starred: true }])
-    await open(page, '/')
-    await expect(page.getByTestId('dash-key')).toBeVisible()
-    await expect(page.getByTestId('dash-favorites')).toBeVisible()
-    await expect(page.getByTestId('dash-doing')).toBeHidden()
-    await page.getByTestId('dash-more').locator('summary').click()
-    await expect(page.getByTestId('dash-doing')).toBeVisible()
-    await page.reload()
-    await expect(page.getByTestId('dash-doing')).toBeVisible()
-  })
 })
 
 test.describe('UI consistency (feedback, 2026-11-10)', () => {
@@ -184,14 +166,11 @@ test.describe('UI consistency (feedback, 2026-11-10)', () => {
     await expect(dialog.getByLabel(msg.vault.itemEditor.bucket)).toBeVisible()
   })
 
-  test('Dashboard key row: days since worst day, longest current streak, best streak ever; nothing twice', async ({ page }) => {
+  test('Dashboard: days since your worst day shows once', async ({ page }) => {
     server.seed('tasks', [task('ty', 'yesterday task', { due_date: '2026-11-09', status: 'done', completed_at: '2026-11-09T15:00:00Z' })])
     await open(page, '/')
-    const key = page.getByTestId('dash-key')
-    await expect(key.locator('[data-testid^="dash-"]')).toHaveCount(4) // the three cards and the worst-day number
-    await expect(key).toContainText(msg.dashboard.worstDay)
+    await expect(page.getByTestId('dash-key')).toContainText(msg.dashboard.worstDay)
     await expect(page.getByTestId('dash-worst-day')).toHaveCount(1)
-    await expect(page.getByTestId('dash-journal')).not.toContainText(msg.dashboard.worstDay)
     await expect(page.getByTestId('dash-yesterday')).toContainText(msg.nav.routines)
   })
 })

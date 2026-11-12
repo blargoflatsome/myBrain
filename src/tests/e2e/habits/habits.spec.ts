@@ -175,8 +175,6 @@ test.describe('Spec §5 Habits and Profile page: private habits', () => {
     await goTo(page, 'Account')
     await expect(page.getByTestId('profile-streak')).toHaveCount(0)
     await expect(page.getByText('Take meds')).toHaveCount(0)
-    await goTo(page, 'Dashboard')
-    await expect(page.getByTestId('dash-habit')).toHaveCount(2)
   })
 
   test('new habits are not private by default, and can be made private', async ({ page }) => {

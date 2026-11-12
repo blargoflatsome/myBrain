@@ -133,3 +133,8 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 
 ## Decisions
 See [docs/DECISIONS.md](docs/DECISIONS.md).
+
+## Dashboard trimmed (branch `dashboard-trim`, not merged)
+- User: long-run stats were noise next to Trophies. Removed More stats, the Longest current streak and Best streak ever cards, and the period dropdown (SPEC §5 Dashboard, DECISIONS 2026-11-12). Dashboard is now Post Its, yesterday, Days since your worst day, favorite buckets, Trophies. Tests for the removed stats deleted; `journalStreaks` test moved to `src/tests/unit/dashboard/journal-streaks.test.ts` (Trophies use it). Quick checks pass (Vitest 378, desktop 374).
+- Next: "what to do next" guidance on the Dashboard; ideas proposed, waiting on the user's pick.
+
