@@ -226,3 +226,7 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 - User: the "Who sees my profile" (streak visibility) setting is removed; profiles work the same for everyone. The `streak_visibility` column is dropped.
 - User: nothing is indexed by search engines except the sign-in page; pages that must stay public (guest invitation, Privacy, Terms) get noindex; a robots.txt is added.
 - Claude's calls: names in the event editor's Contacts window stay Add buttons (opening a profile there would leave the event behind); `invite_people` now skips a connection already invited to the event, so the profile's Send invite can't make a second invitation.
+
+## 2026-11-12 SEO and link previews
+- User approved Claude's audit proposal: one link preview for every link (name, one line, a picture), real 404s with a Page not found page, a canonical link and a one-page sitemap for the sign-in page, and browser colours matching the calm palette.
+- Claude's calls: previews are the same for every link so they never reveal an event or inviter to preview services; per-link-type previews (an Edge Function) wait until this has been live a while; no structured data or server rendering (one indexed page). The site address comes from Netlify's `URL` at build time, falling back to the live address for local builds.

@@ -9,6 +9,13 @@ test.describe('Spec §8: Google sign-in through Supabase Auth', () => {
     await expect(page.getByRole('button', { name: msg.signIn.button })).toBeVisible()
   })
 
+  test('SPEC §8 404s: an address the app does not have shows Page not found, even signed out', async ({ page }) => {
+    await page.goto('/no-such-page')
+    await expect(page.getByRole('heading', { name: msg.notFound.heading, level: 1 })).toBeVisible()
+    await page.getByRole('link', { name: msg.notFound.home }).click()
+    await expect(page).toHaveURL(/\/sign-in$/)
+  })
+
   test('the Sign in with Google button starts the Google sign-in flow', async ({ page }) => {
     await page.goto('/sign-in')
     const authorize = page.waitForRequest((req) => req.url().includes('/auth/v1/authorize'))

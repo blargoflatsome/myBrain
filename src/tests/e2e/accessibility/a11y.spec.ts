@@ -128,6 +128,7 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Capture page', '/capture', (p) => expect(p.getByRole('heading', { name: msg.capture.typeHeading })).toBeVisible()],
   ['Privacy', '/privacy', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
   ['Terms', '/terms', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
+  ['Page not found', '/no-such-page', (p) => expect(p.getByRole('heading', { name: msg.notFound.heading, level: 1 })).toBeVisible()],
 ]
 
 for (const scheme of ['light', 'dark'] as const) {
