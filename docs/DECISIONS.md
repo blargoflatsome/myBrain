@@ -181,3 +181,8 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 - One Priority control (Low, Medium, High chips) in Capture and the task editor; one check circle (44 px target, drawn check); Tasks day navigation like the Calendar (bordered arrows, Today button); icons on every menu item.
 - Red only for errors: missed habits muted, Most missed bars neutral, Cancel event orange (affects others).
 - Account page: groups no longer nested; Celebrations saves on change. Capture's Save button looks like every editor's and names what it saves.
+
+## 2026-11-12 UI flow (UI review branch A, docs/UI_REVIEW_TASKS.md F1–F3)
+- Capture opens on the text box, with the type chips under it and Decide later chosen, so a thought can be typed before deciding where it goes. Choosing a type keeps the text (first line title, rest notes); between two titled types the title and formatted notes stay as they are. Claude's call: tapping a chip leaves focus on the chip (no jump), except Post It, whose note editor takes the box's place.
+- Orphans one at a time, oldest first, with "1 of N". User: the card files to all five types (Task, The Vault, Quest, Habit, Post It) and gets a trash can with Undo; Skip moves an orphan to the back only while on the page (no migration). Deleting the last orphan counts as emptying Orphans, like filing it.
+- A task that carried over twice gets Tomorrow and Undated (one tap, Undo) beside Cancel task; moving it gives it a new due date, so its carry-over count starts again.

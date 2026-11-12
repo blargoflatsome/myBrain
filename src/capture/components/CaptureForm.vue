@@ -1,156 +1,147 @@
 <template>
-  <div class="flex flex-col gap-4">
-    <template v-if="!type">
-      <h1 class="text-2xl font-bold">{{ m.typeHeading }}</h1>
-      <div v-if="shared" class="rounded-xl border border-line bg-surface p-3 text-sm">
-        <p class="text-muted">{{ m.sharedPreview }}</p>
-        <p class="whitespace-pre-wrap break-words" data-testid="shared-text">{{ shared }}</p>
+  <form class="flex flex-col gap-8" @submit.prevent="save">
+    <h1 class="text-2xl font-bold">{{ m.typeHeading }}</h1>
+    <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
+
+    <!-- Post It: a small formatted note in place of the box (SPEC §5 Quick capture) -->
+    <div v-if="type === 'postit'" class="flex flex-col gap-1" data-testid="capture-postit">
+      <span class="pb-2 text-sm text-muted">{{ pm.label }}</span>
+      <RichTextEditor v-model="postBody" :label="pm.label" :placeholder="pm.placeholder" min-height="8rem" autofocus @update:model-value="error = ''" />
+    </div>
+
+    <div v-if="type !== 'postit'" class="flex flex-col gap-1">
+      <label for="capture-title" class="pb-2 text-sm text-muted">{{ type === 'later' ? m.placeholder : m.titleLabel }}</label>
+      <div class="relative">
+        <textarea
+          v-if="type === 'later'"
+          id="capture-title"
+          ref="titleBox"
+          v-model="title"
+          maxlength="20000"
+          rows="4"
+          :placeholder="m.placeholder"
+          :class="[fieldOnPage, 'resize-none py-3 pr-28 text-lg']"
+          @input="error = ''"
+        />
+        <input v-else id="capture-title" ref="titleBox" v-model="title" maxlength="500" :class="[fieldOnPage, 'pr-28 text-lg']" @input="error = ''">
+        <button
+          v-if="speech.supported"
+          type="button"
+          class="absolute top-2 right-2 min-h-9 rounded-full border border-line bg-bg px-3 text-sm text-ink"
+          :aria-pressed="speech.listening.value"
+          @click="speech.listening.value ? speech.stop() : speech.start()"
+        >
+          <AppIcon name="mic" /> {{ speech.listening.value ? m.micListening : m.micStart }}
+        </button>
       </div>
-      <div class="grid grid-cols-2 gap-3" role="group" :aria-label="m.typeHeading">
-        <button v-for="d in types" :key="d" type="button" :class="typeBtn" @click="choose(d)">
+      <p v-if="speech.failed.value" class="text-sm text-danger" role="alert">{{ m.micError }}</p>
+    </div>
+
+    <!-- SPEC §5 Quick capture: the type chips sit under the box, with Decide later chosen. -->
+    <fieldset class="flex flex-col gap-2">
+      <legend class="mb-1 pb-2 text-sm text-muted">{{ m.whereHeading }}</legend>
+      <div class="flex flex-wrap gap-2" data-testid="capture-types">
+        <button v-for="d in types" :key="d" type="button" :class="chip(type === d)" :aria-pressed="type === d" @click="choose(d)">
           {{ m.destinations[d] }}
         </button>
       </div>
-      <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
+    </fieldset>
+
+    <fieldset v-if="type === 'postit'" class="flex flex-col gap-2">
+      <legend class="mb-1 text-sm text-muted pb-2">{{ pm.color }}</legend>
+      <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="pm.color">
+        <button
+          v-for="c in POST_IT_COLORS"
+          :key="c"
+          type="button"
+          role="radio"
+          :aria-checked="postColor === c"
+          :class="['min-h-11 rounded-full border-2 px-4 text-sm font-medium', `note-${c}`, postColor === c ? 'border-ink' : 'border-transparent']"
+          @click="postColor = c"
+        >
+          <span v-if="postColor === c" aria-hidden="true">✓ </span>{{ pm.colors[c] }}
+        </button>
+      </div>
+    </fieldset>
+
+    <!-- The Vault: bucket first-preselected, or a new one -->
+    <fieldset v-if="type === 'vault'" class="flex flex-col gap-2">
+      <legend class="mb-1 text-sm text-muted pb-2">{{ m.bucketLabel }}</legend>
+      <div class="flex flex-wrap gap-2" role="group" :aria-label="m.bucketLabel">
+        <button
+          v-for="b in buckets"
+          :key="b.id"
+          type="button"
+          :class="chip(!addingBucket && bucketId === b.id)"
+          :aria-pressed="!addingBucket && bucketId === b.id"
+          @click="(bucketId = b.id), (addingBucket = false)"
+        >
+          {{ b.name }}
+        </button>
+        <button type="button" :class="chip(addingBucket)" :aria-pressed="addingBucket" @click="addingBucket = true">
+          + {{ m.newBucket }}
+        </button>
+      </div>
+      <input v-if="addingBucket" v-model="newBucketName" maxlength="200" :aria-label="m.newBucket" :placeholder="m.newBucket" :class="fieldOnPage">
+    </fieldset>
+
+    <!-- Task: a date, notes and priority, all optional. Notes are never folded away, and one option alone
+         doesn't need a fold-out (SPEC §5 Forms). -->
+    <template v-if="type === 'task'">
+      <DateInput v-model="dueDate" :label="m.taskDateLabel" :hint="m.taskDateHint" :input-class="fieldOnPage" />
+      <NotesEditor v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
+      <PriorityPicker v-model="priority" />
     </template>
 
-    <form v-else class="flex flex-col gap-8" @submit.prevent="save">
-      <div class="flex items-center justify-between">
-        <h1 class="text-2xl font-bold">{{ m.destinations[type] }}</h1>
-        <button type="button" :class="smallButton" @click="reset">{{ m.back }}</button>
-      </div>
-      <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
+    <NotesEditor v-if="type === 'vault'" v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
 
-      <!-- Post It: a small formatted note and its color (SPEC §5 Quick capture) -->
-      <template v-if="type === 'postit'">
-        <div class="flex flex-col gap-1" data-testid="capture-postit">
-          <span class="pb-2 text-sm text-muted">{{ pm.label }}</span>
-          <RichTextEditor v-model="postBody" :label="pm.label" :placeholder="pm.placeholder" min-height="8rem" autofocus @update:model-value="error = ''" />
-        </div>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted pb-2">{{ pm.color }}</legend>
-          <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="pm.color">
-            <button
-              v-for="c in POST_IT_COLORS"
-              :key="c"
-              type="button"
-              role="radio"
-              :aria-checked="postColor === c"
-              :class="['min-h-11 rounded-full border-2 px-4 text-sm font-medium', `note-${c}`, postColor === c ? 'border-ink' : 'border-transparent']"
-              @click="postColor = c"
-            >
-              <span v-if="postColor === c" aria-hidden="true">✓ </span>{{ pm.colors[c] }}
-            </button>
-          </div>
-        </fieldset>
-      </template>
+    <!-- Habit: the full habit form (SPEC §5 Quick capture) -->
+    <HabitFields
+      v-if="type === 'habit'"
+      v-model:week-interval="habitInterval"
+      v-model:monthly="habitMonthly"
+      v-model:weekdays="habitDays"
+      v-model:start-date="habitStart"
+      v-model:notify-time="habitTime"
+      v-model:timer="habitTimer"
+      v-model:is-priority="habitPriority"
+      v-model:is-private="habitPrivate"
+      :min-start="habitToday"
+      :field-class="fieldOnPage"
+    />
 
-      <div v-if="type !== 'postit'" class="flex flex-col gap-1">
-        <label for="capture-title" class="pb-2 text-sm text-muted">{{ type === 'later' ? m.placeholder : m.titleLabel }}</label>
-        <div class="relative">
-          <textarea
-            v-if="type === 'later'"
-            id="capture-title"
-            ref="titleBox"
-            v-model="title"
-            maxlength="20000"
-            rows="4"
-            :placeholder="m.placeholder"
-            :class="[fieldOnPage, 'resize-none py-3 pr-28 text-lg']"
-            @input="error = ''"
-          />
-          <input v-else id="capture-title" ref="titleBox" v-model="title" maxlength="500" :class="[fieldOnPage, 'pr-28 text-lg']" @input="error = ''">
-          <button
-            v-if="speech.supported"
-            type="button"
-            class="absolute top-2 right-2 min-h-9 rounded-full border border-line bg-bg px-3 text-sm text-ink"
-            :aria-pressed="speech.listening.value"
-            @click="speech.listening.value ? speech.stop() : speech.start()"
-          >
-            <AppIcon name="mic" /> {{ speech.listening.value ? m.micListening : m.micStart }}
+    <!-- Quest: energy and time (defaults Ugh / 30 min) and details, all optional, all in view with extra room -->
+    <div v-if="type === 'quest'" class="flex flex-col gap-8 pt-2" data-testid="capture-quest">
+      <fieldset class="flex flex-col gap-2">
+        <legend class="mb-1 text-sm text-muted pb-2">{{ q.editor.energy }}</legend>
+        <div class="flex flex-wrap gap-2 lg:gap-4" role="group" :aria-label="q.editor.energy">
+          <button v-for="e in ENERGY_LEVELS" :key="e" type="button" :class="chip(energy === e)" :aria-pressed="energy === e" @click="energy = e">
+            {{ q.energy[e] }}
           </button>
         </div>
-        <p v-if="speech.failed.value" class="text-sm text-danger" role="alert">{{ m.micError }}</p>
-      </div>
-
-      <!-- The Vault: bucket first-preselected, or a new one -->
-      <fieldset v-if="type === 'vault'" class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted pb-2">{{ m.bucketLabel }}</legend>
-        <div class="flex flex-wrap gap-2" role="group" :aria-label="m.bucketLabel">
-          <button
-            v-for="b in buckets"
-            :key="b.id"
-            type="button"
-            :class="chip(!addingBucket && bucketId === b.id)"
-            :aria-pressed="!addingBucket && bucketId === b.id"
-            @click="(bucketId = b.id), (addingBucket = false)"
-          >
-            {{ b.name }}
-          </button>
-          <button type="button" :class="chip(addingBucket)" :aria-pressed="addingBucket" @click="addingBucket = true">
-            + {{ m.newBucket }}
-          </button>
-        </div>
-        <input v-if="addingBucket" v-model="newBucketName" maxlength="200" :aria-label="m.newBucket" :placeholder="m.newBucket" :class="fieldOnPage">
       </fieldset>
+      <fieldset class="flex flex-col gap-2">
+        <legend class="mb-1 text-sm text-muted pb-2">{{ q.editor.time }}</legend>
+        <div class="flex flex-wrap gap-2 lg:gap-4" role="group" :aria-label="q.editor.time">
+          <button v-for="tb in TIME_BUCKETS" :key="tb" type="button" :class="chip(time === tb)" :aria-pressed="time === tb" @click="time = tb">
+            {{ q.time[tb] }}
+          </button>
+        </div>
+      </fieldset>
+      <NotesEditor v-model="notes" :label="m.detailsLabel" test-id="capture-notes" />
+    </div>
 
-      <!-- Task: a date, notes and priority, all optional. Notes are never folded away, and one option alone
-           doesn't need a fold-out (SPEC §5 Forms). -->
-      <template v-if="type === 'task'">
-        <DateInput v-model="dueDate" :label="m.taskDateLabel" :hint="m.taskDateHint" :input-class="fieldOnPage" />
-        <NotesEditor v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
-        <PriorityPicker v-model="priority" />
-      </template>
-
-      <NotesEditor v-if="type === 'vault'" v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
-
-      <!-- Habit: the full habit form (SPEC §5 Quick capture) -->
-      <HabitFields
-        v-if="type === 'habit'"
-        v-model:week-interval="habitInterval"
-        v-model:monthly="habitMonthly"
-        v-model:weekdays="habitDays"
-        v-model:start-date="habitStart"
-        v-model:notify-time="habitTime"
-        v-model:timer="habitTimer"
-        v-model:is-priority="habitPriority"
-        v-model:is-private="habitPrivate"
-        :min-start="habitToday"
-        :field-class="fieldOnPage"
-      />
-
-      <!-- Quest: energy and time (defaults Ugh / 30 min) and details, all optional, all in view with extra room -->
-      <div v-if="type === 'quest'" class="flex flex-col gap-8 pt-2" data-testid="capture-quest">
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted pb-2">{{ q.editor.energy }}</legend>
-          <div class="flex flex-wrap gap-2 lg:gap-4" role="group" :aria-label="q.editor.energy">
-            <button v-for="e in ENERGY_LEVELS" :key="e" type="button" :class="chip(energy === e)" :aria-pressed="energy === e" @click="energy = e">
-              {{ q.energy[e] }}
-            </button>
-          </div>
-        </fieldset>
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted pb-2">{{ q.editor.time }}</legend>
-          <div class="flex flex-wrap gap-2 lg:gap-4" role="group" :aria-label="q.editor.time">
-            <button v-for="tb in TIME_BUCKETS" :key="tb" type="button" :class="chip(time === tb)" :aria-pressed="time === tb" @click="time = tb">
-              {{ q.time[tb] }}
-            </button>
-          </div>
-        </fieldset>
-        <NotesEditor v-model="notes" :label="m.detailsLabel" test-id="capture-notes" />
-      </div>
-
-      <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
-      <!-- SPEC §5 Quick capture: the Save button looks like every editor's and says what it saves. -->
-      <button type="submit" :class="primaryButton" :disabled="saving" data-testid="capture-save">
-        {{ type ? m.saveAs[type] : m.save }}
-      </button>
-    </form>
-  </div>
+    <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
+    <!-- SPEC §5 Quick capture: the Save button looks like every editor's and says what it saves. -->
+    <button type="submit" :class="primaryButton" :disabled="saving" data-testid="capture-save">
+      {{ m.saveAs[type] }}
+    </button>
+  </form>
 </template>
 
 <script setup lang="ts">
-// SPEC §5 Quick capture: choose the type first, then a form made for it. Only the title is required. Works offline.
+// SPEC §5 Quick capture: the text box first, then the type chips under it (Decide later chosen); choosing a type
+// shows its fields and keeps what I typed. Only the title is required. Works offline.
 // Shown in the Capture window over any page (CaptureDialog), and on the /capture page used for sharing from other apps.
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
@@ -160,7 +151,7 @@ import DateInput from '@/components/DateInput.vue'
 import NotesEditor from '@/components/NotesEditor.vue'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_POST_IT_COLOR, POST_IT_COLORS } from '@/postits/rules'
-import { plainText, storedNotes, toEditorHtml } from '@/journal/body'
+import { plainText, storedNotes, textLines, toEditorHtml } from '@/journal/body'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useSpeech } from '@/composables/useSpeech'
 import {
@@ -174,7 +165,7 @@ import {
 import { ENERGY_LEVELS, TIME_BUCKETS } from '@/quests/picker'
 import { messages } from '@/messages'
 import type { EnergyLevel, PostItColor, TimeBucket, VaultBucketRow } from '@/sync/types'
-import { chip, fieldOnPage, primaryButton, smallButton } from '@/ui/styles'
+import { chip, fieldOnPage, primaryButton } from '@/ui/styles'
 import PriorityPicker from '@/tasks/components/PriorityPicker.vue'
 import { activeBuckets } from '@/vault/rules'
 
@@ -182,7 +173,7 @@ import { activeBuckets } from '@/vault/rules'
 const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
 
 const props = defineProps<{
-  /** Text shared from another app (Web Share Target), waiting while I pick the type. */
+  /** Text shared from another app (Web Share Target); it fills the box. */
   sharedInput?: string
 }>()
 
@@ -195,7 +186,7 @@ const pm = messages.postIts
 const postBody = ref('')
 const postColor = ref<PostItColor>(DEFAULT_POST_IT_COLOR)
 
-const type = ref<Destination | null>(null)
+const type = ref<Destination>('later')
 const title = ref('')
 const notes = ref('')
 const dueDate = ref('')
@@ -205,7 +196,6 @@ const time = ref<TimeBucket>(DEFAULT_QUEST_TIME)
 const bucketId = ref<string | null>(null)
 const addingBucket = ref(false)
 const newBucketName = ref('')
-const shared = ref('')
 
 const notice = ref('')
 const error = ref('')
@@ -227,25 +217,38 @@ const speech = useSpeech((heard) => {
 })
 
 onMounted(async () => {
-  if (props.sharedInput) shared.value = props.sharedInput
+  if (props.sharedInput) title.value = props.sharedInput
+  await nextTick()
+  titleBox.value?.focus()
 })
 
-async function choose(d: Destination) {
-  type.value = d
-  notice.value = ''
-  error.value = ''
-  if (shared.value) {
-    if (d === 'postit') postBody.value = toEditorHtml(shared.value)
-    else if (d === 'later') title.value = shared.value
+/** Everything typed so far as plain lines, whatever the type. */
+function typedText(): string {
+  if (type.value === 'postit') return textLines(postBody.value)
+  return [title.value.trim(), notes.value ? textLines(notes.value) : ''].filter(Boolean).join('\n')
+}
+
+// Choosing a type keeps what I typed: the first line is the title and the rest the notes or details (SPEC §5
+// Quick capture). Between two types that both have a title and notes, both stay as they are, formatting and all.
+function choose(d: Destination) {
+  if (d === type.value) return
+  const titled = (t: Destination) => t !== 'later' && t !== 'postit'
+  if (!titled(type.value) || !titled(d)) {
+    const text = typedText()
+    title.value = ''
+    notes.value = ''
+    postBody.value = ''
+    if (d === 'postit') postBody.value = toEditorHtml(text)
+    else if (d === 'later') title.value = text
     else {
-      const { title: first, rest } = splitTitle(shared.value)
+      const { title: first, rest } = splitTitle(text)
       title.value = first
       notes.value = rest
     }
   }
-  await nextTick()
-  // A Post It's editor focuses itself once it's ready.
-  if (d !== 'postit') titleBox.value?.focus()
+  type.value = d
+  notice.value = ''
+  error.value = ''
 }
 
 // Habit (SPEC §5 Quick capture: the full habit form).
@@ -269,7 +272,7 @@ function reset() {
   habitTimer.value = null
   habitPrivate.value = false
   habitPriority.value = false
-  type.value = null
+  type.value = 'later'
   title.value = ''
   notes.value = ''
   dueDate.value = ''
@@ -278,7 +281,6 @@ function reset() {
   time.value = DEFAULT_QUEST_TIME
   addingBucket.value = false
   newBucketName.value = ''
-  shared.value = ''
   error.value = ''
 }
 
@@ -314,13 +316,14 @@ async function savePostIt() {
     const message = brain.online ? m.saved.postit : m.savedOffline
     reset()
     notice.value = message
+    await nextTick()
+    titleBox.value?.focus()
   } finally {
     saving.value = false
   }
 }
 
 async function save() {
-  if (!type.value) return
   error.value = ''
   if (type.value === 'postit') return savePostIt()
   if (!title.value.trim()) {
@@ -357,11 +360,12 @@ async function save() {
     const message = savedMessage(input)
     reset()
     notice.value = message
+    await nextTick()
+    titleBox.value?.focus()
   } finally {
     saving.value = false
   }
 }
 
-const typeBtn = 'min-h-16 rounded-2xl border border-line bg-surface px-4 text-lg font-semibold text-ink active:scale-[0.98]'
 const types: Destination[] = ['task', 'vault', 'quest', 'habit', 'postit', 'later']
 </script>

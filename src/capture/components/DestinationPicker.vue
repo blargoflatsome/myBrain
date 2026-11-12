@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-// SPEC §5: choose where a thought goes each time: Task (optional date), The Vault (bucket picker), Quest, or Decide later.
+// SPEC §5 Orphans: where a thought goes: Task (optional date), The Vault (bucket picker), Quest, Habit, Post It, or Decide later.
 import { ref } from 'vue'
 import DateInput from '@/components/DateInput.vue'
 import { fieldOnPage } from '@/ui/styles'
@@ -84,7 +84,7 @@ const buckets = useLiveQuery<VaultBucketRow[]>(
   [() => brain.db],
 )
 
-const order: Destination[] = ['task', 'vault', 'quest', 'later']
+const order: Destination[] = ['task', 'vault', 'quest', 'habit', 'postit', 'later']
 
 function pick(d: Destination) {
   if (d === 'task') step.value = 'task'

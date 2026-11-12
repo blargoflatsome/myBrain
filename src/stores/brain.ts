@@ -17,13 +17,13 @@ import { vaultActions } from '@/vault/actions'
 import { priorityActions } from '@/reminders/actions'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
-import { normalizeBody } from '@/journal/body'
-import { frontPosition } from '@/postits/rules'
+import { normalizeBody, toEditorHtml } from '@/journal/body'
+import { DEFAULT_POST_IT_COLOR, frontPosition } from '@/postits/rules'
 import { peopleToSave } from '@/events/people'
 import type { PersonToInvite } from '@/events/sharing'
 import { live } from '@/sync/live'
 import { finishQuest as finishedQuest } from '@/quests/picker'
-import { buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
+import { buildCaptureRecord, buildConversion, textOf, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 import { achieved } from '@/celebrate/bus'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
@@ -198,18 +198,36 @@ export const useBrainStore = defineStore('brain', () => {
     return record
   }
 
-  /** Convert an item to another type, or file an inbox item (SPEC §5). */
-  async function convert(from: CaptureRecord, to: Omit<CaptureInput, 'text'>) {
-    const { engine: e, uid, local } = ready()
-    const { create, retire } = buildConversion(from, to, uid)
-    await e.save(create.table, create.row as never)
-    await e.remove(retire.table, retire.id)
+  /** Convert an item to another type, or file an inbox item (SPEC §5). Returns the new item (null for a Post It). */
+  async function convert(from: CaptureRecord, to: Omit<CaptureInput, 'text'>): Promise<CaptureRecord | null> {
+    const { engine: e, uid } = ready()
+    let created: CaptureRecord | null = null
+    if (to.destination === 'postit') {
+      // A Post It has no title, so all the words become its note (SPEC §5 Orphans).
+      await addPostIt(toEditorHtml(textOf(from)), DEFAULT_POST_IT_COLOR)
+      await e.remove(from.table, from.row.id)
+    } else {
+      const { create, retire } = buildConversion(from, to, uid)
+      await e.save(create.table, create.row as never)
+      await e.remove(retire.table, retire.id)
+      created = create
+    }
     if (from.table === 'inbox') {
-      // Emptying the Orphans list counts toward a trophy (SPEC §5 Trophies).
-      if (!live(await local.inbox.toArray()).length) await trophies.logActivity('orphans_cleared')
+      await afterOrphanGone()
       achieved({ kind: 'orphan' })
     }
-    return create
+    return created
+  }
+
+  /** Delete an orphan without filing it (SPEC §5 Orphans); Undo puts it back with restore. */
+  async function removeOrphan(id: string) {
+    await ready().engine.remove('inbox', id)
+    await afterOrphanGone()
+  }
+
+  // Emptying the Orphans list counts toward a trophy (SPEC §5 Trophies).
+  async function afterOrphanGone() {
+    if (!live(await ready().local.inbox.toArray()).length) await trophies.logActivity('orphans_cleared')
   }
 
   /** Add a task typed on the Tasks screen (source "manual", default priority Low). */
@@ -346,6 +364,7 @@ export const useBrainStore = defineStore('brain', () => {
     // Capture, tasks and quests
     capture,
     convert,
+    removeOrphan,
     addTask,
     saveTask,
     finishQuest,

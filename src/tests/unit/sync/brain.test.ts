@@ -44,7 +44,20 @@ describe('Spec §5: Decide later, then sort it when I have time', () => {
     const task = await brain.convert(later, { destination: 'task' })
 
     expect((await brain.db!.inbox.get(later.row.id))?.deleted_at).toBeTruthy()
-    expect(await brain.db!.tasks.get(task.row.id)).toMatchObject({ title: 'renew passport', due_date: null })
+    expect(await brain.db!.tasks.get(task!.row.id)).toMatchObject({ title: 'renew passport', due_date: null })
+  })
+
+  it('SPEC §5 Orphans: deleting the last orphan counts as emptying Orphans (Trophies), like filing it', async () => {
+    const brain = useBrainStore()
+    brain.start(`u-${crypto.randomUUID()}`, remote)
+    const one = await brain.capture({ text: 'first', destination: 'later' })
+    const two = await brain.capture({ text: 'second', destination: 'later' })
+    const emptied = async () => (await brain.db!.activity_log.toArray()).filter((a) => a.kind === 'orphans_cleared').length
+
+    await brain.removeOrphan(one.row.id)
+    expect(await emptied()).toBe(0)
+    await brain.removeOrphan(two.row.id)
+    expect(await emptied()).toBe(1)
   })
 })
 

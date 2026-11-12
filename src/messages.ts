@@ -15,6 +15,8 @@ export const messages = {
     dismiss: 'Close',
     deleted: (title: string) => `Deleted "${title}"`,
     removed: (name: string) => `Removed ${name}`,
+    movedTomorrow: (title: string) => `Moved "${title}" to tomorrow`,
+    movedUndated: (title: string) => `Moved "${title}" to Undated`,
     clearedTasks: (n: number) => (n === 1 ? 'Cleared 1 crossed-off task' : `Cleared ${n} crossed-off tasks`),
     clearedChecked: (n: number) => (n === 1 ? 'Cleared 1 checked item' : `Cleared ${n} checked items`),
     questDone: (title: string) => `Marked "${title}" done`,
@@ -118,6 +120,8 @@ export const messages = {
     carriedOnce: 'Past you hoped this would happen yesterday. Want to give it another go?',
     carriedMany: (days: number) => `Past you has carried this for ${days} days. Make it easier, or let it go?`,
     cancel: 'Cancel task',
+    moveTomorrow: 'Tomorrow',
+    moveUndated: 'Undated',
     newTask: 'New task',
     deleteLabel: (title: string) => `Delete ${title}`,
     crossOff: (title: string) => `Cross off ${title}`,
@@ -1325,6 +1329,10 @@ export const messages = {
   inbox: {
     heading: 'Orphans',
     itemPrompt: 'Past you jotted this down. Where should it go?',
+    cardLabel: 'Orphan to sort',
+    position: (n: number, total: number) => `${n} of ${total}`,
+    skip: 'Skip',
+    deleteLabel: 'Delete this orphan',
     empty: "Good news! You haven't created any orphans.",
   },
   sync: {

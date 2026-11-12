@@ -105,6 +105,13 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Account: groups no longer nested; Celebrations saves on change. Capture's Save looks like the editors' and says what it saves.
 - Tests: `src/tests/e2e/app/rows-and-adding.spec.ts` (new), plus updates where tests clicked the old Edit buttons or Capture's "Save". Full review (2026-11-12): Vitest 376, Playwright 710/711 (32 skipped); the one iPhone failure (a dropped test-server connection on the Connections scan) passed 4/4 alone. No migration.
 
+## UI review A: flow (merged via PR, branch `ui-flow`)
+- From [docs/UI_REVIEW_TASKS.md](docs/UI_REVIEW_TASKS.md) F1–F3; SPEC §5 Quick capture (text box first, Orphans one at a time) and Tasks; DECISIONS 2026-11-12.
+- Capture opens on the text box (focused) with the type chips under it, Decide later chosen; choosing a type keeps the text (first line title, rest notes). Shared text fills the box. No Back button any more.
+- Orphans: one card at a time, oldest first, "1 of N", Skip (back of the line while on the page), trash can with Undo, and five file buttons (Habit and Post It are new; `brain.convert` makes Post Its, `brain.removeOrphan`).
+- Tasks carried over twice: Tomorrow and Undated (one tap, Undo) beside Cancel task (`moveTask` in `tasks/rules.ts`).
+- Tests: `src/tests/e2e/capture/orphans.spec.ts` (new), capture and tasks specs updated, orphan delete trophy in `unit/sync/brain.test.ts`. Quick checks pass (Vitest 377, lint, types; desktop capture, orphans, tasks, a11y 104 passed). Full review (2026-11-12): Vitest 377, Playwright 715/716 (32 skipped); the one iPhone failure (a dropped test-server connection on the Tags page) passed 6/6 alone. No migration.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).

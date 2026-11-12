@@ -138,6 +138,11 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
   }
 }
 
+/** Orphans in the order I sort them: oldest first (SPEC §5 Orphans). */
+export function oldestFirst(items: InboxRow[]): InboxRow[] {
+  return [...items].sort((a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? '') || a.id.localeCompare(b.id))
+}
+
 /** Splits shared or long text into a title (first line) and the rest (notes/details). */
 export function splitTitle(text: string): { title: string; rest: string } {
   const [first = '', ...more] = text.trim().split(/\r?\n/)

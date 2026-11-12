@@ -118,7 +118,7 @@ test.describe('Spec §8 Typed text never runs as code', () => {
 
   test('in a Capture: whatever is typed is saved and shown as text', async ({ page }) => {
     await page.goto('/capture')
-    await page.getByRole('group', { name: msg.capture.typeHeading }).getByRole('button', { name: msg.search.type.task, exact: true }).click()
+    await page.getByRole('group', { name: msg.capture.whereHeading }).getByRole('button', { name: msg.search.type.task, exact: true }).click()
     await page.getByLabel(msg.capture.titleLabel, { exact: true }).fill(ATTACKS[0]!)
     await page.getByTestId('capture-save').click()
     await expect.poll(() => server.written('tasks').at(-1)?.title).toBe(ATTACKS[0])
