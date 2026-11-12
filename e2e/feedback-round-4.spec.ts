@@ -120,7 +120,7 @@ test.describe('Spec §5 Forms: optional details in More details, formatted notes
     const quest = page.getByTestId('capture-quest')
     await expect(quest.getByRole('button', { name: 'Ugh' })).toBeVisible()
     await expect(quest.getByRole('button', { name: '30 min' })).toBeVisible()
-    await expect(quest).toHaveCSS('row-gap', '24px')
+    await expect(quest).toHaveCSS('row-gap', '32px')
   })
 })
 
@@ -130,7 +130,7 @@ test.describe('Spec §5 Habits: form layout', () => {
     await page.getByRole('button', { name: '+ New habit' }).click()
     const dialog = page.getByRole('dialog', { name: 'New habit' })
     const fields = dialog.getByTestId('habit-fields')
-    await expect(fields).toHaveCSS('row-gap', '24px')
+    await expect(fields).toHaveCSS('row-gap', '32px')
     await expect(fields.locator(':scope > *').first().getByRole('checkbox', { name: /^Private/ })).toBeVisible()
     const howOften = dialog.getByTestId('habit-how-often')
     await expect(howOften.getByRole('radiogroup', { name: 'How often' })).toBeVisible()
@@ -150,6 +150,58 @@ test.describe('Spec §5 Habits: form layout', () => {
     await open(page, '/habits')
     await page.getByRole('button', { name: /Stretch/ }).first().click()
     await expect(page.getByRole('dialog', { name: 'Edit habit' }).getByLabel('Reminder time (optional)')).toBeVisible()
+  })
+})
+
+test.describe('Spec §5 Calendar: event form sections', () => {
+  test('a new event opens with Schedule open (date, time, repeat, reminder); Attendees is folded with who is going first', async ({ page }) => {
+    await open(page, '/calendar')
+    await page.getByRole('button', { name: '+ New event' }).click()
+    const dialog = page.getByRole('dialog', { name: 'New event' })
+    const schedule = dialog.getByTestId('event-schedule')
+    for (const name of ['All day', 'Starts Date', 'Ends Date', 'Repeat', 'Reminder']) await expect(schedule.getByLabel(name).first()).toBeVisible()
+    await expect(dialog.getByTestId('event-more')).toHaveCount(0)
+    const attendees = dialog.getByTestId('event-people')
+    await expect(attendees).toContainText("Who's going, and inviting people")
+    await expect(attendees.getByRole('button', { name: 'Contacts' })).toBeHidden()
+    await attendees.locator('summary').click()
+    await expect(attendees.getByRole('button', { name: 'Contacts' })).toBeVisible()
+    await expect(attendees.getByRole('checkbox', { name: /Guests can see who’s going/ })).toBeVisible()
+    await expect(dialog.locator('form')).toHaveCSS('row-gap', '32px')
+  })
+
+  test('an existing event folds Schedule away, with when it is in the summary; invited people open Attendees', async ({ page }) => {
+    server.seed('events', [{ id: 'e1', title: 'Lunch', notes: null, start_date: '2026-11-10', start_time: '12:30:00', end_date: '2026-11-10', end_time: '13:30:00', repeat: 'weekly', reminder_minutes: null }])
+    server.rpcResults.event_people = [{ invite_id: 'inv-1', name: 'Pat', email: null, phone: '5550109000', response: 'yes', is_me: false }]
+    await open(page, '/calendar?date=2026-11-10&event=e1')
+    await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    const schedule = dialog.getByTestId('event-schedule')
+    await expect(schedule.locator('summary')).toContainText('Tue, Nov 10 · 12:30 pm – 1:30 pm, every week')
+    await expect(schedule.getByLabel('Repeat')).toBeHidden()
+    const attendees = dialog.getByTestId('event-people')
+    await expect(attendees.locator('summary')).toContainText('1 invited · 1 going')
+    await expect(attendees.getByTestId('invited-person')).toContainText('Pat')
+  })
+})
+
+test.describe('Spec §5 Forms: an open fold-out stands out', () => {
+  test('an open fold-out has a tinted header; a closed one inside an open group stays plain, with its arrow unturned', async ({ page }) => {
+    await open(page, '/habits')
+    await page.getByRole('button', { name: '+ New habit' }).click()
+    const reminders = page.getByRole('dialog', { name: 'New habit' }).getByTestId('habit-reminders')
+    const header = reminders.getByTestId('fold-header')
+    const plain = await header.evaluate((el) => getComputedStyle(el).backgroundColor)
+    await header.click()
+    await expect.poll(() => header.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(plain)
+
+    await open(page, '/account')
+    const settings = page.getByTestId('account-group-settings')
+    const outer = await settings.getByTestId('fold-header').first().evaluate((el) => getComputedStyle(el).backgroundColor)
+    const inner = page.getByTestId('account-group-reminders').getByTestId('fold-header')
+    await page.getByTestId('account-group-reminders').evaluate((el) => ((el as HTMLDetailsElement).open = false))
+    expect(await inner.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(outer)
+    expect(await inner.locator('svg').evaluate((el) => getComputedStyle(el).rotate)).not.toBe('180deg')
   })
 })
 

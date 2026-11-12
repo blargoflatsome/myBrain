@@ -5,14 +5,14 @@
     :aria-label="isNew ? m.editor.newHeading : m.editor.heading"
     @close="emit('close')"
   >
-    <form class="flex flex-col gap-6 p-5" data-testid="routine-form" @submit.prevent="save">
+    <form class="flex flex-col gap-8 p-5" data-testid="routine-form" @submit.prevent="save">
       <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.title }}
+        <span class="pb-2">{{ m.editor.title }}</span>
         <input v-model="title" maxlength="500" required :class="field">
       </label>
       <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm font-medium">{{ m.editor.steps }}</legend>
+        <legend class="mb-1 text-sm font-medium pb-2">{{ m.editor.steps }}</legend>
         <p v-if="stepRows.length > 1" class="-mt-1 text-xs text-muted">{{ m.editor.dragHint }}</p>
         <ol ref="stepList" class="flex flex-col gap-2">
           <li v-for="(s, i) in stepRows" :key="s.key" class="flex flex-wrap items-center gap-1.5" data-testid="routine-step-row">
@@ -62,8 +62,8 @@
         <p v-if="stepRows.some((r) => r.habitId)" class="text-xs text-muted">{{ m.editor.habitHint }}</p>
       </fieldset>
       <!-- When it runs: how often with the days right under it, like habits (SPEC §5 Routines, §2 Calm by design) -->
-      <fieldset class="flex flex-col gap-5" data-testid="routine-schedule">
-        <legend class="mb-1 text-sm font-medium">{{ m.editor.when }}</legend>
+      <fieldset class="flex flex-col gap-8" data-testid="routine-schedule">
+        <legend class="mb-1 text-sm font-medium pb-2">{{ m.editor.when }}</legend>
         <label class="flex items-center justify-between gap-4">
           <span>
             <span class="font-medium">{{ m.editor.anytime }}</span>
@@ -74,7 +74,7 @@
         <template v-if="!anytime">
           <HowOften v-model="weekInterval" />
           <div class="flex flex-col gap-1">
-            <span :id="`${uid}-days`" class="text-sm text-muted">{{ m.editor.weekdays }}</span>
+            <span :id="`${uid}-days`" class="pb-2 text-sm text-muted">{{ m.editor.weekdays }}</span>
             <div class="flex flex-wrap gap-1.5" role="group" :aria-labelledby="`${uid}-days`">
               <button v-for="d in ALL_WEEKDAYS" :key="d" type="button" :class="dayChip(weekdays.includes(d))" :aria-pressed="weekdays.includes(d)" @click="toggleDay(d)">
                 {{ dayNames[d] }}

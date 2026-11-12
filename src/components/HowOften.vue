@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-1">
-    <span class="text-sm text-muted">{{ m.label }}</span>
-    <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="m.label">
+    <span class="text-sm text-muted  pb-2">{{ m.label }}</span>
+    <div class="flex flex-wrap justify-between gap-2" role="radiogroup" :aria-label="m.label">
       <button type="button" role="radio" :aria-checked="choice === 'weekly'" :class="[chip(choice === 'weekly'), 'flex-1']" @click="pick('weekly')">{{ m.weekly }}</button>
       <button type="button" role="radio" :aria-checked="choice === 'biweekly'" :class="[chip(choice === 'biweekly'), 'flex-1']" @click="pick('biweekly')">{{ m.biweekly }}</button>
       <button

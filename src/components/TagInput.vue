@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-1" data-testid="tag-input">
-    <span class="text-sm text-muted">{{ m.label }}</span>
+    <span class="pb-2 text-sm text-muted">{{ m.label }}</span>
     <div class="flex min-h-12 flex-wrap items-center gap-1.5 rounded-xl border border-control bg-bg px-2 py-1.5 focus-within:border-accent">
       <span v-for="name in modelValue" :key="name" class="flex items-center gap-1 rounded-full bg-surface px-2.5 py-1 text-sm" data-testid="tag-chip">
         #{{ name }}

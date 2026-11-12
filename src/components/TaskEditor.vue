@@ -5,17 +5,17 @@
     :aria-label="m.editor.heading"
     @close="emit('close')"
   >
-    <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
+    <form class="flex flex-col gap-8 p-5" @submit.prevent="save">
       <h2 class="text-lg font-semibold">{{ m.editor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.title }}
+        <span class="pb-2">{{ m.editor.title }}</span>
         <input v-model="title" maxlength="500" required :class="field">
       </label>
       <DateInput v-model="dueDate" :label="m.editor.date" :hint="m.editor.dateHint" :input-class="field" />
       <NotesEditor v-model="notes" :label="m.editor.notes" test-id="task-notes" />
       <MoreOptions :summary="m.editor.moreSummary" :start-open="hasExtras" test-id="task-more">
         <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ m.priorityLabel }}</legend>
+          <legend class="mb-1 text-sm text-muted pb-2">{{ m.priorityLabel }}</legend>
           <div class="grid grid-cols-3 gap-2">
             <label
               v-for="p in PRIORITIES"

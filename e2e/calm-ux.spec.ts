@@ -128,8 +128,8 @@ test.describe('UI consistency (feedback, 2026-11-10)', () => {
     expect(chipBg).not.toBe(saveBg)
     await expect(dialog.getByTestId('routine-schedule').getByRole('radiogroup', { name: 'How often' })).toBeVisible()
     // Plenty of room between sections; the reminder time stands alone, with no Reminders box around it.
-    await expect(dialog.getByTestId('routine-form')).toHaveCSS('row-gap', '24px')
-    await expect(dialog.getByTestId('routine-schedule')).toHaveCSS('row-gap', '20px')
+    await expect(dialog.getByTestId('routine-form')).toHaveCSS('row-gap', '32px')
+    await expect(dialog.getByTestId('routine-schedule')).toHaveCSS('row-gap', '32px')
     await expect(dialog.getByLabel(/Reminder time/)).toBeVisible()
     await expect(dialog.getByRole('group', { name: 'Reminders' })).toHaveCount(0)
   })

@@ -57,9 +57,9 @@
             </li>
           </ul>
         </template>
-        <ul v-if="yesterdayBadges.length" class="flex flex-wrap gap-2 text-sm" :aria-label="t.yesterday">
-          <li v-for="kind in yesterdayBadges" :key="kind" class="flex items-center gap-1 rounded-full border border-line px-3 py-1" data-testid="dash-yesterday-trophy">
-            <AppIcon name="trophy" class="text-done" />{{ cm.badges[kind] }}
+        <ul v-if="yesterdayTrophies.length" class="flex flex-wrap gap-2 text-sm" :aria-label="t.yesterday">
+          <li v-for="item in yesterdayTrophies" :key="item.id" class="flex items-center gap-1 rounded-full border border-line px-3 py-1" data-testid="dash-yesterday-trophy">
+            <AppIcon name="trophy" class="text-done" />{{ trophyName(item) }}
           </li>
         </ul>
       </section>
@@ -107,47 +107,8 @@
         </div>
       </section>
 
-      <!-- SPEC §5 Dashboard, Trophies: my 3 newest badges and perfect days; See all trophies shows every badge. -->
-      <section :class="card" data-testid="dash-trophies" aria-labelledby="dash-trophies-heading">
-        <div class="flex flex-wrap items-baseline justify-between gap-x-3">
-          <h2 id="dash-trophies-heading" class="text-lg font-semibold">{{ t.heading }}</h2>
-          <span class="text-sm text-muted">{{ t.count(trophies.earned.size, BADGES.length) }}</span>
-        </div>
-        <div class="flex flex-col">
-          <span class="text-sm text-muted">{{ t.perfectDaysHint }}</span>
-          <span :class="bigNumber" data-testid="dash-perfect-days">{{ t.perfectDays(trophies.perfect) }}</span>
-        </div>
-        <ul id="dash-trophy-list" class="grid gap-2 sm:grid-cols-2">
-          <li
-            v-for="kind in shownBadges"
-            :key="kind"
-            class="flex items-center gap-3 rounded-xl border p-3"
-            :class="trophies.earned.has(kind) ? 'border-line' : 'border-dashed border-line text-muted'"
-            :data-testid="`badge-${kind}`"
-            :data-earned="trophies.earned.has(kind) || undefined"
-          >
-            <span
-              class="flex size-10 shrink-0 items-center justify-center rounded-full"
-              :class="trophies.earned.has(kind) ? 'bg-done text-bg' : 'border border-dashed border-muted text-muted'"
-              aria-hidden="true"
-            ><AppIcon name="trophy" size="size-5" /></span>
-            <span class="flex min-w-0 flex-col">
-              <span class="font-medium break-words">{{ cm.badges[kind] }}</span>
-              <span class="text-xs text-muted">{{ trophies.earned.has(kind) ? t.earnedOn(dateWithYear(trophies.earned.get(kind)!.day)) : t.notYet }}</span>
-            </span>
-          </li>
-        </ul>
-        <button
-          type="button"
-          class="min-h-11 self-start rounded-xl border border-line px-4"
-          aria-controls="dash-trophy-list"
-          :aria-expanded="allTrophies"
-          data-testid="dash-trophies-more"
-          @click="allTrophies = !allTrophies"
-        >
-          {{ allTrophies ? t.seeFewer : t.seeAll }}
-        </button>
-      </section>
+      <!-- SPEC §5 Trophies: newest levels, everything by category, and the locked ones in a window. -->
+      <TrophiesSection :items="board.items" />
 
       <details class="group flex flex-col" :open="moreStatsOpen" data-testid="dash-more" @toggle="onMoreToggle">
         <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3 font-semibold [&::-webkit-details-marker]:hidden">
@@ -294,13 +255,15 @@ import {
   yesterdaySummary,
   type Period,
 } from '@/dashboard/stats'
-import { addDays, todayIn } from '@/tasks/days'
+import { addDays } from '@/tasks/days'
 import { percent } from '@/routines/rules'
 import { messages } from '@/messages'
 import { dateWithYear } from '@/ui/dates'
 import { bigNumber, card, smallNumber } from '@/ui/styles'
-import { BADGES, perfectDays, type BadgeKind } from '@/celebrate/rules'
-import { live } from '@/sync/live'
+import type { BadgeKind } from '@/celebrate/rules'
+import TrophiesSection from '@/components/TrophiesSection.vue'
+import { useTrophyBoard } from '@/composables/useTrophyBoard'
+import { earnedOn, type BoardItem } from '@/trophies/board'
 
 const brain = useBrainStore()
 const m = messages.dashboard
@@ -327,31 +290,12 @@ const { today, timeZone } = useToday()
 const cm = messages.celebrations
 const t = cm.trophies
 
-// Trophies (SPEC §5 Celebrations): when each badge was earned (and the day, in my time zone), and how many perfect days.
-type Earned = { at: string; day: string }
-const trophies = useLiveQuery(
-  async () => {
-    if (!brain.db) return { earned: new Map<BadgeKind, Earned>(), perfect: 0 }
-    const earned = new Map<BadgeKind, Earned>()
-    for (const b of live(await brain.db.badges.toArray())) earned.set(b.kind as BadgeKind, { at: b.earned_at, day: todayIn(timeZone.value, new Date(b.earned_at)) })
-    const perfect = perfectDays(await brain.db.habits.toArray(), await brain.db.habit_logs.toArray(), today.value)
-    return { earned, perfect }
-  },
-  { earned: new Map<BadgeKind, Earned>(), perfect: 0 },
-  [() => brain.db, today],
-)
-// The 3 newest badges first, topped up with ones still to get; See all trophies shows every badge (SPEC §5 Dashboard).
-const allTrophies = ref(false)
-const shownBadges = computed(() => {
-  const newest = [...trophies.value.earned].sort((a, b) => b[1].at.localeCompare(a[1].at)).map(([kind]) => kind)
-  const all = [...newest, ...BADGES.filter((k) => !trophies.value.earned.has(k))]
-  return allTrophies.value ? all : all.slice(0, 3)
-})
-// Badges earned yesterday, shown in "How past you did yesterday".
-const yesterdayBadges = computed(() => {
-  const yesterday = addDays(today.value, -1)
-  return BADGES.filter((k) => trophies.value.earned.get(k)?.day === yesterday)
-})
+// Trophies (SPEC §5 Trophies): every trophy with its level and progress; yesterday's go in the yesterday box.
+const board = useTrophyBoard()
+const yesterdayTrophies = computed(() => earnedOn(board.value.items, addDays(today.value, -1)))
+function trophyName(item: BoardItem) {
+  return item.category === 'firsts' ? cm.badges[item.id as BadgeKind] : (t.names[item.id] ?? item.id)
+}
 
 // The period is remembered on this device (a convenience; the default is This year).
 const saved = (() => {

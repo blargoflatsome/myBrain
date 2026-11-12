@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-1" :data-testid="testId">
-    <span class="text-sm text-muted">{{ label }}</span>
+    <span class="pb-2 text-sm text-muted">{{ label }}</span>
     <RichTextEditor :model-value="modelValue" :label="label" :min-height="minHeight" @update:model-value="emit('update:modelValue', $event)" />
   </div>
 </template>

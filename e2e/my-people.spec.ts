@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { openAttendees } from './support/events'
 import { FakeSupabase } from './support/fakeSupabase'
 import { isSafari } from './support/devices'
 
@@ -25,6 +26,7 @@ async function openEvent(page: Page) {
   await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
   await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
   const dialog = page.getByRole('dialog', { name: 'Edit event' })
+  await openAttendees(dialog)
   await expect(dialog).toBeVisible()
   return dialog
 }
@@ -164,6 +166,7 @@ test.describe('Spec §5 Calendar, my people: fixed or removed on the Account pag
     await expect.poll(() => server.written('people').at(-1)).toMatchObject({ name: 'Grace', email: null, phone: '(555) 010-5000', deleted_at: null })
     await page.goto(`/calendar?date=2026-11-10&event=${EVENT}`)
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
+    await openAttendees(page.getByRole('dialog', { name: 'Edit event' }))
     await page.getByRole('dialog', { name: 'Edit event' }).getByRole('button', { name: 'Contacts' }).click()
     await expect(page.getByRole('dialog', { name: 'Your people' }).getByTestId('contact')).toHaveText([/^Grace/])
   })

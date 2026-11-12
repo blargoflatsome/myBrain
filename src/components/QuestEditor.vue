@@ -5,21 +5,21 @@
     :aria-label="m.editor.heading"
     @close="emit('close')"
   >
-    <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
+    <form class="flex flex-col gap-8 p-5" @submit.prevent="save">
       <h2 class="text-lg font-semibold">{{ m.editor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.title }}
+        <span class="pb-2">{{ m.editor.title }}</span>
         <input v-model="title" maxlength="500" required :class="field">
       </label>
       <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.energy }}
+        <span class="pb-2">{{ m.editor.energy }}</span>
         <select v-model="energy" :class="field">
           <option value="">{{ m.editor.unset }}</option>
           <option v-for="e in ENERGY_LEVELS" :key="e" :value="e">{{ m.energy[e] }}</option>
         </select>
       </label>
       <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.time }}
+        <span class="pb-2">{{ m.editor.time }}</span>
         <select v-model="time" :class="field">
           <option value="">{{ m.editor.unset }}</option>
           <option v-for="t in TIME_BUCKETS" :key="t" :value="t">{{ m.time[t] }}</option>

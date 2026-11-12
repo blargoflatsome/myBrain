@@ -5,10 +5,10 @@
     :aria-label="isNew ? m.editor.newHeading : m.editor.heading"
     @close="emit('close')"
   >
-    <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
+    <form class="flex flex-col gap-8 p-5" @submit.prevent="save">
       <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.title }}
+        <span class="pb-2">{{ m.editor.title }}</span>
         <input v-model="title" maxlength="500" required :class="field">
       </label>
       <HabitFields

@@ -1,11 +1,11 @@
 <template>
   <details class="group rounded-2xl border border-line bg-surface" :open="open" :data-testid="`account-group-${id}`" @toggle="onToggle">
-    <summary class="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 [&::-webkit-details-marker]:hidden">
+    <summary class="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 [&::-webkit-details-marker]:hidden [details[open]>&]:rounded-b-none [details[open]>&]:bg-accent/15" data-testid="fold-header">
       <span class="min-w-0">
         <h2 class="text-lg font-semibold">{{ title }}</h2>
         <span class="block text-sm text-muted">{{ summary }}</span>
       </span>
-      <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5 shrink-0 text-muted transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5 shrink-0 text-muted transition-transform [details[open]>summary>&]:rotate-180" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M6 9l6 6 6-6" />
       </svg>
     </summary>

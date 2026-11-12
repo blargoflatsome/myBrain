@@ -86,7 +86,7 @@ function partEnded() {
     rippling.value = true
     rippleKey.value++
     setTimeout(() => (rippling.value = false), 1500)
-    achieved({ kind: 'focus' })
+    achieved({ kind: 'focus', sessions: focus.workEnded })
   }
   chime()
   navigator.vibrate?.([200, 100, 200])

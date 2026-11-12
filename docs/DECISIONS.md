@@ -134,3 +134,14 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 - Delete happens straight away with Undo instead of asking first; merge and rename have Undo too. (User picked Undo.)
 - Renaming to a name another tag has offers to merge them. (User.)
 - Claude's call: a rename makes a new tag for the new name and moves the items, because tag ids come from their names; changing only capitals keeps the tag.
+
+## 2026-11-11 Event form and form spacing
+- Event editor: Schedule fold-out (All day, Starts, Ends, Reminder; Claude added Repeat as part of when it happens), open for new events; Attendees fold-out with who's going first, then inviting; "Guests can see who's going" moved into Attendees, so More details is gone. (User.)
+- Every form: sections gap-8, field titles pb-2, following the user's own edits. (User.)
+
+## 2026-11-11 Trophies
+- Spec approved as written in SPEC §5 Trophies: six tiers (Bronze to Legendary), comebacks as celebration messages, one summary message for trophies earned from the past, priority "on time" = done on its day. (User.)
+
+## 2026-11-11 Account page regrouped
+- The user regrouped the Account page: Your profile, then Account Settings (Tags, Reminders, Events, People, Your data), then Sign out and Delete account outside the groups. Celebrations moved from Your profile into Account Settings with its own Save. (User.) Claude moved the group's title and summary into messages.ts, gave Celebrations its own "Save celebrations" button, and tidied whitespace the linter flagged; the user's layout is unchanged.
+- Trophies section: the perfect-days number is removed; tapping an earned trophy opens what I did to earn it. (User.)

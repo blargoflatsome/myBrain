@@ -142,56 +142,12 @@ test.describe('Spec §5 Celebrations: all habits done, the next day', () => {
     await expect(page.getByTestId('alert-banner')).toContainText('Yesterday was a perfect day')
     await expect.poll(() => server.written('notifications').map((n) => n.kind)).toEqual(['perfect_day'])
     // Earlier history earns its badge quietly: no celebration for it.
-    await expect.poll(() => server.written('badges').map((b) => b.kind)).toEqual(['first_habit'])
-    await expect(message(page)).toHaveCount(0)
+    await expect.poll(() => server.written('badges').map((b) => String(b.kind)).filter((k) => k.startsWith('first_'))).toEqual(['first_habit'])
+    await expect(page.getByText('New badge: First habit done')).toHaveCount(0)
   })
 })
 
-test.describe('Spec §5 Dashboard: Trophies', () => {
-  test('badges earned show with their day; the rest are listed as not yet; perfect days are counted', async ({ page }) => {
-    server.seed('habits', [habit(H1, 'Walk')])
-    server.seed('habit_logs', [log(H1, '2026-11-08'), log(H1, '2026-11-09')])
-    server.seed('badges', [badge('first_task', '2026-11-05T15:00:00Z')])
-    await open(page, '/')
-    const trophies = page.getByTestId('dash-trophies')
-    await expect(trophies).toContainText('of 10 badges')
-    await expect(trophies.getByTestId('badge-first_task')).toContainText('Earned Nov 5, 2026')
-    await expect(trophies.getByTestId('dash-perfect-days')).toHaveText('2 perfect days')
-    await trophies.getByTestId('dash-trophies-more').click()
-    await expect(trophies.getByTestId('badge-first_quest')).toContainText('Not yet')
-  })
-
-  test('Trophies is its own section with my 3 newest badges; See all trophies shows every badge', async ({ page }) => {
-    server.seed('badges', [
-      badge('first_task', '2026-11-02T15:00:00Z'),
-      badge('first_habit', '2026-11-03T15:00:00Z'),
-      badge('first_routine', '2026-11-04T15:00:00Z'),
-      badge('first_journal', '2026-11-05T15:00:00Z'),
-    ])
-    await open(page, '/')
-    const trophies = page.getByTestId('dash-trophies')
-    await expect(trophies).toBeVisible()
-    await expect(page.getByTestId('dash-more').getByTestId('dash-trophies')).toHaveCount(0)
-    const shown = trophies.locator('[data-testid^="badge-"]')
-    await expect(shown).toHaveCount(3)
-    await expect(shown.nth(0)).toHaveAttribute('data-testid', 'badge-first_journal')
-    await expect(shown.nth(2)).toHaveAttribute('data-testid', 'badge-first_habit')
-    const more = trophies.getByTestId('dash-trophies-more')
-    await expect(more).toHaveAttribute('aria-expanded', 'false')
-    await more.click()
-    await expect(shown).toHaveCount(10)
-    await expect(more).toHaveText('Show fewer')
-    await more.click()
-    await expect(shown).toHaveCount(3)
-  })
-
-  test('with fewer than 3 badges, Trophies tops up with ones still to get', async ({ page }) => {
-    await open(page, '/')
-    const shown = page.getByTestId('dash-trophies').locator('[data-testid^="badge-"]')
-    await expect(shown).toHaveCount(3)
-    await expect(shown.first()).toContainText('Not yet')
-  })
-
+test.describe('Spec §5 Dashboard: Trophies (yesterday)', () => {
   test('"How past you did yesterday" lists the badges I earned yesterday', async ({ page }) => {
     server.seed('habits', [habit(H1, 'Walk')])
     server.seed('habit_logs', [log(H1, '2026-11-09')])
@@ -209,7 +165,7 @@ test.describe('Spec §5 Celebrations: the setting', () => {
     const setting = page.getByTestId('celebrations-setting')
     await expect(setting).toHaveValue('full')
     await setting.selectOption('off')
-    await page.getByTestId('profile-settings').getByRole('button', { name: 'Save' }).click()
+    await page.getByTestId('celebrations-settings').getByRole('button', { name: 'Save' }).click()
     await expect.poll(() => server.profile.celebrations).toBe('off')
   })
 

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { openSchedule } from './support/events'
 import { FakeSupabase } from './support/fakeSupabase'
 import { isSafari } from './support/devices'
 import { goTo } from './support/nav'
@@ -73,6 +74,7 @@ test.describe('Spec §5 Calendar: a new event starts at a time', () => {
     await open(page, '/calendar?date=2026-11-10&event=e1')
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    await openSchedule(dialog)
     await dialog.getByRole('checkbox', { name: 'All day' }).uncheck()
     await expect(dialog.getByLabel('Starts Time')).not.toHaveValue('')
   })

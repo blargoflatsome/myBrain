@@ -27,6 +27,7 @@ export class FakeSupabase {
     quests: new Map(),
     quest_logs: new Map(),
     badges: new Map(),
+    activity_log: new Map(),
     inbox: new Map(),
     habits: new Map(),
     habit_logs: new Map(),
@@ -109,12 +110,15 @@ export class FakeSupabase {
       },
       [storageKey, JSON.stringify(session)],
     )
+    // Trophies earned from the seeded history would otherwise arrive as a first-time alert in every test; tests act
+    // as if this device had already worked them out (e2e/trophies.spec.ts checks the first time).
+    await page.addInitScript((uid) => localStorage.setItem(`my-brain:trophies-ready:${uid}`, '1'), TEST_USER_ID)
     // Tests reach into every Account section, so its groups start open here (the page itself opens only Your profile;
     // e2e/account-layout.spec.ts checks that with fresh storage).
     if (this.openAccountGroups) {
       await page.addInitScript(() => {
         if (!localStorage.getItem('my-brain:account-open')) {
-          localStorage.setItem('my-brain:account-open', JSON.stringify(['profile', 'reminders', 'events', 'people', 'data', 'account']))
+          localStorage.setItem('my-brain:account-open', JSON.stringify(['profile', 'settings', 'reminders', 'events', 'people', 'data']))
         }
         // The same for the Dashboard's More stats (closed to start; e2e/feedback-round-4.spec.ts checks that).
         if (!localStorage.getItem('my-brain:dashboard-more')) localStorage.setItem('my-brain:dashboard-more', 'open')

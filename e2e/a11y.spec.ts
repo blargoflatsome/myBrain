@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { openAttendees } from './support/events'
 import { FakeSupabase } from './support/fakeSupabase'
 import { isPhone, isSafari } from './support/devices'
 import { goTo } from './support/nav'
@@ -167,6 +168,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(page.getByRole('heading', { name: 'Calendar', level: 1 })).toBeVisible()
       await page.getByRole('button', { name: '+ New event' }).click()
       await scan(page, 'New event')
+      await openAttendees(page.getByRole('dialog', { name: 'New event' }))
       await page.getByRole('dialog', { name: 'New event' }).getByRole('button', { name: 'Contacts' }).click()
       await expect(page.getByRole('dialog', { name: 'Your people' }).getByTestId('contact')).toHaveCount(1)
       await scan(page, 'Contacts window')
@@ -185,9 +187,9 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'Calendar item window')
       await view.getByRole('button', { name: 'Edit' }).click()
       const editor = page.getByRole('dialog', { name: 'Edit event' })
-      await editor.getByTestId('event-more').getByText('More details').click()
+      await editor.getByTestId('event-schedule').locator('summary').click()
       if (!isPhone(info)) await editor.getByRole('combobox', { name: 'Starts Date' }).click()
-      await scan(page, 'Event editor with More details and the date grid open')
+      await scan(page, 'Event editor with Schedule and the date grid open')
     })
 
     test('Vault item editor and the Undo bar', async ({ page }) => {

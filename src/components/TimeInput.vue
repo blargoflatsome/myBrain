@@ -76,7 +76,7 @@ const props = withDefaults(
     labelClass?: string
     inputClass?: string
   }>(),
-  { ariaLabel: undefined, required: false, labelClass: 'text-sm text-muted', inputClass: '' },
+  { ariaLabel: undefined, required: false, labelClass: 'pb-2 text-sm text-muted', inputClass: '' },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 

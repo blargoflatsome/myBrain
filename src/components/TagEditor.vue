@@ -1,11 +1,11 @@
 <template>
   <dialog ref="dialog" :class="dialogBox" :aria-label="m.heading" @close="emit('close')">
-    <div class="flex flex-col gap-6 p-5">
+    <div class="flex flex-col gap-8 p-5">
       <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
 
       <form class="flex flex-col gap-3" @submit.prevent="save">
         <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.name }}
+          <span class="pb-2">{{ m.name }}</span>
           <input v-model="name" :maxlength="TAG_MAX" required :class="field" @input="clash = null">
         </label>
         <div v-if="clash" class="flex flex-col gap-3 rounded-xl bg-bg p-3" role="alert" data-testid="tag-clash">

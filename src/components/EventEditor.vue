@@ -5,46 +5,45 @@
     :aria-label="isNew ? m.editor.newHeading : m.editor.heading"
     @close="emit('close')"
   >
-    <form class="flex flex-col gap-4 p-5" novalidate @submit.prevent="save">
+    <form class="flex flex-col gap-8 p-5" novalidate @submit.prevent="save">
       <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.title }}
+        <span class="pb-2">{{ m.editor.title }}</span>
         <input v-model="title" maxlength="500" :class="field" @input="error = ''">
       </label>
-      <label class="flex items-center justify-between gap-4">
-        <span class="font-medium">{{ m.editor.allDay }}</span>
-        <input v-model="allDay" type="checkbox" class="size-5 accent-[var(--accent)]">
-      </label>
-      <fieldset class="grid grid-cols-2 gap-3">
-        <legend class="mb-1 text-sm font-medium">{{ m.editor.start }}</legend>
-        <DateInput v-model="startDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.start} ${m.editor.date}`" required :input-class="field" />
-        <TimeInput v-if="!allDay" v-model="startTime" :label="m.editor.time" :aria-label="`${m.editor.start} ${m.editor.time}`" :input-class="field" />
-      </fieldset>
-      <fieldset class="grid grid-cols-2 gap-3">
-        <legend class="mb-1 text-sm font-medium">{{ m.editor.end }}</legend>
-        <DateInput v-model="endDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.end} ${m.editor.date}`" required :input-class="field" />
-        <TimeInput v-if="!allDay" v-model="endTime" :label="m.editor.time" :aria-label="`${m.editor.end} ${m.editor.time}`" :input-class="field" />
-      </fieldset>
-      <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.editor.repeat }}
-        <select v-model="repeat" :class="field">
-          <option v-for="r in REPEATS" :key="r" :value="r">{{ m.repeat[r] }}</option>
-        </select>
-      </label>
-      <MoreOptions :summary="m.editor.moreSummary" :start-open="moreOpen" test-id="event-more">
+      <NotesEditor v-model="notes" :label="m.editor.notes" test-id="event-notes" />
+      <!-- SPEC §5 Calendar: when it happens, folded into Schedule (open for a new event; its summary says when). -->
+      <MoreOptions :title="m.editor.schedule" :summary="scheduleSummary" :start-open="scheduleOpen" test-id="event-schedule">
+        <label class="flex items-center justify-between gap-4">
+          <span class="font-medium">{{ m.editor.allDay }}</span>
+          <input v-model="allDay" type="checkbox" class="size-5 accent-[var(--accent)]">
+        </label>
+        <fieldset class="grid grid-cols-2 gap-3">
+          <legend class="mb-1 text-sm font-medium pb-3">{{ m.editor.start }}</legend>
+          <DateInput v-model="startDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.start} ${m.editor.date}`" required :input-class="field" />
+          <TimeInput v-if="!allDay" v-model="startTime" :label="m.editor.time" :aria-label="`${m.editor.start} ${m.editor.time}`" :input-class="field" />
+        </fieldset>
+        <fieldset class="grid grid-cols-2 gap-3">
+          <legend class="mb-1 text-sm font-medium pb-3">{{ m.editor.end }}</legend>
+          <DateInput v-model="endDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.end} ${m.editor.date}`" required :input-class="field" />
+          <TimeInput v-if="!allDay" v-model="endTime" :label="m.editor.time" :aria-label="`${m.editor.end} ${m.editor.time}`" :input-class="field" />
+        </fieldset>
         <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.editor.reminder }}
+          <span class="pb-2">{{ m.editor.repeat }}</span>
+          <select v-model="repeat" :class="field">
+            <option v-for="r in REPEATS" :key="r" :value="r">{{ m.repeat[r] }}</option>
+          </select>
+        </label>
+        <label class="flex flex-col gap-1 text-sm text-muted">
+          <span class="pb-2">{{ m.editor.reminder }}</span>
           <select v-model="reminder" :class="field">
             <option v-for="r in REMINDERS" :key="String(r)" :value="r">{{ m.reminder(r) }}</option>
           </select>
           <span v-if="allDay && reminder !== null" class="text-xs">{{ m.editor.reminderAllDay }}</span>
         </label>
-        <label class="flex items-center justify-between gap-4 text-sm">
-          <span><span class="font-medium">{{ c.showGuests }}</span><span class="block text-xs text-muted">{{ c.showGuestsHint }}</span></span>
-          <input v-model="showGuests" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
-        </label>
       </MoreOptions>
-      <NotesEditor v-model="notes" :label="m.editor.notes" test-id="event-notes" />
+
+      <!-- SPEC §5 Shared events: who's going, then inviting people, folded into Attendees. -->
       <EventPeople
         v-if="event && !event.cancelled_at"
         v-model="people"
@@ -55,7 +54,12 @@
         :end-date="endDate || startDate"
         :end-time="allDay ? null : endTime"
         @suggest="useSuggestion"
-      />
+      >
+        <label class="flex items-center justify-between gap-4 text-sm">
+          <span><span class="font-medium">{{ c.showGuests }}</span><span class="block text-xs text-muted">{{ c.showGuestsHint }}</span></span>
+          <input v-model="showGuests" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+        </label>
+      </EventPeople>
       <p v-if="event?.cancelled_at" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ messages.invites.cancelledNote }}</p>
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
       <div class="flex gap-2">
@@ -105,6 +109,7 @@ import { messages } from '@/messages'
 import type { EventRepeat, EventRow } from '@/sync/types'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { field } from '@/ui/styles'
+import { dayLabel, timeLabel } from '@/ui/dates'
 
 const props = defineProps<{ event: EventRow | null; isNew: boolean }>()
 const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow, boolean]; close: []; cancel: [EventRow] }>()
@@ -132,7 +137,17 @@ watch(allDay, (on) => {
 const reminder = ref<number | null>(null)
 const notes = ref('')
 // More details opens by itself when something in it is set.
-const moreOpen = ref(false)
+// Schedule starts open for a new event, so its date and time are in view while I set them.
+const scheduleOpen = ref(false)
+/** "Tue, Nov 10 · 9:00 am – 10:00 am, every week": when it is, shown on the closed Schedule fold-out. */
+const scheduleSummary = computed(() => {
+  if (!startDate.value) return ''
+  const sameDay = !endDate.value || endDate.value === startDate.value
+  const when = allDay.value
+    ? `${dayLabel(startDate.value)}${sameDay ? '' : ` – ${dayLabel(endDate.value)}`} · ${m.editor.allDay}`
+    : `${dayLabel(startDate.value)} · ${timeLabel(startTime.value)} – ${sameDay ? '' : `${dayLabel(endDate.value)} · `}${timeLabel(endTime.value)}`
+  return repeat.value === 'never' ? when : `${when}, ${m.repeat[repeat.value].toLowerCase()}`
+})
 const error = ref('')
 // People to invite when saving (SPEC §5 Shared events).
 const people = ref<PersonToInvite[]>([])
@@ -159,7 +174,7 @@ watch(
     reminder.value = e.reminder_minutes
     showGuests.value = e.show_guests ?? true
     notes.value = e.notes ?? ''
-    moreOpen.value = !!e.notes || e.reminder_minutes !== null || e.show_guests === false
+    scheduleOpen.value = props.isNew
     error.value = ''
     people.value = []
     dialog.value?.showModal()

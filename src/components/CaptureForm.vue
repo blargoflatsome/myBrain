@@ -14,7 +14,7 @@
       <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
     </template>
 
-    <form v-else class="flex flex-col gap-4" @submit.prevent="save">
+    <form v-else class="flex flex-col gap-8" @submit.prevent="save">
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">{{ m.destinations[type] }}</h1>
         <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="reset">{{ m.back }}</button>
@@ -24,11 +24,11 @@
       <!-- Post It: a small formatted note and its color (SPEC §5 Quick capture) -->
       <template v-if="type === 'postit'">
         <div class="flex flex-col gap-1" data-testid="capture-postit">
-          <span class="text-sm text-muted">{{ pm.label }}</span>
+          <span class="pb-2 text-sm text-muted">{{ pm.label }}</span>
           <RichTextEditor v-model="postBody" :label="pm.label" :placeholder="pm.placeholder" min-height="8rem" autofocus @update:model-value="error = ''" />
         </div>
         <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ pm.color }}</legend>
+          <legend class="mb-1 text-sm text-muted pb-2">{{ pm.color }}</legend>
           <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="pm.color">
             <button
               v-for="c in POST_IT_COLORS"
@@ -46,7 +46,7 @@
       </template>
 
       <div v-if="type !== 'postit'" class="flex flex-col gap-1">
-        <label for="capture-title" class="text-sm text-muted">{{ type === 'later' ? m.placeholder : m.titleLabel }}</label>
+        <label for="capture-title" class="pb-2 text-sm text-muted">{{ type === 'later' ? m.placeholder : m.titleLabel }}</label>
         <div class="relative">
           <textarea
             v-if="type === 'later'"
@@ -75,7 +75,7 @@
 
       <!-- The Vault: bucket first-preselected, or a new one -->
       <fieldset v-if="type === 'vault'" class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted">{{ m.bucketLabel }}</legend>
+        <legend class="mb-1 text-sm text-muted pb-2">{{ m.bucketLabel }}</legend>
         <div class="flex flex-wrap gap-2" role="group" :aria-label="m.bucketLabel">
           <button
             v-for="b in buckets"
@@ -100,7 +100,7 @@
         <DateInput v-model="dueDate" :label="m.taskDateLabel" :hint="m.taskDateHint" :input-class="fieldOnPage" />
         <NotesEditor v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
         <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ t.priorityLabel }}</legend>
+          <legend class="mb-1 text-sm text-muted pb-2">{{ t.priorityLabel }}</legend>
           <div class="flex flex-wrap gap-2" role="group" :aria-label="t.priorityLabel">
             <button
               v-for="p in [...PRIORITIES].reverse()"
@@ -134,18 +134,18 @@
       />
 
       <!-- Quest: energy and time (defaults Ugh / 30 min) and details, all optional, all in view with extra room -->
-      <div v-if="type === 'quest'" class="flex flex-col gap-6 pt-2" data-testid="capture-quest">
+      <div v-if="type === 'quest'" class="flex flex-col gap-8 pt-2" data-testid="capture-quest">
         <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ q.editor.energy }}</legend>
-          <div class="flex flex-wrap gap-2" role="group" :aria-label="q.editor.energy">
+          <legend class="mb-1 text-sm text-muted pb-2">{{ q.editor.energy }}</legend>
+          <div class="flex flex-wrap gap-2 lg:gap-4" role="group" :aria-label="q.editor.energy">
             <button v-for="e in ENERGY_LEVELS" :key="e" type="button" :class="chip(energy === e)" :aria-pressed="energy === e" @click="energy = e">
               {{ q.energy[e] }}
             </button>
           </div>
         </fieldset>
         <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ q.editor.time }}</legend>
-          <div class="flex flex-wrap gap-2" role="group" :aria-label="q.editor.time">
+          <legend class="mb-1 text-sm text-muted pb-2">{{ q.editor.time }}</legend>
+          <div class="flex flex-wrap gap-2 lg:gap-4" role="group" :aria-label="q.editor.time">
             <button v-for="tb in TIME_BUCKETS" :key="tb" type="button" :class="chip(time === tb)" :aria-pressed="time === tb" @click="time = tb">
               {{ q.time[tb] }}
             </button>
@@ -324,6 +324,7 @@ async function savePostIt() {
   saving.value = true
   try {
     await brain.addPostIt(postBody.value, postColor.value)
+    await brain.logActivity('capture', { type: 'postit' })
     const message = brain.online ? m.saved.postit : m.savedOffline
     reset()
     notice.value = message

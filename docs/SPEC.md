@@ -161,7 +161,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Timer:** if the timer expires before I complete the habit, it counts as a **miss**. The habit is logged as missed for that day and the streak resets to zero, while my best streak is kept.
 
 ### Account page
-- **Layout (grouped, 2026-11-08):** under my picture and name, the page is a short list of groups that open and close (an accordion), each with a one-line summary: **Your profile** (name and who sees my profile, side by side), **Reminders** (this device's notifications, ntfy, quiet hours, snooze), **Events** (phone, how event news reaches me, cancellation messages, and my availability, side by side on wide screens), **People** (Connections and my people), **Your data** (download and delete my data, side by side) and **Account** (delete my account). A **Sign out** button sits on its own right under Your profile, always visible (not inside a group, and away from the delete buttons) (2026-11-11). A **Tags** row (with Open Tags) sits on its own just above the data group and links to the Tags page (2026-11-11). Only **Your profile** starts open; which groups I leave open is remembered on this device. Several can be open at once. The page is wider on big screens so things can sit side by side, and hints are kept to one short line. Privacy, terms and help links sit at the bottom. Groups are real disclosure controls (they work with a keyboard and screen readers).
+- **Layout (grouped, 2026-11-08; regrouped by the user 2026-11-11):** under my picture and name, the page has groups that open and close (an accordion), each with a one-line summary: **Your profile** (name and who sees my profile, side by side, with its own Save), then **Account Settings** ("Customize your experience"), which holds **Celebrations** (Full, Gentle or Off, with its own Save), a **Tags** row (with Open Tags, linking to the Tags page) and the groups **Reminders** (this device's notifications, ntfy, quiet hours, snooze), **Events** (phone, how event news reaches me, cancellation messages, and my availability, side by side on wide screens), **People** (Connections and my people) and **Your data** (download and delete my data, side by side). Then **Sign out** and **Delete account**, each on its own and always visible (not inside a group), Sign out first. Only **Your profile** starts open; which groups I leave open is remembered on this device. Several can be open at once. The page is wider on big screens so things can sit side by side, and hints are kept to one short line. Privacy and terms links sit at the bottom. Groups are real disclosure controls (they work with a keyboard and screen readers).
 - Every user has an Account page with a display name and avatar. Streaks are shown on the Dashboard, not on the Account page.
 - **Delete My Account** is at the bottom of the Account page. It first shows a confirmation that says everything will be permanently deleted on all devices and cannot be undone, and I must type DELETE. Then it deletes my account and all of my data on the server, clears this device's stored copy and push subscription, signs me out, and tells me it is done. If it fails (for example, offline), it says so and nothing is deleted.
 - The page shows each habit's **current streak** and **best streak**, plus overall highlights such as my longest streak ever, so I can feel proud of them.
@@ -237,7 +237,9 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - A bucket can be set so its items can be **checked off** (the Shopping list starts that way). Checked items move to the bottom, and "Clear checked" deletes them after confirming.
 
 ### Forms
-- **More details:** a form keeps the main fields in view and puts optional extras in a **More details** fold-out with a one-line summary of what's inside. It opens by itself when something in it is already filled in, so nothing set is ever hidden. It's a real disclosure control (keyboard and screen readers). **Never for just one item:** a single optional field is shown in view instead. **Notes are never inside it:** notes, details and descriptions are always in view. So today only the task editor (Priority, tags), event editor (reminder, who's going) and Vault item editor (rating, link, bucket) have one; Capture, the habit, routine, quest, priority task and bucket editors don't.
+- **Spacing (2026-11-11, user):** form sections are 32 px apart (`gap-8`), inside fold-outs too, and every field title (label, legend or heading over a field) has 8 px below it (`pb-2`).
+- **Open fold-outs stand out (2026-11-11, user):** when a fold-out (More details, Reminders, Schedule, Attendees, the Account page groups) is open, its header gets a soft accent tint, so it's clear where the section starts. Only that fold-out's own header changes; a closed one inside an open group stays plain.
+- **More details:** a form keeps the main fields in view and puts optional extras in a **More details** fold-out with a one-line summary of what's inside. It opens by itself when something in it is already filled in, so nothing set is ever hidden. It's a real disclosure control (keyboard and screen readers). **Never for just one item:** a single optional field is shown in view instead. **Notes are never inside it:** notes, details and descriptions are always in view. So today only the task editor (Priority, tags) and Vault item editor (rating, link, bucket) have one; Capture and the habit, event, routine, quest, priority task and bucket editors don't (the event editor has Schedule and Attendees fold-outs instead).
 - **Formatted notes:** task notes, Vault item notes, quest details, priority task descriptions and event notes use the journal's formatting editor (smaller), like Post Its. Notes written before this show as paragraphs. Formatted notes are cleaned before they're shown (§8); search reads only their words; calendar files (.ics) get them as plain lines.
 - **Dates and times are shown one way everywhere:** a day is "Tue, Nov 10" (the year added only when it isn't this year), a time is the device's way ("3:00 pm" or "15:00"), a day with a time is "Tue, Nov 10 · 3:00 pm", and when something happened (alerts, links) is just the time if today, otherwise the day and time. Messages sent to other people keep their written-out form ("Tuesday, November 10 at 3:00 pm").
 
@@ -296,6 +298,8 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Tapping an item never leaves the calendar:** a task, priority task or event of mine opens read-only in a window over the calendar (what it is, when, how it repeats, priority or reminder, notes), with **Edit**, which opens its editor, still over the calendar. An event I was invited to opens its invitation window as before.
 - Events: tap a day or time, or "+ New event", to add one with a title, start and end (or all day), optional notes, repeat (never, daily, weekdays, weekly, every 2 weeks, monthly, yearly), and an optional reminder (at the start, or 5, 10, 15 or 30 minutes, 1 hour, or 1 day before). Events can be edited and deleted (after confirming; deleting a repeating event deletes the whole series). Event reminders are sent like other reminders (Web Push and ntfy, respecting quiet hours) and open the calendar on that day.
 
+- **Event form layout (2026-11-11):** Title; Notes; then **Schedule**, a fold-out with All day, Starts, Ends, Repeat and Reminder (open for a new event; on an existing event it starts closed and its summary says when, for example "Tue, Nov 10 · 12:30 pm – 1:30 pm, every week"); then **Attendees**, a fold-out with who's invited and their answers first, then the ways to invite people (Contacts, type someone), then "Guests can see who's going". Attendees opens by itself when anyone is invited or waiting to be invited; its summary says "2 invited · 1 going". No More details.
+
 - Everything below from Accounts and contact info through Cancelling an event or attendance is built after the Dashboard (see the build order). Only the basic calendar view is built earlier.
 
 - **My people: a contact list I build myself.** In the event's People section I add a guest by typing their email or phone number (and optionally their name) and pressing **Add**; that form only adds, it doesn't search. When I **save the event**, everyone I typed is saved to **my people** (people removed before saving aren't); the same email (any case) or phone number (any formatting) is the same person, and a new name replaces the old one. A **Contacts** button opens a window listing **my people A to Z**, 10 per page, with a search box that filters as I type (by name, email or phone, ignoring case and phone formatting) and an **Add** button on each person. Adding someone keeps the window open so I can add more: they show as **Added** with **Undo**; people already invited to this event show as **Invited**. **Done** closes the window. With no one saved yet, the window says so and points to typing someone or the Account page. On the **Account** page, a **People** section lists my people A to Z (10 per page) where I can **add** someone (name optional, plus an email or phone number, checked like the invite form; someone already saved with that email or phone is said, not saved twice), **edit** a name, email or phone, or **remove** someone (with a confirmation). My people sync across my devices and work offline. When this was added, everyone I'd already invited by email or phone was saved to my people.
@@ -346,7 +350,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Favorite Vault buckets:** a card for each starred bucket, linking to it and showing its 3 newest items.
 - **Events:** in the period, events I **created**, events I **attended** (dates that have passed of my own events and of invited events I answered Yes, not counting cancelled ones), and events I **cancelled** (events I cancelled for everyone or dropped out of, plus events I deleted).
 - **Tasks, routines and quests:** in the period, tasks done, each routine's completion rate (or how many times a run-anytime routine was finished), and quests finished.
-- **Trophies:** its own section after the favorite Vault buckets (not in More stats), showing my **3 newest badges** (§5 Celebrations), each with its icon, name and the day I earned it (topped up with badges still to get, greyed out, when I have fewer than 3), plus how many **perfect days** I've had (every scheduled habit done) and how many badges I have of the total. **See all trophies** shows every badge, newest first and then the ones not earned yet, greyed out; **Show fewer** goes back to 3. Private to me.
+- **Trophies:** its own section after the favorite Vault buckets (not in More stats); what it shows is in §5 Trophies. Private to me.
 - More stats and Achievements (section 10) may be added later.
 
 ### Celebrations (built 2026-11-11)
@@ -366,9 +370,89 @@ Finishing something should feel good. Each celebration plays right after my acti
   - **Comeback:** doing a habit on its first scheduled day after missing it 2 or more scheduled days in a row shows a "welcome back" message instead of anything about the lost streak.
 - **Badges (first times):** a one-time badge, with a small burst and a message, the first time I: cross off a task, complete a habit, finish a routine, write a journal entry, save to the Vault, finish a quest, finish a Focus session, make a Post It, sort an orphan, and create a shared event. Earned badges are kept (synced, with the day earned) and shown in **Trophies** on the Dashboard. Badges my history already shows (tasks, habits, routines, journal, Vault, quests, Post Its I did before this was built, or on another device) are awarded quietly (no celebration) once this device has downloaded my data; orphans, Focus sessions and shared events leave no history, so those badges come the next time. A badge earned before my badges have downloaded waits for them, so one I already have is never celebrated twice. **Delete my data** leaves badges alone (like my settings); Delete My Account removes them.
 - **Messages:** every celebration message is in the messages file in the "past you" voice; the user writes the playful lines.
-- **Setting:** **Celebrations** in the Your profile group on the Account page, saved with Save: **Full** (default), **Gentle** (no confetti or bouncing; a soft glow or fade and the message only) or **Off** (no animation; messages and badges still happen). If the device's reduce-motion setting is on, Full acts as Gentle. Saved to my profile, so it follows me to my other devices (and kept on this device, so it works offline).
+- **Setting:** **Celebrations** in Account Settings on the Account page, saved with its own Save: **Full** (default), **Gentle** (no confetti or bouncing; a soft glow or fade and the message only) or **Off** (no animation; messages and badges still happen). If the device's reduce-motion setting is on, Full acts as Gentle. Saved to my profile, so it follows me to my other devices (and kept on this device, so it works offline).
 - **Accessibility:** animations are decorative (hidden from screen readers); each message is announced in a polite live region. Confetti never flashes more than 3 times a second (WCAG 2.3.1).
-- **Not included (for now):** sounds (never), streak milestone badges, weekly summaries and heat maps; the wider Achievements list stays in Phase 2 (§10).
+- **Not included (for now):** sounds (never), weekly summaries and heat maps. Streak and other milestone trophies are in Trophies below.
+
+### Trophies (built 2026-11-11)
+Trophies give me things to work toward and a little dopamine for using the app. They reward what I did and never shame me: nothing is ever taken away, and nothing rewards unhealthy habits.
+
+- **Tiers:** most trophies have levels. A trophy moves up through **Bronze, Silver, Gold, Platinum, Diamond, Legendary** (as many as it has levels; a one-level trophy is just earned). Each new level is celebrated like a badge (a small burst and a message, following the Celebrations setting).
+- **Never taken away:** streak trophies count my **best** streak, so missing a day never loses a level.
+- **From my history:** trophies are worked out from the history the app keeps, so earlier activity counts, and a trophy added later is awarded straight away to anyone who already did it. The first time trophies are worked out on a device, any earned from the past are awarded quietly and I get **one** in-app alert (bell and banner, §6) "Past you already earned 12 trophies", which opens Trophies on the Dashboard, instead of a burst for each (an alert, because a celebration message can't be tapped). Focus sessions, captures and emptying Orphans weren't recorded before this, so those count from the day trophies are built.
+- **Streak levels:** 3 days, 1 week (7), 1 month (30), 2 months (60), 6 months (182), 1 year (365). For a habit or routine that isn't daily, a day means one of its scheduled days (7 Thursdays in a row is "1 week" for a Thursday-only habit).
+- **Total levels:** 10, 50, 100, 250, 500, 1,000.
+
+**Categories and trophies** (names are plain placeholders; the user writes the playful ones):
+
+1. **Firsts:** the ten first-time badges from Celebrations, unchanged (one level each).
+2. **Streaks** (streak levels):
+   - **Habit streak:** my best streak on any one habit.
+   - **Journal streak:** days in a row with a journal entry I wrote (entries the app wrote for me don't count).
+   - **Routine streak:** the same routine finished on its scheduled days in a row (run-anytime routines don't count).
+   - **Perfect-day streak:** perfect days in a row (every scheduled habit done; days with no habits scheduled don't break it).
+   - **Good days:** my best run of days since a worst day (the Dashboard's "Days since your worst day").
+3. **Totals** (total levels):
+   - **Tasks created**, **Tasks completed**
+   - **Habits created**, **Habit check-ins** (each completed habit day)
+   - **Journal entries** (written by me)
+   - **Routines finished**
+   - **Quests finished** (each time, from quest_logs)
+   - **Vault items saved**
+4. **Brain dumps:**
+   - **Brain dump:** 10 thoughts captured in one day (anything saved from Capture).
+   - **Orphan wrangler:** emptied the Orphans list 5 times (Bronze), 25 times (Silver).
+   - **Tried everything:** used every Capture type at least once (shows "x of 6").
+5. **Focus:**
+   - **Full cycle:** 4 Focus sessions finished in one day.
+   - **Focus days:** finished a Focus session on 5, 20 and 50 different days.
+   - **Focus hours:** 10, 50 and 100 hours of finished Focus work in total.
+6. **Perfect days and weeks:**
+   - **Perfect days:** 1, 10 and 50 perfect days in total.
+   - **Perfect week:** every scheduled habit, every day, Sunday to Saturday (like the calendar).
+   - **Perfect month:** the same for a whole calendar month.
+   - **Perfect year:** the same for a whole calendar year.
+7. **Boredom busters (Quests):**
+   - **Every energy:** finished a quest at each energy level (shows "x of 4").
+   - **Quest month:** 10 quests finished in one calendar month.
+8. **Taking care of myself** (priority tasks and priority habits, like meds):
+   - **On it:** a priority reminder marked done on its day (snoozes are fine), 7, 30 and 100 times in a row that it was due.
+   - **Full month of care:** one priority habit done on every scheduled day of a calendar month.
+9. **Reflection:**
+   - **Words written:** 1,000 and 10,000 words in my journal in total.
+10. **Time-of-day fun** (one level each):
+    - **Early bird:** a habit or task done between 4 and 7 am (so staying up all night never earns it).
+    - **Weekend warrior:** at least one task done on both the Saturday and the Sunday of one weekend.
+    - **Monday, handled:** at least one task due on a Monday, and every task due that Monday done.
+11. **Getting organized:**
+    - **Organized:** 5 Vault buckets (the 3 starter buckets count).
+12. **Events:**
+    - **Adulting:** 4 or more events in one calendar month that I created or said Yes to, with none of them cancelled.
+13. **People:**
+    - **Making friends:** 5 connections. **Social butterfly:** 10 connections (connections ever made; checked on the server, since connections live there).
+14. **Surprises** (hidden: shown as "???" until earned):
+    - **That was fast:** a task done within a minute of making it.
+    - **Just in time:** a task done between 11:50 and 11:59 pm on the day it was due.
+    - **Protecting your boundaries:** blocked a connection.
+    - **A healthy brain:** reached the 1-week level on every streak trophy.
+15. **Anniversaries:** 1 week, 1 month, 6 months and 1 year since my account was made (Bronze to Platinum).
+
+**Where they show:**
+- The Dashboard's **Trophies** section keeps its place and shows my 3 newest trophy levels earned (icon, name, level, day earned) and how many trophies I have. Perfect days aren't shown there as a number (2026-11-11, user): they're a trophy. **Tapping an earned trophy** opens a window saying what I did to earn it ("You kept one habit going on its days in a row."), with each level, what it needed and the day I reached it (or just the day, for a one-step trophy). Locked trophies can't be tapped.
+- **See all trophies** lists the trophies I've earned or started, **grouped by category**, each with its current level and progress to the next where it can be counted ("7 of 14 days", "38 of 50 tasks").
+- A **See locked trophies** button opens a window with the trophies I haven't started, greyed out, by category. Surprises show only as "???".
+- Private to me.
+
+**Comebacks (messages, not trophies):** a friendly celebration message at the moment (it fades by itself, like other celebrations; nothing is kept in the bell), when I:
+- restart a habit after missing it (its previous 2 or more scheduled days missed, as in Celebrations);
+- open the app after 7 or more days away;
+- write a journal entry after a gap of 2 or more days;
+- finish a task that carried over 3 or more days;
+- finish an Undated task older than 30 days.
+
+**Sync status:** the activity log uploads quietly; it isn't counted in "waiting to sync".
+
+**Data:** earned trophies are kept in **badges** with a level (`tier`; empty for Firsts), one row per trophy, the id made from my user id and the trophy, so every device writes the same row; moving up a level updates it, with the day each level was earned. A new **activity_log** (kind, when, detail) records what the app didn't keep before: finished Focus sessions (with their length), captures (with their type) and emptying the Orphans list. Trophies are defined as data (id, category, levels, rule) so new ones can be added without restructuring.
 
 ## 6. Notifications
 - Support both Web Push and ntfy, selectable in settings.

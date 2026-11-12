@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { openAttendees } from './support/events'
 import { FakeSupabase } from './support/fakeSupabase'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
@@ -92,6 +93,7 @@ test.describe('Spec §10 Connections, scheduling: availability for connections',
     await open(page, '/calendar?date=2026-11-10&event=' + EVENT)
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    await openAttendees(dialog)
     await dialog.getByRole('button', { name: 'Contacts' }).click()
     const contacts = page.getByRole('dialog', { name: 'Your people' })
     await contacts.getByRole('button', { name: 'Add Bob Baker' }).click()
@@ -115,6 +117,7 @@ test.describe('Spec §5 Shared events and invitations', () => {
     await open(page, '/calendar?date=2026-11-10&event=' + EVENT)
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    await openAttendees(dialog)
     await expect(dialog.getByLabel('Find people by name')).toHaveCount(0)
     await dialog.getByLabel('Email or phone number').fill('carol@example.com')
     await dialog.getByLabel('Their name (optional)').fill('Carol')

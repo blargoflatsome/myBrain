@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { openAttendees } from './support/events'
 import { FakeSupabase } from './support/fakeSupabase'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
@@ -66,6 +67,7 @@ test.describe('Spec §10 Connections: inviting a connection in the app', () => {
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    await openAttendees(dialog)
     await dialog.getByRole('button', { name: 'Contacts' }).click()
     const contacts = page.getByRole('dialog', { name: 'Your people' })
     const onMyBrain = contacts.getByTestId('contacts-connections')
@@ -150,6 +152,7 @@ test.describe('Spec §10 Connections: connect from my people and from a guest in
     server.rpcResults.people_with_accounts = [{ person_id: 'pe-carol' }]
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
+    await openAttendees(page.getByRole('dialog', { name: 'Edit event' }))
     await page.getByRole('dialog', { name: 'Edit event' }).getByRole('button', { name: 'Contacts' }).click()
     const contacts = page.getByRole('dialog', { name: 'Your people' })
     await contacts.getByRole('button', { name: 'Connect with Carol' }).click()
@@ -201,7 +204,7 @@ test.describe('Spec §10 Connections: who’s going', () => {
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
-    await dialog.getByTestId('event-more').getByText('More details').click()
+    await openAttendees(dialog)
     const box = dialog.getByRole('checkbox', { name: /Guests can see who’s going/ })
     await expect(box).toBeChecked()
     await box.uncheck()
