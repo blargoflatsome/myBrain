@@ -207,7 +207,11 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.goto('/')
       await page.getByTestId('postit').getByRole('button', { name: msg.postIts.edit }).click()
       // Editing brings the whole note into view, toolbar included (nothing under the header or bottom tabs).
-      await expect(page.getByTestId('postit').getByRole('button', { name: msg.editor.fullScreen })).toBeInViewport({ ratio: 1 })
+      const fullScreen = page.getByTestId('postit').getByRole('button', { name: msg.editor.fullScreen })
+      await expect(fullScreen).toBeInViewport({ ratio: 1 })
+      await expect
+        .poll(() => fullScreen.evaluate((el) => { const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + 2)) }))
+        .toBe(true)
       await scan(page, 'Post It editing')
     })
 
