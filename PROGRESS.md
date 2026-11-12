@@ -89,6 +89,10 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Dev and prod migrated (second prod push confirms up to date); `npm run test:db` passes (29 files, new `rls_identity.sql`); `npm run test:flows` passes. Full review (2026-11-11): Vitest 375, Playwright 696/700; the 4 failures passed alone (two are the date-box race above, in `priority.spec.ts` and `shared-events.spec.ts` availability; the iPhone Dashboard habit-stats and dark a11y calendar-window flakes).
 - UI review (consistency, flows, ADHD fit, new feature ideas): given in chat, not yet written into the spec.
 
+## Celebrations test clock (branch `fix-celebrate-clock`)
+- CI failed on every branch when it ran between 4 and 7 am UTC: two celebrations unit tests used the real clock and device timezone, so finishing a task earned Early bird too; and one test group kept localStorage between tests, so a leftover "trophies worked out" flag made catch-up announce a trophy instead of adding it quietly. Those test groups now run at a fixed midday in UTC and start each test with empty storage (`src/tests/unit/celebrate/celebrate.test.ts`). Vitest 375 passes in UTC, Los Angeles and Auckland. No app change.
+- UI review written as proposed spec changes in [docs/UI_REVIEW_TASKS.md](docs/UI_REVIEW_TASKS.md) (not in SPEC yet; user's choices filled in).
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).
