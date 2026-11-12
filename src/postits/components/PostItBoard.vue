@@ -9,7 +9,7 @@
   >
     <!-- On a computer, arrows sit either side of the stack and appear when the mouse is over it (or a key reaches them). -->
     <!-- px-3 on a phone leaves room for the tilted notes underneath, so they never stick out past the screen. -->
-    <div v-if="current" class="group relative w-full max-w-sm px-3 md:px-0" data-testid="postit-carousel">
+    <div v-if="current" class="group relative w-full max-w-sm px-3 sm:max-w-[calc(24rem-20px)] md:px-0" data-testid="postit-carousel">
       <!-- touch-pan-y: the page still scrolls up and down, but a sideways swipe comes to the stack instead of being
          taken by the browser (which would cancel the touch before it ends). -->
       <div

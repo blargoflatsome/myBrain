@@ -71,7 +71,7 @@ test.describe('Spec §5 Dashboard', () => {
     await expect(section.getByTestId('dash-yesterday-routine')).toHaveText(['✓ Morning 2/2', 'Night 1/3'])
   })
 
-  test('Days since your worst day sits to the left of the Post Its; on a phone, under them', async ({ page }, info) => {
+  test('Days since your worst day sits to the left of the Post Its; on a phone, above them', async ({ page }, info) => {
     test.skip(isPhone(info), 'sets its own widths')
     server.seed('post_its', [{ id: 'p1', body: '<p>Call the vet</p>', color: 'yellow', position: 0 }])
     await page.setViewportSize({ width: 1024, height: 900 })
@@ -79,16 +79,13 @@ test.describe('Spec §5 Dashboard', () => {
     const pad = page.getByTestId('dash-key')
     const notes = page.getByTestId('dash-postits')
     await expect(notes).toBeVisible()
-    let p = (await pad.boundingBox())!
-    let n = (await notes.boundingBox())!
+    const p = (await pad.boundingBox())!
+    const n = (await notes.boundingBox())!
     expect(p.x + p.width).toBeLessThanOrEqual(n.x)
     expect(Math.abs(p.y - n.y)).toBeLessThan(40)
 
     await page.setViewportSize({ width: 390, height: 900 })
-    await expect.poll(async () => (await pad.boundingBox())!.y >= (await notes.boundingBox())!.y + (await notes.boundingBox())!.height - 1).toBe(true)
-    p = (await pad.boundingBox())!
-    n = (await notes.boundingBox())!
-    expect(p.y).toBeGreaterThanOrEqual(n.y + n.height - 1)
+    await expect.poll(async () => (await notes.boundingBox())!.y >= (await pad.boundingBox())!.y + (await pad.boundingBox())!.height - 1).toBe(true)
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   })
 

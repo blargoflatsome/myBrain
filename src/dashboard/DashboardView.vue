@@ -5,11 +5,11 @@
       <p class="text-muted">{{ m.intro }}</p>
     </div>
 
-    <!-- The top row (SPEC §5 Dashboard): Days since your worst day beside the Post Its, to their left (under them on a
-         phone; on top without them), then Up next and yesterday. -->
+    <!-- The top row (SPEC §5 Dashboard): Days since your worst day to the left of the Post Its (above them on a phone),
+         or alone without them, then Up next and yesterday. -->
     <div class="flex flex-col gap-5 sm:flex-row sm:items-start" data-testid="dash-top">
+      <WorstDayBoard v-if="stats" :days="stats.worstDay" class="sm:mx-0" />
       <div class="min-w-0 empty:hidden sm:flex-1"><PostItBoard /></div>
-      <WorstDayBoard v-if="stats" :days="stats.worstDay" class="sm:order-first sm:mx-0" />
     </div>
     <UpNextCard />
     <!-- Yesterday (SPEC §5 Dashboard). -->
