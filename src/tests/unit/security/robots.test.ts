@@ -20,7 +20,11 @@ function noindexRules(): string[] {
 const covers = (rule: string, path: string) => (rule.endsWith('/*') ? path.startsWith(rule.slice(0, -1)) : rule === path)
 
 /** Every route in the app, with its :params filled in. */
-const routePaths = [...routerFile.matchAll(/path: '([^']+)'/g)].map((m) => m[1]!.replace(/:[^/]+/g, 'x'))
+// The catch-all (Page not found) answers 404, so it needs no noindex.
+const routePaths = [...routerFile.matchAll(/path: '([^']+)'/g)]
+  .map((m) => m[1]!)
+  .filter((p) => !p.startsWith('/:pathMatch'))
+  .map((p) => p.replace(/:[^/]+/g, 'x'))
 const INDEXED = ['/', '/sign-in']
 
 describe('SPEC §8 Search engines', () => {

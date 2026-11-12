@@ -55,6 +55,7 @@ file says *how* the code is written.
 | Times typed by people | `TimeInput.vue` (type or pick on a computer, the device picker on a phone) |
 | Reading and writing a row with no rules of its own | `brain.save(table, row)`, `brain.remove(table, id)`, `brain.restore(table, id)` |
 | Security helpers | `src/security/`, `src/notifications/pushEndpoints.ts` |
+| Search listing and link previews | `src/seo/` (tags, sitemap, canonical, Page not found); `build/seo.ts` adds them at build; a new route also needs a line in `netlify.toml` |
 
 Before writing something new, check these first. If the same code is needed in a second place, move it here rather
 than copying it.

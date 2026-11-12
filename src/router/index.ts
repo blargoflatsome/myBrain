@@ -4,6 +4,7 @@ import { messages } from '@/messages'
 import DashboardView from '@/dashboard/DashboardView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { authRedirect } from './guard'
+import { setCanonical } from '@/seo/canonical'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -39,6 +40,8 @@ export const routes = [
   { path: '/privacy', name: 'privacy', component: () => import('@/legal/PrivacyView.vue'), meta: { public: true, guest: true } },
   { path: '/terms', name: 'terms', component: () => import('@/legal/TermsView.vue'), meta: { public: true, guest: true } },
   { path: '/sign-in', name: 'sign-in', component: () => import('@/auth/SignInView.vue'), meta: { public: true } },
+  // SPEC §8: any other address (Netlify answers it with 404). Keep it last.
+  { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/seo/NotFoundView.vue'), meta: { public: true, guest: true } },
 ]
 
 export const router = createRouter({
@@ -49,6 +52,7 @@ export const router = createRouter({
 // Each page has its own title (WCAG 2.4.2).
 router.afterEach((to) => {
   document.title = messages.pageTitle(messages.pageTitles[String(to.name)])
+  setCanonical(to.path)
 })
 
 router.beforeEach(async (to) => {

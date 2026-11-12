@@ -22,7 +22,8 @@
     "test:all": "npm run lint && npm run typecheck && npm run test && npm run test:e2e",
     "test:db": "node scripts/test-db.mjs",
     "dev:accounts": "node scripts/dev-accounts.mjs",
-    "test:flows": "node scripts/test-flows.mjs"
+    "test:flows": "node scripts/test-flows.mjs",
+    "og-image": "node scripts/og-image.mjs"
   },
   "dependencies": {
     "@fullcalendar/vue3": "7.1.3",

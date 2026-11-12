@@ -6,8 +6,103 @@
 [build.environment]
   NODE_VERSION = "22"
 
-# Single-page app: let Vue Router handle every path.
+# Single-page app: every page the app has is served by index.html with status 200 (Vue Router shows it).
+# Anything else gets the app's Page not found with status 404 (docs/SPEC.md §8 Search listing and 404s).
+# A new route needs a line here; src/tests/unit/seo/seo.test.ts fails otherwise. Files (assets, icons) are served first.
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/tasks"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/capture"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/routines"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/routines/:id/run"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/journal"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/vault"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/calendar"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/habits"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/account"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/tags"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/connections"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/people/:id"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/connect/:token"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/profile"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/quests"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/orphans"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/inbox"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/welcome"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/rsvp/:invite/:token"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/privacy"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/terms"
+  to = "/index.html"
+  status = 200
+[[redirects]]
+  from = "/sign-in"
+  to = "/index.html"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
-  status = 200
+  status = 404

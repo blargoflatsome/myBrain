@@ -1363,7 +1363,22 @@ export const messages = {
     terms: 'Terms of service',
     'sign-in': 'Sign in',
     person: 'Profile',
+    'not-found': 'Page not found',
   } as Record<string, string>,
+  /** SPEC §8 Link previews: the search listing and the preview shown when a link is shared. */
+  seo: {
+    title: 'My Brain',
+    description:
+      'A calm place to capture tasks, habits, routines, journal notes and ideas in a couple of taps, even offline. Free.',
+    imageAlt: 'The My Brain logo with the words: Capture everything you need to remember.',
+    imageLine: 'Capture everything you need to remember.',
+  },
+  /** SPEC §8 Search listing and 404s. */
+  notFound: {
+    heading: 'Page not found',
+    body: "There's nothing at this address.",
+    home: 'Go to My Brain',
+  },
   pageTitle: (page: string | undefined) => (page ? `${page} · My Brain` : 'My Brain'),
   skipToContent: 'Skip to content',
   // SPEC §2 Credit. Keep it (CLAUDE.md "Credit in the footer").
