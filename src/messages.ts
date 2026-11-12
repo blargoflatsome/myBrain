@@ -159,6 +159,11 @@ export const messages = {
     any: 'Any',
     pick: 'Pick a quest for me',
     resultHeading: 'Past you thought this would be fun:',
+    taskResultHeading: 'Past you left this task:',
+    taskDone: 'Done',
+    doToday: 'Do it today',
+    taskFinished: 'Crossed off your tasks.',
+    taskToday: 'Moved to today.',
     accept: "I'll do it",
     reroll: 'Re-roll',
     done: 'Mark done',
@@ -207,6 +212,8 @@ export const messages = {
     dueToday: 'Due today',
     doneToday: 'Done today',
     missedToday: 'Missed today',
+    pausedToday: 'Paused',
+    pausedLine: 'Streaks are paused. Nothing breaks while they are, and anything you do still counts.',
     missedNote: 'Past you missed this one! The streak starts fresh, and your best is still the goal to beat.',
     streak: (n: number) => `${n} in a row`,
     best: (n: number) => `Best: ${n}`,
@@ -974,6 +981,16 @@ export const messages = {
       options: { full: 'Full: confetti and bounces', gentle: 'Gentle: a soft glow', off: 'Off: messages only' },
       hint: 'Reduce motion on this device always makes it Gentle.',
     },
+  },
+  /** SPEC §3 Visual style: Appearance. */
+  appearance: {
+    label: 'Appearance',
+    options: { system: 'System: follow this device', light: 'Light', dark: 'Dark' },
+  },
+  /** SPEC §5 Habits: Pause all streaks. */
+  pauseStreaks: {
+    label: 'Pause all streaks',
+    hint: 'Paused days neither add to nor break a streak, and no habit reminders are sent.',
   },
   /** SPEC §6 In-app alerts: the bell, its list, and the banner. */
   alerts: {

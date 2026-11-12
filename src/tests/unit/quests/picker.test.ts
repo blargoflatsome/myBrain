@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { QuestRow } from '@/sync/types'
-import { acceptQuest, finishQuest, markPicked, matchingQuests, pickQuest, recentlyPicked } from '@/quests/picker'
+import type { QuestRow, TaskRow } from '@/sync/types'
+import { acceptQuest, finishQuest, markPicked, matchingQuests, pickFromDraw, pickQuest, recentlyPicked, tasksInDraw } from '@/quests/picker'
 
 function quest(id: string, over: Partial<QuestRow> = {}): QuestRow {
   return { id, title: id, status: 'open', deleted_at: null, ...over }
@@ -92,5 +92,36 @@ describe('Spec §5 Random Quest: accept, mark done, and pick history', () => {
   it('accept moves a quest to in progress; mark done puts it back in the list to do again', () => {
     expect(acceptQuest(quest('a')).status).toBe('accepted')
     expect(finishQuest(acceptQuest(quest('a'))).status).toBe('open')
+  })
+})
+
+describe('Spec §5 Random Quest: tasks in the draw', () => {
+  const task = (id: string, due_date: string | null, extra: Partial<TaskRow> = {}): TaskRow => ({
+    id, title: id, due_date, status: 'open', source: 'manual', priority: 1, deleted_at: null, ...extra,
+  })
+  const tasks = [
+    task('today', '2026-11-10'),
+    task('carried', '2026-11-08'),
+    task('undated', null),
+    task('future', '2026-11-11'),
+    task('done', '2026-11-10', { status: 'done' }),
+  ]
+
+  it('today’s open tasks, carried-over ones and Undated ones are in the draw; future and done ones are not', () => {
+    expect(tasksInDraw(tasks, '2026-11-10', 'America/New_York').map((t) => t.id).sort()).toEqual(['carried', 'today', 'undated'])
+  })
+
+  it('tasks match any filter, alongside quests that fit', () => {
+    const quests: QuestRow[] = [{ id: 'q', title: 'q', status: 'open', energy_level: 'medicated', deleted_at: null }]
+    const draw = tasksInDraw(tasks, '2026-11-10', 'America/New_York')
+    const seen = new Set([0, 0.3, 0.6, 0.99].map((r) => pickFromDraw(quests, draw, { energy: 'ugh', time: '30m' }, [], () => r)?.kind))
+    expect(seen).toEqual(new Set(['task']))
+    expect(pickFromDraw(quests, draw, {}, [], () => 0)).toEqual({ kind: 'quest', id: 'q' })
+  })
+
+  it('skips the tasks picked lately, and when everything is recent offers the one picked longest ago', () => {
+    const draw = [task('a', null), task('b', null)]
+    expect(pickFromDraw([], draw, {}, ['a'], () => 0)).toEqual({ kind: 'task', id: 'b' })
+    expect(pickFromDraw([], draw, {}, ['b', 'a'], () => 0)).toEqual({ kind: 'task', id: 'b' })
   })
 })

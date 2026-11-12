@@ -64,7 +64,7 @@ sessions if wanted (B touches the most files; run it alone or last).
   tasks in the usual order (High, Medium, Low, then oldest) and folds the rest under "Show the rest (7)". Remembered on
   this device. No migration.
 
-## D. New features
+## D. New features (built 2026-11-12, branch `ui-features`)
 
 - **N1 Quest Picker includes tasks.** (User chose: always, 2026-11-11.) SPEC §5 Random Quest: open tasks due today
   (including carried-over) and Undated tasks are always in the draw alongside quests.

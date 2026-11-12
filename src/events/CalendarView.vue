@@ -57,7 +57,8 @@
 // SPEC §5 Calendar and reminders: month, week and day views of my dated tasks, priority tasks and events.
 // Tap a day or time (or "+ New event") to add an event; tap an item to open it.
 import { useProfileStore } from '@/stores/profile'
-import { computed, onMounted, onScopeDispose, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { isDark } from '@/ui/appearance'
 import { useRoute, useRouter } from 'vue-router'
 import FullCalendar from '@fullcalendar/vue3'
 import classicTheme from '@fullcalendar/vue3/themes/classic'
@@ -131,12 +132,8 @@ const items = useLiveQuery<CalendarItem[]>(
 )
 const emptyDay = computed(() => view.value === 'timeGridDay' && !items.value.some((i) => i.start.slice(0, 10) <= range.value.from && (i.end ?? i.start).slice(0, 10) >= range.value.from))
 
-// Dark mode follows the system, like the rest of the app.
-const dark = window.matchMedia('(prefers-color-scheme: dark)')
-const scheme = ref(dark.matches ? 'dark' : 'light')
-const onScheme = () => (scheme.value = dark.matches ? 'dark' : 'light')
-dark.addEventListener('change', onScheme)
-onScopeDispose(() => dark.removeEventListener('change', onScheme))
+// Dark or light like the rest of the app (SPEC §3 Appearance).
+const scheme = computed(() => (isDark.value ? 'dark' : 'light'))
 
 const options = computed<CalendarOptions>(() => ({
   plugins: [classicTheme, dayGridPlugin, timeGridPlugin, interactionPlugin],

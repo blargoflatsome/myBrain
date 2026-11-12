@@ -1,6 +1,6 @@
 // Priority reminders in the app (SPEC §5 Priority tasks and priority habits): which ones are due right now.
 // The server sends the notifications; the app shows the full-screen reminder while one is due.
-import type { HabitLogRow, HabitRow, PriorityTaskLogRow, PriorityTaskRow, ReminderStateRow } from '@/sync/types'
+import type { HabitLogRow, HabitPauseRow, HabitRow, PriorityTaskLogRow, PriorityTaskRow, ReminderStateRow } from '@/sync/types'
 import { dayStatus, isScheduled, weekdayOf, zonedTime } from '@/habits/rules'
 import { addDays, onWeek, todayIn } from '@/tasks/days'
 
@@ -54,6 +54,7 @@ export function duePriorities(
   states: ReminderStateRow[],
   now: Date,
   timeZone: string,
+  pauses: HabitPauseRow[] = [],
 ): DuePriority[] {
   const today = todayIn(timeZone, now)
   const due: DuePriority[] = []
@@ -62,7 +63,8 @@ export function duePriorities(
     if (h.deleted_at || !h.is_priority || !h.notify_time || !isScheduled(h, today)) continue
     if (now.getTime() < zonedTime(today, h.notify_time, timeZone)) continue
     // Only while it can still be completed today (not done, timer not run out).
-    if (dayStatus(h, today, habitLogs, now, timeZone) !== 'open') continue
+    // Paused habits (SPEC §5 Habits Pause streaks) give no reminder either.
+    if (dayStatus(h, today, habitLogs, now, timeZone, pauses) !== 'open') continue
     if (held(stateFor(states, h.id, today), now)) continue
     due.push({ kind: 'habit', id: h.id, title: h.title, description: null, date: today })
   }

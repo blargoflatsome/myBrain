@@ -1,5 +1,5 @@
 // Journal rules (SPEC §5 Journal): the day's stats, missed days written on my behalf, and when stats freeze.
-import type { HabitLogRow, HabitRow, JournalEntryRow, JournalStats, PriorityTaskLogRow, PriorityTaskRow, QuestLogRow, QuestRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow } from '@/sync/types'
+import type { HabitLogRow, HabitPauseRow, HabitRow, JournalEntryRow, JournalStats, PriorityTaskLogRow, PriorityTaskRow, QuestLogRow, QuestRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow } from '@/sync/types'
 import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
 import { activeSteps, isAnytime, isScheduled as routineScheduled, runFor, stepsForDay } from '@/routines/rules'
 import { isTaskScheduled } from '@/reminders/priority'
@@ -11,6 +11,7 @@ export const DAY_TABLES = {
   tasks: 'tasks',
   habits: 'habits',
   habitLogs: 'habit_logs',
+  habitPauses: 'habit_pauses',
   routines: 'routines',
   routineSteps: 'routine_steps',
   routineRuns: 'routine_runs',
@@ -25,6 +26,8 @@ export interface DayData {
   tasks: TaskRow[]
   habits: HabitRow[]
   habitLogs: HabitLogRow[]
+  /** Pause all streaks (SPEC §5 Habits); optional so older callers still work. */
+  habitPauses?: HabitPauseRow[]
   routines: RoutineRow[]
   routineSteps: RoutineStepRow[]
   routineRuns: RoutineRunRow[]
@@ -66,14 +69,15 @@ export function dayStats(data: DayData, date: string, now: Date, timeZone: strin
   const priority: JournalStats['priority'] = []
   for (const h of habits) {
     const logs = data.habitLogs.filter((l) => l.habit_id === h.id)
-    const status = dayStatus(h, date, logs, asOf, timeZone)
+    const pauses = live(data.habitPauses ?? [])
+    const status = dayStatus(h, date, logs, asOf, timeZone, pauses)
     if (status === 'completed') kept++
     if (h.is_priority) priority.push({ title: h.title, done: status === 'completed' })
     if (status === 'completed') {
-      const { current } = streaks(h, logs, asOf, timeZone)
+      const { current } = streaks(h, logs, asOf, timeZone, pauses)
       if (current >= STREAK_MIN) streakNotes.push({ title: h.title, kind: 'reached', days: current })
     } else if (status === 'missed' && date > h.start_date) {
-      const before = streaks(h, logs, dayStart, timeZone).current
+      const before = streaks(h, logs, dayStart, timeZone, pauses).current
       if (before >= STREAK_MIN) streakNotes.push({ title: h.title, kind: 'reset', days: before })
     }
   }

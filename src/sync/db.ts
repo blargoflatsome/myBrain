@@ -32,6 +32,7 @@ export class LocalDb extends Dexie {
   priority_task_logs!: Table<RowTypes['priority_task_logs'], string>
   quest_logs!: Table<RowTypes['quest_logs'], string>
   badges!: Table<RowTypes['badges'], string>
+  habit_pauses!: Table<RowTypes['habit_pauses'], string>
   activity_log!: Table<RowTypes['activity_log'], string>
   reminder_state!: Table<RowTypes['reminder_state'], string>
   journal_entries!: Table<RowTypes['journal_entries'], string>
@@ -115,6 +116,10 @@ export class LocalDb extends Dexie {
     // What trophies need that wasn't recorded before (SPEC §5 Trophies).
     this.version(13).stores({
       activity_log: 'id, updated_at, kind',
+    })
+    // Pause all streaks (SPEC §5 Habits).
+    this.version(14).stores({
+      habit_pauses: 'id, updated_at',
     })
   }
 

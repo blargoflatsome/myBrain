@@ -50,6 +50,17 @@
         <button type="button" :class="quiet" @click="finish(current)">{{ m.done }}</button>
       </div>
     </section>
+    <!-- SPEC §5 Random Quest: a task can come up too; it has its own buttons and leaves quest numbers alone. -->
+    <section v-if="currentTask" class="flex flex-col gap-3 rounded-2xl border border-line border-l-4 border-l-accent bg-surface p-4" data-testid="quest-task-result" aria-live="polite">
+      <p class="text-sm text-muted">{{ m.taskResultHeading }}</p>
+      <h2 class="text-xl font-semibold break-words">{{ currentTask.title }}</h2>
+      <RichNotes :value="currentTask.notes" />
+      <div class="flex flex-wrap gap-2">
+        <button type="button" :class="primaryButtonSmall" @click="taskDone(currentTask)">{{ m.taskDone }}</button>
+        <button v-if="!currentTask.due_date" type="button" :class="quiet" @click="doToday(currentTask)">{{ m.doToday }}</button>
+        <button type="button" :class="quiet" @click="pick">{{ m.reroll }}</button>
+      </div>
+    </section>
     <p v-if="notice" class="rounded-xl border border-line bg-surface p-3" role="status" data-testid="quest-notice">{{ notice }}</p>
 
     <section v-if="inProgress.length" class="flex flex-col gap-2">
@@ -102,10 +113,12 @@ import { DEFAULT_QUEST_ENERGY, DEFAULT_QUEST_TIME } from '@/capture/capture'
 import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
-import { acceptQuest, byEffort, ENERGY_LEVELS, markPicked, pickQuest, TIME_BUCKETS } from '@/quests/picker'
+import { acceptQuest, byEffort, ENERGY_LEVELS, markPicked, pickFromDraw, RECENT_PICKS, tasksInDraw, TIME_BUCKETS } from '@/quests/picker'
+import { moveTask, toggleDone } from '@/tasks/rules'
+import { useToday } from '@/composables/useToday'
 import { useUndoStore } from '@/stores/undo'
 import { messages } from '@/messages'
-import type { EnergyLevel, QuestLogRow, QuestRow, TimeBucket } from '@/sync/types'
+import type { EnergyLevel, QuestLogRow, QuestRow, TaskRow, TimeBucket } from '@/sync/types'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
 import { filterChip, primaryButtonSmall, smallButton } from '@/ui/styles'
@@ -125,18 +138,44 @@ const energy = ref<EnergyLevel | null>(null)
 const time = ref<TimeBucket | null>(null)
 const currentId = ref<string | null>(null)
 const current = computed(() => live.value.find((q) => q.id === currentId.value) ?? null)
+
+// Tasks in the draw (SPEC §5 Random Quest): today's open tasks and Undated ones.
+const { today, timeZone } = useToday()
+const allTasks = useLiveQuery<TaskRow[]>(async () => (brain.db ? brain.db.tasks.toArray() : []), [], [() => brain.db])
+const drawTasks = computed(() => tasksInDraw(allTasks.value, today.value, timeZone.value))
+const currentTaskId = ref<string | null>(null)
+const currentTask = computed(() => drawTasks.value.find((t) => t.id === currentTaskId.value) ?? null)
+// Tasks have no "last picked" to store, so the last few picked here are skipped, like recent quests.
+const recentTasks = ref<string[]>([])
 const notice = ref('')
 
 async function pick() {
   notice.value = ''
-  const choice = pickQuest(live.value, { energy: energy.value, time: time.value })
+  currentId.value = null
+  currentTaskId.value = null
+  const choice = pickFromDraw(live.value, drawTasks.value, { energy: energy.value, time: time.value }, recentTasks.value)
   if (!choice) {
-    currentId.value = null
     notice.value = m.nothingFits
     return
   }
-  await brain.save('quests', markPicked(choice))
-  currentId.value = choice.id
+  if (choice.kind === 'task') {
+    recentTasks.value = [...recentTasks.value.filter((id) => id !== choice.id), choice.id].slice(-RECENT_PICKS)
+    currentTaskId.value = choice.id
+    return
+  }
+  const quest = live.value.find((q) => q.id === choice.id)!
+  await brain.save('quests', markPicked(quest))
+  currentId.value = quest.id
+}
+
+async function taskDone(t: TaskRow) {
+  await brain.saveTask(toggleDone(t))
+  currentTaskId.value = null
+  notice.value = m.taskFinished
+}
+async function doToday(t: TaskRow) {
+  await brain.saveTask(moveTask(t, today.value))
+  notice.value = m.taskToday
 }
 
 async function accept(q: QuestRow) {
@@ -149,6 +188,7 @@ async function accept(q: QuestRow) {
 const resultBox = ref<HTMLElement | null>(null)
 async function pickThis(q: QuestRow) {
   notice.value = ''
+  currentTaskId.value = null
   await brain.save('quests', markPicked(q))
   currentId.value = q.id
   await nextTick()

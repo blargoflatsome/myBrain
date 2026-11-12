@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { HabitLogRow, HabitRow } from '@/sync/types'
-import { dayStatus, deadline, isScheduled, keptLately, logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, weekdayOf, wrongMisses, zonedTime } from '@/habits/rules'
+import type { HabitLogRow, HabitPauseRow, HabitRow } from '@/sync/types'
+import { dayStatus, deadline, isScheduled, keptLately, pauseFrom, resumeAfter, logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, weekdayOf, wrongMisses, zonedTime } from '@/habits/rules'
 
 import { addDays } from '@/tasks/days'
 
@@ -172,6 +172,33 @@ describe('Spec §5 Habits: missed is not failure (Kept N of the last M)', () => 
   it('days the habit is not scheduled are left out', () => {
     const mondays = habit({ weekdays: [1] }) // Nov 2, 9, 16
     expect(keptLately(mondays, [done('2026-11-02'), done('2026-11-16')], at('2026-11-20T15:00:00Z'), NY)).toEqual({ kept: 2, total: 3 })
+  })
+})
+
+describe('Spec §5 Habits: Pause all streaks', () => {
+  const pause = (start_date: string, end_date: string | null = null): HabitPauseRow => ({ id: `p-${start_date}`, start_date, end_date, deleted_at: null })
+
+  it('paused days neither extend nor break a streak, and are never logged as missed', () => {
+    const logs = [done('2026-11-01'), done('2026-11-02')] // nothing Nov 3-5, paused
+    const now = at('2026-11-07T01:00:00Z') // Nov 6, 8 pm
+    const pauses = [pause('2026-11-03', '2026-11-05')]
+    expect(streaks(habit(), [...logs, done('2026-11-06')], now, NY, pauses)).toEqual({ current: 3, best: 3 })
+    expect(missedDaysToRecord(habit(), logs, now, NY, pauses)).toEqual([])
+  })
+
+  it('a habit checked off on a paused day still counts as kept, and can be checked off while paused', () => {
+    const now = at('2026-11-04T15:00:00Z')
+    const pauses = [pause('2026-11-03')]
+    expect(streaks(habit(), [done('2026-11-02'), done('2026-11-03')], now, NY, pauses)).toEqual({ current: 2, best: 2 })
+    expect(toggleAction(habit(), '2026-11-04', [], now, NY, pauses).kind).toBe('complete')
+  })
+
+  it('turning it on pauses from today (or reopens today’s pause); turning it off keeps today paused', () => {
+    expect(pauseFrom([], '2026-11-10', 'u', () => 'new')).toMatchObject({ id: 'new', start_date: '2026-11-10', end_date: null })
+    expect(pauseFrom([pause('2026-11-10', '2026-11-10')], '2026-11-10', 'u')).toMatchObject({ id: 'p-2026-11-10', end_date: null })
+    expect(pauseFrom([pause('2026-11-01')], '2026-11-10', 'u')).toBeNull()
+    expect(resumeAfter([pause('2026-11-01')], '2026-11-10')).toMatchObject({ end_date: '2026-11-10' })
+    expect(resumeAfter([], '2026-11-10')).toBeNull()
   })
 })
 

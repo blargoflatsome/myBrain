@@ -1,5 +1,6 @@
 // Random Quest (SPEC §5): random pick, skipping the last 3 picked, filtered by time and energy available.
-import type { EnergyLevel, QuestRow, TimeBucket } from '@/sync/types'
+import type { EnergyLevel, QuestRow, TaskRow, TimeBucket } from '@/sync/types'
+import { tasksForDay, undatedTasks } from '@/tasks/rules'
 
 export const ENERGY_LEVELS: EnergyLevel[] = ['ugh', 'fun', 'needs_setup', 'medicated'] // least to most
 export const TIME_BUCKETS: TimeBucket[] = ['30m', '2h', 'half_day', 'full_day'] // shortest to longest
@@ -67,3 +68,34 @@ export function markPicked(quest: QuestRow, now: Date = new Date()): QuestRow {
 export const acceptQuest = (q: QuestRow): QuestRow => ({ ...q, status: 'accepted' })
 /** Done (SPEC §5 Random Quest): back to the list to be picked again, out of In progress; the store logs the completion. */
 export const finishQuest = (q: QuestRow, now: Date = new Date()): QuestRow => ({ ...q, status: 'open', completed_at: now.toISOString() })
+
+/** Tasks in the draw (SPEC §5 Random Quest): open tasks due today, carried-over ones too, and open Undated tasks. */
+export function tasksInDraw(tasks: TaskRow[], today: string, timeZone: string): TaskRow[] {
+  return [...tasksForDay(tasks, today, today, timeZone), ...undatedTasks(tasks)].filter((t) => t.status === 'open')
+}
+
+export type Picked = { kind: 'quest' | 'task'; id: string }
+
+/**
+ * A random pick from the matching quests and the tasks in the draw (tasks match any filter), skipping recent quests
+ * and the tasks picked lately on the page (`recentTasks`, oldest first). If everything is recent, the least recently
+ * picked quest, else the task picked longest ago. Null when there is nothing at all.
+ */
+export function pickFromDraw(
+  quests: QuestRow[],
+  tasks: TaskRow[],
+  filter: QuestFilter = {},
+  recentTasks: readonly string[] = [],
+  random: () => number = Math.random,
+): Picked | null {
+  const recent = recentlyPicked(quests)
+  const pool: Picked[] = [
+    ...matchingQuests(quests, filter).filter((q) => !recent.has(q.id)).map((q) => ({ kind: 'quest' as const, id: q.id })),
+    ...tasks.filter((t) => !recentTasks.includes(t.id)).map((t) => ({ kind: 'task' as const, id: t.id })),
+  ]
+  if (pool.length) return pool[Math.floor(random() * pool.length)]!
+  const quest = pickQuest(quests, filter, random)
+  if (quest) return { kind: 'quest', id: quest.id }
+  const oldest = recentTasks.find((id) => tasks.some((t) => t.id === id))
+  return oldest ? { kind: 'task', id: oldest } : null
+}

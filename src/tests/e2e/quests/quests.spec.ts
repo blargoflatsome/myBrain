@@ -116,3 +116,22 @@ test.describe('Spec §5 Random Quest', () => {
     await expect(result(page).getByRole('heading')).toHaveText('Try bouldering')
   })
 })
+
+test.describe('Spec §5 Random Quest: tasks in the draw', () => {
+  test('an Undated task can come up; Do it today dates it, and Done crosses it off', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-11-10T15:00:00Z') })
+    server.seed('tasks', [{ id: 't1', title: 'call grandma', due_date: null, status: 'open', source: 'manual', priority: 1 }])
+    await page.goto('/quests')
+    const card = page.getByTestId('quest-task-result')
+    // The task arrives with the first sync; until then there's nothing to pick.
+    await expect(async () => {
+      await page.getByRole('button', { name: msg.quests.pick }).click()
+      await expect(card.getByRole('heading', { name: 'call grandma' })).toBeVisible({ timeout: 500 })
+    }).toPass()
+    await card.getByRole('button', { name: msg.quests.doToday }).click()
+    await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't1', due_date: '2026-11-10' })
+    await card.getByRole('button', { name: msg.quests.taskDone }).click()
+    await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't1', status: 'done' })
+    expect(server.written('quests')).toHaveLength(0)
+  })
+})

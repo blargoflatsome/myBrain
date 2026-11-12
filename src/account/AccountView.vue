@@ -48,6 +48,31 @@
         <p v-else class="text-muted">{{ m.offline }}</p>
       </section>
 
+      <!-- SPEC §3 Appearance: System, Light or Dark, saved as soon as I change it. -->
+      <section class="rounded-xl border border-line px-4 py-3" :aria-label="as.label" data-testid="appearance-settings">
+        <div class="flex flex-col gap-3">
+          <label :class="fieldLabel">
+            <span class="pb-2">{{ as.label }}</span>
+            <select v-model="appearanceChoice" :class="field" data-testid="appearance-setting" @change="saveAppearance">
+              <option v-for="a in APPEARANCES" :key="a" :value="a">{{ as.options[a] }}</option>
+            </select>
+          </label>
+          <p class="min-h-5 text-sm text-muted" role="status">{{ appearanceNotice }}</p>
+        </div>
+      </section>
+
+      <!-- SPEC §5 Habits Pause streaks: stays on until I turn it off; saved on change (works offline, it syncs). -->
+      <section class="rounded-xl border border-line px-4 py-3" :aria-label="ps.label" data-testid="pause-settings">
+        <div class="flex flex-col gap-3">
+          <label class="flex min-h-11 items-center gap-3">
+            <input type="checkbox" :class="checkbox" :checked="streaksPaused" data-testid="pause-streaks" @change="savePause(($event.target as HTMLInputElement).checked)">
+            <span>{{ ps.label }}</span>
+          </label>
+          <span class="text-xs text-muted">{{ ps.hint }}</span>
+          <p class="min-h-5 text-sm text-muted" role="status">{{ pauseNotice }}</p>
+        </div>
+      </section>
+
       <!-- SPEC §5 Tags page: reached from here. -->
       <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" aria-labelledby="account-tags" data-testid="account-tags">
         <span class="min-w-0">
@@ -198,7 +223,12 @@ import MyPeople from '@/events/components/MyPeople.vue'
 import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
 import { clearAppKeys } from '@/ui/storage'
-import { field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
+import { checkbox, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
+import { appearance, APPEARANCES, setAppearance, type Appearance } from '@/ui/appearance'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { openPause } from '@/habits/rules'
+import { live } from '@/sync/live'
+import type { HabitPauseRow } from '@/sync/types'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { CELEBRATION_SETTINGS, parseSetting, type CelebrationSetting } from '@/celebrate/rules'
 
@@ -238,6 +268,28 @@ async function save() {
   const ok = await profile.update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value })
   saving.value = false
   notice.value = ok ? m.saved : m.offline
+}
+
+// SPEC §3 Appearance: applies at once on this device, and is saved to my profile for my other devices.
+const as = messages.appearance
+const appearanceChoice = ref<Appearance>(appearance.value)
+const appearanceNotice = ref('')
+async function saveAppearance() {
+  appearanceNotice.value = ''
+  setAppearance(appearanceChoice.value)
+  const ok = await profile.update({ appearance: appearanceChoice.value })
+  appearanceNotice.value = ok ? m.saved : m.offline
+}
+
+// SPEC §5 Habits Pause streaks: kept as pause periods, synced like the rest of my habits.
+const ps = messages.pauseStreaks
+const pauses = useLiveQuery<HabitPauseRow[]>(async () => (brain.db ? live(await brain.db.habit_pauses.toArray()) : []), [], [() => brain.db])
+const streaksPaused = computed(() => !!openPause(pauses.value))
+const pauseNotice = ref('')
+async function savePause(on: boolean) {
+  pauseNotice.value = ''
+  await brain.setStreaksPaused(on)
+  pauseNotice.value = m.saved
 }
 
 // Celebrations has its own Save in Account Settings.

@@ -28,6 +28,7 @@ export const SYNC_TABLES = [
   'quest_logs',
   'badges',
   'activity_log',
+  'habit_pauses',
 ] as const
 
 /** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
@@ -245,6 +246,13 @@ export interface HabitLogRow extends BaseRow {
   completed_at?: string | null
 }
 
+/** Pause all streaks (SPEC §5 Habits): the days it was on; end_date is empty while still paused. */
+export interface HabitPauseRow extends BaseRow {
+  /** YYYY-MM-DD */
+  start_date: string
+  end_date: string | null
+}
+
 export interface RoutineRow extends BaseRow {
   /** 1 = every week, 2 = every 2 weeks (counted from the week it started). */
   week_interval?: number
@@ -347,6 +355,7 @@ export interface RowTypes {
   inbox: InboxRow
   habits: HabitRow
   habit_logs: HabitLogRow
+  habit_pauses: HabitPauseRow
   routines: RoutineRow
   routine_steps: RoutineStepRow
   routine_runs: RoutineRunRow

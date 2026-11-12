@@ -1,5 +1,17 @@
 @import 'tailwindcss';
 
+/* SPEC §3 Appearance: dark: classes follow the chosen appearance, or the device when it's System. */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme='light']) *) {
+      @slot;
+    }
+  }
+  &:where(:root[data-theme='dark'] *) {
+    @slot;
+  }
+}
+
 /* SPEC §2 Calm by design, §3 visual style: warm neutrals, one soft blue accent, muted status colours, light or dark
    following the system setting. Every text colour still meets WCAG AA contrast on its background. */
 @theme {
@@ -49,7 +61,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #14181d;
     --surface: #1b2027;
     --ink: #dfe3e6;
@@ -70,6 +82,28 @@
     --star: #e0c27a;
     color-scheme: dark;
   }
+}
+/* Appearance: Dark (SPEC §3), whatever the device says. */
+:root[data-theme='dark'] {
+  --bg: #14181d;
+  --surface: #1b2027;
+  --ink: #dfe3e6;
+  --muted: #9ea7af;
+  --line: #2b313a;
+  --accent: #8fb5d3;
+  --accent-ink: #10202c;
+  --done: #9cc4a8;
+  --carried: #e39a85;
+  --prio-low: #8fb59a;
+  --prio-medium: #d8b866;
+  --prio-high: #d98a73;
+  --danger: #f2867a;
+  --danger-ink: #3a0b06;
+  --warning: #f0a86a;
+  --warning-ink: #3a1a05;
+  --control: #6e7783;
+  --star: #e0c27a;
+  color-scheme: dark;
 }
 
 body {
@@ -123,11 +157,16 @@ textarea:focus {
 .note-green { background: #e4f0e6; color: #052e16; }
 /* In dark mode the notes stay paper-light, but pale and muted so they don't glare (SPEC §2 Calm by design). */
 @media (prefers-color-scheme: dark) {
-  .note-yellow { background: #e9dcae; color: #3a2a08; }
-  .note-pink { background: #e3c8d3; color: #3d1426; }
-  .note-blue { background: #c4d5e6; color: #13253a; }
-  .note-green { background: #c6dcc9; color: #10301a; }
+  :root:not([data-theme='light']) .note-yellow { background: #e9dcae; color: #3a2a08; }
+  :root:not([data-theme='light']) .note-pink { background: #e3c8d3; color: #3d1426; }
+  :root:not([data-theme='light']) .note-blue { background: #c4d5e6; color: #13253a; }
+  :root:not([data-theme='light']) .note-green { background: #c6dcc9; color: #10301a; }
 }
+/* Appearance: Dark (SPEC §3), whatever the device says. */
+:root[data-theme='dark'] .note-yellow { background: #e9dcae; color: #3a2a08; }
+:root[data-theme='dark'] .note-pink { background: #e3c8d3; color: #3d1426; }
+:root[data-theme='dark'] .note-blue { background: #c4d5e6; color: #13253a; }
+:root[data-theme='dark'] .note-green { background: #c6dcc9; color: #10301a; }
 /* Post Its look taped to the page (SPEC §5 Dashboard): a strip of tape, a slight tilt, a soft shadow, and the notes
    underneath peeking out of the stack. */
 .postit-card {
@@ -158,9 +197,13 @@ textarea:focus {
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.1);
 }
 @media (prefers-color-scheme: dark) {
-  .postit-card {
+  :root:not([data-theme='light']) .postit-card {
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 12px 24px -10px rgb(0 0 0 / 0.8);
   }
+}
+/* Appearance: Dark (SPEC §3), whatever the device says. */
+:root[data-theme='dark'] .postit-card {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 12px 24px -10px rgb(0 0 0 / 0.8);
 }
 .postit-flip-enter-active,
 .postit-flip-leave-active {

@@ -1,5 +1,5 @@
 // Dashboard stats (SPEC §5 Dashboard): habits, journal, events, tasks, routines and quests, over a chosen period.
-import type { EventInviteRow, EventRow, HabitLogRow, HabitRow, JournalEntryRow, JournalStats, QuestLogRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import type { EventInviteRow, EventRow, HabitLogRow, HabitPauseRow, HabitRow, JournalEntryRow, JournalStats, QuestLogRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { dayStatuses, streaks, zonedTime } from '@/habits/rules'
 import { isAnytime, routineStats } from '@/routines/rules'
 import { occursOn } from '@/events/rules'
@@ -33,14 +33,22 @@ export interface HabitStats {
   oldest: HabitRow | null
 }
 
-export function habitStats(habits: HabitRow[], logs: HabitLogRow[], now: Date, timeZone: string, from: string | null): HabitStats {
+export function habitStats(
+  habits: HabitRow[],
+  logs: HabitLogRow[],
+  now: Date,
+  timeZone: string,
+  from: string | null,
+  allPauses: HabitPauseRow[] = [],
+): HabitStats {
   const list = live(habits)
+  const pauses = live(allPauses)
   const rows = list
-    .map((habit) => ({ habit, ...streaks(habit, logs, now, timeZone) }))
+    .map((habit) => ({ habit, ...streaks(habit, logs, now, timeZone, pauses) }))
     .sort((a, b) => b.current - a.current || b.best - a.best || a.habit.title.localeCompare(b.habit.title))
   const mostMissed = list
     .map((habit) => {
-      const missed = dayStatuses(habit, logs, now, timeZone, from ?? habit.start_date).filter((d) => d.status === 'missed').length
+      const missed = dayStatuses(habit, logs, now, timeZone, from ?? habit.start_date, pauses).filter((d) => d.status === 'missed').length
       return { habit, missed }
     })
     .filter((x) => x.missed > 0)

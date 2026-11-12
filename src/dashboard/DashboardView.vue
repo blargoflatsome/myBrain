@@ -311,10 +311,10 @@ const stats = useLiveQuery(
       buckets: 'vault_buckets',
       vaultItems: 'vault_items',
     })
-    const { habits, habitLogs, tasks, questLogs, routines, routineSteps: steps, routineRuns: runs, routineStepLogs: logs } = day
+    const { habits, habitLogs, habitPauses, tasks, questLogs, routines, routineSteps: steps, routineRuns: runs, routineStepLogs: logs } = day
     return {
       yesterday: yesterdaySummary(dayStats(day, addDays(today.value, -1), now.value, timeZone.value)),
-      habits: habitStats(habits, habitLogs, now.value, timeZone.value, from),
+      habits: habitStats(habits, habitLogs, now.value, timeZone.value, from, habitPauses),
       journal: journalStreaks(journal, today.value),
       worstDay: daysSinceWorstDay(journal, today.value),
       favorites: favoriteBuckets(buckets, vaultItems),
