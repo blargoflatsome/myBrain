@@ -1,10 +1,10 @@
 <template>
   <EditorDialog
     :open="!!task"
-    :heading="m.editor.heading"
+    :heading="isNew ? m.editor.newHeading : m.editor.heading"
     :save-label="m.editor.save"
     :close-label="m.editor.close"
-    :delete-label="m.editor.delete"
+    :delete-label="isNew ? null : m.editor.delete"
     @save="save"
     @delete="deleteNow"
     @close="emit('close')"
@@ -16,24 +16,7 @@
     <DateInput v-model="dueDate" :label="m.editor.date" :hint="m.editor.dateHint" :input-class="field" />
     <NotesEditor v-model="notes" :label="m.editor.notes" test-id="task-notes" />
     <MoreOptions :summary="m.editor.moreSummary" :start-open="hasExtras" test-id="task-more">
-      <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted pb-2">{{ m.priorityLabel }}</legend>
-        <div class="grid grid-cols-3 gap-2">
-          <label
-            v-for="p in PRIORITIES"
-            :key="p.level"
-            class="flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-line px-2 text-sm has-[:checked]:border-accent has-[:checked]:font-semibold"
-          >
-            <input v-model="priority" type="radio" name="priority" :value="p.level" class="sr-only">
-            <span
-              class="size-2.5 rounded-full"
-              :class="priorityDot[p.key]"
-              aria-hidden="true"
-            />
-            {{ m.priority[p.key] }}
-          </label>
-        </div>
-      </fieldset>
+      <PriorityPicker v-model="priority" />
       <TagInput v-model="tags.names.value" />
     </MoreOptions>
   </EditorDialog>
@@ -42,19 +25,20 @@
 <script setup lang="ts">
 // Edit a task: title, notes, date (blank = Undated), priority; Delete asks first (SPEC §2 Confirm before impact).
 import EditorDialog from '@/components/EditorDialog.vue'
+import PriorityPicker from '@/tasks/components/PriorityPicker.vue'
 import { computed, ref, watch } from 'vue'
 import TagInput from '@/tags/components/TagInput.vue'
 import { useItemTags } from '@/tags/useItemTags'
 import type { TaskRow } from '@/sync/types'
-import { PRIORITIES, DEFAULT_PRIORITY } from '@/tasks/rules'
+import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { messages } from '@/messages'
 import DateInput from '@/components/DateInput.vue'
 import MoreOptions from '@/components/MoreOptions.vue'
 import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
-import { field, fieldLabel, priorityDot } from '@/ui/styles'
+import { field, fieldLabel } from '@/ui/styles'
 
-const props = defineProps<{ task: TaskRow | null }>()
+const props = withDefaults(defineProps<{ task: TaskRow | null; isNew?: boolean }>(), { isNew: false })
 const emit = defineEmits<{ save: [TaskRow]; delete: [TaskRow]; close: [] }>()
 const m = messages.tasks
 

@@ -147,7 +147,7 @@ test.describe('Spec §5 Routines: list and stats', () => {
       await route.fallback()
     })
     await open(page, '/routines')
-    await page.getByRole('button', { name: msg.routines.edit }).first().click()
+    await page.getByRole('heading', { name: 'Daily Morning Routine' }).click()
     const titles = page.getByRole('dialog').getByTestId('routine-step-row').getByRole('textbox')
     await expect(titles).toHaveCount(1)
     release()
@@ -184,7 +184,7 @@ test.describe('Spec §5 Routines: list and stats', () => {
   test('a routine can be deleted after confirming', async ({ page }) => {
     seedMorning()
     await open(page, '/routines')
-    await page.getByRole('button', { name: msg.routines.edit }).click()
+    await page.getByRole('heading', { name: 'Daily Morning Routine' }).click()
     await page.getByRole('button', { name: msg.routines.editor.delete }).click()
     const confirm = page.getByRole('alertdialog', { name: msg.routines.confirmDelete.heading })
     await expect(confirm).toContainText('"Daily Morning Routine" and its history will be removed from all your devices.')

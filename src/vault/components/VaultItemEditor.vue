@@ -1,10 +1,10 @@
 <template>
   <EditorDialog
     :open="!!item"
-    :heading="m.itemEditor.heading"
+    :heading="isNew ? m.itemEditor.newHeading : m.itemEditor.heading"
     :save-label="m.itemEditor.save"
     :close-label="m.itemEditor.close"
-    :delete-label="m.itemEditor.delete"
+    :delete-label="isNew ? null : m.itemEditor.delete"
     @save="save"
     @delete="deleteNow"
     @close="emit('close')"
@@ -64,7 +64,7 @@ import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
 import { field, fieldLabel } from '@/ui/styles'
 
-const props = defineProps<{ item: VaultItemRow | null; buckets: VaultBucketRow[] }>()
+const props = withDefaults(defineProps<{ item: VaultItemRow | null; buckets: VaultBucketRow[]; isNew?: boolean }>(), { isNew: false })
 const emit = defineEmits<{ save: [VaultItemRow]; delete: [VaultItemRow]; close: [] }>()
 const m = messages.vault
 

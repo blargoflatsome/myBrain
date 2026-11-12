@@ -45,16 +45,16 @@
             <label class="flex items-center gap-1"><input v-model="audience" type="radio" value="everyone" class="accent-[var(--accent)]">{{ m.messageEveryone }}</label>
           </div>
           <textarea v-model="text" rows="2" maxlength="2000" class="rounded-xl border border-line bg-bg px-3 py-2 text-base" :placeholder="m.messagePlaceholder" :aria-label="m.messagePlaceholder" />
-          <button type="submit" class="min-h-11 self-start rounded-xl border border-line px-4">{{ m.send }}</button>
+          <button type="submit" :class="[smallButton, 'self-start']">{{ m.send }}</button>
           <p v-if="notice" class="text-sm" role="status">{{ notice }}</p>
         </form>
-        <button v-if="answer === 'yes' || answer === 'maybe'" type="button" class="min-h-11 self-start rounded-xl border border-danger px-4 text-sm font-semibold text-danger" @click="emit('dropOut', event)">
+        <button v-if="answer === 'yes' || answer === 'maybe'" type="button" :class="warningOutline" @click="emit('dropOut', event)">
           {{ m.dropOut }}
         </button>
       </template>
       <p class="text-xs text-muted">{{ m.readOnly }}</p>
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
-      <button type="button" class="min-h-11 rounded-xl border border-line px-4" @click="dialog?.close()">{{ messages.calendar.editor.close }}</button>
+      <button type="button" :class="smallButton" @click="dialog?.close()">{{ messages.calendar.editor.close }}</button>
     </div>
     <CloseX @click="dialog?.close()" />
   </dialog>
@@ -72,7 +72,7 @@ import { messageEvent, respondToInvite } from '@/events/sharing'
 import { connectViaEvent, eventAttendees, setEventVisibility, type Attendee } from '@/connections/connections'
 import { messages } from '@/messages'
 import type { EventInviteRow, EventRow } from '@/sync/types'
-import { checkbox, choice } from '@/ui/styles'
+import { checkbox, choice, smallButton, warningOutline } from '@/ui/styles'
 
 const props = defineProps<{ event: EventRow | null; invite: EventInviteRow | null }>()
 const emit = defineEmits<{ close: []; dropOut: [EventRow] }>()

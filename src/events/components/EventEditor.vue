@@ -70,7 +70,7 @@
       <button
         v-if="!isNew && event && !event.cancelled_at"
         type="button"
-        class="min-h-11 self-start rounded-xl border border-danger px-4 text-sm font-semibold text-danger"
+        :class="warningOutline"
         @click="emit('cancel', event)"
       >
         {{ messages.cancelEvent.button }}
@@ -105,7 +105,7 @@ import { eventProblem, nextWholeHour, REMINDERS, REPEATS } from '@/events/rules'
 import { messages } from '@/messages'
 import type { EventRepeat, EventRow } from '@/sync/types'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { checkbox, field, fieldLabel } from '@/ui/styles'
+import { checkbox, field, fieldLabel, warningOutline } from '@/ui/styles'
 import { dayLabel, timeLabel } from '@/ui/dates'
 
 const props = defineProps<{ event: EventRow | null; isNew: boolean }>()

@@ -38,8 +38,8 @@
       <h2 class="px-3 pb-1 text-sm font-semibold text-muted">{{ messages.nav.more }}</h2>
       <ul class="flex flex-col gap-1">
         <li v-for="item in MORE_NAV" :key="item.to">
-          <RouterLink :to="item.to" class="flex min-h-12 items-center justify-between rounded-xl px-3 text-base hover:bg-bg" exact-active-class="bg-bg font-semibold" @click="sheet?.close()">
-            {{ item.label }}
+          <RouterLink :to="item.to" class="flex min-h-12 items-center gap-3 rounded-xl px-3 text-base hover:bg-bg" exact-active-class="bg-bg font-semibold" @click="sheet?.close()">
+            <AppIcon :name="item.icon" size="size-5" /><span class="flex-1">{{ item.label }}</span>
             <span v-if="item.to === '/orphans' && inboxCount" class="rounded-full bg-accent px-2 text-xs text-accent-ink" data-testid="inbox-count">{{ inboxCount }}</span>
           </RouterLink>
         </li>

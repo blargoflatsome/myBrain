@@ -1,13 +1,8 @@
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
-    <div>
-      <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted" data-testid="habits-tagline">{{ m.intro }}</p>
-    </div>
-
-    <button type="button" class="self-start bg-surface font-medium" :class="secondaryButton" @click="startNew">
-      {{ m.add }}
-    </button>
+    <PageHeading :heading="m.heading" :intro="m.intro" intro-test-id="habits-tagline">
+      <NewButton :label="m.add" data-testid="new-habit" @click="startNew" />
+    </PageHeading>
 
     <p v-if="!habits.length" class="text-muted">{{ m.empty }}</p>
 
@@ -21,22 +16,20 @@
           :data-testid="`habit-${h.id}`"
         >
           <div class="flex items-start gap-3">
-            <button
-              type="button"
-              class="relative mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm"
-              :class="ring[status(h)]"
-              :aria-label="status(h) === 'completed' ? m.undo(h.title) : m.complete(h.title)"
-              :aria-pressed="status(h) === 'completed'"
+            <CheckCircle
+              :on="status(h) === 'completed'"
+              :muted="status(h) === 'missed'"
+              :label="status(h) === 'completed' ? m.undo(h.title) : m.complete(h.title)"
               :disabled="status(h) === 'missed'"
+              data-testid="habit-toggle"
               @click="toggle(h)"
             >
-              <span v-if="status(h) === 'completed'" aria-hidden="true">✓</span>
               <!-- SPEC §5 Celebrations: the ring fills around the habit as it's done. -->
               <svg v-if="justDone === h.id" aria-hidden="true" viewBox="0 0 36 36" class="celebrate-ring pointer-events-none absolute -inset-1.5 size-11 -rotate-90" data-testid="habit-ring">
                 <circle cx="18" cy="18" r="16" fill="none" stroke="var(--done)" stroke-width="3" stroke-linecap="round" />
               </svg>
-              <span v-else-if="status(h) === 'missed'" aria-hidden="true">✕</span>
-            </button>
+              <span v-if="status(h) === 'missed'" aria-hidden="true">✕</span>
+            </CheckCircle>
             <button type="button" class="flex min-w-0 flex-1 flex-col items-start gap-1 text-left" @click="edit(h)">
               <span class="text-base break-words" :class="status(h) === 'completed' ? 'text-muted' : ''">{{ h.title }}</span>
               <span class="flex flex-wrap gap-x-3 text-xs text-muted" data-testid="habit-meta">
@@ -49,6 +42,7 @@
                 <span v-if="h.is_priority" class="text-carried"><AppIcon name="alert" class="mr-1" />{{ m.priorityBadge }}</span>
               </span>
             </button>
+            <RowDelete :label="m.deleteLabel(h.title)" @click="askDelete(h)" />
           </div>
           <p v-if="status(h) === 'missed'" class="text-sm text-muted">{{ m.missedNote }}</p>
           <p v-if="celebrated === h.id" class="text-sm font-medium text-accent" role="status">{{ m.newBest }}</p>
@@ -59,8 +53,8 @@
     <section v-if="notToday.length" class="flex flex-col gap-2">
       <h2 class="text-lg font-semibold">{{ m.notTodayHeading }}</h2>
       <ul class="flex flex-col gap-2">
-        <li v-for="h in notToday" :key="h.id">
-          <button type="button" class="flex w-full flex-col items-start gap-1 rounded-2xl border border-line bg-surface p-3 text-left" @click="edit(h)">
+        <li v-for="h in notToday" :key="h.id" class="flex items-start gap-1 rounded-2xl border border-line bg-surface p-3 pr-1">
+          <button type="button" class="flex min-w-0 flex-1 flex-col items-start gap-1 text-left" @click="edit(h)">
             <span>{{ h.title }}</span>
             <span class="flex gap-3 text-xs text-muted">
               <span>{{ h.weekdays.map((d) => m.weekdayNames[d]).join(' ') }}</span>
@@ -68,11 +62,21 @@
               <span>{{ m.best(streakOf(h).best) }}</span>
             </span>
           </button>
+          <RowDelete :label="m.deleteLabel(h.title)" @click="askDelete(h)" />
         </li>
       </ul>
     </section>
 
     <HabitEditor :habit="editing" :is-new="isNew" @save="save" @delete="remove" @close="editing = null" />
+    <!-- SPEC §2 Confirm before impact: a habit goes with its history, so the row's trash can asks first. -->
+    <ConfirmDialog
+      ref="confirmDialog"
+      :heading="m.confirmDelete.heading"
+      :body="m.confirmDelete.body(deleting?.title ?? '')"
+      :confirm-label="m.confirmDelete.confirm"
+      :keep-label="m.confirmDelete.keep"
+      @confirm="deleting && remove(deleting)"
+    />
   </main>
 </template>
 
@@ -93,7 +97,11 @@ import { momentLabel } from '@/ui/dates'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
 import { live } from '@/sync/live'
 import { useRoute, useRouter } from 'vue-router'
-import { secondaryButton } from '@/ui/styles'
+import PageHeading from '@/components/PageHeading.vue'
+import NewButton from '@/components/NewButton.vue'
+import RowDelete from '@/components/RowDelete.vue'
+import CheckCircle from '@/components/CheckCircle.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const brain = useBrainStore()
 const auth = useAuthStore()
@@ -194,13 +202,15 @@ async function save(h: HabitRow) {
 }
 async function remove(h: HabitRow) {
   await brain.deleteHabit(h.id)
-  editing.value = null
+  confirmDialog.value?.close()
+  if (editing.value?.id === h.id) editing.value = null
+  deleting.value = null
+}
+const deleting = ref<HabitRow | null>(null)
+const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
+function askDelete(h: HabitRow) {
+  deleting.value = h
+  confirmDialog.value?.open()
 }
 
-const ring = {
-  completed: 'border-accent bg-accent text-accent-ink',
-  missed: 'border-danger text-danger',
-  open: 'border-muted',
-  not_scheduled: 'border-line',
-} as const
 </script>

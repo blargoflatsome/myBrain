@@ -33,10 +33,20 @@ export const primaryButton = 'min-h-12 rounded-xl bg-accent px-4 font-semibold t
 export const primaryButtonSmall = 'min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink'
 /** A secondary action (Close, Cancel, Keep it). */
 export const secondaryButton = 'min-h-12 rounded-xl border border-line px-4'
+/** A smaller secondary action inside a page or card (Settings, Clear crossed-off, Download my data). */
+export const smallButton = 'min-h-11 rounded-xl border border-line px-3 text-sm'
 /** A small action at the end of a list row (Edit, Cancel), the same in every list (SPEC §2 Calm by design). */
 export const rowAction = 'flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 text-sm font-medium'
+/** The "+ New …" button beside a list page's heading: the same on every page (SPEC §2 Adding looks alike). */
+export const newButton = 'flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-accent bg-accent/10 px-3 text-sm font-semibold text-ink'
+/** The trash can at the end of a list row (SPEC §2 Rows look alike). */
+export const rowDelete = 'flex size-11 shrink-0 items-center justify-center rounded-xl text-muted hover:bg-bg hover:text-ink'
 /** The quiet Delete link at the bottom of an editor (it asks first or offers Undo). */
 export const deleteLink = 'self-start text-sm text-danger underline'
+/** The confirming action of something that affects other people (Cancel event, Drop out): orange, not red (SPEC §2). */
+export const warningButton = 'min-h-12 rounded-xl bg-warning px-4 font-semibold text-warning-ink'
+/** The same as a quiet outlined button, where it starts that action. */
+export const warningOutline = 'min-h-11 self-start rounded-xl border border-warning px-4 text-sm font-semibold text-warning'
 /** The confirming action of something that removes data. */
 export const dangerButton = 'min-h-12 rounded-xl bg-danger px-4 font-semibold text-danger-ink'
 

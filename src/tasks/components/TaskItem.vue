@@ -1,18 +1,7 @@
 <template>
   <li class="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3" :data-testid="`task-${task.id}`">
     <div class="flex items-start gap-3">
-      <button
-        type="button"
-        class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-muted text-sm"
-        :class="done ? 'border-accent bg-accent text-accent-ink' : ''"
-        :aria-label="done ? m.uncross(task.title) : m.crossOff(task.title)"
-        :aria-pressed="done"
-        @click="emit('toggle')"
-      >
-        <svg v-if="done" aria-hidden="true" viewBox="0 0 24 24" class="size-4" :class="{ 'celebrate-draw': justDone }" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" data-testid="task-check">
-          <path d="M5 12.5l4.5 4.5L19 7.5" />
-        </svg>
-      </button>
+      <CheckCircle :on="done" :draw-in="justDone" :label="done ? m.uncross(task.title) : m.crossOff(task.title)" data-testid="task-toggle" @click="emit('toggle')" />
       <button type="button" class="flex min-w-0 flex-1 flex-col items-start gap-1 text-left" @click="emit('edit')">
         <span
           class="text-base break-words transition-colors"
@@ -26,9 +15,7 @@
           {{ m.priority[priority] }}
         </span>
       </button>
-      <button type="button" :class="rowAction" :aria-label="m.editLabel(task.title)" data-testid="task-edit" @click="emit('edit')">
-        <AppIcon name="pencil" />{{ m.edit }}
-      </button>
+      <RowDelete :label="m.deleteLabel(task.title)" @click="emit('delete')" />
     </div>
     <p v-if="carried === 1" class="text-sm text-muted">{{ m.carriedOnce }}</p>
     <template v-else-if="needsDecision(task, today)">
@@ -41,16 +28,18 @@
 </template>
 
 <script setup lang="ts">
-// One task (SPEC §5 Tasks): cross off, priority dot, carry-over in red, Cancel/Edit after two carry-overs.
+// One task (SPEC §5 Tasks): cross off, priority dot, carry-over colour, the title opens the editor, the trash can
+// deletes (SPEC §2 Rows look alike), Cancel task after two carry-overs.
 import { computed, ref, watch } from 'vue'
 import type { TaskRow } from '@/sync/types'
 import { carryOverCount, needsDecision, priorityKey } from '@/tasks/rules'
 import { messages } from '@/messages'
 import { priorityDot, rowAction } from '@/ui/styles'
-import AppIcon from '@/components/AppIcon.vue'
+import CheckCircle from '@/components/CheckCircle.vue'
+import RowDelete from '@/components/RowDelete.vue'
 
 const props = defineProps<{ task: TaskRow; today: string }>()
-const emit = defineEmits<{ toggle: []; edit: []; cancel: [] }>()
+const emit = defineEmits<{ toggle: []; edit: []; delete: []; cancel: [] }>()
 const m = messages.tasks
 
 const carried = computed(() => carryOverCount(props.task, props.today))

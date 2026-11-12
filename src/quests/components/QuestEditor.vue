@@ -1,10 +1,10 @@
 <template>
   <EditorDialog
     :open="!!quest"
-    :heading="m.editor.heading"
+    :heading="isNew ? m.editor.newHeading : m.editor.heading"
     :save-label="m.editor.save"
     :close-label="m.editor.close"
-    :delete-label="m.editor.delete"
+    :delete-label="isNew ? null : m.editor.delete"
     @save="save"
     @delete="deleteNow"
     @close="emit('close')"
@@ -42,7 +42,7 @@ import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
 import { field, fieldLabel } from '@/ui/styles'
 
-const props = defineProps<{ quest: QuestRow | null }>()
+const props = withDefaults(defineProps<{ quest: QuestRow | null; isNew?: boolean }>(), { isNew: false })
 const emit = defineEmits<{ save: [QuestRow]; delete: [QuestRow]; close: [] }>()
 const m = messages.quests
 

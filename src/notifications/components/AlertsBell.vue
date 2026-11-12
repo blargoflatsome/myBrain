@@ -16,7 +16,7 @@
     <div v-if="listOpen" class="flex max-h-[85dvh] flex-col gap-3 p-5">
       <div class="flex items-center justify-between gap-3 pr-12">
         <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
-        <button v-if="alerts.length" type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="clearAll">{{ m.clearAll }}</button>
+        <button v-if="alerts.length" type="button" :class="smallButton" @click="clearAll">{{ m.clearAll }}</button>
       </div>
       <p v-if="!alerts.length" class="text-muted">{{ m.empty }}</p>
       <ul v-else class="flex min-h-0 flex-col divide-y divide-line overflow-y-auto">
@@ -35,7 +35,7 @@
         </li>
       </ul>
       <PageControls v-model:page="page" :page-count="pageCount" :label="m.heading" />
-      <button type="button" class="min-h-11 self-end rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.close }}</button>
+      <button type="button" :class="[smallButton, 'self-end']" @click="dialog?.close()">{{ m.close }}</button>
       <p class="sr-only" aria-live="polite">{{ announcement }}</p>
     </div>
     <CloseX @click="dialog?.close()" />
@@ -57,7 +57,7 @@ import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { useCelebrateStore } from '@/stores/celebrate'
 import type { NotificationRow } from '@/sync/types'
-import { dialogBox } from '@/ui/styles'
+import { dialogBox, smallButton } from '@/ui/styles'
 
 const m = messages.alerts
 const brain = useBrainStore()

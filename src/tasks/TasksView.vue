@@ -1,15 +1,14 @@
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
-    <div>
-      <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <p class="text-muted" data-testid="tasks-intro">{{ m.intro }}</p>
-    </div>
+    <PageHeading :heading="m.heading" :intro="m.intro" intro-test-id="tasks-intro">
+      <NewButton v-if="view !== 'priority'" :label="m.newTask" data-testid="new-task" @click="startNew" />
+    </PageHeading>
     <div class="flex gap-2 rounded-2xl bg-surface p-1" role="tablist">
       <button
         type="button"
         role="tab"
         :aria-selected="view === 'day'"
-        :class="[tab, view === 'day' ? 'bg-accent/10 font-semibold text-ink' : 'text-muted']"
+        :class="[tab, view === 'day' ? tabOn : 'text-muted']"
         @click="view = 'day'"
       >
         {{ m.todayHeading }}
@@ -18,7 +17,7 @@
         type="button"
         role="tab"
         :aria-selected="view === 'undated'"
-        :class="[tab, view === 'undated' ? 'bg-accent/10 font-semibold text-ink' : 'text-muted']"
+        :class="[tab, view === 'undated' ? tabOn : 'text-muted']"
         @click="view = 'undated'"
       >
         {{ m.undatedHeading }}
@@ -27,7 +26,7 @@
         type="button"
         role="tab"
         :aria-selected="view === 'priority'"
-        :class="[tab, view === 'priority' ? 'bg-accent/10 font-semibold text-ink' : 'text-muted']"
+        :class="[tab, view === 'priority' ? tabOn : 'text-muted']"
         @click="view = 'priority'"
       >
         {{ messages.priority.tabHeading }}
@@ -36,12 +35,12 @@
 
     <PriorityTasks v-if="view === 'priority'" :open-id="openPriority" @opened="(openPriority = null), router.replace({ query: {} })" />
     <template v-else>
-      <div v-if="view === 'day'" class="flex items-center justify-between">
-        <button type="button" class="min-h-11 min-w-11 rounded-xl text-xl" :aria-label="m.day.previous" @click="day = addDays(day, -1)">‹</button>
-        <button type="button" class="text-xl font-bold" @click="day = today">
-          <h2>{{ dayLabel }}</h2>
-        </button>
-        <button type="button" class="min-h-11 min-w-11 rounded-xl text-xl" :aria-label="m.day.next" @click="day = addDays(day, 1)">›</button>
+      <!-- SPEC §5 Tasks: moving between days works like the Calendar (bordered arrows, Today when elsewhere). -->
+      <div v-if="view === 'day'" class="flex items-center gap-1">
+        <button type="button" :class="dayArrow" :aria-label="m.day.previous" @click="day = addDays(day, -1)">‹</button>
+        <button v-if="offset !== 0" type="button" :class="smallButton" data-testid="tasks-today" @click="day = today">{{ m.day.today }}</button>
+        <button type="button" :class="dayArrow" :aria-label="m.day.next" @click="day = addDays(day, 1)">›</button>
+        <h2 class="ml-2 text-xl font-bold">{{ dayLabel }}</h2>
       </div>
       <h2 v-else class="text-xl font-bold">{{ m.undatedHeading }}</h2>
 
@@ -62,7 +61,7 @@
       <button
         v-if="doneInList"
         type="button"
-        class="min-h-11 self-end rounded-xl border border-line px-4 text-sm"
+        :class="[smallButton, 'self-end']"
         data-testid="clear-done"
         @click="clearCrossedOff"
       >
@@ -76,13 +75,14 @@
           :task="t"
           :today="today"
           @toggle="brain.saveTask(toggleDone(t))"
-          @edit="editing = t"
+          @edit="edit(t)"
+          @delete="remove(t)"
           @cancel="brain.saveTask(cancelTask(t))"
         />
       </ul>
     </template>
 
-    <TaskEditor :task="editing" @save="saveEdit" @delete="remove" @close="editing = null" />
+    <TaskEditor :task="editing" :is-new="isNew" @save="saveEdit" @delete="remove" @close="editing = null" />
   </main>
 </template>
 
@@ -93,16 +93,19 @@ import { useRoute, useRouter } from 'vue-router'
 import TaskItem from '@/tasks/components/TaskItem.vue'
 import TaskEditor from '@/tasks/components/TaskEditor.vue'
 import PriorityTasks from '@/reminders/components/PriorityTasks.vue'
+import PageHeading from '@/components/PageHeading.vue'
+import NewButton from '@/components/NewButton.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { addDays, daysBetween } from '@/tasks/days'
-import { cancelTask, clearDone, clearedForDay, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
+import { cancelTask, clearDone, clearedForDay, DEFAULT_PRIORITY, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
 import { messages } from '@/messages'
 import type { TaskRow } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
 import { useUndoStore } from '@/stores/undo'
-import { primaryButton } from '@/ui/styles'
+import { primaryButton, selected, smallButton } from '@/ui/styles'
+import { useAuthStore } from '@/stores/auth'
 
 const brain = useBrainStore()
 const m = messages.tasks
@@ -162,6 +165,26 @@ async function add() {
 }
 
 const editing = ref<TaskRow | null>(null)
+const isNew = ref(false)
+function edit(t: TaskRow) {
+  isNew.value = false
+  editing.value = t
+}
+// SPEC §2 Adding looks alike: + New task opens the editor for the day (or Undated) I'm looking at.
+const auth = useAuthStore()
+function startNew() {
+  isNew.value = true
+  editing.value = {
+    id: crypto.randomUUID(),
+    user_id: auth.user?.id ?? '',
+    title: '',
+    due_date: view.value === 'undated' ? null : offset.value < 0 ? today.value : day.value,
+    priority: DEFAULT_PRIORITY,
+    status: 'open',
+    source: 'manual',
+    deleted_at: null,
+  }
+}
 const route = useRoute()
 const router = useRouter()
 // Opened with ?priority=<id> (from the calendar): show the Priority tab and open that priority task.
@@ -186,7 +209,7 @@ watch(
       view.value = 'day'
       day.value = task.due_date < today.value && task.status === 'open' ? today.value : task.due_date
     } else view.value = 'undated'
-    editing.value = task
+    edit(task)
     void router.replace({ query: {} })
   },
   { immediate: true },
@@ -197,9 +220,12 @@ async function saveEdit(t: TaskRow) {
 }
 async function remove(t: TaskRow) {
   await brain.remove('tasks', t.id)
-  editing.value = null
+  if (editing.value?.id === t.id) editing.value = null
   undo.offer(messages.undo.deleted(t.title), () => brain.restore('tasks', t.id))
 }
 
 const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
+// SPEC §2 Choices look alike: the chosen tab is the soft tint with a check mark.
+const tabOn = [selected, 'border'].join(' ')
+const dayArrow = 'flex size-11 items-center justify-center rounded-xl border border-line text-xl'
 </script>

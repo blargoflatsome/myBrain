@@ -24,7 +24,7 @@
     <div class="flex flex-wrap gap-2">
       <button
         type="button"
-        class="min-h-11 rounded-xl border border-line px-4"
+        :class="smallButton"
         aria-controls="dash-trophy-list"
         :aria-expanded="showAll"
         data-testid="dash-trophies-more"
@@ -32,7 +32,7 @@
       >
         {{ showAll ? t.seeFewer : t.seeAll }}
       </button>
-      <button type="button" class="min-h-11 rounded-xl border border-line px-4" data-testid="dash-trophies-locked" @click="lockedDialog?.showModal()">
+      <button type="button" :class="smallButton" data-testid="dash-trophies-locked" @click="lockedDialog?.showModal()">
         {{ t.seeLocked }}
       </button>
     </div>
@@ -93,7 +93,7 @@ import { byCategory, newest, trophyName, type BoardItem } from '@/trophies/board
 import { TIERS } from '@/trophies/definitions'
 import { messages } from '@/messages'
 import { dateWithYear } from '@/ui/dates'
-import { card, dialogBox, secondaryButton } from '@/ui/styles'
+import { card, dialogBox, secondaryButton, smallButton } from '@/ui/styles'
 
 const props = defineProps<{ items: BoardItem[] }>()
 const cm = messages.celebrations

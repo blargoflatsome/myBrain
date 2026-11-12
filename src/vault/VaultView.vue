@@ -1,10 +1,9 @@
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <template v-if="!bucket">
-      <div>
-        <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-        <p class="text-muted">{{ m.intro }}</p>
-      </div>
+      <PageHeading :heading="m.heading" :intro="m.intro">
+        <NewButton :label="m.newBucket" data-testid="new-bucket" @click="addingBucket = true" />
+      </PageHeading>
       <p v-if="!buckets.length" class="text-muted">{{ m.noBuckets }}</p>
       <ul class="flex flex-col gap-2" :aria-label="m.bucketsHeading">
         <li v-for="b in buckets" :key="b.id" class="flex items-center rounded-2xl border border-line bg-surface" data-testid="vault-bucket">
@@ -15,19 +14,16 @@
         </li>
       </ul>
       <form v-if="addingBucket" class="flex gap-2" @submit.prevent="createBucket">
-        <input v-model="newBucketName" maxlength="200" :class="fieldOnPage" :aria-label="m.newBucketName" :placeholder="m.newBucketName">
+        <input v-model="newBucketName" maxlength="200" autofocus :class="fieldOnPage" :aria-label="m.newBucketName" :placeholder="m.newBucketName">
         <button type="submit" class="shrink-0" :class="primaryButton">{{ m.createBucket }}</button>
       </form>
-      <button v-else type="button" class="self-start bg-surface font-medium" :class="secondaryButton" @click="addingBucket = true">
-        {{ m.newBucket }}
-      </button>
     </template>
 
     <template v-else>
       <div class="flex flex-col gap-2">
         <button type="button" class="self-start text-sm text-muted underline" @click="router.push({ query: {} })">← {{ m.back }}</button>
-        <div class="flex items-center justify-between gap-3">
-          <h1 class="text-2xl font-bold">{{ bucket.name }}</h1>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h1 class="min-w-0 text-2xl font-bold break-words">{{ bucket.name }}</h1>
           <div class="flex shrink-0 gap-2">
             <button
               type="button"
@@ -40,7 +36,8 @@
             >
               <AppIcon name="star" :filled="bucket.starred" size="size-5" />
             </button>
-            <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="editingBucket = bucket">{{ m.settings }}</button>
+            <button type="button" :class="smallButton" @click="editingBucket = bucket">{{ m.settings }}</button>
+            <NewButton :label="m.newItem" data-testid="new-item" @click="startNewItem" />
           </div>
         </div>
       </div>
@@ -59,20 +56,15 @@
           :class="i.checked ? 'text-muted' : ''"
           data-testid="vault-item"
         >
-          <button
+          <CheckCircle
             v-if="bucket.checkable"
-            type="button"
             role="checkbox"
-            class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-sm"
-            :class="i.checked ? 'border-accent bg-accent text-accent-ink' : 'border-control'"
-            :aria-checked="!!i.checked"
-            :aria-label="i.checked ? m.uncheck(i.title) : m.check(i.title)"
+            :on="!!i.checked"
+            :label="i.checked ? m.uncheck(i.title) : m.check(i.title)"
             @click="brain.toggleVaultItem(i.id)"
-          >
-            <span v-if="i.checked" aria-hidden="true">✓</span>
-          </button>
+          />
           <div class="flex min-w-0 flex-1 flex-col gap-1">
-            <button type="button" class="text-left font-medium" :class="i.checked ? 'line-through' : ''" :aria-label="m.open(i.title)" @click="editing = i">
+            <button type="button" class="text-left font-medium" :class="i.checked ? 'line-through' : ''" :aria-label="m.open(i.title)" @click="(isNewItem = false), (editing = i)">
               {{ i.title }}
             </button>
             <span v-if="i.rating" class="text-sm text-star" :aria-label="m.stars(i.rating)" role="img"><AppIcon v-for="n in 5" :key="n" name="star" :filled="n <= i.rating" :class="n <= i.rating ? '' : 'text-muted'" /></span>
@@ -86,22 +78,15 @@
               :aria-label="`${linkTarget(i.link).kind === 'map' ? m.openMap : m.openLink}: ${linkLabel(i.link)}`"
             ><AppIcon :name="linkTarget(i.link).kind === 'map' ? 'pin' : 'link'" class="mr-1" />{{ linkLabel(i.link) }}</a>
           </div>
-          <button
-            type="button"
-            class="-my-1 -mr-1 flex size-11 shrink-0 items-center justify-center rounded-xl text-muted hover:text-danger"
-            :aria-label="m.deleteItem(i.title)"
-            @click="askDelete(i)"
-          >
-            <AppIcon name="trash" size="size-5" />
-          </button>
+          <RowDelete class="-my-1 -mr-1" :label="m.deleteItem(i.title)" @click="askDelete(i)" />
         </li>
       </ul>
-      <button v-if="checked.length" type="button" class="min-h-11 self-start rounded-xl border border-line px-4 text-sm" @click="clearChecked">
+      <button v-if="checked.length" type="button" :class="[smallButton, 'self-start']" @click="clearChecked">
         {{ m.clearChecked }}
       </button>
     </template>
 
-    <VaultItemEditor :item="editing" :buckets="buckets" @save="saveItem" @delete="deleteItem" @close="closeEditor" />
+    <VaultItemEditor :item="editing" :is-new="isNewItem" :buckets="buckets" @save="saveItem" @delete="deleteItem" @close="closeEditor" />
     <BucketEditor
       :bucket="editingBucket"
       :item-count="editingBucket ? countIn(editingBucket) : 0"
@@ -124,7 +109,12 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { activeBuckets, checkedItems, itemsInBucket, linkLabel, linkTarget } from '@/vault/rules'
 import { messages } from '@/messages'
 import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
-import { fieldOnPage, primaryButton, secondaryButton } from '@/ui/styles'
+import { fieldOnPage, primaryButton, smallButton } from '@/ui/styles'
+import PageHeading from '@/components/PageHeading.vue'
+import NewButton from '@/components/NewButton.vue'
+import RowDelete from '@/components/RowDelete.vue'
+import CheckCircle from '@/components/CheckCircle.vue'
+import { useAuthStore } from '@/stores/auth'
 import { live } from '@/sync/live'
 import { useUndoStore } from '@/stores/undo'
 import { plainText } from '@/journal/body'
@@ -185,8 +175,17 @@ watch(
   },
   { immediate: true },
 )
+const isNewItem = ref(false)
+// SPEC §2 Adding looks alike: + New item opens the item editor for this bucket (the quick-add box stays too).
+const auth = useAuthStore()
+function startNewItem() {
+  if (!bucket.value) return
+  isNewItem.value = true
+  editing.value = { id: crypto.randomUUID(), user_id: auth.user?.id ?? '', bucket_id: bucket.value.id, title: '', notes: null, rating: null, link: null, checked: false, created_at: new Date().toISOString(), deleted_at: null }
+}
 async function closeEditor() {
   editing.value = null
+  isNewItem.value = false
   if (route.query.item) await router.replace({ query: { bucket: bucketId.value ?? undefined } })
 }
 async function saveItem(i: VaultItemRow) {

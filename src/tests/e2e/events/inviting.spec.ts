@@ -31,7 +31,7 @@ test.describe('Spec §5 Calendar: inviting shows what happened at every step', (
       { invite_id: 'inv-dan', name: 'Dan', email: null, phone: '5550103000', token: 'tok-dan' },
     ]
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.tasks.edit }).click()
+    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
     await openAttendees(dialog)
     await dialog.getByLabel(msg.invites.contact).fill('5550103000')

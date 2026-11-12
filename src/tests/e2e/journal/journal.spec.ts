@@ -152,7 +152,7 @@ test.describe('Spec §5 Journal', () => {
     await expect(entry).toContainText(msg.journal.autoNote)
     await expect(entry.getByTestId('stat-habits').getByTestId('stat-value')).toHaveText('1 of 1')
 
-    await entry.getByRole('button', { name: msg.journal.edit }).click()
+    await entry.getByTestId('journal-edit').click()
     await entry.getByRole('textbox', { name: msg.journal.writeLabel }).click()
     await page.keyboard.type('Remembering now: it was a good one.')
     await entry.getByRole('button', { name: msg.journal.done, exact: true }).click()

@@ -57,21 +57,20 @@ test.describe('Spec §5 Tasks: carry-over', () => {
     await expect(item(page, 'call bank').getByRole('button', { name: msg.tasks.cancel })).toHaveCount(0)
   })
 
-  test('carried over a second time: Cancel and Edit appear; Cancel removes it but keeps history', async ({ page }) => {
+  test('carried over a second time: Cancel task appears; Cancel removes it but keeps history', async ({ page }) => {
     server.seed('tasks', [task('a', 'clean garage', '2026-11-08')])
     await open(page)
     const row = item(page, 'clean garage')
     await expect(row).toContainText(msg.tasks.carriedMany(2))
-    await expect(row.getByRole('button', { name: msg.tasks.edit })).toBeVisible()
     await row.getByRole('button', { name: msg.tasks.cancel }).click()
     await expect(row).toHaveCount(0)
     await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 'a', status: 'cancelled', deleted_at: null })
   })
 
-  test('Edit makes it easier: moving it to today clears the carry-over', async ({ page }) => {
+  test('editing makes it easier: moving it to today clears the carry-over', async ({ page }) => {
     server.seed('tasks', [task('a', 'clean garage', '2026-11-08')])
     await open(page)
-    await item(page, 'clean garage').getByRole('button', { name: msg.tasks.edit }).click()
+    await item(page, 'clean garage').getByTestId('task-title').click()
     const dialog = page.getByRole('dialog', { name: msg.tasks.editor.heading })
     await dialog.getByLabel(msg.tasks.editor.title).fill('clean one shelf')
     await dialog.getByLabel(msg.tasks.editor.date).fill('2026-11-10')
@@ -106,7 +105,7 @@ test.describe('Spec §5 Tasks: scheduling and the Undated list', () => {
     await expect(item(page, 'pick up dry cleaning')).toBeVisible()
     await expect.poll(() => server.written('tasks')[0]).toMatchObject({ due_date: '2026-11-11', source: 'manual', priority: 1 })
 
-    await page.getByRole('heading', { level: 2 }).click() // back to today
+    await page.getByTestId('tasks-today').click()
     await expect(page.getByRole('heading', { level: 2 })).toHaveText(msg.tasks.todayHeading)
     await expect(item(page, 'pick up dry cleaning')).toHaveCount(0)
   })

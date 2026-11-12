@@ -134,7 +134,7 @@
                 <div v-for="x in stats.habits.mostMissed" :key="x.habit.id" class="flex items-center gap-3">
                   <span class="w-32 shrink-0 truncate text-sm">{{ x.habit.title }}</span>
                   <div class="h-3 flex-1 overflow-hidden rounded-full bg-line">
-                    <div class="h-full rounded-full bg-danger/70" :style="{ width: `${(x.missed / maxMissed) * 100}%` }" />
+                    <div class="h-full rounded-full bg-muted/60" :style="{ width: `${(x.missed / maxMissed) * 100}%` }" />
                   </div>
                   <span class="w-16 text-right text-sm tabular-nums">{{ m.missedDays(x.missed) }}</span>
                 </div>

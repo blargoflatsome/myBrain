@@ -17,7 +17,7 @@
     <form v-else class="flex flex-col gap-8" @submit.prevent="save">
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">{{ m.destinations[type] }}</h1>
-        <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="reset">{{ m.back }}</button>
+        <button type="button" :class="smallButton" @click="reset">{{ m.back }}</button>
       </div>
       <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
 
@@ -99,21 +99,7 @@
       <template v-if="type === 'task'">
         <DateInput v-model="dueDate" :label="m.taskDateLabel" :hint="m.taskDateHint" :input-class="fieldOnPage" />
         <NotesEditor v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted pb-2">{{ t.priorityLabel }}</legend>
-          <div class="flex flex-wrap gap-2" role="group" :aria-label="t.priorityLabel">
-            <button
-              v-for="p in [...PRIORITIES].reverse()"
-              :key="p.level"
-              type="button"
-              :class="chip(priority === p.level)"
-              :aria-pressed="priority === p.level"
-              @click="priority = p.level"
-            >
-              <span class="mr-1 inline-block size-2 rounded-full" :class="dot[p.key]" aria-hidden="true" />{{ t.priority[p.key] }}
-            </button>
-          </div>
-        </fieldset>
+        <PriorityPicker v-model="priority" />
       </template>
 
       <NotesEditor v-if="type === 'vault'" v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
@@ -155,8 +141,9 @@
       </div>
 
       <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
-      <button type="submit" class="min-h-14 rounded-2xl bg-accent px-4 text-lg font-semibold text-accent-ink" :disabled="saving">
-        {{ m.save }}
+      <!-- SPEC §5 Quick capture: the Save button looks like every editor's and says what it saves. -->
+      <button type="submit" :class="primaryButton" :disabled="saving" data-testid="capture-save">
+        {{ type ? m.saveAs[type] : m.save }}
       </button>
     </form>
   </div>
@@ -184,11 +171,11 @@ import {
   type CaptureInput,
   type Destination,
 } from '@/capture/capture'
-import { PRIORITIES } from '@/tasks/rules'
 import { ENERGY_LEVELS, TIME_BUCKETS } from '@/quests/picker'
 import { messages } from '@/messages'
 import type { EnergyLevel, PostItColor, TimeBucket, VaultBucketRow } from '@/sync/types'
-import { chip, fieldOnPage, priorityDot } from '@/ui/styles'
+import { chip, fieldOnPage, primaryButton, smallButton } from '@/ui/styles'
+import PriorityPicker from '@/tasks/components/PriorityPicker.vue'
 import { activeBuckets } from '@/vault/rules'
 
 // The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
@@ -202,7 +189,6 @@ const props = defineProps<{
 const brain = useBrainStore()
 const m = messages.capture
 const q = messages.quests
-const t = messages.tasks
 const pm = messages.postIts
 
 // Post It (SPEC §5 Quick capture): a small formatted note and a color.
@@ -378,5 +364,4 @@ async function save() {
 
 const typeBtn = 'min-h-16 rounded-2xl border border-line bg-surface px-4 text-lg font-semibold text-ink active:scale-[0.98]'
 const types: Destination[] = ['task', 'vault', 'quest', 'habit', 'postit', 'later']
-const dot = priorityDot
 </script>

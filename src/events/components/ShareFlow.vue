@@ -21,7 +21,7 @@
           data-testid="share-open"
         >{{ current.phone ? m.openText : m.openEmail }}</a>
         <div class="flex gap-2">
-          <button type="button" class="min-h-11 flex-1 rounded-xl border border-line px-3" @click="next(true)">{{ m.next }}</button>
+          <button type="button" :class="[smallButton, 'flex-1']" @click="next(true)">{{ m.next }}</button>
           <button type="button" class="min-h-11 rounded-xl border border-line px-3 text-muted" @click="next(false)">{{ m.skip }}</button>
         </div>
       </template>
@@ -41,7 +41,7 @@ import CloseX from '@/components/CloseX.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { markShared, shareHref, type ShareTarget } from '@/events/sharing'
 import { messages } from '@/messages'
-import { primaryButton } from '@/ui/styles'
+import { primaryButton, smallButton } from '@/ui/styles'
 
 const props = defineProps<{ targets: ShareTarget[]; kind: 'invite' | 'message' | 'cancel' | 'update' }>()
 /** done: how many messages I said I sent. */

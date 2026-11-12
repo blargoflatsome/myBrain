@@ -31,7 +31,7 @@ test.describe('Spec §5 Post It', () => {
     await page.getByRole('toolbar', { name: 'Formatting: Post It' }).getByRole('button', { name: msg.editor.bold }).click()
     await page.keyboard.type('Call the vet')
     await page.getByRole('radiogroup', { name: msg.postIts.color }).getByRole('radio', { name: /Blue/ }).click()
-    await page.getByRole('button', { name: msg.capture.save, exact: true }).click()
+    await page.getByTestId('capture-save').click()
     await expect(page.getByTestId('capture-notice')).toHaveText(msg.capture.saved.postit)
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ body: '<p><strong>Call the vet</strong></p>', color: 'blue' })
 
@@ -45,7 +45,7 @@ test.describe('Spec §5 Post It', () => {
   test('an empty Post It is not saved', async ({ page }) => {
     await open(page, '/capture')
     await page.getByRole('group', { name: msg.capture.typeHeading }).getByRole('button', { name: msg.postIts.label, exact: true }).click()
-    await page.getByRole('button', { name: msg.capture.save, exact: true }).click()
+    await page.getByTestId('capture-save').click()
     await expect(page.getByRole('alert')).toHaveText(msg.postIts.emptyError)
     expect(server.written('post_its')).toHaveLength(0)
   })
