@@ -5,6 +5,10 @@ import { router } from './router'
 import './style.css'
 import { registerSW } from 'virtual:pwa-register'
 import { installModalFocus } from './a11y/focus'
+import { startAppearance } from './ui/appearance'
+
+// SPEC §3 Appearance: the saved choice applies before anything shows.
+startAppearance()
 
 // SPEC §3/§7: service worker so the app opens and captures offline; updates install automatically.
 // An installed app can stay open for days without loading a page, so it also checks for a new version every hour

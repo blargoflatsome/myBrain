@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { readJson, writeJson } from '@/ui/storage'
+import { parseAppearance, setAppearance } from '@/ui/appearance'
 
 /** The columns of my profile the app reads (SPEC §4 profiles). */
 export interface Profile {
@@ -11,6 +12,8 @@ export interface Profile {
   avatar_url: string | null
   streak_visibility: 'private' | 'approved'
   celebrations: string | null
+  /** SPEC §3 Appearance: system, light or dark. */
+  appearance: string | null
   timezone: string
   phone: string | null
   phone_verified: boolean
@@ -47,6 +50,8 @@ export const useProfileStore = defineStore('profile', () => {
 
   function keep(next: Profile) {
     full = next
+    // SPEC §3 Appearance: my saved choice follows me to every device.
+    if (next.appearance !== undefined) setAppearance(parseAppearance(next.appearance))
     shown.value = { user_id: next.user_id, display_name: next.display_name, avatar_url: next.avatar_url }
     writeJson(CACHE_KEY, shown.value)
   }

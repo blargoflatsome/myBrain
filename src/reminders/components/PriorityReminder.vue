@@ -36,7 +36,8 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { duePriorities, type DuePriority } from '@/reminders/priority'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { messages } from '@/messages'
-import type { HabitLogRow, HabitRow, PriorityTaskLogRow, PriorityTaskRow, ReminderStateRow } from '@/sync/types'
+import { live } from '@/sync/live'
+import type { HabitLogRow, HabitPauseRow, HabitRow, PriorityTaskLogRow, PriorityTaskRow, ReminderStateRow } from '@/sync/types'
 import { secondaryButton } from '@/ui/styles'
 
 const brain = useBrainStore()
@@ -56,9 +57,10 @@ const tasks = all<PriorityTaskRow>('priority_tasks')
 const habitLogs = todays<HabitLogRow>('habit_logs')
 const taskLogs = todays<PriorityTaskLogRow>('priority_task_logs')
 const states = todays<ReminderStateRow>('reminder_state')
+const pauses = useLiveQuery<HabitPauseRow[]>(async () => (brain.db ? live(await brain.db.habit_pauses.toArray()) : []), [], [() => brain.db])
 
 const due = computed(() =>
-  duePriorities(habits.value, habitLogs.value, tasks.value, taskLogs.value, states.value, now.value, deviceTimeZone()),
+  duePriorities(habits.value, habitLogs.value, tasks.value, taskLogs.value, states.value, now.value, deviceTimeZone(), pauses.value),
 )
 const current = computed<DuePriority | undefined>(() => due.value[0])
 const slider = ref(0)

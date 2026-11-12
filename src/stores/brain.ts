@@ -72,7 +72,8 @@ export const useBrainStore = defineStore('brain', () => {
     const local = db.value
     const markReady = async () => {
       if (await local.meta.get('downloaded:badges')) badgesReady.value = true
-      if (await local.meta.get('downloaded:habit_logs')) habitsReady.value = true
+      // Misses are only worked out once logs and pauses are both here, so a paused day is never logged as missed.
+      if ((await local.meta.get('downloaded:habit_logs')) && (await local.meta.get('downloaded:habit_pauses'))) habitsReady.value = true
       if (habitsReady.value && (await local.meta.get('downloaded:journal_entries'))) await journal.refreshJournal()
     }
     const synced = async () => {

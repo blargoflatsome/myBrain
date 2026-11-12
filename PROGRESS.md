@@ -118,6 +118,14 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Tasks: one muted line above the list (`tasks-line`; intro only in the line or on the Priority tab); Pick 3 toggle on today when more than 3 are open, rest folded under Show the rest (`pickThree` in `tasks/rules.ts`, remembered as `tasks.pickThree`).
 - Tests: unit `habits/rules.test.ts`, `tasks/rules.test.ts`; e2e `tasks/tasks.spec.ts`. Quick checks pass (Vitest 381, desktop browser 376, lint). Full review (2026-11-12): Vitest 381, Playwright 717/718 (32 skipped); the one iPhone failure (a dropped test-server connection on the Terms page) passed 6/6 alone. No migration.
 
+## UI review D: new features (merged via PR, branch `ui-features`)
+- From [docs/UI_REVIEW_TASKS.md](docs/UI_REVIEW_TASKS.md) N1–N3; SPEC §3 Visual style, §4 habit_pauses, §5 Random Quest, Habits, Account page; DECISIONS 2026-11-12.
+- Quest Picker: today's open tasks and Undated tasks are in the draw (`tasksInDraw`, `pickFromDraw` in `quests/picker.ts`); a picked task has Done, Do it today (Undated) and Re-roll; quest stats untouched.
+- Pause all streaks: Account Settings checkbox; `habit_pauses` table synced like other habits; paused days are a new `paused` day status (no streak change, no misses, still checkable); streaks, Dashboard, Journal, priority alarms and the server reminder job skip them; Habits page shows one line while paused; Delete my data (Habits) removes pauses. Habit misses wait until pauses have downloaded.
+- Appearance: System, Light, Dark in Account Settings (`ui/appearance.ts`, `profiles.appearance`, kept on the device as `my-brain:appearance`); dark colours also apply with `data-theme="dark"`; Calendar follows it.
+- Migration `20261112010000_pause_streaks_appearance.sql`: applied to dev; `npm run test:db` passes (30 files, new `rls_habit_pauses.sql`). Prod migrated (second push confirms up to date).
+- Tests: unit `quests/picker.test.ts`, `habits/rules.test.ts`; e2e `account/appearance-and-pause.spec.ts` (new), `quests/quests.spec.ts`. Full review (2026-11-12): Vitest 387, Playwright 718/721 (32 skipped); the 3 iPhone failures (dropped test-server connections on a11y page loads) passed 18/18 alone.
+
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
 - Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).

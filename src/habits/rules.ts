@@ -1,9 +1,10 @@
 // Habit rules (SPEC §5 Habits): weekdays, timer deadlines, misses, and streaks.
 // habit_logs is the source of truth; the cached streak numbers on a habit are recalculated from it.
-import type { HabitLogRow, HabitRow } from '@/sync/types'
+import type { HabitLogRow, HabitPauseRow, HabitRow } from '@/sync/types'
 import { addDays, onWeek, todayIn } from '@/tasks/days'
 
-export type DayStatus = 'not_scheduled' | 'completed' | 'missed' | 'open'
+/** 'paused': a scheduled day while Pause all streaks was on (SPEC §5 Habits); it neither extends nor breaks a streak. */
+export type DayStatus = 'not_scheduled' | 'completed' | 'missed' | 'open' | 'paused'
 export const ALL_WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]
 
 /** The chosen weekdays with one day switched on or off, in order; the last chosen day can't be switched off. */
@@ -109,22 +110,70 @@ function isLate(habit: HabitRow, date: string, now: Date, timeZone: string, sett
   return date < settled || now.getTime() > deadline(habit, date, timeZone)
 }
 
-function statusWith(habit: HabitRow, date: string, log: HabitLogRow | undefined, late: boolean): DayStatus {
+/** The pause still on, if any. */
+export function openPause(pauses: readonly HabitPauseRow[]): HabitPauseRow | undefined {
+  return pauses.find((p) => !p.deleted_at && !p.end_date)
+}
+
+/**
+ * Turning Pause all streaks on (SPEC §5 Habits): a new pause from today, or today's own pause opened again if I turned
+ * it off earlier today. Null when already paused.
+ */
+export function pauseFrom(
+  pauses: readonly HabitPauseRow[],
+  today: string,
+  userId: string,
+  newId: () => string = () => crypto.randomUUID(),
+): HabitPauseRow | null {
+  if (openPause(pauses)) return null
+  const endedToday = pauses.find((p) => !p.deleted_at && p.end_date === today)
+  if (endedToday) return { ...endedToday, end_date: null }
+  return { id: newId(), user_id: userId, start_date: today, end_date: null, deleted_at: null }
+}
+
+/** Turning it off ends the pause after today, so today stays paused. Null when not paused. */
+export function resumeAfter(pauses: readonly HabitPauseRow[], today: string): HabitPauseRow | null {
+  const open = openPause(pauses)
+  return open ? { ...open, end_date: today < open.start_date ? open.start_date : today } : null
+}
+
+/** Whether Pause all streaks covered this day (SPEC §5 Habits). */
+export function pausedOn(pauses: readonly HabitPauseRow[], date: string): boolean {
+  return pauses.some((p) => !p.deleted_at && p.start_date <= date && (!p.end_date || p.end_date >= date))
+}
+
+function statusWith(habit: HabitRow, date: string, log: HabitLogRow | undefined, late: boolean, paused: boolean): DayStatus {
   if (!isScheduled(habit, date)) return 'not_scheduled'
+  // A day checked off while paused still counts as kept.
   if (log?.status === 'completed') return 'completed'
+  if (paused) return 'paused'
   // A "missed" log written before the deadline (for example by an older version of the app) does not count, so
   // a day is missed only once its deadline has passed.
   return late ? 'missed' : 'open'
 }
 
-export function dayStatus(habit: HabitRow, date: string, logs: readonly HabitLogRow[], now: Date, timeZone: string): DayStatus {
+export function dayStatus(
+  habit: HabitRow,
+  date: string,
+  logs: readonly HabitLogRow[],
+  now: Date,
+  timeZone: string,
+  pauses: readonly HabitPauseRow[] = [],
+): DayStatus {
   if (!isScheduled(habit, date)) return 'not_scheduled'
   const late = isLate(habit, date, now, timeZone, settledBefore(todayIn(timeZone, now)))
-  return statusWith(habit, date, liveLog(logs, habit.id, date), late)
+  return statusWith(habit, date, liveLog(logs, habit.id, date), late, pausedOn(pauses, date))
 }
 
 /** Each day's status from the habit's start to today, walking its history once (SPEC §5 Habits). */
-export function dayStatuses(habit: HabitRow, logs: readonly HabitLogRow[], now: Date, timeZone: string, from = habit.start_date) {
+export function dayStatuses(
+  habit: HabitRow,
+  logs: readonly HabitLogRow[],
+  now: Date,
+  timeZone: string,
+  from = habit.start_date,
+  pauses: readonly HabitPauseRow[] = [],
+) {
   const today = todayIn(timeZone, now)
   const settled = settledBefore(today)
   const byDate = logsByDate(logs, habit.id)
@@ -136,7 +185,7 @@ export function dayStatuses(habit: HabitRow, logs: readonly HabitLogRow[], now: 
     }
     const log = byDate.get(date)
     const late = log?.status === 'completed' ? false : isLate(habit, date, now, timeZone, settled)
-    days.push({ date, status: statusWith(habit, date, log, late), logged: !!log })
+    days.push({ date, status: statusWith(habit, date, log, late, pausedOn(pauses, date)), logged: !!log })
   }
   return days
 }
@@ -154,10 +203,10 @@ export function wrongMisses(habit: HabitRow, logs: readonly HabitLogRow[], now: 
  * A completed day extends the streak, a missed day resets it to zero (the best is kept), and today
  * while still open neither extends nor breaks it. Days the habit isn't scheduled are skipped.
  */
-export function streaks(habit: HabitRow, logs: readonly HabitLogRow[], now: Date, timeZone: string) {
+export function streaks(habit: HabitRow, logs: readonly HabitLogRow[], now: Date, timeZone: string, pauses: readonly HabitPauseRow[] = []) {
   let current = 0
   let best = 0
-  for (const { status } of dayStatuses(habit, logs, now, timeZone)) {
+  for (const { status } of dayStatuses(habit, logs, now, timeZone, habit.start_date, pauses)) {
     if (status === 'completed') best = Math.max(best, ++current)
     else if (status === 'missed') current = 0
   }
@@ -168,11 +217,18 @@ export function streaks(habit: HabitRow, logs: readonly HabitLogRow[], now: Date
  * "Kept 26 of the last 30" (SPEC §5 Habits): of the scheduled days in the last `days` days, how many were kept,
  * out of those already settled (today counts only once it's kept or missed).
  */
-export function keptLately(habit: HabitRow, logs: readonly HabitLogRow[], now: Date, timeZone: string, days = 30) {
+export function keptLately(
+  habit: HabitRow,
+  logs: readonly HabitLogRow[],
+  now: Date,
+  timeZone: string,
+  pauses: readonly HabitPauseRow[] = [],
+  days = 30,
+) {
   const from = addDays(todayIn(timeZone, now), 1 - days)
   let kept = 0
   let total = 0
-  for (const { status } of dayStatuses(habit, logs, now, timeZone, from)) {
+  for (const { status } of dayStatuses(habit, logs, now, timeZone, from, pauses)) {
     if (status === 'completed') kept++
     if (status === 'completed' || status === 'missed') total++
   }
@@ -180,8 +236,14 @@ export function keptLately(habit: HabitRow, logs: readonly HabitLogRow[], now: D
 }
 
 /** Scheduled days whose deadline passed with nothing logged: these get a "missed" log (SPEC §5 Habits). */
-export function missedDaysToRecord(habit: HabitRow, logs: readonly HabitLogRow[], now: Date, timeZone: string): string[] {
-  return dayStatuses(habit, logs, now, timeZone)
+export function missedDaysToRecord(
+  habit: HabitRow,
+  logs: readonly HabitLogRow[],
+  now: Date,
+  timeZone: string,
+  pauses: readonly HabitPauseRow[] = [],
+): string[] {
+  return dayStatuses(habit, logs, now, timeZone, habit.start_date, pauses)
     .filter((d) => d.status === 'missed' && !d.logged)
     .map((d) => d.date)
 }
@@ -193,9 +255,11 @@ export function toggleAction(
   logs: readonly HabitLogRow[],
   now: Date,
   timeZone: string,
+  pauses: readonly HabitPauseRow[] = [],
 ): { kind: 'complete' } | { kind: 'undo'; log: HabitLogRow } | { kind: 'none' } {
-  const status = dayStatus(habit, date, logs, now, timeZone)
-  if (status === 'open') return { kind: 'complete' }
+  const status = dayStatus(habit, date, logs, now, timeZone, pauses)
+  // I can still check habits off while paused (SPEC §5 Habits).
+  if (status === 'open' || status === 'paused') return { kind: 'complete' }
   if (status === 'completed' && now.getTime() <= deadline(habit, date, timeZone)) {
     return { kind: 'undo', log: liveLog(logs, habit.id, date)! }
   }

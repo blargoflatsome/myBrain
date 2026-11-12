@@ -5,6 +5,8 @@
     </PageHeading>
 
     <p v-if="!habits.length" class="text-muted">{{ m.empty }}</p>
+    <!-- SPEC §5 Habits: Pause all streaks says so here, in one muted line. -->
+    <p v-else-if="pausedNow" class="text-muted" data-testid="habits-paused">{{ m.pausedLine }}</p>
 
     <section v-if="scheduledToday.length" class="flex flex-col gap-2">
       <h2 class="text-lg font-semibold">{{ m.todayHeading }}</h2>
@@ -33,7 +35,7 @@
               <span class="text-base break-words" :class="status(h) === 'completed' ? 'text-muted' : ''">{{ h.title }}</span>
               <span class="flex flex-wrap gap-x-3 text-xs text-muted" data-testid="habit-meta">
                 <span data-testid="habit-status">{{
-                  status(h) === 'completed' ? m.doneToday : status(h) === 'missed' ? m.missedToday : dueText(h)
+                  status(h) === 'completed' ? m.doneToday : status(h) === 'missed' ? m.missedToday : status(h) === 'paused' ? m.pausedToday : dueText(h)
                 }}</span>
                 <span data-testid="habit-streak" :class="{ 'celebrate-bounce': justDone === h.id }"><AppIcon name="flame" class="mr-1" />{{ m.streak(streakOf(h).current) }}</span>
                 <span data-testid="habit-best">{{ m.best(streakOf(h).best) }}</span>
@@ -91,11 +93,11 @@ import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { dayStatus, deadline, dueByMidnight, isScheduled, keptLately, newHabit, streaks, type DayStatus } from '@/habits/rules'
+import { dayStatus, deadline, dueByMidnight, isScheduled, keptLately, newHabit, openPause, streaks, type DayStatus } from '@/habits/rules'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import { momentLabel } from '@/ui/dates'
-import type { HabitLogRow, HabitRow } from '@/sync/types'
+import type { HabitLogRow, HabitPauseRow, HabitRow } from '@/sync/types'
 import { live } from '@/sync/live'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeading from '@/components/PageHeading.vue'
@@ -115,6 +117,8 @@ const habits = useLiveQuery<HabitRow[]>(
   [() => brain.db],
 )
 const logs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
+const pauses = useLiveQuery<HabitPauseRow[]>(async () => (brain.db ? live(await brain.db.habit_pauses.toArray()) : []), [], [() => brain.db])
+const pausedNow = computed(() => !!openPause(pauses.value))
 
 // A clock that ticks each minute, so a timer running out shows as missed without a reload.
 const now = useNow()
@@ -148,9 +152,9 @@ const byHabit = computed(() => {
   const map = new Map<string, { status: DayStatus; streak: { current: number; best: number }; kept: { kept: number; total: number } }>()
   for (const h of habits.value) {
     map.set(h.id, {
-      status: dayStatus(h, today.value, logs.value, now.value, timeZone.value),
-      streak: streaks(h, logs.value, now.value, timeZone.value),
-      kept: keptLately(h, logs.value, now.value, timeZone.value),
+      status: dayStatus(h, today.value, logs.value, now.value, timeZone.value, pauses.value),
+      streak: streaks(h, logs.value, now.value, timeZone.value, pauses.value),
+      kept: keptLately(h, logs.value, now.value, timeZone.value, pauses.value),
     })
   }
   return map
@@ -171,7 +175,7 @@ async function toggle(h: HabitRow) {
   const kind = await brain.toggleHabit(h, new Date(), timeZone.value)
   now.value = new Date()
   justDone.value = kind === 'complete' ? h.id : null
-  const after = streaks(h, (await brain.db?.habit_logs.toArray()) ?? [], now.value, timeZone.value).best
+  const after = streaks(h, (await brain.db?.habit_logs.toArray()) ?? [], now.value, timeZone.value, pauses.value).best
   celebrated.value = kind === 'complete' && after > before && before > 0 ? h.id : null
 }
 
