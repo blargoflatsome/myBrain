@@ -86,6 +86,23 @@ test.describe('Spec §6 In-app alerts: the bell', () => {
     await list.getByRole('button', { name: msg.alerts.close }).first().click()
     await expect(page.getByTestId('alerts-count')).toHaveCount(0)
   })
+
+  test('Spec §2 Windows: the window’s ✕ never sits on top of Clear all, on a phone or a computer', { tag: '@phone' }, async ({ page }) => {
+    server.seed('notifications', [note('n1', 'Past you already earned 8 trophies', '2026-11-10T13:00:00Z')])
+    await open(page, '/tasks')
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 800 })
+      const bell = page.locator('[data-testid="alerts-bell"]:visible')
+      await expect(bell).toHaveAccessibleName('Alerts, 1 new')
+      await bell.click()
+      const list = page.getByRole('dialog', { name: msg.alerts.heading })
+      const clear = (await list.getByRole('button', { name: msg.alerts.clearAll }).boundingBox())!
+      const close = (await list.getByTestId('close-x').boundingBox())!
+      const apart = clear.x + clear.width <= close.x || close.y + close.height <= clear.y || clear.y + clear.height <= close.y
+      expect(apart, `at ${width} px`).toBe(true)
+      await list.getByTestId('close-x').click()
+    }
+  })
 })
 
 test.describe('Spec §6 In-app alerts: the banner', () => {
