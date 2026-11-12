@@ -206,6 +206,8 @@ for (const scheme of ['light', 'dark'] as const) {
     test('Post It being edited on the Dashboard', async ({ page }) => {
       await page.goto('/')
       await page.getByTestId('postit').getByRole('button', { name: msg.postIts.edit }).click()
+      // Editing brings the whole note into view, toolbar included (nothing under the header or bottom tabs).
+      await expect(page.getByTestId('postit').getByRole('button', { name: msg.editor.fullScreen })).toBeInViewport({ ratio: 1 })
       await scan(page, 'Post It editing')
     })
 

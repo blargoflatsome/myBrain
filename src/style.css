@@ -122,6 +122,10 @@ html {
   scroll-padding-top: 5rem;
   scroll-padding-bottom: 6rem;
 }
+/* A formatted-text box keeps its toolbar (about 3.5rem, above the text) in view too when it's focused. */
+.rich[contenteditable='true'] {
+  scroll-margin-top: 3.5rem;
+}
 /* A clear focus ring for keyboard users on everything that can be focused (2.4.7, 2.4.13). */
 :focus-visible {
   outline: 3px solid var(--accent);
