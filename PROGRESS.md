@@ -112,11 +112,11 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Tasks carried over twice: Tomorrow and Undated (one tap, Undo) beside Cancel task (`moveTask` in `tasks/rules.ts`).
 - Tests: `src/tests/e2e/capture/orphans.spec.ts` (new), capture and tasks specs updated, orphan delete trophy in `unit/sync/brain.test.ts`. Quick checks pass (Vitest 377, lint, types; desktop capture, orphans, tasks, a11y 104 passed). Full review (2026-11-12): Vitest 377, Playwright 715/716 (32 skipped); the one iPhone failure (a dropped test-server connection on the Tags page) passed 6/6 alone. No migration.
 
-## UI review C: ADHD fit (branch `ui-adhd`)
+## UI review C: ADHD fit (merged via PR, branch `ui-adhd`)
 - From [docs/UI_REVIEW_TASKS.md](docs/UI_REVIEW_TASKS.md) H1–H3; SPEC §5 Habits, Dashboard, Tasks; DECISIONS 2026-11-12.
 - Habits: "Kept N of the last M" beside the streak (`keptLately` in `habits/rules.ts`); missed circle has no ✕. Dashboard "Most missed" is now "Needs some love".
 - Tasks: one muted line above the list (`tasks-line`; intro only in the line or on the Priority tab); Pick 3 toggle on today when more than 3 are open, rest folded under Show the rest (`pickThree` in `tasks/rules.ts`, remembered as `tasks.pickThree`).
-- Tests: unit `habits/rules.test.ts`, `tasks/rules.test.ts`; e2e `tasks/tasks.spec.ts`. Quick checks pass (Vitest 381, desktop browser 376, lint). Full review not run yet. No migration.
+- Tests: unit `habits/rules.test.ts`, `tasks/rules.test.ts`; e2e `tasks/tasks.spec.ts`. Quick checks pass (Vitest 381, desktop browser 376, lint). Full review (2026-11-12): Vitest 381, Playwright 717/718 (32 skipped); the one iPhone failure (a dropped test-server connection on the Terms page) passed 6/6 alone. No migration.
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
