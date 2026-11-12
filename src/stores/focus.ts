@@ -4,27 +4,20 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { WORK_MS, catchUp, nextPart, pause, resume, skip, startFocus, type FocusState } from '@/focus/timer'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { readJson, writeJson } from '@/ui/storage'
 
 const KEY = 'focus-timer'
 const TODAY_KEY = 'my-brain:focus-today'
 
 /** Focus time finished today on this device (SPEC §5 Celebrations), in ms. */
 function loadToday(day: string): number {
-  try {
-    const saved = JSON.parse(localStorage.getItem(TODAY_KEY) ?? 'null') as { day: string; ms: number } | null
-    return saved?.day === day ? saved.ms : 0
-  } catch {
-    return 0
-  }
+  const saved = readJson<{ day: string; ms: number }>(TODAY_KEY)
+  return saved?.day === day ? saved.ms : 0
 }
 
 function load(): { state: FocusState | null; minimized: boolean } {
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null') as { state: FocusState; minimized: boolean } | null
-    return saved?.state ? saved : { state: null, minimized: false }
-  } catch {
-    return { state: null, minimized: false }
-  }
+  const saved = readJson<{ state: FocusState; minimized: boolean }>(KEY)
+  return saved?.state ? saved : { state: null, minimized: false }
 }
 
 export const useFocusStore = defineStore('focus', () => {
@@ -34,12 +27,7 @@ export const useFocusStore = defineStore('focus', () => {
   const minimized = ref(saved.minimized)
 
   watch([state, minimized], () => {
-    try {
-      if (state.value) localStorage.setItem(KEY, JSON.stringify({ state: state.value, minimized: minimized.value }))
-      else localStorage.removeItem(KEY)
-    } catch {
-      // Storage not available (private window): the timer just won't survive a reload.
-    }
+    writeJson(KEY, state.value ? { state: state.value, minimized: minimized.value } : null)
   })
 
   function start() {
@@ -83,11 +71,7 @@ export const useFocusStore = defineStore('focus', () => {
   }
   function addFocus(ms: number, now = Date.now()) {
     const day = todayIn(deviceTimeZone(), new Date(now))
-    try {
-      localStorage.setItem(TODAY_KEY, JSON.stringify({ day, ms: loadToday(day) + ms }))
-    } catch {
-      // Storage blocked: the total just isn't kept.
-    }
+    writeJson(TODAY_KEY, { day, ms: loadToday(day) + ms })
   }
   return { state, minimized, start, stop, togglePause, skipPart, tick, workEnded, focusToday }
 })

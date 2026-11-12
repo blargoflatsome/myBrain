@@ -19,7 +19,7 @@
         </ul>
       </section>
       <template v-if="people.length">
-        <label class="flex flex-col gap-1 text-sm text-muted">
+        <label :class="fieldLabel">
           {{ m.search }}
           <input v-model="search" type="search" :class="fieldCompact" autocomplete="off">
         </label>
@@ -46,7 +46,7 @@
       <p v-else-if="!connections.length" class="text-sm text-muted">{{ m.empty }}</p>
       <p class="text-sm text-muted" role="status" data-testid="contacts-status">{{ status }}</p>
       <RouterLink to="/connections" class="text-sm text-accent underline">{{ c.manage }}</RouterLink>
-      <button type="button" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="dialog?.close()">{{ m.done }}</button>
+      <button type="button" :class="primaryButton" @click="dialog?.close()">{{ m.done }}</button>
     </div>
     <CloseX @click="dialog?.close()" />
   </dialog>
@@ -68,7 +68,7 @@ import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { live } from '@/sync/live'
 import type { PersonRow } from '@/sync/types'
-import { dialogBox, fieldCompact } from '@/ui/styles'
+import { dialogBox, fieldCompact, fieldLabel, primaryButton } from '@/ui/styles'
 
 const props = defineProps<{ pending: PersonToInvite[]; invited: { email?: string | null; phone?: string | null; user_id?: string | null }[] }>()
 const emit = defineEmits<{ add: [PersonRow]; undo: [PersonRow]; addConnection: [Connection]; undoConnection: [Connection] }>()

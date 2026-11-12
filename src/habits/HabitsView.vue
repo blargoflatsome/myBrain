@@ -5,7 +5,7 @@
       <p class="text-muted" data-testid="habits-tagline">{{ m.intro }}</p>
     </div>
 
-    <button type="button" class="min-h-12 self-start rounded-xl border border-line bg-surface px-4 font-medium" @click="startNew">
+    <button type="button" class="self-start bg-surface font-medium" :class="secondaryButton" @click="startNew">
       {{ m.add }}
     </button>
 
@@ -91,6 +91,7 @@ import { momentLabel } from '@/ui/dates'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
 import { live } from '@/sync/live'
 import { useRoute, useRouter } from 'vue-router'
+import { secondaryButton } from '@/ui/styles'
 
 const brain = useBrainStore()
 const auth = useAuthStore()
@@ -170,7 +171,7 @@ watch(
   { immediate: true },
 )
 async function save(h: HabitRow) {
-  await brain.saveHabit(h)
+  await brain.save('habits', h)
   editing.value = null
 }
 async function remove(h: HabitRow) {

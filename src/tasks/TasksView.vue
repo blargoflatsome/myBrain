@@ -52,7 +52,7 @@
           :aria-label="addLabel"
           class="min-h-12 flex-1 rounded-xl border border-line bg-surface px-3 text-base text-ink"
         >
-        <button type="submit" class="min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.add }}</button>
+        <button type="submit" :class="primaryButton">{{ m.add }}</button>
       </form>
 
       <p v-if="view === 'day' && offset === 0 && list.length && !allDoneToday" class="text-muted">{{ m.pastYouToday }}</p>
@@ -102,6 +102,7 @@ import { messages } from '@/messages'
 import type { TaskRow } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
 import { useUndoStore } from '@/stores/undo'
+import { primaryButton } from '@/ui/styles'
 
 const brain = useBrainStore()
 const m = messages.tasks
@@ -195,7 +196,7 @@ async function saveEdit(t: TaskRow) {
   editing.value = null
 }
 async function remove(t: TaskRow) {
-  await brain.deleteTask(t.id)
+  await brain.remove('tasks', t.id)
   editing.value = null
   undo.offer(messages.undo.deleted(t.title), () => brain.restore('tasks', t.id))
 }

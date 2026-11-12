@@ -12,7 +12,7 @@
           <span class="celebrate-fold flex size-14 shrink-0 items-center justify-center rounded-full bg-done text-bg" aria-hidden="true"><AppIcon name="check" size="size-8" /></span>
           <span class="text-lg font-medium">{{ m.run.finished }}</span>
         </div>
-        <button type="button" class="min-h-12 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="startAgain = true">
+        <button type="button" class="self-start" :class="primaryButton" @click="startAgain = true">
           {{ m.run.startAgain }}
         </button>
       </template>
@@ -61,6 +61,7 @@ import { useToday } from '@/composables/useToday'
 import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, runState, stepsForDay } from '@/routines/rules'
 import { messages } from '@/messages'
 import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
+import { primaryButton } from '@/ui/styles'
 
 const CROSS_OUT_MS = 600
 

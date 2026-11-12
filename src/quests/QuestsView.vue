@@ -46,7 +46,7 @@
         <span v-if="(current.times_picked ?? 0) > 1" class="text-muted">{{ m.pickedCount((current.times_picked ?? 1) - 1) }}</span>
       </p>
       <div class="flex flex-wrap gap-2">
-        <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="accept(current)">{{ m.accept }}</button>
+        <button type="button" :class="primaryButtonSmall" @click="accept(current)">{{ m.accept }}</button>
         <button type="button" :class="quiet" @click="pick">{{ m.reroll }}</button>
         <button type="button" :class="quiet" @click="finish(current)">{{ m.done }}</button>
       </div>
@@ -80,7 +80,7 @@
             {{ m.pickThis }}
           </button>
           <button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted hover:text-danger" :aria-label="m.deleteLabel(q.title)" data-testid="quest-delete" @click="remove(q)">
-            <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" /></svg>
+            <AppIcon name="trash" size="size-5" />
           </button>
         </li>
       </ul>
@@ -106,7 +106,7 @@ import { messages } from '@/messages'
 import type { EnergyLevel, QuestLogRow, QuestRow, TimeBucket } from '@/sync/types'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
-import { filterChip } from '@/ui/styles'
+import { filterChip, primaryButtonSmall } from '@/ui/styles'
 
 const QUESTS_PER_PAGE = 10
 const brain = useBrainStore()
@@ -133,12 +133,12 @@ async function pick() {
     notice.value = m.nothingFits
     return
   }
-  await brain.saveQuest(markPicked(choice))
+  await brain.save('quests', markPicked(choice))
   currentId.value = choice.id
 }
 
 async function accept(q: QuestRow) {
-  await brain.saveQuest(acceptQuest(q))
+  await brain.save('quests', acceptQuest(q))
   currentId.value = null
   notice.value = m.accepted
 }
@@ -147,7 +147,7 @@ async function accept(q: QuestRow) {
 const resultBox = ref<HTMLElement | null>(null)
 async function pickThis(q: QuestRow) {
   notice.value = ''
-  await brain.saveQuest(markPicked(q))
+  await brain.save('quests', markPicked(q))
   currentId.value = q.id
   await nextTick()
   resultBox.value?.scrollIntoView({ block: 'nearest' })
@@ -180,11 +180,11 @@ watch(
   { immediate: true },
 )
 async function saveEdit(q: QuestRow) {
-  await brain.saveQuest(q)
+  await brain.save('quests', q)
   editing.value = null
 }
 async function remove(q: QuestRow) {
-  await brain.deleteQuest(q.id)
+  await brain.remove('quests', q.id)
   if (currentId.value === q.id) currentId.value = null
   editing.value = null
   undo.offer(messages.undo.deleted(q.title), () => brain.restore('quests', q.id))

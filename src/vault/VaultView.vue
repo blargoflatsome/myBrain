@@ -16,9 +16,9 @@
       </ul>
       <form v-if="addingBucket" class="flex gap-2" @submit.prevent="createBucket">
         <input v-model="newBucketName" maxlength="200" :class="fieldOnPage" :aria-label="m.newBucketName" :placeholder="m.newBucketName">
-        <button type="submit" class="min-h-12 shrink-0 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.createBucket }}</button>
+        <button type="submit" class="shrink-0" :class="primaryButton">{{ m.createBucket }}</button>
       </form>
-      <button v-else type="button" class="min-h-12 self-start rounded-xl border border-line bg-surface px-4 font-medium" @click="addingBucket = true">
+      <button v-else type="button" class="self-start bg-surface font-medium" :class="secondaryButton" @click="addingBucket = true">
         {{ m.newBucket }}
       </button>
     </template>
@@ -36,7 +36,7 @@
               :aria-pressed="!!bucket.starred"
               :aria-label="bucket.starred ? m.unstar(bucket.name) : m.star(bucket.name)"
               :title="m.starHint"
-              @click="brain.saveBucket({ ...bucket, starred: !bucket.starred })"
+              @click="brain.save('vault_buckets', { ...bucket, starred: !bucket.starred })"
             >
               <AppIcon name="star" :filled="bucket.starred" size="size-5" />
             </button>
@@ -47,7 +47,7 @@
 
       <form class="flex gap-2" @submit.prevent="addItem">
         <input v-model="newItem" maxlength="500" :class="fieldOnPage" :aria-label="m.addLabel(bucket.name)" :placeholder="m.addPlaceholder">
-        <button type="submit" class="min-h-12 shrink-0 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.add }}</button>
+        <button type="submit" class="shrink-0" :class="primaryButton">{{ m.add }}</button>
       </form>
 
       <p v-if="!bucketItems.length" class="text-muted">{{ m.empty }}</p>
@@ -92,7 +92,7 @@
             :aria-label="m.deleteItem(i.title)"
             @click="askDelete(i)"
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" /></svg>
+            <AppIcon name="trash" size="size-5" />
           </button>
         </li>
       </ul>
@@ -124,7 +124,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { activeBuckets, checkedItems, itemsInBucket, linkLabel, linkTarget } from '@/vault/rules'
 import { messages } from '@/messages'
 import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
-import { fieldOnPage } from '@/ui/styles'
+import { fieldOnPage, primaryButton, secondaryButton } from '@/ui/styles'
 import { live } from '@/sync/live'
 import { useUndoStore } from '@/stores/undo'
 import { plainText } from '@/journal/body'
@@ -159,7 +159,7 @@ async function createBucket() {
 }
 const editingBucket = ref<VaultBucketRow | null>(null)
 async function saveBucket(b: VaultBucketRow) {
-  await brain.saveBucket(b)
+  await brain.save('vault_buckets', b)
   editingBucket.value = null
 }
 async function deleteBucket(b: VaultBucketRow) {
@@ -196,12 +196,12 @@ async function saveItem(i: VaultItemRow) {
 // One item, or the checked ones, go straight away with Undo (SPEC §2).
 const undo = useUndoStore()
 async function deleteItem(i: VaultItemRow) {
-  await brain.deleteVaultItem(i.id)
+  await brain.remove('vault_items', i.id)
   await closeEditor()
   undo.offer(messages.undo.deleted(i.title), () => brain.restore('vault_items', i.id))
 }
 async function askDelete(i: VaultItemRow) {
-  await brain.deleteVaultItem(i.id)
+  await brain.remove('vault_items', i.id)
   undo.offer(messages.undo.deleted(i.title), () => brain.restore('vault_items', i.id))
 }
 async function clearChecked() {

@@ -4,22 +4,18 @@ import Dexie from 'dexie'
 import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
-import type { HabitLogRow, HabitRow, QuestRow, Remote, RoutineRow, RoutineStepRow, SyncStatus, TaskRow } from '@/sync/types'
+import type { ActivityKind, ActivityLogRow, EventRow, HabitLogRow, HabitRow, JournalEntryRow, NotificationRow, PostItColor, PostItRow, QuestRow, Remote, RoutineRow, RoutineStepRow, RowTypes, SyncStatus, SyncTable, TagRow, TaggedType, TaskRow, VaultItemRow } from '@/sync/types'
 import { activeSteps, currentRun, habitDoneStepIds, recordStep, stepsForDay } from '@/routines/rules'
 import { cancelState, snoozeState, type DuePriority } from '@/reminders/priority'
-import type { PriorityTaskRow } from '@/sync/types'
 import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMisses } from '@/habits/rules'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
-import type { AvailabilityExceptionRow, AvailabilityRuleRow, EventRow, JournalEntryRow, SyncTable, TaggedType, TagRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { moveLinks, renameOutcome, tagChanges } from '@/tags/rules'
 import { trophyRowId, type TrophyId } from '@/trophies/definitions'
 import type { TrophyHistory } from '@/trophies/rules'
-import type { ActivityKind, ActivityLogRow } from '@/sync/types'
 import { normalizeBody } from '@/journal/body'
 import { frontPosition } from '@/postits/rules'
-import type { PersonRow, PostItColor, PostItRow } from '@/sync/types'
 import { peopleToSave } from '@/events/people'
 import type { PersonToInvite } from '@/events/sharing'
 import { live } from '@/sync/live'
@@ -27,7 +23,6 @@ import { finishQuest as finishedQuest } from '@/quests/picker'
 import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 import { achieved } from '@/celebrate/bus'
 import { badgeId, type BadgeKind } from '@/celebrate/rules'
-import type { NotificationRow } from '@/sync/types'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
 function background(work: Promise<unknown> | undefined) {
@@ -38,7 +33,12 @@ function background(work: Promise<unknown> | undefined) {
 }
 
 /** How often queued changes are retried while the app is open (SPEC §7). */
-export const RETRY_MS = 30_000
+const RETRY_MS = 30_000
+/**
+ * How long a table waits after a Realtime change before downloading. Each of my own saves comes back as a change too,
+ * so several saves in a row (writing in the journal) download once, not once each.
+ */
+const REALTIME_WAIT_MS = 500
 
 export const useBrainStore = defineStore('brain', () => {
   const db = shallowRef<LocalDb | null>(null)
@@ -67,9 +67,20 @@ export const useBrainStore = defineStore('brain', () => {
     db.value = new LocalDb(`my-brain-${uid}`)
     engine.value = new SyncEngine(db.value, remote, (s) => (status.value = s), () => online.value)
 
+    const local = db.value
+    const markReady = async () => {
+      if (await local.meta.get('downloaded:badges')) badgesReady.value = true
+      if (await local.meta.get('downloaded:habit_logs')) habitsReady.value = true
+      if (habitsReady.value && (await local.meta.get('downloaded:journal_entries'))) await refreshJournal()
+    }
+    const synced = async () => {
+      await markReady()
+      syncedCount.value++
+    }
+    // Coming back online catches up, and counts as a finished download (a first sync may have started offline).
     const goOnline = () => {
       online.value = true
-      background(engine.value?.sync())
+      background(engine.value?.sync().then(synced))
     }
     const goOffline = () => {
       online.value = false
@@ -91,8 +102,16 @@ export const useBrainStore = defineStore('brain', () => {
     window.addEventListener('offline', goOffline)
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('pagehide', onPageHide)
-    const unsubscribe = remote.subscribe((table) => background(engine.value?.pull([table])))
+    const waiting = new Map<SyncTable, ReturnType<typeof setTimeout>>()
+    const unsubscribe = remote.subscribe((table) => {
+      clearTimeout(waiting.get(table))
+      waiting.set(table, setTimeout(() => {
+        waiting.delete(table)
+        background(engine.value?.pull([table]))
+      }, REALTIME_WAIT_MS))
+    })
     cleanup = () => {
+      waiting.forEach((t) => clearTimeout(t))
       window.removeEventListener('online', goOnline)
       window.removeEventListener('offline', goOffline)
       document.removeEventListener('visibilitychange', onVisibility)
@@ -102,19 +121,8 @@ export const useBrainStore = defineStore('brain', () => {
     }
     habitsReady.value = false
     badgesReady.value = false
-    const local = db.value
-    const markReady = async () => {
-      if (await local.meta.get('downloaded:badges')) badgesReady.value = true
-      if (await local.meta.get('downloaded:habit_logs')) habitsReady.value = true
-      if (habitsReady.value && (await local.meta.get('downloaded:journal_entries'))) await refreshJournal()
-    }
     background(markReady())
-    const synced = async () => {
-      await markReady()
-      syncedCount.value++
-    }
     background(engine.value.sync().then(synced))
-    window.addEventListener('online', () => background(engine.value?.sync().then(synced)), { once: true })
   }
 
   function stop() {
@@ -208,14 +216,6 @@ export const useBrainStore = defineStore('brain', () => {
     return saved
   }
 
-  async function deleteTask(id: string) {
-    await requireReady().engine.remove('tasks', id)
-  }
-
-  async function saveQuest(row: QuestRow) {
-    return requireReady().engine.save('quests', row)
-  }
-
   /** Mark a quest done (SPEC §5 Random Quest): it goes back to the list, and the completion is logged for stats. */
   async function finishQuest(quest: QuestRow, now = new Date(), timeZone = deviceTimeZone()) {
     const { engine: e, uid } = requireReady()
@@ -234,27 +234,17 @@ export const useBrainStore = defineStore('brain', () => {
     await e.save('quests', before)
   }
 
-  async function deleteQuest(id: string) {
-    await requireReady().engine.remove('quests', id)
-  }
-
   async function addHabit(title: string) {
     const { engine: e, uid } = requireReady()
     if (!title.trim()) return null
     return e.save('habits', newHabit(title, uid, deviceTimeZone()))
   }
 
-  async function saveHabit(row: HabitRow) {
-    return requireReady().engine.save('habits', row)
-  }
-
   /** Delete a habit; any routine step linked to it is removed too (SPEC §5 Routines). */
   async function deleteHabit(id: string) {
     const { engine: e, local } = requireReady()
     await e.remove('habits', id)
-    for (const step of (await local.routine_steps.toArray()).filter((s) => s.habit_id === id && !s.deleted_at)) {
-      await e.remove('routine_steps', step.id)
-    }
+    await e.removeMany('routine_steps', live(await local.routine_steps.toArray()).filter((s) => s.habit_id === id).map((s) => s.id))
   }
 
   async function logsFor(habitId: string): Promise<HabitLogRow[]> {
@@ -346,7 +336,7 @@ export const useBrainStore = defineStore('brain', () => {
         await e.save('routine_steps', row)
       }
     }
-    for (const old of existing) if (!keep.has(old.id)) await e.remove('routine_steps', old.id)
+    await e.removeMany('routine_steps', existing.filter((old) => !keep.has(old.id)).map((old) => old.id))
   }
 
   async function deleteRoutine(id: string) {
@@ -497,9 +487,7 @@ export const useBrainStore = defineStore('brain', () => {
   /** Clear all alerts still showing. */
   async function clearNotifications() {
     const { engine: e, local } = requireReady()
-    for (const n of await local.notifications.toArray()) {
-      if (!n.deleted_at) await e.remove('notifications', n.id)
-    }
+    await e.removeMany('notifications', live(await local.notifications.toArray()).map((n) => n.id))
   }
   /** Tapping an alert counts it as seen, on every device. */
   async function markNotificationRead(id: string) {
@@ -581,17 +569,19 @@ export const useBrainStore = defineStore('brain', () => {
     if (!body) return null
     return requireReady().engine.save('post_its', { ...row, body })
   }
-  /** Done: off the Dashboard straight away (Undo puts it back). */
-  async function removePostIt(id: string) {
-    await requireReady().engine.remove('post_its', id)
+  /** Save a row as it is, for screens whose rows need no rules of their own (always as the signed-in user). */
+  async function save<T extends SyncTable>(table: T, row: RowTypes[T]) {
+    const { engine: e, uid } = requireReady()
+    return e.save(table, { ...row, user_id: uid })
   }
+  /** Delete a row (soft, so the deletion syncs; Undo can put it back with restore). */
+  async function remove(table: SyncTable, id: string) {
+    await requireReady().engine.remove(table, id)
+  }
+
   /** Put back something just removed (SPEC §2 Undo): deletes are soft, so it comes back with everything it had. */
   async function restore(table: SyncTable, id: string) {
     await requireReady().engine.patch(table, id, () => ({ deleted_at: null }))
-  }
-
-  async function restorePostIt(id: string) {
-    await requireReady().engine.patch('post_its', id, () => ({ deleted_at: null }))
   }
 
   // ---------- My people (SPEC §5 Calendar) ----------
@@ -602,25 +592,12 @@ export const useBrainStore = defineStore('brain', () => {
     for (const r of rename) await e.patch('people', r.id, () => ({ name: r.name }))
     for (const p of add) await e.save('people', { id: crypto.randomUUID(), user_id: uid, name: p.name ?? null, email: p.email ?? null, phone: p.phone ?? null, deleted_at: null })
   }
-  async function savePerson(row: PersonRow) {
-    return requireReady().engine.save('people', row)
-  }
-  async function removePerson(id: string) {
-    await requireReady().engine.remove('people', id)
-  }
 
   // ---------- The Vault (SPEC §5 The Vault) ----------
-  async function saveBucket(row: VaultBucketRow) {
-    const { engine: e, uid } = requireReady()
-    return e.save('vault_buckets', { ...row, user_id: uid })
-  }
-
   /** Delete a bucket and the items in it (the caller has already confirmed). */
   async function deleteBucket(id: string) {
     const { engine: e, local } = requireReady()
-    for (const item of (await local.vault_items.where('bucket_id').equals(id).toArray()).filter((i) => !i.deleted_at)) {
-      await e.remove('vault_items', item.id)
-    }
+    await e.removeMany('vault_items', live(await local.vault_items.where('bucket_id').equals(id).toArray()).map((i) => i.id))
     await e.remove('vault_buckets', id)
   }
 
@@ -642,10 +619,6 @@ export const useBrainStore = defineStore('brain', () => {
     return saved
   }
 
-  async function deleteVaultItem(id: string) {
-    await requireReady().engine.remove('vault_items', id)
-  }
-
   async function toggleVaultItem(id: string) {
     await requireReady().engine.patch('vault_items', id, (fresh) => ({ checked: !fresh.checked }))
   }
@@ -654,9 +627,7 @@ export const useBrainStore = defineStore('brain', () => {
   async function clearChecked(bucketId: string) {
     const { engine: e, local } = requireReady()
     const cleared = (await local.vault_items.where('bucket_id').equals(bucketId).toArray()).filter((i) => !i.deleted_at && i.checked)
-    for (const item of cleared) {
-      await e.remove('vault_items', item.id)
-    }
+    await e.removeMany('vault_items', cleared.map((i) => i.id))
     return cleared.map((i) => i.id)
   }
 
@@ -666,25 +637,7 @@ export const useBrainStore = defineStore('brain', () => {
     return e.save('events', { ...row, title: row.title.trim(), user_id: uid })
   }
 
-  async function deleteEvent(id: string) {
-    await requireReady().engine.remove('events', id)
-  }
-
   // ---------- Availability (SPEC §5 Availability schedule) ----------
-  async function saveAvailabilityRule(row: AvailabilityRuleRow) {
-    const { engine: e, uid } = requireReady()
-    return e.save('availability_rules', { ...row, user_id: uid })
-  }
-  async function deleteAvailabilityRule(id: string) {
-    await requireReady().engine.remove('availability_rules', id)
-  }
-  async function saveAvailabilityException(row: AvailabilityExceptionRow) {
-    const { engine: e, uid } = requireReady()
-    return e.save('availability_exceptions', { ...row, user_id: uid })
-  }
-  async function deleteAvailabilityException(id: string) {
-    await requireReady().engine.remove('availability_exceptions', id)
-  }
 
   /** Fetch the latest from the server for some tables (after a server function changed them). */
   async function refresh(tables: SyncTable[]) {
@@ -700,7 +653,7 @@ export const useBrainStore = defineStore('brain', () => {
     const changes = tagChanges(uid, type, itemId, names, await local.tags.toArray(), await local.item_tags.where('item_id').equals(itemId).toArray())
     for (const tag of changes.newTags) await e.save('tags', tag)
     for (const link of changes.add) await e.save('item_tags', link)
-    for (const link of changes.remove) await e.remove('item_tags', link.id)
+    await e.removeMany('item_tags', changes.remove.map((l) => l.id))
   }
 
   // ---------- Tags page (SPEC §5 Tags page): each change hands back its undo ----------
@@ -709,12 +662,12 @@ export const useBrainStore = defineStore('brain', () => {
     const { engine: e, uid, local } = requireReady()
     const { add, remove } = moveLinks(uid, fromId, intoId, await local.item_tags.toArray())
     for (const link of add) await e.save('item_tags', link)
-    for (const link of remove) await e.remove('item_tags', link.id)
+    await e.removeMany('item_tags', remove.map((l) => l.id))
     await e.remove('tags', fromId)
     return async () => {
       await e.patch('tags', fromId, () => ({ deleted_at: null }))
       for (const link of remove) await e.patch('item_tags', link.id, () => ({ deleted_at: null }))
-      for (const link of add) await e.remove('item_tags', link.id)
+      await e.removeMany('item_tags', add.map((l) => l.id))
     }
   }
   /** Rename a tag everywhere. Returns null when nothing changes, or when another tag has the name (merge instead). */
@@ -740,7 +693,7 @@ export const useBrainStore = defineStore('brain', () => {
   async function deleteTag(tagId: string): Promise<() => Promise<void>> {
     const { engine: e, local } = requireReady()
     const links = (await local.item_tags.toArray()).filter((it) => it.tag_id === tagId && !it.deleted_at)
-    for (const link of links) await e.remove('item_tags', link.id)
+    await e.removeMany('item_tags', links.map((l) => l.id))
     await e.remove('tags', tagId)
     return async () => {
       await e.patch('tags', tagId, () => ({ deleted_at: null }))
@@ -749,15 +702,6 @@ export const useBrainStore = defineStore('brain', () => {
   }
 
   // ---------- Priority reminders (SPEC §5) ----------
-  async function savePriorityTask(row: PriorityTaskRow) {
-    const { engine: e, uid } = requireReady()
-    return e.save('priority_tasks', { ...row, user_id: uid })
-  }
-
-  async function deletePriorityTask(id: string) {
-    await requireReady().engine.remove('priority_tasks', id)
-  }
-
   /** Slide to complete: a priority habit is completed for the day; a priority task gets today's completion. */
   async function completePriority(item: DuePriority, now = new Date()) {
     const { engine: e, uid, local } = requireReady()
@@ -794,30 +738,19 @@ export const useBrainStore = defineStore('brain', () => {
     addAlert,
     saveJournalFields,
     applyDataReset,
-    saveAvailabilityRule,
-    deleteAvailabilityRule,
-    saveAvailabilityException,
-    deleteAvailabilityException,
     refresh,
-    saveBucket,
     deleteBucket,
     addVaultItem,
     addPostIt,
     savePeople,
-    savePerson,
-    removePerson,
     clearNotification,
     markNotificationRead,
     clearNotifications,
     savePostIt,
-    removePostIt,
-    restorePostIt,
     saveVaultItem,
-    deleteVaultItem,
     toggleVaultItem,
     clearChecked,
     saveEvent,
-    deleteEvent,
     saveTags,
     logActivity,
     saveTrophyLevel,
@@ -828,8 +761,6 @@ export const useBrainStore = defineStore('brain', () => {
     journalStats,
     refreshJournal,
     saveJournalBody,
-    savePriorityTask,
-    deletePriorityTask,
     completePriority,
     snoozePriority,
     cancelPriority,
@@ -841,7 +772,6 @@ export const useBrainStore = defineStore('brain', () => {
     syncedCount,
     badgesReady,
     addHabit,
-    saveHabit,
     deleteHabit,
     refreshHabit,
     toggleHabit,
@@ -855,11 +785,10 @@ export const useBrainStore = defineStore('brain', () => {
     convert,
     addTask,
     saveTask,
-    deleteTask,
-    saveQuest,
-    deleteQuest,
     finishQuest,
     unfinishQuest,
     restore,
+    save,
+    remove,
   }
 })

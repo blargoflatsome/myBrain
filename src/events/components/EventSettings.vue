@@ -2,7 +2,7 @@
   <section class="flex flex-col gap-4 rounded-xl border border-line p-4" data-testid="event-settings">
     <h3 class="font-semibold">{{ m.heading }}</h3>
     <template v-if="loaded">
-      <label class="flex flex-col gap-1 text-sm text-muted">
+      <label :class="fieldLabel">
         <span class="flex items-center justify-between">{{ m.phone }}<span v-if="phone && !phoneVerified" class="text-xs">{{ m.unverified }}</span></span>
         <input v-model="phone" type="tel" autocomplete="tel" :class="field">
       </label>
@@ -22,20 +22,20 @@
       </fieldset>
       <label class="flex items-center justify-between gap-4">
         <span><span class="font-medium">{{ m.shareAvailability }}</span><span class="block text-xs text-muted">{{ m.shareAvailabilityHint }}</span></span>
-        <input v-model="shareAvailability" type="checkbox" class="size-5 shrink-0 accent-[var(--accent)]">
+        <input v-model="shareAvailability" type="checkbox" :class="checkbox">
       </label>
-      <label class="flex flex-col gap-1 text-sm text-muted">
+      <label :class="fieldLabel">
         {{ m.dropoutMessage }}
         <textarea v-model="dropoutMessage" rows="3" :class="[field, 'py-2']" />
       </label>
-      <label class="flex flex-col gap-1 text-sm text-muted">
+      <label :class="fieldLabel">
         {{ m.cancelMessage }}
         <textarea v-model="cancelMessage" rows="3" :class="[field, 'py-2']" />
       </label>
       <p class="-mt-2 text-xs text-muted">{{ m.variables }}</p>
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
       <div class="flex items-center gap-3">
-        <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="save">{{ m.save }}</button>
+        <button type="button" :class="primaryButtonSmall" @click="save">{{ m.save }}</button>
         <p v-if="notice" class="text-sm text-muted" role="status">{{ notice }}</p>
       </div>
     </template>
@@ -50,7 +50,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
-import { field } from '@/ui/styles'
+import { checkbox, field, fieldLabel, primaryButtonSmall } from '@/ui/styles'
 
 const auth = useAuthStore()
 const m = messages.eventSettings

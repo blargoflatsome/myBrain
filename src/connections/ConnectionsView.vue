@@ -7,11 +7,11 @@
     <section :class="card" aria-labelledby="ask-heading">
       <h2 id="ask-heading" class="text-lg font-semibold">{{ m.askHeading }}</h2>
       <form class="flex flex-col gap-2" novalidate @submit.prevent="ask">
-        <label class="flex flex-col gap-1 text-sm text-muted">
+        <label :class="fieldLabel">
           {{ m.askLabel }}
           <input v-model="contact" :class="field" autocomplete="off" maxlength="320">
         </label>
-        <button type="submit" class="min-h-11 self-start rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="!brain.online">{{ m.send }}</button>
+        <button type="submit" class="self-start" :class="primaryButtonSmall" :disabled="!brain.online">{{ m.send }}</button>
       </form>
       <p v-if="askError" class="text-sm text-danger" role="alert" data-testid="ask-error">{{ askError }}</p>
       <p class="text-sm text-muted" role="status" data-testid="ask-status">{{ askStatus }}</p>
@@ -20,7 +20,7 @@
     <section :class="card" aria-labelledby="code-heading">
       <h2 id="code-heading" class="text-lg font-semibold">{{ m.codeSection }}</h2>
       <form class="flex flex-col gap-2" novalidate @submit.prevent="findCode">
-        <label class="flex flex-col gap-1 text-sm text-muted">
+        <label :class="fieldLabel">
           {{ m.codeLabel }}
           <input v-model="code" :class="[field, 'uppercase tracking-widest']" autocomplete="off" maxlength="8">
         </label>
@@ -28,7 +28,7 @@
       </form>
       <div v-if="codeOwner" class="flex flex-wrap items-center gap-2" data-testid="code-owner">
         <span class="font-medium [overflow-wrap:anywhere]">{{ codeOwner.already_connected ? m.alreadyConnected(codeOwner.display_name) : m.connectWith(codeOwner.display_name) }}</span>
-        <button v-if="!codeOwner.already_connected" type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="useCode">{{ m.connect }}</button>
+        <button v-if="!codeOwner.already_connected" type="button" :class="primaryButtonSmall" @click="useCode">{{ m.connect }}</button>
       </div>
       <p v-if="codeError" class="text-sm text-danger" role="alert" data-testid="code-error">{{ codeError }}</p>
     </section>
@@ -68,7 +68,7 @@
             <span class="font-medium [overflow-wrap:anywhere]">{{ m.wantsToConnect(r.display_name) }}</span>
           </span>
           <span class="flex flex-wrap gap-2">
-            <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="answer(r, 'accept')">{{ m.accept }}</button>
+            <button type="button" :class="primaryButtonSmall" @click="answer(r, 'accept')">{{ m.accept }}</button>
             <button type="button" class="min-h-11 rounded-xl border border-line px-4" @click="answer(r, 'decline')">{{ m.decline }}</button>
             <button type="button" class="min-h-11 rounded-xl border border-line px-4 text-danger" @click="answer(r, 'block')">{{ m.block }}</button>
           </span>
@@ -145,7 +145,7 @@ import { isEmail, isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
 import { momentLabel } from '@/ui/dates'
 import { useBrainStore } from '@/stores/brain'
-import { card, field } from '@/ui/styles'
+import { card, field, fieldLabel, primaryButtonSmall } from '@/ui/styles'
 
 const m = messages.connections
 const brain = useBrainStore()

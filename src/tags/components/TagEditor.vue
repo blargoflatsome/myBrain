@@ -4,20 +4,20 @@
       <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
 
       <form class="flex flex-col gap-3" @submit.prevent="save">
-        <label class="flex flex-col gap-1 text-sm text-muted">
+        <label :class="fieldLabel">
           <span class="pb-2">{{ m.name }}</span>
           <input v-model="name" :maxlength="TAG_MAX" required :class="field" @input="clash = null">
         </label>
         <div v-if="clash" class="flex flex-col gap-3 rounded-xl bg-bg p-3" role="alert" data-testid="tag-clash">
           <p class="text-sm break-words">{{ m.clash(clash.name) }}</p>
           <div class="flex flex-wrap gap-2">
-            <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="mergeInto(clash)">{{ m.clashYes }}</button>
+            <button type="button" :class="primaryButtonSmall" @click="mergeInto(clash)">{{ m.clashYes }}</button>
             <button type="button" class="min-h-11 rounded-xl border border-line px-4" @click="clash = null">{{ m.clashNo }}</button>
           </div>
         </div>
         <div v-else class="flex gap-2">
-          <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.save }}</button>
-          <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.close }}</button>
+          <button type="submit" class="flex-1" :class="primaryButton">{{ m.save }}</button>
+          <button type="button" :class="secondaryButton" @click="dialog?.close()">{{ m.close }}</button>
         </div>
       </form>
 
@@ -29,7 +29,7 @@
             <option value="">{{ m.mergeChoose }}</option>
             <option v-for="t in others" :key="t.id" :value="t.id">#{{ t.name }}</option>
           </select>
-          <button type="button" class="min-h-12 rounded-xl border border-line px-4 disabled:opacity-50" :disabled="!target" @click="mergeChosen">{{ m.mergeButton }}</button>
+          <button type="button" class="disabled:opacity-50" :class="secondaryButton" :disabled="!target" @click="mergeChosen">{{ m.mergeButton }}</button>
         </div>
       </section>
 
@@ -50,7 +50,7 @@ import CloseX from '@/components/CloseX.vue'
 import { TAG_MAX } from '@/tags/rules'
 import { messages } from '@/messages'
 import type { TagRow } from '@/sync/types'
-import { dialogBox, field } from '@/ui/styles'
+import { dialogBox, field, fieldLabel, primaryButton, primaryButtonSmall, secondaryButton } from '@/ui/styles'
 
 const props = defineProps<{ tag: TagRow | null; tags: TagRow[] }>()
 const emit = defineEmits<{

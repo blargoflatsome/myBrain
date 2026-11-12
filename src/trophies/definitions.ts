@@ -1,6 +1,5 @@
 // SPEC §5 Trophies: every trophy as data (id, category, levels), so new ones can be added without restructuring.
 // Ids are stored and their position in TROPHIES makes the row id, so only ever add to the end of the list.
-import { BADGES } from '@/celebrate/rules'
 
 export const CATEGORIES = [
   'firsts',
@@ -23,7 +22,6 @@ export type TrophyCategory = (typeof CATEGORIES)[number]
 
 /** Bronze to Legendary: a trophy's level is how many of its thresholds I've reached. */
 export const TIERS = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'legendary'] as const
-export type Tier = (typeof TIERS)[number]
 
 /** How progress reads: "7 of 14 days", "38 of 50", "3 of 10 hours", "x of 4". */
 export type TrophyUnit = 'days' | 'count' | 'hours' | 'words' | 'times'
@@ -99,6 +97,3 @@ export function trophyRowId(userId: string, id: TrophyId): string {
 export function levelFor(trophy: Trophy, value: number): number {
   return trophy.levels.filter((need) => value >= need).length
 }
-
-/** The first-time badges belong to the Firsts category. */
-export const FIRSTS = BADGES

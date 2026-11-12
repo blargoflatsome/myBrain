@@ -2,7 +2,7 @@
   <main class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <button type="button" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="startNew(range.from <= today && today <= range.to ? today : range.from, null)">
+      <button type="button" :class="primaryButtonSmall" @click="startNew(range.from <= today && today <= range.to ? today : range.from, null)">
         {{ m.newEvent }}
       </button>
     </div>
@@ -89,6 +89,7 @@ import { messages } from '@/messages'
 import type { EventInviteRow, EventRow, PriorityTaskRow, TaskRow } from '@/sync/types'
 import { live } from '@/sync/live'
 import { useUndoStore } from '@/stores/undo'
+import { primaryButtonSmall } from '@/ui/styles'
 
 const brain = useBrainStore()
 const route = useRoute()
@@ -218,7 +219,7 @@ async function saveTask(t: TaskRow) {
   editingTask.value = null
 }
 async function deleteTask(t: TaskRow) {
-  await brain.deleteTask(t.id)
+  await brain.remove('tasks', t.id)
   editingTask.value = null
   undo.offer(messages.undo.deleted(t.title), () => brain.restore('tasks', t.id))
 }
@@ -316,7 +317,7 @@ function cancelled(targets: ShareTarget[]) {
   }
 }
 async function deleteEvent(e: EventRow, confirmed = false) {
-  await brain.deleteEvent(e.id)
+  await brain.remove('events', e.id)
   editing.value = null
   // Without guests it went straight away, so it can come back (SPEC §2 Undo).
   if (!confirmed) undo.offer(messages.undo.deleted(e.title), () => brain.restore('events', e.id))

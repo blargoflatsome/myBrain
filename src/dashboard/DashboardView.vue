@@ -5,7 +5,7 @@
         <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
         <p class="text-muted">{{ m.intro }}</p>
       </div>
-      <label class="flex flex-col gap-1 text-sm text-muted">
+      <label :class="fieldLabel">
         {{ m.period }}
         <select
           :value="period"
@@ -259,32 +259,21 @@ import { addDays } from '@/tasks/days'
 import { percent } from '@/routines/rules'
 import { messages } from '@/messages'
 import { dateWithYear } from '@/ui/dates'
-import { bigNumber, card, smallNumber } from '@/ui/styles'
-import type { BadgeKind } from '@/celebrate/rules'
+import { bigNumber, card, fieldLabel, smallNumber } from '@/ui/styles'
 import TrophiesSection from '@/trophies/components/TrophiesSection.vue'
 import { useTrophyBoard } from '@/trophies/useTrophyBoard'
-import { earnedOn, type BoardItem } from '@/trophies/board'
+import { earnedOn, trophyName } from '@/trophies/board'
+import { readKey, writeKey } from '@/ui/storage'
 
 const brain = useBrainStore()
 const m = messages.dashboard
 
 // More stats opens and closes, remembered on this device; closed to start (SPEC §5 Dashboard).
 const MORE_KEY = 'my-brain:dashboard-more'
-const moreStatsOpen = ref(readMore())
-function readMore() {
-  try {
-    return localStorage.getItem(MORE_KEY) === 'open'
-  } catch {
-    return false
-  }
-}
+const moreStatsOpen = ref(readKey(MORE_KEY) === 'open')
 function onMoreToggle(event: Event) {
   moreStatsOpen.value = (event.target as HTMLDetailsElement).open
-  try {
-    localStorage.setItem(MORE_KEY, moreStatsOpen.value ? 'open' : 'closed')
-  } catch {
-    // Storage blocked: it just won't be remembered.
-  }
+  writeKey(MORE_KEY, moreStatsOpen.value ? 'open' : 'closed')
 }
 const { today, timeZone } = useToday()
 const cm = messages.celebrations
@@ -293,26 +282,13 @@ const t = cm.trophies
 // Trophies (SPEC §5 Trophies): every trophy with its level and progress; yesterday's go in the yesterday box.
 const board = useTrophyBoard()
 const yesterdayTrophies = computed(() => earnedOn(board.value.items, addDays(today.value, -1)))
-function trophyName(item: BoardItem) {
-  return item.category === 'firsts' ? cm.badges[item.id as BadgeKind] : (t.names[item.id] ?? item.id)
-}
 
 // The period is remembered on this device (a convenience; the default is This year).
-const saved = (() => {
-  try {
-    return localStorage.getItem('dashboard-period') as Period | null
-  } catch {
-    return null
-  }
-})()
+const saved = readKey('dashboard-period') as Period | null
 const period = ref<Period>(saved && PERIODS.includes(saved) ? saved : 'year')
 function setPeriod(p: Period) {
   period.value = p
-  try {
-    localStorage.setItem('dashboard-period', p)
-  } catch {
-    // Not available (private window): the choice just isn't remembered.
-  }
+  writeKey('dashboard-period', p)
 }
 
 // A clock that ticks each minute, so streaks and "attended" follow the time of day.

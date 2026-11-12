@@ -3,7 +3,7 @@ import type { EventInviteRow, EventRow, HabitLogRow, HabitRow, JournalEntryRow, 
 import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
 import { isAnytime, routineStats } from '@/routines/rules'
 import { occursOn } from '@/events/rules'
-import { addDays, daysBetween, todayIn } from '@/tasks/days'
+import { addDays, dayOf, daysBetween, todayIn } from '@/tasks/days'
 import { live } from '@/sync/live'
 
 export type Period = 'year' | '12months' | 'all'
@@ -17,7 +17,6 @@ export function periodStart(period: Period, today: string): string | null {
 }
 
 const inPeriod = (date: string | null | undefined, from: string | null, today: string) => !!date && (!from || date >= from) && date <= today
-const localDay = (iso: string, timeZone: string) => todayIn(timeZone, new Date(iso))
 
 // ---------- Habits ----------
 export interface HabitStreakRow {
@@ -151,11 +150,11 @@ export function eventStats(
   const mine = events.filter(isMine)
   const cancelledByMe = mine.filter((e) => {
     const when = e.cancelled_at ?? e.deleted_at
-    return !!when && inPeriod(localDay(when, timeZone), from, today)
+    return !!when && inPeriod(dayOf(when, timeZone), from, today)
   }).length
-  const droppedOut = invites.filter((i) => i.response === 'dropped' && i.responded_at && inPeriod(localDay(i.responded_at, timeZone), from, today)).length
+  const droppedOut = invites.filter((i) => i.response === 'dropped' && i.responded_at && inPeriod(dayOf(i.responded_at, timeZone), from, today)).length
   return {
-    created: mine.filter((e) => e.created_at && inPeriod(localDay(e.created_at, timeZone), from, today)).length,
+    created: mine.filter((e) => e.created_at && inPeriod(dayOf(e.created_at, timeZone), from, today)).length,
     attended,
     cancelled: cancelledByMe + droppedOut,
   }
@@ -164,7 +163,7 @@ export function eventStats(
 // ---------- Tasks, routines, quests ----------
 export function tasksDone(tasks: TaskRow[], from: string | null, now: Date, timeZone: string): number {
   const today = todayIn(timeZone, now)
-  return live(tasks).filter((t) => t.status === 'done' && t.completed_at && inPeriod(localDay(t.completed_at, timeZone), from, today)).length
+  return live(tasks).filter((t) => t.status === 'done' && t.completed_at && inPeriod(dayOf(t.completed_at, timeZone), from, today)).length
 }
 
 /** Times quests were done in the period (a quest can be done more than once). */
@@ -196,7 +195,7 @@ export function routineSummaries(
   const today = todayIn(timeZone, now)
   return live(routines).map((routine) => {
     if (isAnytime(routine)) {
-      const completed = runs.filter((r) => r.routine_id === routine.id && !r.deleted_at && r.finished_at && inPeriod(localDay(r.finished_at, timeZone), from, today)).length
+      const completed = runs.filter((r) => r.routine_id === routine.id && !r.deleted_at && r.finished_at && inPeriod(dayOf(r.finished_at, timeZone), from, today)).length
       return { routine, anytime: true, completed, possible: 0 }
     }
     // Count only from the period's start: treat the routine as starting then if it began earlier.

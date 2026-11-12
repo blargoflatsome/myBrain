@@ -10,11 +10,11 @@
       <section data-testid="profile-settings" :aria-label="m.settingsHeading">
         <form v-if="loaded" class="flex flex-col gap-4" @submit.prevent="save">
           <div class="grid gap-4 sm:grid-cols-2">
-            <label class="flex flex-col gap-1 text-sm text-muted">
+            <label :class="fieldLabel">
               {{ m.displayName }}
               <input v-model="displayName" maxlength="120" :class="field">
             </label>
-            <label class="flex flex-col gap-1 text-sm text-muted">
+            <label :class="fieldLabel">
               {{ m.visibility }}
               <select v-model="visibility" :class="field">
                 <option v-for="v in visibilities" :key="v" :value="v">{{ m.visibilityOptions[v] }}</option>
@@ -23,7 +23,7 @@
             </label>
           </div>
           <div class="flex items-center gap-3">
-            <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="saving">{{ m.save }}</button>
+            <button type="submit" :class="primaryButtonSmall" :disabled="saving">{{ m.save }}</button>
             <p v-if="notice" role="status" class="text-sm text-muted">{{ notice }}</p>
           </div>
         </form>
@@ -35,7 +35,7 @@
       <!-- SPEC §5 Celebrations: how lively celebrations are, saved to my profile with its own Save. -->
       <section class="rounded-xl border border-line px-4 py-3" :aria-label="cs.label" data-testid="celebrations-settings">
         <form v-if="loaded" class="flex flex-col gap-3" @submit.prevent="saveCelebrations">
-          <label class="flex flex-col gap-1 text-sm text-muted">
+          <label :class="fieldLabel">
             <span class="pb-2">{{ cs.label }}</span>
             <select v-model="celebrations" :class="field" data-testid="celebrations-setting">
               <option v-for="c in CELEBRATION_SETTINGS" :key="c" :value="c">{{ cs.options[c] }}</option>
@@ -43,7 +43,7 @@
             <span class="text-xs">{{ cs.hint }}</span>
           </label>
           <div class="flex items-center gap-3">
-            <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="savingCelebrations">{{ cs.save }}</button>
+            <button type="submit" :class="primaryButtonSmall" :disabled="savingCelebrations">{{ cs.save }}</button>
             <p v-if="celebrationsNotice" role="status" class="text-sm text-muted">{{ celebrationsNotice }}</p>
           </div>
         </form>
@@ -148,7 +148,7 @@
         </ul>
         <p v-if="!wipeChosen.length" class="text-sm text-danger" role="alert">{{ messages.deleteData.noneTicked }}</p>
         <p class="text-sm font-medium">{{ messages.deleteData.undo }}</p>
-        <label class="flex flex-col gap-1 text-sm text-muted">
+        <label :class="fieldLabel">
           {{ messages.deleteData.typeLabel }}
           <input v-model="wipeTyped" :class="field" autocomplete="off" autocapitalize="characters" spellcheck="false">
         </label>
@@ -161,7 +161,7 @@
           >
             {{ messages.deleteData.confirm }}
           </button>
-          <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmWipe?.close()">{{ messages.deleteData.keep }}</button>
+          <button type="button" class="flex-1" :class="secondaryButton" @click="confirmWipe?.close()">{{ messages.deleteData.keep }}</button>
         </div>
       </form>
       <CloseX @click="confirmWipe?.close()" />
@@ -175,7 +175,7 @@
       <form class="flex flex-col gap-4" @submit.prevent="deleteAccount">
         <h2 class="text-xl font-bold">{{ m.deleteConfirm.heading }}</h2>
         <p class="text-muted">{{ m.deleteConfirm.body }}</p>
-        <label class="flex flex-col gap-1 text-sm text-muted">
+        <label :class="fieldLabel">
           {{ m.deleteConfirm.typeLabel }}
           <input v-model="typed" :class="field" autocomplete="off" autocapitalize="characters" spellcheck="false">
         </label>
@@ -188,7 +188,7 @@
           >
             {{ m.deleteConfirm.confirm }}
           </button>
-          <button type="button" class="min-h-12 flex-1 rounded-xl border border-line px-4" @click="confirmDelete?.close()">
+          <button type="button" class="flex-1" :class="secondaryButton" @click="confirmDelete?.close()">
             {{ m.deleteConfirm.keep }}
           </button>
         </div>
@@ -215,7 +215,7 @@ import EventSettings from '@/events/components/EventSettings.vue'
 import MyPeople from '@/events/components/MyPeople.vue'
 import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
-import { field } from '@/ui/styles'
+import { field, fieldLabel, primaryButtonSmall, secondaryButton } from '@/ui/styles'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { CELEBRATION_SETTINGS, parseSetting, type CelebrationSetting } from '@/celebrate/rules'
 

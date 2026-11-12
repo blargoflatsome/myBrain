@@ -5,9 +5,7 @@
         {{ title ?? messages.forms.moreOptions }}
         <span v-if="summary" class="block text-xs font-normal text-muted">{{ summary }}</span>
       </span>
-      <svg aria-hidden="true" viewBox="0 0 24 24" class="size-5 shrink-0 text-muted transition-transform [details[open]>summary>&]:rotate-180" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 9l6 6 6-6" />
-      </svg>
+      <AppIcon name="chevronDown" size="size-5" class="text-muted transition-transform [details[open]>summary>&]:rotate-180" />
     </summary>
     <div class="flex flex-col gap-8 border-t border-line p-3">
       <slot />
@@ -19,6 +17,7 @@
 // SPEC §5 Forms: optional details sit in a fold-out (a native disclosure, so keyboards and screen readers can open
 // it). It starts open when something in it is already filled in, so nothing set is ever hidden. An open one's header is
 // tinted so it stands out from what's inside.
+import AppIcon from '@/components/AppIcon.vue'
 import { messages } from '@/messages'
 
 defineProps<{ title?: string; summary?: string; startOpen?: boolean; testId?: string }>()

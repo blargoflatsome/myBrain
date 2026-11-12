@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { addMonths, monthGrid, parseDate } from '@/time/parseDate'
+import { addMonths, monthGrid } from '@/time/months'
+import { parseDate } from '@/time/parseDate'
 
 const TODAY = '2026-11-10' // a Tuesday
 

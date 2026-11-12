@@ -28,8 +28,8 @@
       <p v-if="item.kind === 'event' && item.row.cancelled_at" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ messages.invites.cancelledNote }}</p>
       <RichNotes :value="notes" class="text-sm" data-testid="calendar-item-notes" />
       <div class="mt-2 flex gap-2">
-        <button type="button" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink" @click="emit('edit', item)">{{ m.edit }}</button>
-        <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ cal.editor.close }}</button>
+        <button type="button" class="flex-1" :class="primaryButton" @click="emit('edit', item)">{{ m.edit }}</button>
+        <button type="button" :class="secondaryButton" @click="dialog?.close()">{{ cal.editor.close }}</button>
       </div>
     </div>
     <CloseX @click="dialog?.close()" />
@@ -46,7 +46,7 @@ import { messages } from '@/messages'
 import type { EventRow, PriorityTaskRow, TaskRow } from '@/sync/types'
 import { DEFAULT_PRIORITY, PRIORITIES } from '@/tasks/rules'
 import { dayLabel, dayTimeLabel, timeLabel } from '@/ui/dates'
-import { dialogBox, priorityDot } from '@/ui/styles'
+import { dialogBox, primaryButton, priorityDot, secondaryButton } from '@/ui/styles'
 
 export type CalendarView =
   | { kind: 'task'; title: string; date: string; row: TaskRow }

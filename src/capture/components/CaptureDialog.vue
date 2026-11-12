@@ -19,12 +19,13 @@
 <script setup lang="ts">
 // SPEC §5 Quick capture: the Capture window, over the current page. Full screen on a phone, centred on wider screens.
 import CloseX from '@/components/CloseX.vue'
-import { nextTick, ref, watch } from 'vue'
+import { defineAsyncComponent, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import CaptureForm from '@/capture/components/CaptureForm.vue'
 import { useCaptureStore } from '@/stores/capture'
 import { messages } from '@/messages'
 
+// The form loads when the window first opens, so it isn't part of the app's first download.
+const CaptureForm = defineAsyncComponent(() => import('@/capture/components/CaptureForm.vue'))
 const capture = useCaptureStore()
 const route = useRoute()
 const dialog = ref<HTMLDialogElement | null>(null)

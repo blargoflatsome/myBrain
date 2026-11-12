@@ -39,11 +39,18 @@ file says *how* the code is written.
 | Data on the device and syncing | `src/sync/` (`live()` for "not deleted", the sync engine, row types in `types.ts`) |
 | Reading and writing data from screens | `src/stores/brain.ts` (one place, so every write goes through the sync queue) |
 | Reusable screen behaviour | `src/composables/useX.ts` (a composable only one feature uses lives in that feature's folder) |
-| Shared look of controls | `src/ui/styles.ts` (fields, chips, buttons, windows, cards) |
-| Showing dates | `src/ui/dates.ts` (`shortDay`, `shortDayWithYear`, `dateWithYear`) |
+| Shared look of controls | `src/ui/styles.ts` (fields, field labels, chips, main and secondary buttons, Delete links, checkboxes, windows, cards) |
+| Icons | `src/components/AppIcon.vue` with the set in `src/ui/icons.ts` (no hand-drawn `<svg>` icons) |
+| An editor window (heading, fields, Save, Close, Delete, ✕) | `src/components/EditorDialog.vue` |
+| Weekday chips | `src/components/WeekdayPicker.vue` |
+| Showing dates | `src/ui/dates.ts` (`dayLabel`, `timeLabel`, `dayTimeLabel`, `momentLabel`, `shortDay`, `shortDayWithYear`, `dateWithYear`) |
+| Day maths ("today", adding days, the day a moment fell on) | `src/tasks/days.ts` (`todayIn`, `addDays`, `dayOf`) |
+| Remembered on this device only | `src/ui/storage.ts` (`readKey`, `writeKey`, `readJson`, `writeJson`; never fails) |
 | "Are you sure?" before removing data | `src/components/ConfirmDialog.vue` |
-| Formatted text (journal, Post Its) | `RichTextEditor.vue` to edit; `cleanHtml()` to show |
+| Formatted text | `NotesEditor.vue` for notes fields, `RichTextEditor.vue` for the journal and Post Its; `cleanHtml()` to show |
+| Dates typed by people | `DateInput.vue` (type or pick on a computer, the device picker on a phone) |
 | Times typed by people | `TimeInput.vue` (type or pick on a computer, the device picker on a phone) |
+| Reading and writing a row with no rules of its own | `brain.save(table, row)`, `brain.remove(table, id)`, `brain.restore(table, id)` |
 | Security helpers | `src/security/`, `src/notifications/pushEndpoints.ts` |
 
 Before writing something new, check these first. If the same code is needed in a second place, move it here rather
@@ -105,6 +112,11 @@ than copying it.
 - Pages load per route (`() => import(...)`). Large libraries used by only some screens load when first shown
   (`defineAsyncComponent`), as the formatting editor does.
 - Read from the device's copy of the data (`useLiveQuery`), never wait on the network to show a screen.
+- Windows build their contents only while open (`EditorDialog.vue`, `v-if` on the form), so a closed editor never
+  loads the formatting editor. Something always on screen (the priority reminder, search) reads only what it needs:
+  today's rows by index, or nothing until it opens.
+- The date library behind typed dates loads only where a date can be typed (`src/time/typedDate.ts`); phones use
+  their own picker and never load it.
 
 ## 11. Tests
 

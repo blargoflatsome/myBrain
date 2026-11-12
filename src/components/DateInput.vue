@@ -96,7 +96,8 @@
 // "11/20") or pick it from a month grid (an accessible combobox with a grid: arrows move by day and week, Page Up and
 // Page Down by month, Enter picks, Escape closes just the grid). On a phone or tablet: the device's own date picker.
 import { computed, onScopeDispose, ref, useId, watch } from 'vue'
-import { addMonths, monthGrid, parseDate } from '@/time/parseDate'
+import { addMonths, monthGrid } from '@/time/months'
+import { dateReader, loadDateReader } from '@/time/typedDate'
 import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
 import { dayLabel } from '@/ui/dates'
 import { messages } from '@/messages'
@@ -127,6 +128,8 @@ const touch = ref(!!coarseQuery?.matches)
 const onPointerChange = (e: MediaQueryListEvent) => (touch.value = e.matches)
 coarseQuery?.addEventListener('change', onPointerChange)
 onScopeDispose(() => coarseQuery?.removeEventListener('change', onPointerChange))
+// Ready before anything is typed: the typed box is the only one that reads typed days.
+watch(touch, (t) => !t && void loadDateReader(), { immediate: true })
 
 const today = todayIn(deviceTimeZone())
 const shown = (v: string | null | undefined) => (v ? dayLabel(v, today) : '')
@@ -160,13 +163,20 @@ function onInput(event: Event) {
     if (!props.required) emit('update:modelValue', '')
     return
   }
-  const day = parseDate(text.value, today)
+  const typed = text.value
+  const read = dateReader()
+  if (read) return useTyped(read(typed, today))
+  // Still loading (typed at once): read it when it's here, unless something else was typed by then.
+  void loadDateReader().then((r) => text.value === typed && useTyped(r(typed, today)))
+}
+function useTyped(day: string | null) {
   if (day && !disabled(day)) {
     emit('update:modelValue', day)
     if (open.value) active.value = day
   }
 }
-function commit() {
+async function commit() {
+  if (!dateReader()) await loadDateReader()
   typing.value = false
   open.value = false
   // Whatever was typed settles to the saved day, shown the app's way; something that isn't a day goes back.

@@ -5,6 +5,10 @@
 export const field = 'min-h-12 w-full rounded-xl border border-line bg-bg px-3 text-base text-ink'
 /** The same, straight on the page background. */
 export const fieldOnPage = 'min-h-12 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink'
+/** A field's label wrapping its title and the field, stacked. */
+export const fieldLabel = 'flex flex-col gap-1 text-sm text-muted'
+/** A checkbox drawn in the accent colour. */
+export const checkbox = 'size-5 shrink-0 accent-[var(--accent)]'
 /** A slightly smaller field for dense forms (availability, people search). */
 export const fieldCompact = 'min-h-11 w-full rounded-xl border border-line bg-bg px-3 text-base text-ink'
 
@@ -23,10 +27,16 @@ export const filterChip = (on: boolean) => ['min-h-11 rounded-full border px-3 t
 /** One of two or three side-by-side answers (Yes / No, Going / Maybe / No). */
 export const choice = (on: boolean) => ['min-h-11 flex-1 rounded-xl border px-3 font-semibold', on ? selected : 'border-line']
 
+/** The main action of a form or window (Save task, Send). */
+export const primaryButton = 'min-h-12 rounded-xl bg-accent px-4 font-semibold text-accent-ink'
+/** The same, a little smaller, for an action inside a card or list. */
+export const primaryButtonSmall = 'min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink'
 /** A secondary action (Close, Cancel, Keep it). */
 export const secondaryButton = 'min-h-12 rounded-xl border border-line px-4'
 /** A small action at the end of a list row (Edit, Cancel), the same in every list (SPEC §2 Calm by design). */
 export const rowAction = 'flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 text-sm font-medium'
+/** The quiet Delete link at the bottom of an editor (it asks first or offers Undo). */
+export const deleteLink = 'self-start text-sm text-danger underline'
 /** The confirming action of something that removes data. */
 export const dangerButton = 'min-h-12 rounded-xl bg-danger px-4 font-semibold text-danger-ink'
 

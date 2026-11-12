@@ -10,7 +10,7 @@
     @keydown.esc.prevent="focus.minimized = true"
   >
     <button type="button" :class="[round, 'absolute top-4 right-4']" :aria-label="m.close" data-testid="focus-close" @click="focus.stop()">
-      <svg aria-hidden="true" viewBox="0 0 24 24" class="size-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+      <AppIcon name="close" size="size-7" />
     </button>
     <p class="text-2xl font-semibold" data-testid="focus-phase">{{ m.phase[focus.state.phase] }}</p>
     <p class="text-[min(28vw,10rem)] leading-none font-bold tabular-nums" data-testid="focus-time" role="timer" :aria-label="m.timeLeft(time)">{{ time }}</p>
@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 // SPEC §5 Focus timer: a full-screen Pomodoro timer that can be minimized to a pill and keeps going.
+import AppIcon from '@/components/AppIcon.vue'
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useFocusStore } from '@/stores/focus'
 import { clock, remainingMs } from '@/focus/timer'

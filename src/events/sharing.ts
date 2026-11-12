@@ -1,6 +1,7 @@
 // Shared events (SPEC §5 Shared events, Cancelling): calls to the server functions, answer links, and the
 // one-at-a-time sharing flow (messaging app or email app) until automatic texts and emails exist.
 import type { FreeBusyRow } from '@/events/availability'
+import { formatTime } from '@/time/parse'
 import { supabase } from '@/lib/supabase'
 import { isIOS } from '@/ui/device'
 import type { EventRow, InviteResponse } from '@/sync/types'
@@ -103,9 +104,7 @@ export function whenText(e: Pick<EventRow, 'start_date' | 'start_time'>): string
   const [y, m, d] = e.start_date.split('-').map(Number)
   const date = new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })
   if (!e.start_time) return date
-  const [hh, mm] = e.start_time.split(':').map(Number)
-  const time = `${hh! % 12 || 12}:${String(mm).padStart(2, '0')} ${hh! < 12 ? 'am' : 'pm'}`
-  return `${date} at ${time}`
+  return `${date} at ${formatTime(e.start_time, true)}`
 }
 
 /** The invitation I send a guest myself (written from me to them, not in the "past you" voice). */

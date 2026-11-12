@@ -113,6 +113,7 @@ import { messages } from '@/messages'
 import { deviceTimeZone } from '@/tasks/days'
 import { useWideScreen } from '@/composables/useWideScreen'
 import { live } from '@/sync/live'
+import { readKey, writeKey } from '@/ui/storage'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,16 +159,18 @@ watch(
     brain.start(id, supabaseRemote(supabase))
     // SPEC §5 Tasks: keep the profile's timezone in step with the device, for server-side jobs.
     void supabase.from('profiles').update({ timezone: deviceTimeZone() }).eq('user_id', id).then(() => {})
-    // SPEC §5 Accounts: the phone number is asked for once, right after sign-in (skipped when offline).
-    void checkDataReset()
+    // One read of my profile: has my data been deleted elsewhere, my Celebrations setting, and my phone number.
+    lastResetCheck = Date.now()
     void supabase
       .from('profiles')
-      .select('phone, celebrations')
+      .select('data_reset_at, phone, celebrations')
       .eq('user_id', id)
       .maybeSingle()
       .then(async ({ data, error }) => {
+        await brain.applyDataReset(data?.data_reset_at)
         // SPEC §5 Celebrations: my setting follows me to this device.
         if (data?.celebrations) celebrate.setSetting(data.celebrations)
+        // SPEC §5 Accounts: the phone number is asked for once, right after sign-in (skipped when offline).
         if (error || !data || data.phone) return
         await router.isReady()
         if (route.meta.public || route.name === 'welcome') return
@@ -194,21 +197,10 @@ function openFocus() {
 // Wide screens: More opens or closes the rest of the menu; remembered on this device, and open on its own pages.
 const wide = useWideScreen()
 const MORE_KEY = 'my-brain:nav-more'
-const moreOpen = ref(readMore() || inMore(route.path))
-function readMore() {
-  try {
-    return localStorage.getItem(MORE_KEY) === 'open'
-  } catch {
-    return false
-  }
-}
+const moreOpen = ref(readKey(MORE_KEY) === 'open' || inMore(route.path))
 function toggleMore() {
   moreOpen.value = !moreOpen.value
-  try {
-    localStorage.setItem(MORE_KEY, moreOpen.value ? 'open' : 'closed')
-  } catch {
-    // Storage blocked: it just won't be remembered.
-  }
+  writeKey(MORE_KEY, moreOpen.value ? 'open' : 'closed')
 }
 watch(
   () => route.path,

@@ -2,7 +2,7 @@
   <section class="flex flex-col gap-3">
     <template v-if="!editorOnly">
       <p class="text-muted">{{ m.tabIntro }}</p>
-      <button type="button" class="min-h-12 self-start rounded-xl border border-line bg-surface px-4 font-medium" @click="open(null)">{{ m.add }}</button>
+      <button type="button" class="self-start bg-surface font-medium" :class="secondaryButton" @click="open(null)">{{ m.add }}</button>
       <p v-if="!sorted.length" class="text-muted">{{ m.empty }}</p>
       <ul class="flex flex-col gap-2">
         <li v-for="t in sorted" :key="t.id" class="flex items-start gap-3 rounded-2xl border border-line bg-surface p-3" data-testid="priority-row">
@@ -18,38 +18,31 @@
       </ul>
     </template>
 
-    <dialog
-      ref="dialog"
-      :class="dialogBox"
-      :aria-label="isNew ? m.editor.newHeading : m.editor.heading"
+    <EditorDialog
+      :open="!!editing"
+      :heading="isNew ? m.editor.newHeading : m.editor.heading"
+      :save-label="m.editor.save"
+      :close-label="m.editor.close"
+      :delete-label="isNew ? null : m.editor.delete"
+      @save="save"
+      @delete="confirmDialog?.open()"
       @close="editing = null"
     >
-      <form class="flex flex-col gap-8 p-5" @submit.prevent="save">
-        <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
-        <label class="flex flex-col gap-1 text-sm text-muted"><span class="pb-2">{{ m.editor.title }}</span><input v-model="title" maxlength="500" required :class="field"></label>
-        <TimeInput v-model="time" :label="m.editor.time" required :input-class="field" />
-        <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted pb-2">{{ m.editor.when }}</legend>
-          <div class="flex gap-2" role="group" :aria-label="m.editor.when">
-            <button type="button" :class="dayChip(mode === 'repeat')" :aria-pressed="mode === 'repeat'" @click="mode = 'repeat'">{{ m.editor.repeat }}</button>
-            <button type="button" :class="dayChip(mode === 'once')" :aria-pressed="mode === 'once'" @click="mode = 'once'">{{ m.editor.once }}</button>
-          </div>
-          <div v-if="mode === 'repeat'" class="flex flex-wrap gap-1.5" role="group" :aria-label="m.editor.repeat">
-            <button v-for="d in ALL" :key="d" type="button" :class="dayChip(weekdays.includes(d))" :aria-pressed="weekdays.includes(d)" @click="toggleDay(d)">{{ dayNames[d] }}</button>
-          </div>
-          <HowOften v-if="mode === 'repeat'" v-model="weekInterval" />
-          <DateInput v-else v-model="date" :label="m.editor.date" :min="todayIn(deviceTimeZone())" required :input-class="field" />
-        </fieldset>
-        <NotesEditor v-model="description" :label="m.editor.description" test-id="priority-description" />
-        <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
-        <div class="flex gap-2">
-          <button type="submit" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-semibold text-accent-ink">{{ m.editor.save }}</button>
-          <button type="button" class="min-h-12 rounded-xl border border-line px-4" @click="dialog?.close()">{{ m.editor.close }}</button>
+      <label :class="fieldLabel"><span class="pb-2">{{ m.editor.title }}</span><input v-model="title" maxlength="500" required :class="field"></label>
+      <TimeInput v-model="time" :label="m.editor.time" required :input-class="field" />
+      <fieldset class="flex flex-col gap-2">
+        <legend class="mb-1 text-sm text-muted pb-2">{{ m.editor.when }}</legend>
+        <div class="flex gap-2" role="group" :aria-label="m.editor.when">
+          <button type="button" :class="dayChip(mode === 'repeat')" :aria-pressed="mode === 'repeat'" @click="mode = 'repeat'">{{ m.editor.repeat }}</button>
+          <button type="button" :class="dayChip(mode === 'once')" :aria-pressed="mode === 'once'" @click="mode = 'once'">{{ m.editor.once }}</button>
         </div>
-        <button v-if="!isNew" type="button" class="self-start text-sm text-danger underline" @click="confirmDialog?.open()">{{ m.editor.delete }}</button>
-      </form>
-      <CloseX @click="dialog?.close()" />
-    </dialog>
+        <WeekdayPicker v-if="mode === 'repeat'" v-model="weekdays" :aria-label="m.editor.repeat" />
+        <HowOften v-if="mode === 'repeat'" v-model="weekInterval" />
+        <DateInput v-else v-model="date" :label="m.editor.date" :min="todayIn(deviceTimeZone())" required :input-class="field" />
+      </fieldset>
+      <NotesEditor v-model="description" :label="m.editor.description" test-id="priority-description" />
+      <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
+    </EditorDialog>
 
     <ConfirmDialog
       ref="confirmDialog"
@@ -65,7 +58,7 @@
 <script setup lang="ts">
 // SPEC §5: priority tasks — one-off (a date) or repeating on chosen weekdays — with a reminder time.
 import AppIcon from '@/components/AppIcon.vue'
-import CloseX from '@/components/CloseX.vue'
+import EditorDialog from '@/components/EditorDialog.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
@@ -78,11 +71,13 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import DateInput from '@/components/DateInput.vue'
 import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
-import { dayChip, dialogBox, field, rowAction } from '@/ui/styles'
+import { dayChip, field, fieldLabel, rowAction, secondaryButton } from '@/ui/styles'
 import { live } from '@/sync/live'
 import { firstFutureDay, isLater } from '@/reminders/priority'
 import { nextWholeHour } from '@/events/rules'
 import { dayLabel, timeLabel } from '@/ui/dates'
+import WeekdayPicker from '@/components/WeekdayPicker.vue'
+import { ALL_WEEKDAYS } from '@/habits/rules'
 
 // editorOnly: just the editor, for opening a priority task from the calendar (SPEC §5 Calendar).
 const props = defineProps<{ openId?: string | null; editorOnly?: boolean }>()
@@ -90,7 +85,6 @@ const emit = defineEmits<{ opened: [] }>()
 const brain = useBrainStore()
 const m = messages.priority
 const dayNames = messages.habits.weekdayNames
-const ALL = [0, 1, 2, 3, 4, 5, 6]
 
 const tasks = useLiveQuery<PriorityTaskRow[]>(
   async () => (brain.db ? live(await brain.db.priority_tasks.toArray()) : []),
@@ -105,7 +99,6 @@ function when(t: PriorityTaskRow) {
 }
 
 // ---------- editor ----------
-const dialog = ref<HTMLDialogElement | null>(null)
 const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const editing = ref<PriorityTaskRow | null>(null)
 const isNew = ref(false)
@@ -116,7 +109,7 @@ const error = ref('')
 const nowTime = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` }
 const mode = ref<'once' | 'repeat'>('repeat')
 const date = ref('')
-const weekdays = ref<number[]>([...ALL])
+const weekdays = ref<number[]>([...ALL_WEEKDAYS])
 const weekInterval = ref(1)
 
 function open(t: PriorityTaskRow | null) {
@@ -129,7 +122,7 @@ function open(t: PriorityTaskRow | null) {
     // A new one starts at the next whole hour, so it's always in the future (SPEC §5 Priority tasks).
     reminder_time: nextWholeHour(),
     due_date: null,
-    weekdays: [...ALL],
+    weekdays: [...ALL_WEEKDAYS],
     start_date: today,
     deleted_at: null,
   }
@@ -147,22 +140,16 @@ watch(
   { immediate: true },
 )
 watch(editing, (t) => {
-  if (!t) return dialog.value?.close()
+  if (!t) return
   title.value = t.title
   description.value = t.description ?? ''
   time.value = t.reminder_time.slice(0, 5)
   mode.value = t.due_date ? 'once' : 'repeat'
   error.value = ''
   date.value = t.due_date ?? firstFutureDay(t.reminder_time, todayIn(deviceTimeZone()), nowTime())
-  weekdays.value = [...(t.weekdays ?? ALL)]
+  weekdays.value = [...(t.weekdays ?? ALL_WEEKDAYS)]
   weekInterval.value = t.week_interval ?? 1
-  dialog.value?.showModal()
 })
-function toggleDay(d: number) {
-  const has = weekdays.value.includes(d)
-  if (has && weekdays.value.length === 1) return
-  weekdays.value = has ? weekdays.value.filter((x) => x !== d) : [...weekdays.value, d].sort()
-}
 async function save() {
   if (!editing.value || !title.value.trim() || !time.value) return
   const today = todayIn(deviceTimeZone())
@@ -172,7 +159,7 @@ async function save() {
   }
   // A repeating one that starts today (a new one, or one made today) moves to tomorrow if its time has passed.
   const start = editing.value.start_date >= today ? firstFutureDay(time.value, today, nowTime()) : editing.value.start_date
-  await brain.savePriorityTask({
+  await brain.save('priority_tasks', {
     ...editing.value,
     start_date: start,
     title: title.value.trim(),
@@ -185,7 +172,7 @@ async function save() {
   editing.value = null
 }
 async function remove() {
-  if (editing.value) await brain.deletePriorityTask(editing.value.id)
+  if (editing.value) await brain.remove('priority_tasks', editing.value.id)
   confirmDialog.value?.close()
   editing.value = null
 }
