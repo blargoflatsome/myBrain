@@ -104,11 +104,6 @@ test.describe('Spec §5 Dashboard', () => {
     expect(y.width).toBeGreaterThan(top.width - 2)
   })
 
-  test('with nothing scheduled yesterday, the section says so', async ({ page }) => {
-    await open(page)
-    await expect(page.getByTestId('dash-yesterday')).toContainText(msg.dashboard.yesterdayEmpty)
-  })
-
   test('the app opens on the Dashboard, the first item in the menu', async ({ page }) => {
     await open(page)
     await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
@@ -198,10 +193,5 @@ test.describe('Spec §5 Dashboard', () => {
     await open(page)
     await expect(page.getByRole('meter', { name: 'Morning' })).toHaveAttribute('aria-valuenow', '11') // 1 of 9 days
     await expect(page.getByTestId('dash-quests')).toHaveText('1')
-  })
-
-  test('with nothing yet, it says so kindly', async ({ page }) => {
-    await open(page)
-    await expect(page.getByText("Past you hasn't started any habits yet.")).toBeVisible()
   })
 })

@@ -28,7 +28,6 @@ test.describe('Spec §5 Random Quest', () => {
       quest('q1', 'Build a birdhouse', { details: 'Plans are in the garage drawer.', time_bucket: 'half_day', energy_level: 'medicated' }),
     ])
     await openQuests(page, 'Build a birdhouse')
-    await expect(page.getByText(msg.quests.intro)).toBeVisible()
     await page.getByRole('button', { name: /Pick a quest for me/ }).click()
 
     await expect(result(page)).toContainText(msg.quests.resultHeading)
@@ -55,17 +54,6 @@ test.describe('Spec §5 Random Quest', () => {
       await page.getByRole('button', { name: /Pick a quest for me/ }).click()
       await expect(result(page).getByRole('heading')).toHaveText('Sort the sock drawer')
     }
-  })
-
-  test('when nothing fits, past you suggests changing the filters', async ({ page }) => {
-    server.seed('quests', [quest('big', 'Repaint the fence', { time_bucket: 'full_day' })])
-    await openQuests(page, 'Repaint the fence')
-    await page.getByRole('group', { name: msg.quests.timeLabel }).getByRole('button', { name: msg.quests.time["30m"] }).click()
-    await page.getByRole('button', { name: /Pick a quest for me/ }).click()
-    await expect(page.getByTestId('quest-notice')).toHaveText(
-      'No quests fits this criteria. Try a different time or energy, or add one.',
-    )
-    await expect(result(page)).toHaveCount(0)
   })
 
   test('re-roll skips the last 3 picked quests', async ({ page }) => {

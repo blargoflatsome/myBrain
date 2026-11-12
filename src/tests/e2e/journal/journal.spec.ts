@@ -137,11 +137,6 @@ test.describe('Spec §5 Journal', () => {
   })
 
 
-  test('with no past entries, the empty journal says so', async ({ page }) => {
-    await open(page)
-    await expect(page.getByText(msg.journal.empty)).toBeVisible()
-  })
-
   test('a day that ended without an entry is written for me, frozen, and I can still add to it', async ({ page }) => {
     server.seed('habits', [habit('h2', 'Stretch')])
     server.seed('habit_logs', [doneLog('h2', '2026-11-09')])
@@ -154,7 +149,7 @@ test.describe('Spec §5 Journal', () => {
       .poll(() => server.written('journal_entries').find((e) => e.date === '2026-11-09'))
       .toMatchObject({ auto: true, body: '', stats_final: true, stats: { habits: { kept: 1, scheduled: 1 } } })
     const entry = page.getByTestId('journal-entry-2026-11-09')
-    await expect(entry).toContainText("Past you couldn't be bothered apparently, so here's what happened. Want to add a few words?")
+    await expect(entry).toContainText(msg.journal.autoNote)
     await expect(entry.getByTestId('stat-habits').getByTestId('stat-value')).toHaveText('1 of 1')
 
     await entry.getByRole('button', { name: msg.journal.edit }).click()

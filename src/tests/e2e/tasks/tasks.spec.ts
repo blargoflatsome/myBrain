@@ -25,22 +25,16 @@ test.beforeEach(async ({ page }) => {
   await server.install(page)
 })
 
-test.describe('Spec §5 Tasks: daily list in the "past you" voice', () => {
-  test('today shows past-you wording and orders open tasks High, Medium, Low with colored markers', async ({ page }) => {
+test.describe('Spec §5 Tasks: the daily list', () => {
+  test('today orders open tasks High, Medium, Low with colored markers', async ({ page }) => {
     server.seed('tasks', [
       task('a', 'water plants', '2026-11-10', { priority: 1 }),
       task('bb', 'pay rent', '2026-11-10', { priority: 3 }),
       task('ccc', 'email Sam', '2026-11-10', { priority: 2 }),
     ])
     await open(page)
-    await expect(page.getByText(msg.tasks.pastYouToday)).toBeVisible()
     await expect(page.getByTestId('task-title')).toHaveText(['pay rent', 'email Sam', 'water plants'])
     await expect(page.getByTestId('task-priority')).toHaveText(['High', 'Medium', 'Low'])
-  })
-
-  test('an empty day invites me to enjoy it or add something', async ({ page }) => {
-    await open(page)
-    await expect(page.getByText(msg.tasks.emptyToday)).toBeVisible()
   })
 
   test('completing a task crosses it off and moves it below open tasks', async ({ page }) => {
@@ -50,13 +44,6 @@ test.describe('Spec §5 Tasks: daily list in the "past you" voice', () => {
     await expect(page.getByTestId('task-title')).toHaveText(['second', 'first'])
     await expect(item(page, 'first').getByTestId('task-title')).toHaveClass(/line-through/)
     await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 'a', status: 'done' })
-  })
-
-  test('when every task is done, past you would be proud', async ({ page }) => {
-    server.seed('tasks', [task('a', 'only one', '2026-11-10')])
-    await open(page)
-    await page.getByRole('button', { name: 'Cross off only one' }).click()
-    await expect(page.getByText(msg.tasks.allDone)).toBeVisible()
   })
 })
 

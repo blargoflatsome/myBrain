@@ -176,7 +176,7 @@ test.describe('Spec §5: Decide later, then sort it when I have time', () => {
     await startCapture(page, 'Decide later')
     await page.getByLabel("What's on your mind?").fill('maybe learn Portuguese')
     await save(page).click()
-    await expect(page.getByTestId('capture-notice')).toHaveText("Saved to Orphans. Future you can sort it when there's time.")
+    await expect(page.getByTestId('capture-notice')).toHaveText(msg.capture.saved.later)
 
     await goTo(page, /Orphans/)
     await expect(page.getByText(msg.inbox.itemPrompt)).toBeVisible()

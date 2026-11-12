@@ -300,7 +300,7 @@ test.describe('Spec §8: before anyone else uses the app', () => {
     await expect(confirm).toBeDisabled()
     await dialog.getByLabel(msg.deleteData.typeLabel).fill('delete')
     await confirm.click()
-    await expect(page.getByRole('status').filter({ hasText: 'Past you left a clean slate.' })).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: msg.deleteData.done })).toBeVisible()
     expect(rpc('delete_my_data')).toHaveLength(1)
     expect(rpc('delete_my_data')[0]!.args).toEqual({
       parts: ['tasks', 'inbox', 'quests', 'vault', 'journal', 'habits', 'routines', 'priority_tasks', 'tags', 'events', 'post_its', 'people', 'connections'],

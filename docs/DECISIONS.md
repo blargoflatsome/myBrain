@@ -150,3 +150,6 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 - Feature folders: each page, its rules and its own components live in `src/<feature>/` (components in `components/`); a component two features use stays with the feature it belongs to; `src/components/` is for app-wide pieces only. All tests under `src/tests/` by kind (unit, integration, e2e, db), then by what they test. (User's choices.)
 - Done as file moves only; the test cleanup (wording from messages, fewer brittle checks, splitting the cross-feature files) comes after, as its own step. (User.)
 - Claude's calls: Connections got its own folder; Orphans (InboxView) sits with Capture; priority reminders' screens with `reminders/`; `EntryTags.vue` (unused) deleted; `fakeRemote.ts` moved to `src/tests/support/`.
+
+## 2026-11-11 What not to test
+- If it can't break the website, don't test it: no tests that only check wording, the "past you" voice or that messages.ts is used; the instructions cover those and code review catches them. Wording may still be used to find something or confirm a behaviour happened. (User.) Added to the writing-tests skill.

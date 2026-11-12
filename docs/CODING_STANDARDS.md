@@ -111,8 +111,8 @@ than copying it.
 - Every rule gets a test named after the spec rule it proves. All tests live in `src/tests/`, by kind, then by what
   they test: `unit/<feature>/` (Vitest, logic), `integration/` (Vitest against the dev database), `e2e/<feature>/`
   (Playwright, screens; helpers in `e2e/support/`), `db/` (SQL checks for database rules). Test-only helpers go in
-  `src/tests/support/` (or `e2e/support/`), never in app code. `cross-feature/` holds older tests that cover several
-  features; they get split by feature in the test cleanup.
+  `src/tests/support/` (or `e2e/support/`), never in app code. A test file covers one feature; split it when it grows to
+  cover several.
 - **The `writing-tests` skill** (`.claude/skills/writing-tests/SKILL.md`) is the rulebook: every test must name the bug it
   catches, wording comes from `messages.ts` (never typed out), styling is only checked when it's the rule, and logic is
   tested in unit tests rather than the browser.

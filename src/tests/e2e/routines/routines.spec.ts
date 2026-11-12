@@ -118,7 +118,6 @@ test.describe('Spec §5 Routines: list and stats', () => {
   test('a new routine has a title, reminder, weekdays and ordered steps', { tag: '@phone' }, async ({ page }) => {
     test.skip(isSafari(test.info()), 'sorting by mouse drag; on a touch iPhone, tap to move is tested instead')
     await open(page, '/routines')
-    await expect(page.getByText("Past you hasn't set up any routines yet.")).toBeVisible()
     await page.getByRole('button', { name: msg.routines.add }).click()
     const dialog = page.getByRole('dialog', { name: msg.routines.editor.newHeading })
     await dialog.getByLabel(msg.routines.editor.title).fill('Evening wind-down')
@@ -128,7 +127,6 @@ test.describe('Spec §5 Routines: list and stats', () => {
     await dialog.getByRole('button', { name: msg.routines.editor.addStep }).click()
     await dialog.getByLabel('Step 2', { exact: true }).fill('Read')
     // Steps are sorted by drag and drop.
-    await expect(dialog.getByText(msg.routines.editor.dragHint)).toBeVisible()
     await dragHandle(page, dialog.getByRole('button', { name: /^Reorder Read/ }), dialog.getByRole('button', { name: /^Reorder Phone on charger/ }), 'above')
     await expect(dialog.getByTestId('routine-step-row').first().getByRole('textbox')).toHaveValue('Read')
     await dialog.getByRole('button', { name: msg.capture.save }).click()
@@ -220,7 +218,6 @@ test.describe('Spec §5 Routines: habits as steps', () => {
     await dialog.getByRole('button', { name: msg.routines.editor.addHabit }).click()
     await dialog.getByRole('combobox', { name: msg.routines.editor.chooseHabit }).selectOption({ label: 'Take medication' })
     await expect(dialog.getByTestId('habit-step')).toContainText('Take medication')
-    await expect(dialog.getByText(msg.routines.editor.habitHint)).toBeVisible()
     await dialog.getByRole('button', { name: msg.capture.save }).click()
     await expect
       .poll(() => server.written('routine_steps').sort((a, b) => Number(a.position) - Number(b.position)).map((s) => [s.title, s.habit_id ?? null]))
