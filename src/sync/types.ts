@@ -27,6 +27,7 @@ export const SYNC_TABLES = [
   'people',
   'quest_logs',
   'badges',
+  'activity_log',
 ] as const
 
 /** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
@@ -198,6 +199,17 @@ export interface QuestLogRow extends BaseRow {
 export interface BadgeRow extends BaseRow {
   kind: string
   earned_at: string
+  /** SPEC §5 Trophies: the day each level was earned; its length is the level (empty for first-time badges). */
+  levels?: string[]
+}
+
+export type ActivityKind = 'focus' | 'capture' | 'orphans_cleared'
+
+/** What the app didn't record before trophies: Focus sessions, captures and emptying Orphans (SPEC §5 Trophies). */
+export interface ActivityLogRow extends BaseRow {
+  kind: ActivityKind
+  at: string
+  detail: { minutes?: number; type?: string }
 }
 
 export interface InboxRow extends BaseRow {
@@ -327,6 +339,7 @@ export interface RowTypes {
   people: PersonRow
   quest_logs: QuestLogRow
   badges: BadgeRow
+  activity_log: ActivityLogRow
   tasks: TaskRow
   vault_buckets: VaultBucketRow
   vault_items: VaultItemRow

@@ -112,7 +112,7 @@ const props = withDefaults(
     labelClass?: string
     inputClass?: string
   }>(),
-  { ariaLabel: undefined, required: false, min: undefined, hint: undefined, labelClass: 'text-sm text-muted', inputClass: '' },
+  { ariaLabel: undefined, required: false, min: undefined, hint: undefined, labelClass: 'pb-2 text-sm text-muted', inputClass: '' },
 )
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const m = messages.dateInput

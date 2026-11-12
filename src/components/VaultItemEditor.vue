@@ -5,16 +5,16 @@
     :aria-label="m.itemEditor.heading"
     @close="emit('close')"
   >
-    <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
+    <form class="flex flex-col gap-8 p-5" @submit.prevent="save">
       <h2 class="text-lg font-semibold">{{ m.itemEditor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.itemEditor.title }}
+        <span class="pb-2">{{ m.itemEditor.title }}</span>
         <input v-model="title" maxlength="500" required :class="field">
       </label>
       <NotesEditor v-model="notes" :label="m.itemEditor.notes" test-id="vault-notes" />
       <MoreOptions :summary="m.itemEditor.moreSummary" :start-open="moreOpen" test-id="vault-more">
         <fieldset class="flex flex-col gap-1">
-          <legend class="mb-1 text-sm text-muted">{{ m.itemEditor.rating }}</legend>
+          <legend class="mb-1 text-sm text-muted pb-2">{{ m.itemEditor.rating }}</legend>
           <div class="flex items-center gap-1" role="radiogroup" :aria-label="m.itemEditor.rating">
             <button
               v-for="n in 5"
@@ -35,12 +35,12 @@
           </div>
         </fieldset>
         <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.itemEditor.link }}
+          <span class="pb-2">{{ m.itemEditor.link }}</span>
           <input v-model="link" :class="field" autocomplete="off" inputmode="url">
           <span class="text-xs">{{ m.itemEditor.linkHint }}</span>
         </label>
         <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.itemEditor.bucket }}
+          <span class="pb-2">{{ m.itemEditor.bucket }}</span>
           <select v-model="bucketId" :class="field">
             <option v-for="b in buckets" :key="b.id" :value="b.id">{{ b.name }}</option>
           </select>

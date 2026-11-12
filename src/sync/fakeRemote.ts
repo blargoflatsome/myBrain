@@ -18,6 +18,7 @@ export class FakeRemote implements Remote {
     quests: new Map(),
     quest_logs: new Map(),
     badges: new Map(),
+    activity_log: new Map(),
     inbox: new Map(),
     habits: new Map(),
     habit_logs: new Map(),

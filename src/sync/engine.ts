@@ -178,13 +178,16 @@ export class SyncEngine {
   }
 
   private async refreshPending() {
-    const pending = await this.db.outbox.count()
-    this.emit({ ...this.status, pending })
+    this.emit({ ...this.status, pending: await this.countPending() })
   }
 
   private async setState(state: SyncStatus['state']) {
-    const pending = await this.db.outbox.count()
-    this.emit({ state, pending })
+    this.emit({ state, pending: await this.countPending() })
+  }
+
+  /** Changes waiting to upload, as I'd count them: the trophies' background log isn't something I saved. */
+  private countPending() {
+    return this.db.outbox.filter((o) => o.table !== 'activity_log').count()
   }
 
   private emit(status: SyncStatus) {

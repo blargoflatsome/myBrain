@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col gap-6" data-testid="habit-fields">
+  <div class="flex flex-col gap-8" data-testid="habit-fields">
     <label class="flex items-start gap-3">
       <input v-model="isPrivate" type="checkbox" class="mt-1 size-5 shrink-0 accent-[var(--accent)]">
       <span>
@@ -8,12 +8,12 @@
       </span>
     </label>
 
-    <fieldset class="flex flex-col gap-4" data-testid="habit-how-often">
+    <fieldset class="flex flex-col gap-8" data-testid="habit-how-often">
       <legend class="sr-only">{{ f.howOften }}</legend>
       <HowOften :model-value="weekInterval" :monthly="monthly" :start-date="startDate" @update:model-value="weekInterval = $event" @update:monthly="monthly = $event" />
       <div v-if="!monthly" class="flex flex-col gap-1">
-        <span :id="`${uid}-days`" class="text-sm text-muted">{{ m.editor.weekdays }}</span>
-        <div class="flex flex-wrap gap-1.5" role="group" :aria-labelledby="`${uid}-days`">
+        <span :id="`${uid}-days`" class="text-sm text-muted pb-2">{{ m.editor.weekdays }}</span>
+        <div class="flex flex-wrap justify-between" role="group" :aria-labelledby="`${uid}-days`">
           <button
             v-for="d in ALL_WEEKDAYS"
             :key="d"
@@ -33,7 +33,7 @@
       <div class="grid gap-4 sm:grid-cols-2">
         <TimeInput v-model="notifyTime" :label="m.editor.notifyTime" :input-class="fieldClass" />
         <label class="flex flex-col gap-1 text-sm text-muted">
-          {{ m.editor.timer }}
+          <span class="pb-2">{{ m.editor.timer }}</span>
           <select v-model="timer" :disabled="!notifyTime" :class="[fieldClass, 'disabled:opacity-50']">
             <option :value="null">{{ m.editor.timerNone }}</option>
             <option v-for="t in TIMER_OPTIONS" :key="t" :value="t">{{ m.editor.timerOptions[t] }}</option>

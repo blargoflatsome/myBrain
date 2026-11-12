@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { openAttendees } from './support/events'
 import { FakeSupabase } from './support/fakeSupabase'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
@@ -55,6 +56,7 @@ test.describe('Spec §5 Calendar: inviting shows what happened at every step', (
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    await openAttendees(dialog)
     await dialog.getByLabel('Email or phone number').fill('5550103000')
     await dialog.getByLabel('Their name (optional)').fill('Dan')
     await dialog.getByRole('button', { name: 'Add', exact: true }).click()

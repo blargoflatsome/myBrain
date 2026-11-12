@@ -222,7 +222,6 @@ test.describe('Spec §5 Calendar', { tag: '@phone' }, () => {
     await dialog.getByLabel('Starts Time').fill('12:30')
     await dialog.getByLabel('Ends Time').fill('13:30')
     await dialog.getByLabel('Repeat').selectOption({ label: 'Every week' })
-    await dialog.getByTestId('event-more').getByText('More details').click()
     await dialog.getByLabel('Reminder').selectOption({ label: '15 minutes before' })
     await dialog.getByRole('button', { name: 'Save' }).click()
     await expect(dialog).toBeHidden()

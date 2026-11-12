@@ -13,7 +13,7 @@ export type Achievement =
   | { kind: 'postit' }
   | { kind: 'orphan' }
   | { kind: 'shared_event' }
-  | { kind: 'focus' }
+  | { kind: 'focus'; sessions: number }
 
 type Listener = (a: Achievement) => void
 const listeners = new Set<Listener>()

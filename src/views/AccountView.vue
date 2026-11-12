@@ -21,14 +21,6 @@
               </select>
               <span class="text-xs">{{ m.visibilityHint }}</span>
             </label>
-            <!-- SPEC §5 Celebrations: how lively celebrations are. -->
-            <label class="flex flex-col gap-1 text-sm text-muted">
-              {{ cs.label }}
-              <select v-model="celebrations" :class="field" data-testid="celebrations-setting">
-                <option v-for="c in CELEBRATION_SETTINGS" :key="c" :value="c">{{ cs.options[c] }}</option>
-              </select>
-              <span class="text-xs">{{ cs.hint }}</span>
-            </label>
           </div>
           <div class="flex items-center gap-3">
             <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="saving">{{ m.save }}</button>
@@ -39,7 +31,78 @@
       </section>
     </AccountGroup>
 
-    <!-- SPEC §5 Account page: Sign out on its own right under Your profile, always visible and away from the delete buttons. -->
+    <AccountGroup id="settings" :title="g.settingsTitle" :summary="g.settings">
+      <!-- SPEC §5 Celebrations: how lively celebrations are, saved to my profile with its own Save. -->
+      <section class="rounded-xl border border-line px-4 py-3" :aria-label="cs.label" data-testid="celebrations-settings">
+        <form v-if="loaded" class="flex flex-col gap-3" @submit.prevent="saveCelebrations">
+          <label class="flex flex-col gap-1 text-sm text-muted">
+            <span class="pb-2">{{ cs.label }}</span>
+            <select v-model="celebrations" :class="field" data-testid="celebrations-setting">
+              <option v-for="c in CELEBRATION_SETTINGS" :key="c" :value="c">{{ cs.options[c] }}</option>
+            </select>
+            <span class="text-xs">{{ cs.hint }}</span>
+          </label>
+          <div class="flex items-center gap-3">
+            <button type="submit" class="min-h-11 rounded-xl bg-accent px-4 font-semibold text-accent-ink" :disabled="savingCelebrations">{{ cs.save }}</button>
+            <p v-if="celebrationsNotice" role="status" class="text-sm text-muted">{{ celebrationsNotice }}</p>
+          </div>
+        </form>
+        <p v-else class="text-muted">{{ m.offline }}</p>
+      </section>
+
+      <!-- SPEC §5 Tags page: reached from here. -->
+      <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" aria-labelledby="account-tags" data-testid="account-tags">
+        <span class="min-w-0">
+          <h2 id="account-tags" class="font-semibold">{{ g.tagsTitle }}</h2>
+          <span class="block text-sm text-muted">{{ g.tagsHint }}</span>
+        </span>
+        <RouterLink to="/tags" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openTags }}</RouterLink>
+      </section>
+
+      <AccountGroup id="reminders" :title="messages.notifications.heading" :summary="g.reminders">
+        <NotificationSettings />
+      </AccountGroup>
+
+      <AccountGroup id="events" :title="g.eventsTitle" :summary="g.events">
+        <div class="grid items-start gap-4 lg:grid-cols-2">
+          <EventSettings />
+          <AvailabilityCard />
+        </div>
+      </AccountGroup>
+
+      <AccountGroup id="people" :title="g.peopleTitle" :summary="g.people">
+        <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4" aria-labelledby="account-connections">
+          <span class="min-w-0">
+            <h3 id="account-connections" class="font-semibold">{{ messages.connections.heading }}</h3>
+            <span class="block text-sm text-muted">{{ g.connectionsHint }}</span>
+          </span>
+          <RouterLink to="/connections" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openConnections }}</RouterLink>
+        </section>
+        <MyPeople />
+      </AccountGroup>
+
+
+
+      <AccountGroup id="data" :title="messages.dataExport.heading" :summary="g.data">
+        <div class="grid gap-4 sm:grid-cols-2" data-testid="data-export">
+          <section class="flex flex-col gap-2 rounded-xl border border-line p-4" :aria-label="messages.dataExport.button">
+            <p class="text-sm text-muted">{{ messages.dataExport.body }}</p>
+            <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-line px-4" :disabled="exporting" @click="exportData">
+              {{ exporting ? messages.dataExport.working : messages.dataExport.button }}
+            </button>
+            <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
+          </section>
+          <section class="flex flex-col gap-2 rounded-xl border border-warning/50 p-4" :aria-label="messages.deleteData.button" data-testid="delete-data">
+            <p class="text-sm text-muted">{{ messages.deleteData.hint }}</p>
+            <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-warning px-4 font-semibold text-warning" @click="askWipe">
+              {{ messages.deleteData.button }}
+            </button>
+            <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
+          </section>
+        </div>
+      </AccountGroup>
+    </AccountGroup>
+
     <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" :aria-label="messages.signOut.button" data-testid="sign-out">
       <p class="min-w-0 text-sm text-muted">{{ g.signOutHint }}</p>
       <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-4 font-medium" @click="signOut">
@@ -47,64 +110,12 @@
       </button>
     </section>
 
-    <AccountGroup id="reminders" :title="messages.notifications.heading" :summary="g.reminders">
-      <NotificationSettings />
-    </AccountGroup>
-
-    <AccountGroup id="events" :title="g.eventsTitle" :summary="g.events">
-      <div class="grid items-start gap-4 lg:grid-cols-2">
-        <EventSettings />
-        <AvailabilityCard />
-      </div>
-    </AccountGroup>
-
-    <AccountGroup id="people" :title="g.peopleTitle" :summary="g.people">
-      <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4" aria-labelledby="account-connections">
-        <span class="min-w-0">
-          <h3 id="account-connections" class="font-semibold">{{ messages.connections.heading }}</h3>
-          <span class="block text-sm text-muted">{{ g.connectionsHint }}</span>
-        </span>
-        <RouterLink to="/connections" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openConnections }}</RouterLink>
-      </section>
-      <MyPeople />
-    </AccountGroup>
-
-    <!-- SPEC §5 Tags page: reached from here. -->
-    <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" aria-labelledby="account-tags" data-testid="account-tags">
-      <span class="min-w-0">
-        <h2 id="account-tags" class="font-semibold">{{ g.tagsTitle }}</h2>
-        <span class="block text-sm text-muted">{{ g.tagsHint }}</span>
-      </span>
-      <RouterLink to="/tags" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openTags }}</RouterLink>
+    <section class="w-auto block rounded-xl border border-danger/40 p-4" data-testid="delete-account" :aria-label="m.deleteHeading">
+      <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askDelete">
+        {{ m.deleteButton }}
+      </button>
     </section>
 
-    <AccountGroup id="data" :title="messages.dataExport.heading" :summary="g.data">
-      <div class="grid gap-4 sm:grid-cols-2" data-testid="data-export">
-        <section class="flex flex-col gap-2 rounded-xl border border-line p-4" :aria-label="messages.dataExport.button">
-          <p class="text-sm text-muted">{{ messages.dataExport.body }}</p>
-          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-line px-4" :disabled="exporting" @click="exportData">
-            {{ exporting ? messages.dataExport.working : messages.dataExport.button }}
-          </button>
-          <p v-if="exportError" class="text-sm text-danger" role="alert">{{ exportError }}</p>
-        </section>
-        <section class="flex flex-col gap-2 rounded-xl border border-warning/50 p-4" :aria-label="messages.deleteData.button" data-testid="delete-data">
-          <p class="text-sm text-muted">{{ messages.deleteData.hint }}</p>
-          <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-warning px-4 font-semibold text-warning" @click="askWipe">
-            {{ messages.deleteData.button }}
-          </button>
-          <p v-if="wipeDone" class="text-sm" role="status">{{ wipeDone }}</p>
-        </section>
-      </div>
-    </AccountGroup>
-
-    <AccountGroup id="account" :title="g.accountTitle" :summary="g.account">
-      <section class="flex flex-col gap-2 rounded-xl border border-danger/40 p-4" data-testid="delete-account" :aria-label="m.deleteHeading">
-        <p class="text-sm text-muted">{{ m.deleteHint }}</p>
-        <button type="button" class="mt-auto min-h-11 self-start rounded-xl border border-danger px-4 font-semibold text-danger" @click="askDelete">
-          {{ m.deleteButton }}
-        </button>
-      </section>
-    </AccountGroup>
 
     <p class="flex flex-wrap justify-center gap-4 text-sm">
       <RouterLink to="/privacy" class="text-muted underline">{{ messages.legal.privacy }}</RouterLink>
@@ -246,11 +257,22 @@ async function save() {
   saving.value = true
   const { error } = await supabase
     .from('profiles')
-    .update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value, celebrations: celebrations.value })
+    .update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value })
     .eq('user_id', auth.user?.id ?? '')
   saving.value = false
-  if (!error) celebrate.setSetting(celebrations.value)
   notice.value = error ? m.offline : m.saved
+}
+
+// Celebrations has its own Save in Account Settings.
+const savingCelebrations = ref(false)
+const celebrationsNotice = ref('')
+async function saveCelebrations() {
+  celebrationsNotice.value = ''
+  savingCelebrations.value = true
+  const { error } = await supabase.from('profiles').update({ celebrations: celebrations.value }).eq('user_id', auth.user?.id ?? '')
+  savingCelebrations.value = false
+  if (!error) celebrate.setSetting(celebrations.value)
+  celebrationsNotice.value = error ? m.offline : m.saved
 }
 
 

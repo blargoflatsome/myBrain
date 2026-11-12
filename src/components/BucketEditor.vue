@@ -5,10 +5,10 @@
     :aria-label="m.bucketEditor.heading"
     @close="emit('close')"
   >
-    <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
+    <form class="flex flex-col gap-8 p-5" @submit.prevent="save">
       <h2 class="text-lg font-semibold">{{ m.bucketEditor.heading }}</h2>
       <label class="flex flex-col gap-1 text-sm text-muted">
-        {{ m.bucketEditor.name }}
+        <span class="pb-2">{{ m.bucketEditor.name }}</span>
         <input v-model="name" maxlength="200" required :class="field">
       </label>
       <label class="flex items-center justify-between gap-4">

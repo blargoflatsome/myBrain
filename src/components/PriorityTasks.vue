@@ -24,12 +24,12 @@
       :aria-label="isNew ? m.editor.newHeading : m.editor.heading"
       @close="editing = null"
     >
-      <form class="flex flex-col gap-4 p-5" @submit.prevent="save">
+      <form class="flex flex-col gap-8 p-5" @submit.prevent="save">
         <h2 class="text-lg font-semibold">{{ isNew ? m.editor.newHeading : m.editor.heading }}</h2>
-        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.editor.title }}<input v-model="title" maxlength="500" required :class="field"></label>
+        <label class="flex flex-col gap-1 text-sm text-muted"><span class="pb-2">{{ m.editor.title }}</span><input v-model="title" maxlength="500" required :class="field"></label>
         <TimeInput v-model="time" :label="m.editor.time" required :input-class="field" />
         <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm text-muted">{{ m.editor.when }}</legend>
+          <legend class="mb-1 text-sm text-muted pb-2">{{ m.editor.when }}</legend>
           <div class="flex gap-2" role="group" :aria-label="m.editor.when">
             <button type="button" :class="dayChip(mode === 'repeat')" :aria-pressed="mode === 'repeat'" @click="mode = 'repeat'">{{ m.editor.repeat }}</button>
             <button type="button" :class="dayChip(mode === 'once')" :aria-pressed="mode === 'once'" @click="mode = 'once'">{{ m.editor.once }}</button>

@@ -1,7 +1,6 @@
 <template>
-  <fieldset class="flex flex-col gap-3 rounded-xl border border-line p-3" data-testid="event-people">
-    <legend class="px-1 text-sm font-medium">{{ m.people }}</legend>
-    <p class="-mt-1 text-xs text-muted">{{ m.peopleHint }} {{ m.limit }}</p>
+  <MoreOptions :title="m.people" :summary="m.attendeesSummary(invited.length, goingCount)" :start-open="invited.length + pending.length > 0" test-id="event-people">
+    <p class="text-xs text-muted">{{ m.peopleHint }} {{ m.limit }}</p>
 
     <ul v-if="invited.length" class="flex flex-col gap-1" :aria-label="m.invited">
       <li v-for="p in invited" :key="p.invite_id" class="flex items-center justify-between gap-2 text-sm" data-testid="invited-person">
@@ -44,18 +43,20 @@
     </button>
 
     <div class="flex flex-col gap-2" role="group" aria-labelledby="type-someone">
-      <span id="type-someone" class="text-sm font-medium">{{ m.typeSomeone }}</span>
+      <span id="type-someone" class="pb-2 text-sm font-medium">{{ m.typeSomeone }}</span>
       <div class="grid grid-cols-2 gap-2">
-        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contact }}<input v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
-        <label class="flex flex-col gap-1 text-sm text-muted">{{ m.contactName }}<input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
+        <label class="flex flex-col gap-1 text-sm text-muted"><span class="pb-2">{{ m.contact }}</span><input v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
+        <label class="flex flex-col gap-1 text-sm text-muted"><span class="pb-2">{{ m.contactName }}</span><input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
       </div>
       <button type="button" class="min-h-11 self-start rounded-xl border border-line px-4 text-sm" @click="addContact">{{ m.addContact }}</button>
     </div>
     <p v-if="contactError" class="text-sm text-danger" role="alert" data-testid="people-error">{{ contactError }}</p>
     <p class="text-sm text-muted" role="status" data-testid="people-status">{{ status }}</p>
 
+    <slot />
+
     <ContactsDialog ref="contacts" :pending="pending" :invited="invited" @add="addSaved" @undo="undoSaved" @add-connection="addConnection" @undo-connection="undoConnection" />
-  </fieldset>
+  </MoreOptions>
 </template>
 
 <script setup lang="ts">
@@ -63,6 +64,7 @@
 // Contacts window); see who's invited and their answers.
 import { computed, ref, watch } from 'vue'
 import ContactsDialog from '@/components/ContactsDialog.vue'
+import MoreOptions from '@/components/MoreOptions.vue'
 import { contactKey, parseContact } from '@/events/contacts'
 import { personLabel } from '@/events/people'
 import { newInviteLink, type Connection } from '@/events/connections'
@@ -113,6 +115,7 @@ async function newLink(p: EventPerson) {
 
 // ---------- Adding people ----------
 const pending = computed(() => props.modelValue)
+const goingCount = computed(() => invited.value.filter((p) => p.response === 'yes').length)
 const keyOf = (p: PersonToInvite) => (p.user_id ? `u:${p.user_id}` : contactKey(p))
 function add(p: PersonToInvite) {
   const key = keyOf(p)

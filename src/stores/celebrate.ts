@@ -18,6 +18,11 @@ import {
 } from '@/celebrate/rules'
 import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
 import { messages } from '@/messages'
+import { useAuthStore } from '@/stores/auth'
+import { TIERS } from '@/trophies/definitions'
+import { AWAY_DAYS, journalComeback, newLevels, taskComeback, trophyStates, trophyValues } from '@/trophies/rules'
+import { trophyCounts } from '@/trophies/server'
+import { WORK_MS } from '@/focus/timer'
 
 export type BurstSize = 'small' | 'big' | 'biggest'
 export interface Burst {
@@ -28,9 +33,29 @@ export interface Burst {
 }
 
 const SETTING_KEY = 'my-brain:celebrations'
+const LAST_OPEN_KEY = 'my-brain:last-open'
+/** Set once a device has worked out my trophies, so later ones are celebrated one by one (SPEC §5 Trophies). */
+const trophiesReadyKey = (uid: string) => `my-brain:trophies-ready:${uid}`
+
+function readKey(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+function writeKey(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // Storage blocked: nothing lost but a message.
+  }
+}
 /** How long a message stays up before the next one (or none) shows. */
 export const MESSAGE_MS = 4000
 const m = messages.celebrations
+const t = m.trophies
+const cb = m.comebacks
 
 function readSetting(): CelebrationSetting {
   try {
@@ -131,9 +156,62 @@ export const useCelebrateStore = defineStore('celebrate', () => {
     say(m.badgeEarned(m.badges[kind]))
   }
 
+  // ---------- Trophies (SPEC §5 Trophies) ----------
+  const auth = useAuthStore()
+  /** Connections ever made and people blocked, asked of the server when online; null until then. */
+  const counts = ref<{ connections: number | null; blocks: number | null }>({ connections: null, blocks: null })
+  async function refreshCounts() {
+    if (!brain.online) return
+    const fresh = await trophyCounts()
+    if (fresh.connections !== null) counts.value = fresh
+  }
+
+  let checking: Promise<void> | null = null
+  let checkAgain = false
+  /** Work out my trophies and save any new level. The first time on a device they go in quietly, with one alert. */
+  async function checkTrophies(now = new Date(), timeZone = deviceTimeZone()) {
+    if (checking) {
+      checkAgain = true
+      return checking
+    }
+    checking = (async () => {
+      do {
+        checkAgain = false
+        const local = brain.db
+        const uid = brain.userId
+        if (!local || !uid || !brain.habitsReady || !(await badgesDownloaded())) return
+        const history = await brain.trophyHistory({ accountCreated: auth.user?.created_at ?? null, ...counts.value })
+        const ups = newLevels(trophyStates(trophyValues(history, now, timeZone), await local.badges.toArray()))
+        const firstTime = !readKey(trophiesReadyKey(uid))
+        let raised = 0
+        for (const s of ups) if (await brain.saveTrophyLevel(s.trophy.id, s.level, now)) raised++
+        writeKey(trophiesReadyKey(uid), '1')
+        if (!raised) continue
+        if (firstTime) {
+          const id = `${uid.slice(0, 24)}ffff00000001`
+          const today = todayIn(timeZone, now)
+          await brain.addAlert({ id, kind: 'trophies', item_id: id, title: t.fromPast.title(raised), body: t.fromPast.body, url: '/#trophies', local_date: today, sent_at: now.toISOString() })
+          continue
+        }
+        for (const s of ups) {
+          burst('small')
+          say(t.earned(t.names[s.trophy.id] ?? s.trophy.id, s.trophy.levels.length > 1 ? (t.tiers[TIERS[s.level - 1]!] ?? null) : null))
+        }
+      } while (checkAgain)
+    })().finally(() => (checking = null))
+    return checking
+  }
+  let trophyTimer: ReturnType<typeof setTimeout> | undefined
+  /** Check trophies shortly after something is finished (a burst of changes is checked once). */
+  function soonCheckTrophies() {
+    clearTimeout(trophyTimer)
+    trophyTimer = setTimeout(() => void checkTrophies().catch((err: unknown) => console.error(err)), 800)
+  }
+
   async function handle(a: Achievement) {
     const local = brain.db
     if (!local) return
+    soonCheckTrophies()
     const timeZone = deviceTimeZone()
     const now = new Date()
     const today = todayIn(timeZone, now)
@@ -141,6 +219,8 @@ export const useCelebrateStore = defineStore('celebrate', () => {
       case 'task': {
         const tasks = await local.tasks.toArray()
         burst(finishedTodaysList(tasks, a.task, today, timeZone) ? 'big' : 'small')
+        const comeback = taskComeback(a.task, today, timeZone)
+        if (comeback) say(comeback === 'carried' ? cb.carried : cb.oldUndated)
         return earn('first_task')
       }
       case 'habit': {
@@ -167,6 +247,7 @@ export const useCelebrateStore = defineStore('celebrate', () => {
         return earn('first_postit')
       case 'journal':
         journalSaved.value++
+        if (journalComeback(await local.journal_entries.toArray(), today)) say(cb.journal)
         return earn('first_journal')
       case 'quest':
         burst('small')
@@ -178,6 +259,7 @@ export const useCelebrateStore = defineStore('celebrate', () => {
       case 'shared_event':
         return earn('first_shared_event')
       case 'focus':
+        for (let i = 0; i < a.sessions; i++) await brain.logActivity('focus', { minutes: WORK_MS / 60_000 }, now)
         return earn('first_focus')
     }
   }
@@ -201,6 +283,10 @@ export const useCelebrateStore = defineStore('celebrate', () => {
     }
     const missing = new Set(missingBadges(await local.badges.toArray()))
     for (const kind of earnedFromHistory(history)) if (missing.has(kind)) await brain.saveBadge(kind, now)
+    // Trophies are worked out alongside, without holding up the rest (asking the server can be slow).
+    void refreshCounts()
+      .then(() => checkTrophies(now, timeZone))
+      .catch((err: unknown) => console.error(err))
 
     const today = todayIn(timeZone, now)
     const yesterday = addDays(today, -1)
@@ -215,6 +301,14 @@ export const useCelebrateStore = defineStore('celebrate', () => {
     if (started) return
     started = true
     onAchievement((a) => void handle(a).catch((err: unknown) => console.error(err)))
+    // Opening the app after 7 or more days away is a comeback (SPEC §5 Trophies).
+    const opened = () => {
+      const last = Number(readKey(LAST_OPEN_KEY) ?? 0)
+      if (last && Date.now() - last >= AWAY_DAYS * 86_400_000) say(cb.away)
+      writeKey(LAST_OPEN_KEY, String(Date.now()))
+    }
+    opened()
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && opened())
     let lastDay = ''
     const check = () => {
       const day = todayIn(deviceTimeZone())
@@ -228,5 +322,5 @@ export const useCelebrateStore = defineStore('celebrate', () => {
     setInterval(check, 60_000)
   }
 
-  return { setting, level, setSetting, bursts, burst, burstDone, message, say, dismiss, captureSaved, journalSaved, earn, catchUp, start }
+  return { setting, level, setSetting, bursts, burst, burstDone, message, say, dismiss, captureSaved, journalSaved, earn, catchUp, start, checkTrophies, counts }
 })

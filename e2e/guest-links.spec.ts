@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { openAttendees, openSchedule } from './support/events'
 import { FakeSupabase } from './support/fakeSupabase'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
@@ -75,6 +76,8 @@ test.describe('Spec §10 Connections part 4: the guest page', () => {
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    await openSchedule(dialog)
+    await openAttendees(dialog)
     await dialog.getByRole('button', { name: 'Send Carol a new link' }).click()
     const fresh = dialog.getByTestId('new-guest-link')
     await expect(fresh).toContainText('New link for Carol is ready. Their old link no longer works.')
@@ -89,6 +92,8 @@ test.describe('Spec §10 Connections part 4: the guest page', () => {
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
+    await openSchedule(dialog)
+    await openAttendees(dialog)
     await dialog.getByLabel('Starts Date').fill('2026-11-11')
     await dialog.getByRole('button', { name: 'Save' }).click()
     const confirm = page.getByRole('alertdialog', { name: 'Let everyone know?' })
@@ -104,7 +109,8 @@ test.describe('Spec §10 Connections part 4: the guest page', () => {
     await open(page, `/calendar?date=2026-11-10&event=${EVENT}`)
     await page.getByTestId('calendar-item').getByRole('button', { name: 'Edit' }).click()
     const dialog = page.getByRole('dialog', { name: 'Edit event' })
-    await dialog.getByTestId('event-more').getByText('More details').click()
+    await openSchedule(dialog)
+    await openAttendees(dialog)
     await dialog.getByRole('textbox', { name: 'Notes (optional)' }).fill('Bring snacks')
     await dialog.getByRole('button', { name: 'Save' }).click()
     await expect(dialog).toBeHidden()

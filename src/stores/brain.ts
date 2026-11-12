@@ -14,6 +14,9 @@ import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
 import type { AvailabilityExceptionRow, AvailabilityRuleRow, EventRow, JournalEntryRow, SyncTable, TaggedType, TagRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { moveLinks, renameOutcome, tagChanges } from '@/tags/rules'
+import { trophyRowId, type TrophyId } from '@/trophies/definitions'
+import type { TrophyHistory } from '@/trophies/rules'
+import type { ActivityKind, ActivityLogRow } from '@/sync/types'
 import { normalizeBody } from '@/journal/body'
 import { frontPosition } from '@/postits/rules'
 import type { PersonRow, PostItColor, PostItRow } from '@/sync/types'
@@ -151,6 +154,7 @@ export const useBrainStore = defineStore('brain', () => {
     const { engine: e, uid } = requireReady()
     const record = buildCaptureRecord(input, uid)
     await e.save(record.table, record.row as never)
+    await logActivity('capture', { type: input.destination })
     achieved({ kind: 'capture', table: record.table })
     return record
   }
@@ -165,11 +169,15 @@ export const useBrainStore = defineStore('brain', () => {
 
   /** Convert an item to another type, or file an inbox item (SPEC §5). */
   async function convert(from: CaptureRecord, to: Omit<CaptureInput, 'text'>) {
-    const { engine: e, uid } = requireReady()
+    const { engine: e, uid, local } = requireReady()
     const { create, retire } = buildConversion(from, to, uid)
     await e.save(create.table, create.row as never)
     await e.remove(retire.table, retire.id)
-    if (from.table === 'inbox') achieved({ kind: 'orphan' })
+    if (from.table === 'inbox') {
+      // Emptying the Orphans list counts toward a trophy (SPEC §5 Trophies).
+      if (!live(await local.inbox.toArray()).length) await logActivity('orphans_cleared')
+      achieved({ kind: 'orphan' })
+    }
     return create
   }
 
@@ -508,6 +516,47 @@ export const useBrainStore = defineStore('brain', () => {
     await e.save('badges', { id: badgeId(uid, kind), user_id: uid, kind, earned_at: now.toISOString(), deleted_at: null })
     return true
   }
+  // ---------- Trophies (SPEC §5 Trophies) ----------
+  /** Record something the app didn't keep before: a finished Focus session, a capture, emptying Orphans. */
+  async function logActivity(kind: ActivityKind, detail: ActivityLogRow['detail'] = {}, now = new Date()) {
+    const { engine: e, uid } = requireReady()
+    await e.save('activity_log', { id: crypto.randomUUID(), user_id: uid, kind, at: now.toISOString(), detail, deleted_at: null })
+  }
+  /** Raise a trophy to a level (never lower), keeping the day each level was earned. Returns whether it rose. */
+  async function saveTrophyLevel(id: TrophyId, level: number, now = new Date()) {
+    const { engine: e, uid, local } = requireReady()
+    if (!badgesReady.value) return false
+    const rowId = trophyRowId(uid, id)
+    const existing = await local.badges.get(rowId)
+    const levels = [...(existing && !existing.deleted_at ? existing.levels ?? [] : [])]
+    if (levels.length >= level) return false
+    while (levels.length < level) levels.push(now.toISOString())
+    await e.save('badges', { id: rowId, user_id: uid, kind: id, earned_at: existing?.earned_at ?? levels[0]!, levels, deleted_at: null })
+    return true
+  }
+  /** Everything on this device that trophies are worked out from. */
+  async function trophyHistory(extra: Pick<TrophyHistory, 'accountCreated' | 'connections' | 'blocks'>): Promise<TrophyHistory> {
+    const { uid, local } = requireReady()
+    return {
+      tasks: await local.tasks.toArray(),
+      habits: await local.habits.toArray(),
+      habitLogs: await local.habit_logs.toArray(),
+      routines: await local.routines.toArray(),
+      routineRuns: await local.routine_runs.toArray(),
+      journalEntries: await local.journal_entries.toArray(),
+      quests: await local.quests.toArray(),
+      questLogs: await local.quest_logs.toArray(),
+      vaultItems: await local.vault_items.toArray(),
+      vaultBuckets: await local.vault_buckets.toArray(),
+      priorityTasks: await local.priority_tasks.toArray(),
+      priorityLogs: await local.priority_task_logs.toArray(),
+      events: await local.events.toArray(),
+      invites: await local.event_invites.toArray(),
+      activity: await local.activity_log.toArray(),
+      userId: uid,
+      ...extra,
+    }
+  }
   /** An alert the app gives me itself (the next-day congratulations). Same id on every device, so it comes once. */
   async function addAlert(row: Omit<NotificationRow, 'user_id' | 'deleted_at'>) {
     const { engine: e, uid, local } = requireReady()
@@ -770,6 +819,9 @@ export const useBrainStore = defineStore('brain', () => {
     saveEvent,
     deleteEvent,
     saveTags,
+    logActivity,
+    saveTrophyLevel,
+    trophyHistory,
     mergeTags,
     renameTag,
     deleteTag,

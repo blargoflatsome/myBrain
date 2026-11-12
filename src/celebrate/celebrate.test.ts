@@ -137,10 +137,9 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     const t = task({ due_date: null })
     await brain.saveTask(t)
     await brain.saveTask({ ...t, status: 'done', completed_at: new Date().toISOString() })
-    await settle()
+    await vi.waitFor(() => expect(celebrate.message?.text).toBe('New badge: First task crossed off'))
     const badges = await brain.db!.badges.toArray()
     expect(badges.map((b) => b.kind)).toEqual(['first_task'])
-    expect(celebrate.message?.text).toBe('New badge: First task crossed off')
 
     await brain.saveTask({ ...t, title: 'Edited while done', status: 'done' })
     achieved({ kind: 'task', task: t })
@@ -176,7 +175,7 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     const alerts = (await brain.db!.notifications.toArray()).filter((n) => n.kind === 'perfect_day')
     expect(alerts).toHaveLength(1)
     expect(alerts[0]).toMatchObject({ title: 'Yesterday was a perfect day', url: '/habits', local_date: '2026-11-06' })
-    expect((await brain.db!.badges.toArray()).map((b) => b.kind)).toEqual(['first_habit'])
+    expect((await brain.db!.badges.toArray()).map((b) => b.kind).filter((k) => k.startsWith('first_'))).toEqual(['first_habit'])
     expect(celebrate.message).toBeNull()
   })
 
@@ -198,6 +197,72 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
       brain.syncedCount++
       await settle()
       expect(await perfect()).toHaveLength(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('SPEC §5 Trophies: earning levels', () => {
+  let remote: FakeRemote
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    remote = new FakeRemote()
+    localStorage.clear()
+  })
+  afterEach(async () => {
+    const brain = useBrainStore()
+    const db = brain.db
+    brain.stop()
+    await db?.delete()
+  })
+  const settle = () => new Promise((r) => setTimeout(r, 50))
+  const doneTasks = (n: number) => Array.from({ length: n }, (_, i) => task({ id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`, status: 'done', completed_at: '2026-11-05T15:00:00Z', user_id: UID }))
+  async function ready() {
+    const brain = useBrainStore()
+    brain.start(UID, remote)
+    await settle()
+    brain.habitsReady = true
+    brain.badgesReady = true
+    return brain
+  }
+
+  it('the first time on a device, trophies from the past go in quietly with one alert', async () => {
+    const brain = await ready()
+    await brain.db!.tasks.bulkPut(doneTasks(10))
+    const celebrate = useCelebrateStore()
+    await celebrate.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
+    const row = (await brain.db!.badges.toArray()).find((b) => b.kind === 'tasks_completed')
+    expect(row?.levels).toHaveLength(1)
+    expect(celebrate.message).toBeNull()
+    const alerts = (await brain.db!.notifications.toArray()).filter((n) => n.kind === 'trophies')
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0]!.title).toMatch(/^Past you already earned \d+ trophies?$/)
+  })
+
+  it('after that, each new level is celebrated, and a level is never saved twice', async () => {
+    const brain = await ready()
+    await brain.db!.tasks.bulkPut(doneTasks(10))
+    const celebrate = useCelebrateStore()
+    await celebrate.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
+    await brain.db!.tasks.bulkPut(doneTasks(50))
+    await celebrate.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
+    expect(celebrate.message?.text).toMatch(/^New trophy: Tasks (created|completed), Silver$/)
+    await celebrate.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
+    const row = (await brain.db!.badges.toArray()).find((b) => b.kind === 'tasks_completed')
+    expect(row?.levels).toHaveLength(2)
+  })
+
+  it('finishing a task that carried over 3 or more days says so (a comeback, not a trophy)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-10T12:00:00Z') })
+    try {
+      const brain = useBrainStore()
+      brain.start(UID, remote)
+      const celebrate = useCelebrateStore()
+      celebrate.start()
+      achieved({ kind: 'task', task: task({ due_date: '2026-11-06', status: 'done' }) })
+      await settle()
+      expect(celebrate.message?.text).toBe('That one had been waiting a while. Done now.')
     } finally {
       vi.useRealTimers()
     }

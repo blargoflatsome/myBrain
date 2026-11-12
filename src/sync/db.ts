@@ -32,6 +32,7 @@ export class LocalDb extends Dexie {
   priority_task_logs!: Table<RowTypes['priority_task_logs'], string>
   quest_logs!: Table<RowTypes['quest_logs'], string>
   badges!: Table<RowTypes['badges'], string>
+  activity_log!: Table<RowTypes['activity_log'], string>
   reminder_state!: Table<RowTypes['reminder_state'], string>
   journal_entries!: Table<RowTypes['journal_entries'], string>
   events!: Table<RowTypes['events'], string>
@@ -110,6 +111,10 @@ export class LocalDb extends Dexie {
     // Badges earned (SPEC §5 Celebrations).
     this.version(12).stores({
       badges: 'id, updated_at, kind',
+    })
+    // What trophies need that wasn't recorded before (SPEC §5 Trophies).
+    this.version(13).stores({
+      activity_log: 'id, updated_at, kind',
     })
   }
 
