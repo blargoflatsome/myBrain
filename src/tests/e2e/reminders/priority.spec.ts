@@ -105,7 +105,6 @@ test.describe('Spec §5: priority tasks, one-off or repeating', () => {
   test('a repeating priority task is added under Tasks > Priority and reminds at its time', async ({ page }) => {
     await open(page, '/tasks', '2026-11-10T16:55:00Z') // 11:55 am Tue
     await page.getByRole('tab', { name: msg.priority.tabHeading }).click()
-    await expect(page.getByText("Past you hasn't added any priority tasks yet.")).toBeVisible()
     await page.getByRole('button', { name: msg.priority.add }).click()
     const dialog = page.getByRole('dialog', { name: msg.priority.editor.newHeading })
     await dialog.getByLabel(msg.priority.editor.title).fill('Insulin before lunch')

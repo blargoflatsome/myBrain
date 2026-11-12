@@ -43,8 +43,7 @@ with `fake-indexeddb` and `FakeRemote` → a Playwright test. Many unit tests, f
 ## Assert outcomes, not wording or styling
 
 - **Wording comes from `src/messages.ts`**, never typed out. Import `messages` (Vitest: `@/messages`; Playwright:
-  a relative import) and compare against it, so changing a message never breaks a test. Only a test whose rule *is* a
-  piece of wording may type it out (for example the user's own fixed phrases), and it says so in a comment.
+  a relative import) and compare against it, so changing a message never breaks a test.
 - **Find elements by role, label or `data-testid`**, preferring `data-testid` when the visible text is wording.
 - **Don't assert styling** (pixel gaps, colours, class names, exact element order) unless the spec rule is about it
   (contrast, 44 px targets, no sideways scroll, "X comes right after Y"). Spacing the user tunes by hand must never be
@@ -54,6 +53,12 @@ with `fake-indexeddb` and `FakeRemote` → a Playwright test. Many unit tests, f
 - Prefer `toMatchObject` on the saved row over one field at a time, so a failure shows the whole row.
 
 ## Don't write
+
+**If it can't break the website, don't test it.**
+
+- Tests of wording: that a message, intro, hint or empty-state line shows, that it uses `messages.ts`, or that it's in
+  the "past you" voice. The rules for wording are in CLAUDE.md and the coding standards, and code review catches them.
+  Wording may still be used to *find* something or to confirm a behaviour happened (a save notice after saving).
 
 - Tests of the framework or libraries (Vue rendering a prop, Dexie storing a row, Tailwind making a class).
 - Change detectors: tests that pin structure, order or wording that isn't the rule.
