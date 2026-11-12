@@ -149,21 +149,22 @@ test.describe('UI consistency (feedback, 2026-11-10)', () => {
     await dialog.getByLabel(msg.capture.titleLabel).fill('Too late')
     await dialog.getByLabel(msg.priority.editor.time).fill('08:00')
     await dialog.getByRole('group', { name: msg.calendar.view.when }).getByRole('button', { name: msg.priority.editor.once }).click()
-    await dialog.getByLabel(msg.tasks.editor.date).fill(DAY)
+    await dialog.getByLabel(msg.priority.editor.date).fill(DAY)
     await dialog.getByRole('button', { name: msg.priority.editor.save }).click()
     await expect(dialog.getByRole('alert')).toHaveText(msg.priority.editor.pastError)
     expect(server.written('priority_tasks')).toHaveLength(0)
   })
 
-  test('Vault item: notes under the title; rating, link and bucket in More details', async ({ page }) => {
+  test('Vault item editor: bucket and notes in view, rating and link in More details, as in Capture', async ({ page }) => {
     server.seed('vault_items', [{ id: 'v1', bucket_id: 'bucket-1', title: 'Luigi’s', notes: null, created_at: '2026-11-09T12:00:00Z' }])
     await open(page, '/vault?bucket=bucket-1')
     await page.getByRole('button', { name: 'Open Luigi’s' }).click()
     const dialog = page.getByRole('dialog', { name: msg.vault.itemEditor.heading })
     await expect(dialog.getByRole('textbox', { name: msg.capture.notesLabel })).toBeVisible()
-    await expect(dialog.getByLabel(msg.vault.itemEditor.bucket)).toBeHidden()
+    await expect(dialog.getByRole('group', { name: msg.capture.bucketLabel })).toBeVisible()
+    await expect(dialog.getByLabel(msg.vault.itemEditor.link)).toBeHidden()
     await dialog.getByTestId('vault-more').getByText(msg.forms.moreOptions).click()
-    await expect(dialog.getByLabel(msg.vault.itemEditor.bucket)).toBeVisible()
+    await expect(dialog.getByLabel(msg.vault.itemEditor.link)).toBeVisible()
   })
 
   test('Dashboard: days since your worst day shows once', async ({ page }) => {

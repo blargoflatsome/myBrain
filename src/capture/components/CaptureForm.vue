@@ -12,6 +12,8 @@
     <div v-if="type !== 'postit'" class="flex flex-col gap-1">
       <label for="capture-title" class="pb-2 text-sm text-muted">{{ type === 'later' ? m.placeholder : m.titleLabel }}</label>
       <div class="relative">
+        <!-- Capture's own text box: the one field no other form has (CODING_STANDARDS §6). -->
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <textarea
           v-if="type === 'later'"
           id="capture-title"
@@ -23,6 +25,7 @@
           :class="[fieldOnPage, 'resize-none py-3 pr-28 text-lg']"
           @input="error = ''"
         />
+        <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <input v-else id="capture-title" ref="titleBox" v-model="title" maxlength="500" :class="[fieldOnPage, 'pr-28 text-lg']" @input="error = ''">
         <button
           v-if="speech.supported"
@@ -38,62 +41,25 @@
     </div>
 
     <!-- SPEC §5 Quick capture: the type chips sit under the box, with Decide later chosen. -->
-    <fieldset class="flex flex-col gap-2">
-      <legend class="mb-1 pb-2 text-sm text-muted">{{ m.whereHeading }}</legend>
-      <div class="flex flex-wrap gap-2" data-testid="capture-types">
-        <button v-for="d in types" :key="d" type="button" :class="chip(type === d)" :aria-pressed="type === d" @click="choose(d)">
-          {{ m.destinations[d] }}
-        </button>
-      </div>
-    </fieldset>
+    <ChoiceChips :label="m.whereHeading" :options="typeOptions" :model-value="type" test-id="capture-types" @update:model-value="choose" />
 
-    <fieldset v-if="type === 'postit'" class="flex flex-col gap-2">
-      <legend class="mb-1 text-sm text-muted pb-2">{{ pm.color }}</legend>
-      <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="pm.color">
-        <button
-          v-for="c in POST_IT_COLORS"
-          :key="c"
-          type="button"
-          role="radio"
-          :aria-checked="postColor === c"
-          :class="['min-h-11 rounded-full border-2 px-4 text-sm font-medium', `note-${c}`, postColor === c ? 'border-ink' : 'border-transparent']"
-          @click="postColor = c"
-        >
-          <span v-if="postColor === c" aria-hidden="true">✓ </span>{{ pm.colors[c] }}
-        </button>
-      </div>
-    </fieldset>
+    <PostItColors v-if="type === 'postit'" v-model="postColor" />
 
-    <!-- The Vault: bucket first-preselected, or a new one -->
-    <fieldset v-if="type === 'vault'" class="flex flex-col gap-2">
-      <legend class="mb-1 text-sm text-muted pb-2">{{ m.bucketLabel }}</legend>
-      <div class="flex flex-wrap gap-2" role="group" :aria-label="m.bucketLabel">
-        <button
-          v-for="b in buckets"
-          :key="b.id"
-          type="button"
-          :class="chip(!addingBucket && bucketId === b.id)"
-          :aria-pressed="!addingBucket && bucketId === b.id"
-          @click="(bucketId = b.id), (addingBucket = false)"
-        >
-          {{ b.name }}
-        </button>
-        <button type="button" :class="chip(addingBucket)" :aria-pressed="addingBucket" @click="addingBucket = true">
-          + {{ m.newBucket }}
-        </button>
-      </div>
-      <input v-if="addingBucket" v-model="newBucketName" maxlength="200" :aria-label="m.newBucket" :placeholder="m.newBucket" :class="fieldOnPage">
-    </fieldset>
+    <!-- The Vault: the shared Vault item form, the first bucket preselected (SPEC §5 Forms). -->
+    <VaultItemFields
+      v-if="type === 'vault'"
+      v-model:bucket-id="bucketId"
+      v-model:new-bucket-name="newBucketName"
+      v-model:notes="notes"
+      v-model:rating="rating"
+      v-model:link="link"
+      :buckets="buckets"
+      :field-class="fieldOnPage"
+      notes-test-id="capture-notes"
+    />
 
-    <!-- Task: a date, notes and priority, all optional. Notes are never folded away, and one option alone
-         doesn't need a fold-out (SPEC §5 Forms). -->
-    <template v-if="type === 'task'">
-      <DateInput v-model="dueDate" :label="m.taskDateLabel" :hint="m.taskDateHint" :input-class="fieldOnPage" />
-      <NotesEditor v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
-      <PriorityPicker v-model="priority" />
-    </template>
-
-    <NotesEditor v-if="type === 'vault'" v-model="notes" :label="m.notesLabel" test-id="capture-notes" />
+    <!-- Task: the shared task form (SPEC §5 Forms). -->
+    <TaskFields v-if="type === 'task'" v-model:due-date="dueDate" v-model:notes="notes" v-model:priority="priority" :field-class="fieldOnPage" notes-test-id="capture-notes" />
 
     <!-- Habit: the full habit form (SPEC §5 Quick capture) -->
     <HabitFields
@@ -110,25 +76,9 @@
       :field-class="fieldOnPage"
     />
 
-    <!-- Quest: energy and time (defaults Ugh / 30 min) and details, all optional, all in view with extra room -->
-    <div v-if="type === 'quest'" class="flex flex-col gap-8 pt-2" data-testid="capture-quest">
-      <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted pb-2">{{ q.editor.energy }}</legend>
-        <div class="flex flex-wrap gap-2 lg:gap-4" role="group" :aria-label="q.editor.energy">
-          <button v-for="e in ENERGY_LEVELS" :key="e" type="button" :class="chip(energy === e)" :aria-pressed="energy === e" @click="energy = e">
-            {{ q.energy[e] }}
-          </button>
-        </div>
-      </fieldset>
-      <fieldset class="flex flex-col gap-2">
-        <legend class="mb-1 text-sm text-muted pb-2">{{ q.editor.time }}</legend>
-        <div class="flex flex-wrap gap-2 lg:gap-4" role="group" :aria-label="q.editor.time">
-          <button v-for="tb in TIME_BUCKETS" :key="tb" type="button" :class="chip(time === tb)" :aria-pressed="time === tb" @click="time = tb">
-            {{ q.time[tb] }}
-          </button>
-        </div>
-      </fieldset>
-      <NotesEditor v-model="notes" :label="m.detailsLabel" test-id="capture-notes" />
+    <!-- Quest: the shared quest form, defaults Ugh / 30 min (SPEC §5 Forms). -->
+    <div v-if="type === 'quest'" class="flex flex-col gap-8" data-testid="capture-quest">
+      <QuestFields v-model:energy="energy" v-model:time="time" v-model:details="notes" details-test-id="capture-notes" />
     </div>
 
     <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
@@ -147,10 +97,13 @@ import AppIcon from '@/components/AppIcon.vue'
 import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HabitFields from '@/habits/components/HabitFields.vue'
-import DateInput from '@/components/DateInput.vue'
-import NotesEditor from '@/components/NotesEditor.vue'
+import ChoiceChips from '@/components/ChoiceChips.vue'
+import PostItColors from '@/postits/components/PostItColors.vue'
+import QuestFields from '@/quests/components/QuestFields.vue'
+import TaskFields from '@/tasks/components/TaskFields.vue'
+import VaultItemFields from '@/vault/components/VaultItemFields.vue'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
-import { DEFAULT_POST_IT_COLOR, POST_IT_COLORS } from '@/postits/rules'
+import { DEFAULT_POST_IT_COLOR } from '@/postits/rules'
 import { plainText, storedNotes, textLines, toEditorHtml } from '@/journal/body'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useSpeech } from '@/composables/useSpeech'
@@ -162,11 +115,9 @@ import {
   type CaptureInput,
   type Destination,
 } from '@/capture/capture'
-import { ENERGY_LEVELS, TIME_BUCKETS } from '@/quests/picker'
 import { messages } from '@/messages'
 import type { EnergyLevel, PostItColor, TimeBucket, VaultBucketRow } from '@/sync/types'
-import { chip, fieldOnPage, primaryButton } from '@/ui/styles'
-import PriorityPicker from '@/tasks/components/PriorityPicker.vue'
+import { fieldOnPage, primaryButton } from '@/ui/styles'
 import { activeBuckets } from '@/vault/rules'
 
 // The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
@@ -179,7 +130,6 @@ const props = defineProps<{
 
 const brain = useBrainStore()
 const m = messages.capture
-const q = messages.quests
 const pm = messages.postIts
 
 // Post It (SPEC §5 Quick capture): a small formatted note and a color.
@@ -194,8 +144,9 @@ const priority = ref(DEFAULT_TASK_PRIORITY)
 const energy = ref<EnergyLevel>(DEFAULT_QUEST_ENERGY)
 const time = ref<TimeBucket>(DEFAULT_QUEST_TIME)
 const bucketId = ref<string | null>(null)
-const addingBucket = ref(false)
-const newBucketName = ref('')
+const newBucketName = ref<string | null>(null)
+const rating = ref<number | null>(null)
+const link = ref('')
 
 const notice = ref('')
 const error = ref('')
@@ -279,8 +230,9 @@ function reset() {
   priority.value = DEFAULT_TASK_PRIORITY
   energy.value = DEFAULT_QUEST_ENERGY
   time.value = DEFAULT_QUEST_TIME
-  addingBucket.value = false
-  newBucketName.value = ''
+  newBucketName.value = null
+  rating.value = null
+  link.value = ''
   error.value = ''
 }
 
@@ -333,7 +285,7 @@ async function save() {
   }
   saving.value = true
   try {
-    if (type.value === 'vault' && addingBucket.value && newBucketName.value.trim()) {
+    if (type.value === 'vault' && newBucketName.value?.trim()) {
       bucketId.value = (await brain.createBucket(newBucketName.value)).id
     }
     const input: CaptureInput = {
@@ -343,6 +295,8 @@ async function save() {
       dueDate: dueDate.value || null,
       priority: priority.value,
       bucketId: bucketId.value ?? undefined,
+      rating: rating.value,
+      link: link.value,
       energy: energy.value,
       time: time.value,
       habit: {
@@ -368,4 +322,5 @@ async function save() {
 }
 
 const types: Destination[] = ['task', 'vault', 'quest', 'habit', 'postit', 'later']
+const typeOptions = types.map((d) => ({ value: d, label: m.destinations[d] }))
 </script>

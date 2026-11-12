@@ -1,6 +1,7 @@
 // Quick capture (SPEC §5): one thought, filed as a task, vault item, quest, habit, or saved to Orphans to decide later.
 import type { EnergyLevel, HabitRow, InboxRow, QuestRow, TaskRow, TimeBucket, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { newHabit } from '@/habits/rules'
+import { clampRating } from '@/vault/rules'
 import { deviceTimeZone } from '@/tasks/days'
 import { toEditorHtml } from '@/journal/body'
 
@@ -24,6 +25,9 @@ export interface CaptureInput {
   priority?: number
   /** Vault only. */
   bucketId?: string
+  /** Vault only, optional (SPEC §5 Forms: the same form as the item editor). */
+  rating?: number | null
+  link?: string | null
   /** Quest only. Default Ugh. */
   energy?: EnergyLevel
   /** Quest only. Default 30 min. */
@@ -97,7 +101,7 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
       }
     case 'vault':
       if (!input.bucketId) throw new CaptureError('bucket')
-      return { table: 'vault_items', row: { ...base, bucket_id: input.bucketId, title: fitted.title, notes } }
+      return { table: 'vault_items', row: { ...base, bucket_id: input.bucketId, title: fitted.title, notes, rating: clampRating(input.rating ?? null), link: input.link?.trim() || null } }
     case 'quest':
       return {
         table: 'quests',

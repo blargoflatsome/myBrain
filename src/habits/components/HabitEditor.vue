@@ -9,10 +9,7 @@
     @delete="confirmDialog?.open()"
     @close="emit('close')"
   >
-    <label :class="fieldLabel">
-      <span class="pb-2">{{ m.editor.title }}</span>
-      <input v-model="title" maxlength="500" required :class="field">
-    </label>
+    <TitleField v-model="title" :label="m.editor.title" />
     <HabitFields
       v-model:week-interval="weekInterval"
       v-model:monthly="monthly"
@@ -44,6 +41,7 @@
 
 <script setup lang="ts">
 import EditorDialog from '@/components/EditorDialog.vue'
+import TitleField from '@/components/TitleField.vue'
 import HabitFields from '@/habits/components/HabitFields.vue'
 // New or edit habit: title, reminder time, timer, weekdays, private (SPEC §5 Habits). Delete asks first (SPEC §2).
 import { computed, ref, watch } from 'vue'
@@ -51,7 +49,7 @@ import type { HabitRow } from '@/sync/types'
 import { ALL_WEEKDAYS } from '@/habits/rules'
 import { messages } from '@/messages'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { field, fieldLabel } from '@/ui/styles'
+import { field } from '@/ui/styles'
 import TagInput from '@/tags/components/TagInput.vue'
 import { useItemTags } from '@/tags/useItemTags'
 import { deviceTimeZone, todayIn } from '@/tasks/days'

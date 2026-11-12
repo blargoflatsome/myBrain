@@ -83,6 +83,26 @@ than copying it.
 - Use the shared class lists in `src/ui/styles.ts` for fields, chips, answers, buttons, windows and cards.
 - Every screen works in light and dark, at 320 px wide with no sideways scrolling.
 
+### Forms and page parts are shared, never copied (2026-11-12, user)
+The same thing must look and work the same everywhere, so it is built once and reused. Before writing any field,
+choice, button or row, search `src/components/` and the feature's `components/` folder and use what's there; if
+it's missing, make it shared first, then use it in every place.
+- **One form per item type.** An item type that can be made or edited in more than one place has one
+  `<Type>Fields.vue` (`TaskFields`, `HabitFields`, `QuestFields`, `VaultItemFields`; Post Its share `PostItColors`).
+  Capture, the editor and Orphans only hold the frame around it: the window, Capture's text box and type chips, the
+  Save button. Extras only one place has (tags in the editors) go after the shared fields. **(lint)** these files
+  can't draw an `input`, `select`, `textarea` or `fieldset` of their own (`eslint.config.ts` lists them; add any
+  new one there).
+- **One control per kind of choice.** A short fixed choice (up to 10 options) is `ChoiceChips`; a longer or
+  growing list is a `select` (buckets switch at 10, `BucketChoice`). Titles are `TitleField`, dates `DateInput`,
+  times `TimeInput`, notes `NotesEditor`, weekdays `WeekdayPicker`, how often `HowOften`, priority
+  `PriorityPicker`. **(lint)** only `ChoiceChips` (and the toggles listed in `eslint.config.ts`) may use `chip`.
+- **"+ New" lives in the page heading.** `NewButton` goes in `PageHeading`'s slot on the page (`*View.vue`), also
+  for a tab inside a page (the Tasks page's Priority tab calls the tab's `startNew`). **(lint)** components can't
+  use `NewButton`.
+- **Same labels everywhere.** A shared field reads its wording from one place in `messages.ts`; don't pass a
+  different label per screen.
+
 ## 7. Accessibility (WCAG 2.2 AA)
 
 - Every control has a label; icon-only buttons have an `aria-label`.

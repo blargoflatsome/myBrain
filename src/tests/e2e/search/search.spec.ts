@@ -79,7 +79,6 @@ test.describe('Spec §5 Global search and tags', () => {
     await open(page, '/tasks')
     await page.getByRole('button', { name: /^Pay rent/ }).click()
     const dialog = page.getByRole('dialog', { name: msg.tasks.editor.heading })
-    await dialog.getByText(msg.forms.moreOptions).click()
     await dialog.getByRole('combobox', { name: msg.tags.add }).fill('money')
     await dialog.getByRole('combobox', { name: msg.tags.add }).press('Enter')
     await expect(dialog.getByTestId('tag-chip')).toHaveText(/#money/)

@@ -119,6 +119,29 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
     await expect.poll(() => server.written('vault_items')[0]).toMatchObject({ title: 'Beach day', bucket_id: 'bucket-2' })
   })
 
+  test('with more than 10 buckets the choice is a dropdown, with New bucket last (SPEC §5 Forms)', async ({ page }) => {
+    server.seed('vault_buckets', Array.from({ length: 11 }, (_, i) => ({ id: `b${i}`, name: `Bucket ${String(i).padStart(2, '0')}`, position: i, checkable: false })))
+    await startCapture(page, 'The Vault')
+    const choice = page.getByRole('combobox', { name: msg.capture.bucketLabel })
+    await expect(choice).toHaveValue('b0')
+    await choice.selectOption({ label: `+ ${msg.capture.newBucket}` })
+    await page.getByRole('textbox', { name: msg.capture.newBucket }).fill('Gift ideas')
+    await titleBox(page).fill('Board game')
+    await save(page).click()
+    await expect.poll(() => server.written('vault_buckets').at(-1)?.name).toBe('Gift ideas')
+    await expect.poll(() => server.written('vault_items')[0]?.bucket_id).toBe(server.written('vault_buckets').at(-1)?.id)
+  })
+
+  test('rating and link are in More details, as in the item editor', async ({ page }) => {
+    await startCapture(page, 'The Vault')
+    await titleBox(page).fill('Luigi’s')
+    await page.getByTestId('vault-more').getByText(msg.forms.moreOptions).click()
+    await page.getByRole('radio', { name: msg.vault.itemEditor.ratingStar(4) }).click()
+    await page.getByLabel(msg.vault.itemEditor.link).fill('luigis.example.com')
+    await save(page).click()
+    await expect.poll(() => server.written('vault_items')[0]).toMatchObject({ title: 'Luigi’s', rating: 4, link: 'luigis.example.com' })
+  })
+
   test('another bucket and notes can be chosen', async ({ page }) => {
     await startCapture(page, 'The Vault')
     await page.getByRole('group', { name: msg.capture.bucketLabel }).getByRole('button', { name: 'Restaurant reviews' }).click()

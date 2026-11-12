@@ -47,19 +47,7 @@
             </button>
             <template v-if="editingId === current.id">
               <RichTextEditor v-model="draft" :label="m.note(index + 1)" min-height="6rem" autofocus @update:model-value="editError = ''" />
-              <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="m.color">
-                <button
-                  v-for="c in POST_IT_COLORS"
-                  :key="c"
-                  type="button"
-                  role="radio"
-                  :aria-checked="draftColor === c"
-                  :class="['min-h-11 rounded-full border-2 px-3 text-sm', `note-${c}`, draftColor === c ? 'border-current' : 'border-black/10']"
-                  @click="draftColor = c"
-                >
-                  <span v-if="draftColor === c" aria-hidden="true">✓ </span>{{ m.colors[c] }}
-                </button>
-              </div>
+              <PostItColors v-model="draftColor" />
               <p v-if="editError" class="text-sm font-medium" role="alert">{{ editError }}</p>
               <div class="flex flex-wrap gap-2">
                 <button type="button" :class="[btn, 'font-semibold']" @click="saveEdit(current)">{{ m.save }}</button>
@@ -132,7 +120,8 @@ import AppIcon from '@/components/AppIcon.vue'
 import { computed, defineAsyncComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
-import { boardOrder, POST_IT_COLORS } from '@/postits/rules'
+import { boardOrder } from '@/postits/rules'
+import PostItColors from '@/postits/components/PostItColors.vue'
 import { cleanHtml, plainText } from '@/journal/body'
 import { messages } from '@/messages'
 import type { PostItColor, PostItRow } from '@/sync/types'

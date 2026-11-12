@@ -26,41 +26,23 @@
     </template>
 
     <template v-else>
-      <p class="text-sm text-muted">{{ m.bucketLabel }}</p>
-      <div class="flex flex-wrap gap-2" role="group" :aria-label="m.bucketLabel">
-        <button
-          v-for="b in buckets"
-          :key="b.id"
-          type="button"
-          :class="btn"
-          :disabled="disabled"
-          @click="finish({ destination: 'vault', bucketId: b.id })"
-        >
-          {{ b.name }}
-        </button>
-        <button v-if="!addingBucket" type="button" :class="[btn, 'border-dashed text-muted']" @click="addingBucket = true">
-          + {{ m.newBucket }}
+      <BucketChoice v-model:bucket-id="bucketId" v-model:new-name="newBucketName" :buckets="buckets" :field-class="fieldOnPage" />
+      <div class="flex gap-3">
+        <button type="button" :class="btn" @click="reset">{{ m.back }}</button>
+        <button type="button" :class="[primary, 'flex-1']" :disabled="disabled || (!bucketId && !newBucketName?.trim())" @click="fileToVault">
+          {{ m.saveAs.vault }}
         </button>
       </div>
-      <form v-if="addingBucket" class="flex gap-2" @submit.prevent="addBucket">
-        <input
-          v-model="newBucketName" maxlength="200"
-          :aria-label="m.newBucket"
-          class="min-h-12 flex-1 rounded-xl border border-line bg-surface px-3 text-base text-ink"
-          autofocus
-        >
-        <button type="submit" :class="primary" :disabled="disabled">{{ m.saveBucket }}</button>
-      </form>
-      <button type="button" :class="[btn, 'self-start']" @click="reset">{{ m.back }}</button>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Orphans: where a thought goes: Task (optional date), The Vault (bucket picker), Quest, Habit, Post It, or Decide later.
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import BucketChoice from '@/vault/components/BucketChoice.vue'
 import DateInput from '@/components/DateInput.vue'
-import { fieldOnPage } from '@/ui/styles'
+import { fieldOnPage, primaryButton, secondaryButton } from '@/ui/styles'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { messages } from '@/messages'
@@ -75,14 +57,18 @@ const brain = useBrainStore()
 const m = messages.capture
 const step = ref<'pick' | 'task' | 'vault'>('pick')
 const dueDate = ref('')
-const newBucketName = ref('')
-const addingBucket = ref(false)
+const newBucketName = ref<string | null>(null)
+const bucketId = ref<string | null>(null)
 
 const buckets = useLiveQuery<VaultBucketRow[]>(
   async () => (brain.db ? activeBuckets(await brain.db.vault_buckets.toArray()) : []),
   [],
   [() => brain.db],
 )
+// The first bucket is preselected, as in Capture (SPEC §5 Forms).
+watch(buckets, (list) => {
+  if (!bucketId.value || !list.some((b) => b.id === bucketId.value)) bucketId.value = list[0]?.id ?? null
+})
 
 const order: Destination[] = ['task', 'vault', 'quest', 'habit', 'postit', 'later']
 
@@ -96,24 +82,19 @@ function finish(choice: Omit<CaptureInput, 'text'>) {
   emit('choose', choice)
 }
 
-async function addBucket() {
-  if (!newBucketName.value.trim()) return
-  const bucket = await brain.createBucket(newBucketName.value)
-  newBucketName.value = ''
-  addingBucket.value = false
-  finish({ destination: 'vault', bucketId: bucket.id })
+async function fileToVault() {
+  const id = newBucketName.value?.trim() ? (await brain.createBucket(newBucketName.value)).id : bucketId.value
+  if (id) finish({ destination: 'vault', bucketId: id })
 }
 
 /** Called by the parent after a save, to start fresh. */
 function reset() {
   step.value = 'pick'
   dueDate.value = ''
-  addingBucket.value = false
-  newBucketName.value = ''
+  newBucketName.value = null
 }
 defineExpose({ reset })
 
-const btn =
-  'min-h-12 rounded-xl border border-line bg-surface px-4 text-base font-medium text-ink active:scale-[0.98] disabled:opacity-50'
-const primary = 'min-h-12 rounded-xl bg-accent px-4 text-base font-semibold text-accent-ink disabled:opacity-50'
+const btn = [secondaryButton, 'bg-surface font-medium disabled:opacity-50']
+const primary = [primaryButton, 'disabled:opacity-50']
 </script>

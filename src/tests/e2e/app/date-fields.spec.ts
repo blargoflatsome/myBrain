@@ -33,7 +33,7 @@ test.describe('Spec §5 Date fields: type or pick (on a computer)', () => {
     await open(page, '/tasks')
     await page.getByText('pay rent').click()
     const dialog = page.getByRole('dialog', { name: msg.tasks.editor.heading })
-    const date = dialog.getByRole('combobox', { name: msg.tasks.editor.date })
+    const date = dialog.getByRole('combobox', { name: msg.capture.taskDateLabel })
     await expect(date).toHaveValue('Tue, Nov 10')
     await date.fill('tomorrow')
     await date.blur()
