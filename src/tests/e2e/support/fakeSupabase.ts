@@ -121,8 +121,6 @@ export class FakeSupabase {
         if (!localStorage.getItem('my-brain:account-open')) {
           localStorage.setItem('my-brain:account-open', JSON.stringify(['profile', 'settings', 'reminders', 'events', 'people', 'data']))
         }
-        // The same for the Dashboard's More stats (closed to start; src/tests/e2e/app/calm-ux.spec.ts checks that).
-        if (!localStorage.getItem('my-brain:dashboard-more')) localStorage.setItem('my-brain:dashboard-more', 'open')
       })
     }
 

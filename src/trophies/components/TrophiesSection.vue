@@ -5,6 +5,17 @@
       <span class="text-sm text-muted" data-testid="dash-trophy-count">{{ t.count(earnedCount) }}</span>
     </div>
 
+    <!-- SPEC §5 Dashboard: close to a trophy, when one is at least 75% of the way to its next level. -->
+    <button
+      v-if="closest"
+      type="button"
+      class="flex min-h-11 items-center gap-2 self-start rounded-xl text-left text-sm hover:text-accent"
+      data-testid="dash-trophy-close"
+      @click="openDetails(closest)"
+    >
+      <AppIcon name="trophy" class="shrink-0 text-done" />{{ closeLine }}
+    </button>
+
     <template v-if="!showAll">
       <p v-if="!latest.length" class="text-sm text-muted">{{ t.none }}</p>
       <ul v-else id="dash-trophy-list" class="grid gap-2 sm:grid-cols-2">
@@ -89,7 +100,7 @@ import { nextTick } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import CloseX from '@/components/CloseX.vue'
 import TrophyCard from '@/trophies/components/TrophyCard.vue'
-import { byCategory, newest, trophyName, type BoardItem } from '@/trophies/board'
+import { byCategory, closestTrophy, newest, trophyName, type BoardItem } from '@/trophies/board'
 import { TIERS } from '@/trophies/definitions'
 import { messages } from '@/messages'
 import { dateWithYear } from '@/ui/dates'
@@ -120,4 +131,11 @@ const earnedCount = computed(() => props.items.filter((i) => i.level).length)
 const latest = computed(() => newest(props.items, 3))
 const earnedGroups = computed(() => byCategory(props.items.filter((i) => !i.locked)))
 const lockedGroups = computed(() => byCategory(props.items.filter((i) => i.locked)))
+const closest = computed(() => closestTrophy(props.items))
+const closeLine = computed(() => {
+  const c = closest.value
+  if (!c) return ''
+  const name = c.levels > 1 ? `${trophyName(c)} ${t.tiers[TIERS[c.level]!]}` : trophyName(c)
+  return t.closeTo(c.next! - c.value!, c.unit, name)
+})
 </script>

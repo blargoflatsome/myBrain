@@ -25,12 +25,6 @@ const habit = (id: string, title: string, start: string) => ({
   current_streak: 0,
   best_streak: 0,
 })
-function daysFrom(from: string, count: number) {
-  const out: string[] = []
-  const d = new Date(`${from}T00:00:00Z`)
-  for (let i = 0; i < count; i++, d.setUTCDate(d.getUTCDate() + 1)) out.push(d.toISOString().slice(0, 10))
-  return out
-}
 
 test.beforeEach(async ({ page }) => {
   server = new FakeSupabase()
@@ -38,7 +32,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Dashboard', () => {
-  test('"How past you did yesterday" is the first section without Post Its: habits, routines and tasks from yesterday', async ({ page }) => {
+  test('"How past you did yesterday": habits, routines and tasks from yesterday', async ({ page }) => {
     const Y = '2026-11-09'
     server.seed('tasks', [
       { id: 't1', title: 'Pay rent', due_date: Y, status: 'done', completed_at: `${Y}T18:00:00Z`, priority: 1, source: 'manual' },
@@ -67,7 +61,8 @@ test.describe('Spec §5 Dashboard', () => {
     await open(page)
     const section = page.getByTestId('dash-yesterday')
     await expect(section.getByRole('heading', { name: msg.dashboard.yesterdayHeading })).toBeVisible()
-    await expect(page.locator('main section').first()).toHaveAttribute('data-testid', 'dash-yesterday')
+    // Up next comes first without Post Its, then yesterday (SPEC §5 Dashboard).
+    await expect(page.locator('main section').first()).toHaveAttribute('data-testid', 'up-next')
     await expect(section.getByTestId('dash-yesterday-habits')).toHaveText('1 of 2')
     await expect(section.getByTestId('dash-yesterday-routines')).toHaveText('1 of 2')
     await expect(section.getByTestId('dash-yesterday-tasks')).toHaveText('1 of 2')
@@ -113,85 +108,69 @@ test.describe('Spec §5 Dashboard', () => {
     await goTo(page, 'Dashboard')
     await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
   })
+})
 
-  test('habit stats: streaks for every habit, most missed, longest current, best ever, oldest', async ({ page }) => {
-    server.seed('habits', [habit('h1', 'Meds', '2026-10-01'), habit('h2', 'Stretch', '2026-11-01'), habit('h3', 'Read', '2025-03-01')])
-    server.seed('habit_logs', [
-      ...daysFrom('2026-10-01', 41).map((d) => ({ id: `h1-${d}`, habit_id: 'h1', date: d, status: 'completed', completed_at: `${d}T15:00:00Z` })),
-      ...daysFrom('2026-11-01', 5).map((d) => ({ id: `h2-${d}`, habit_id: 'h2', date: d, status: 'completed', completed_at: `${d}T15:00:00Z` })),
-    ])
+// SPEC §5 Dashboard Up next and yesterday's leftovers (the order of suggestions is in src/tests/unit/dashboard/up-next.test.ts).
+const task = (id: string, title: string, due: string, extra: Record<string, unknown> = {}) => ({ id, title, due_date: due, status: 'open', priority: 1, source: 'manual', created_at: '2026-11-01T00:00:00Z', ...extra })
+const upNext = (page: Page) => page.getByTestId('up-next')
+const u = msg.dashboard.upNext
+
+test.describe('Spec §5 Dashboard: Up next', () => {
+  test('Do it crosses off the next task; Something else skips it until tomorrow', async ({ page }) => {
+    server.seed('tasks', [task('t1', 'Pay rent', '2026-11-10', { priority: 3 }), task('t2', 'Email Sam', '2026-11-10')])
     await open(page)
-    await expect(page.getByTestId('dash-longest-current')).toContainText('41')
-    await expect(page.getByTestId('dash-longest-current')).toContainText('Meds')
-    await expect(page.getByTestId('dash-best-ever')).toContainText('41')
-    await expect(page.getByTestId('dash-oldest')).toContainText('Read')
-    await expect(page.getByTestId('dash-oldest')).toContainText('Since Mar 1, 2025')
-    const missed = page.getByTestId('dash-most-missed')
-    await expect(missed).toContainText('Read')
-    await expect(missed).toContainText('Stretch')
-    await expect(page.getByTestId('dash-habit')).toHaveCount(3)
-    await expect(page.getByTestId('dash-habit').first()).toContainText('41 now · best 41')
+    await expect(upNext(page).getByTestId('up-next-title')).toHaveText('Pay rent')
+    await upNext(page).getByTestId('up-next-do').click()
+    await expect(upNext(page).getByTestId('up-next-title')).toHaveText('Email Sam')
+    await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't1', status: 'done' })
+
+    await upNext(page).getByTestId('up-next-skip').click()
+    await expect(upNext(page).getByTestId('up-next-title')).toHaveText(u.journalTitle) // 9 pm: tonight's journal
+    await page.reload()
+    await expect(upNext(page).getByTestId('up-next-title')).toHaveText(u.journalTitle)
   })
 
-  test('journal streaks count only days I wrote', async ({ page }) => {
-    server.seed('journal_entries', [
-      ...['2026-11-01', '2026-11-02', '2026-11-03'].map((date) => ({ id: date, date, body: '<p>wrote</p>', stats: {}, stats_final: true, auto: false })),
-      { id: 'a', date: '2026-11-08', body: '', stats: {}, stats_final: true, auto: true },
-      ...['2026-11-09', '2026-11-10'].map((date) => ({ id: date, date, body: '<p>wrote</p>', stats: {}, stats_final: false, auto: false })),
-    ])
+  test('a task carried over 3 times can move to today, with Undo', async ({ page }) => {
+    server.seed('tasks', [task('t1', 'Fix the bike', '2026-11-07')])
     await open(page)
-    await expect(page.getByTestId('dash-journal-current')).toHaveText('2')
-    await expect(page.getByTestId('dash-journal-best')).toHaveText('3')
+    await expect(upNext(page).getByTestId('up-next-reason')).toHaveText(u.stuck(3))
+    await upNext(page).getByTestId('up-next-today').click()
+    await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't1', due_date: '2026-11-10' })
+    await expect(upNext(page).getByTestId('up-next-title')).toHaveText('Fix the bike') // now a normal task for today
+    await page.getByTestId('undo-bar').getByRole('button', { name: msg.undo.undo }).click()
+    await expect.poll(() => server.written('tasks').at(-1)?.due_date).toBe('2026-11-07')
   })
 
-  test('event stats, and the period dropdown (This year by default, Last 12 months, All time)', async ({ page }) => {
-    const ev = (id: string, date: string, created: string, extra: Record<string, unknown> = {}) => ({
-      id,
-      title: id,
-      notes: null,
-      start_date: date,
-      start_time: '10:00:00',
-      end_date: date,
-      end_time: '11:00:00',
-      repeat: 'never',
-      reminder_minutes: null,
-      created_at: created,
-      ...extra,
-    })
-    server.seed('events', [
-      ev('this-year', '2026-03-01', '2026-02-01T12:00:00Z'),
-      ev('last-december', '2025-12-15', '2025-12-01T12:00:00Z'),
-      ev('long-ago', '2024-06-01', '2024-05-01T12:00:00Z'),
-      ev('cancelled', '2026-12-01', '2026-10-01T12:00:00Z', { deleted_at: '2026-10-05T12:00:00Z' }),
-    ])
-    server.seed('tasks', [
-      { id: 't1', title: 'a', due_date: null, priority: 1, status: 'done', completed_at: '2026-05-01T12:00:00Z', source: 'manual' },
-      { id: 't2', title: 'b', due_date: null, priority: 1, status: 'done', completed_at: '2025-12-20T12:00:00Z', source: 'manual' },
-    ])
+  test('with everything skipped, Show skipped brings them back', async ({ page }) => {
     await open(page)
-    await expect(page.getByLabel(msg.dashboard.period)).toHaveValue('year')
-    await expect(page.getByTestId('dash-events-created')).toHaveText('2')
-    await expect(page.getByTestId('dash-events-attended')).toHaveText('1')
-    await expect(page.getByTestId('dash-events-cancelled')).toHaveText('1')
-    await expect(page.getByTestId('dash-tasks')).toHaveText('1')
-
-    await page.getByLabel(msg.dashboard.period).selectOption({ label: 'Last 12 months' })
-    await expect(page.getByTestId('dash-events-attended')).toHaveText('2')
-    await expect(page.getByTestId('dash-tasks')).toHaveText('2')
-
-    await page.getByLabel(msg.dashboard.period).selectOption({ label: 'All time' })
-    await expect(page.getByTestId('dash-events-created')).toHaveText('4')
-    await expect(page.getByTestId('dash-events-attended')).toHaveText('3')
+    await upNext(page).getByTestId('up-next-skip').click() // the journal
+    await expect(upNext(page).getByTestId('up-next-title')).toHaveText(u.allSkippedTitle)
+    await upNext(page).getByTestId('up-next-do').click()
+    await expect(upNext(page).getByTestId('up-next-title')).toHaveText(u.journalTitle)
   })
 
-  test('routines show their completion rate; quests finished are counted', async ({ page }) => {
-    server.seed('routines', [{ id: 'r1', title: 'Morning', notify_time: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' }])
-    server.seed('routine_steps', [{ id: 's1', routine_id: 'r1', position: 0, title: 'Wake', start_date: '2026-11-01' }])
-    server.seed('routine_runs', [{ id: 'run1', routine_id: 'r1', date: '2026-11-02', started_at: '2026-11-02T12:00:00Z', finished_at: '2026-11-02T12:10:00Z' }])
-    server.seed('quests', [{ id: 'q1', title: 'Bake', status: 'open', completed_at: '2026-11-02T12:00:00Z' }])
-    server.seed('quest_logs', [{ id: 'ql1', quest_id: 'q1', date: '2026-11-02', completed_at: '2026-11-02T12:00:00Z' }])
+  test('a long title wraps at 320 px without sideways scrolling', async ({ page }) => {
+    const link = 'https://example.com/a/really/long/link/that/someone/pasted/without/any/spaces/in/it/at/all?with=query&and=more'
+    server.seed('tasks', [task('t1', link, '2026-11-10')])
+    await page.setViewportSize({ width: 320, height: 800 })
     await open(page)
-    await expect(page.getByRole('meter', { name: 'Morning' })).toHaveAttribute('aria-valuenow', '11') // 1 of 9 days
-    await expect(page.getByTestId('dash-quests')).toHaveText('1')
+    await expect(upNext(page).getByTestId('up-next-title')).toHaveText(link)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
   })
 })
+
+test.describe("Spec §5 Dashboard: yesterday's leftovers", () => {
+  test('a task due yesterday can be let go (cancelled) or moved to Undated, with Undo', async ({ page }) => {
+    server.seed('tasks', [task('t1', 'Email Sam', '2026-11-09'), task('t2', 'Call Mum', '2026-11-09')])
+    await open(page)
+    const leftovers = page.getByTestId('dash-leftovers')
+    await leftovers.getByRole('button', { name: msg.dashboard.leftoverLetGo('Email Sam') }).click()
+    await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't1', status: 'cancelled' })
+    await page.getByTestId('undo-bar').getByRole('button', { name: msg.undo.undo }).click()
+    await expect.poll(() => server.written('tasks').at(-1)?.status).toBe('open')
+    await leftovers.getByRole('button', { name: msg.dashboard.leftoverUndated('Call Mum') }).click()
+    await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't2', due_date: null })
+    await expect(page.getByTestId('dash-leftover')).toHaveText([/Email Sam/])
+  })
+})
+

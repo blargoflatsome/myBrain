@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { tasksDone } from '@/dashboard/stats'
 import { clearDone, clearedForDay, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
 import type { TaskRow } from '@/sync/types'
 
@@ -17,13 +16,12 @@ describe('Spec §5 Tasks: Clear crossed-off hides done tasks but keeps them', ()
     expect(cleared[0]!.deleted_at).toBeNull()
   })
 
-  it('cleared tasks leave the day and Undated lists, but are still done for stats', () => {
+  it('cleared tasks leave the day and Undated lists, but are still kept as cleared', () => {
     const cleared = t('b', { status: 'done', completed_at: doneAt, cleared_at: doneAt })
     const undated = t('u', { due_date: null, status: 'done', completed_at: doneAt, cleared_at: doneAt })
     expect(tasksForDay([cleared, t('a')], DAY_T, DAY_T, TZ).map((x) => x.id)).toEqual(['a'])
     expect(undatedTasks([undated])).toEqual([])
     expect(clearedForDay([cleared], DAY_T, TZ)).toHaveLength(1)
-    expect(tasksDone([cleared], '2026-01-01', new Date('2026-11-10T20:00:00Z'), TZ)).toBe(1)
   })
 
   it('un-crossing a task brings it back to the list', () => {

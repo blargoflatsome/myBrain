@@ -133,3 +133,9 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 
 ## Decisions
 See [docs/DECISIONS.md](docs/DECISIONS.md).
+
+## Dashboard trimmed + guidance (merged via PR, branch `dashboard-trim`)
+- User: long-run stats were noise next to Trophies. Removed More stats, the Longest current streak and Best streak ever cards, and the period dropdown (SPEC §5 Dashboard, DECISIONS 2026-11-12). Dashboard is now Post Its, yesterday, Days since your worst day, favorite buckets, Trophies. Tests for the removed stats deleted; `journalStreaks` test moved to `src/tests/unit/dashboard/journal-streaks.test.ts` (Trophies use it). Quick checks pass (Vitest 378, desktop 374).
+- Dashboard guidance (SPEC §5 Dashboard, DECISIONS 2026-11-12 Dashboard guidance): **Up next** card (`src/dashboard/upNext.ts` rules, `src/dashboard/components/UpNextCard.vue`): one suggestion in order priority items, habits due within 2 h (keep it going at 3+ days), routines past their time, events within 2 h, tasks carried over 3+ times (Today / Undated / Cancel task with Undo), today's tasks, Orphans, tonight's journal (journal reminder time or 7 pm), then Pick a quest; Something else skips until tomorrow on this device. **Close to a trophy** line in Trophies (`closestTrophy` in `trophies/board.ts`, 75%). **Yesterday's leftovers** in the yesterday box (`yesterdayLeftovers`): Undated or Let it go, with Undo. No migration.
+- Tests: `src/tests/unit/dashboard/up-next.test.ts`, Up next and leftovers in `src/tests/e2e/dashboard/dashboard.spec.ts`, close-to-a-trophy in `src/tests/e2e/trophies/trophies.spec.ts`. Full review passed (2026-11-12): Vitest 390, Playwright 722 (32 skipped), no failures. No migration.
+

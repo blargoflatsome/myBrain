@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { finishQuest, pickQuest } from '@/quests/picker'
-import { questsFinished, yesterdaySummary } from '@/dashboard/stats'
+import { yesterdaySummary } from '@/dashboard/stats'
 import type { QuestRow } from '@/sync/types'
 
 describe('Spec §5 Random Quest: quests can be done again', () => {
@@ -11,11 +11,6 @@ describe('Spec §5 Random Quest: quests can be done again', () => {
     expect(done.status).toBe('open')
     expect(done.completed_at).toBe('2026-11-10T15:00:00.000Z')
     expect(pickQuest([done], {}, () => 0)?.id).toBe('a')
-  })
-
-  it('every time a quest is done counts on the Dashboard', () => {
-    const logs = [1, 2, 3].map((n) => ({ id: `l${n}`, quest_id: 'a', date: `2026-11-0${n}`, completed_at: `2026-11-0${n}T12:00:00Z`, deleted_at: null }))
-    expect(questsFinished(logs, '2026-11-02', new Date('2026-11-10T15:00:00Z'), 'America/New_York')).toBe(2)
   })
 
   it('"How past you did yesterday" shows quests done yesterday, even when nothing was scheduled', () => {

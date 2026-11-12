@@ -39,7 +39,6 @@ test.describe('SPEC §5 Trophies on the Dashboard', () => {
     ])
     await open(page)
     const trophies = page.getByTestId('dash-trophies')
-    await expect(page.getByTestId('dash-more').getByTestId('dash-trophies')).toHaveCount(0)
     const shown = trophies.locator('#dash-trophy-list [data-testid^="trophy-"][data-level]')
     await expect(shown).toHaveCount(3)
     await expect(shown.first()).toHaveAttribute('data-testid', 'trophy-first_journal')
@@ -120,5 +119,16 @@ test.describe('SPEC §5 Trophies: earning them', () => {
     await open(page, '/tasks')
     await page.getByRole('button', { name: 'Cross off Tenth' }).click()
     await expect.poll(() => server.written('badges').find((b) => b.kind === 'tasks_completed')?.levels).toHaveLength(1)
+  })
+})
+
+test.describe('SPEC §5 Dashboard: close to a trophy', () => {
+  test('the trophy nearest its next level shows at the top of Trophies and opens it', async ({ page }) => {
+    server.seed('tasks', doneTasks(8)) // 8 of 10 tasks made and completed; ties go to the first in the list
+    await open(page)
+    const line = page.getByTestId('dash-trophy-close')
+    await expect(line).toHaveText(t.closeTo(2, 'count', `${t.names.tasks_created} ${t.tiers.bronze}`))
+    await line.click()
+    await expect(page.getByTestId('trophy-details')).toBeVisible()
   })
 })
