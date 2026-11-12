@@ -234,8 +234,11 @@
 
 <script setup lang="ts">
 // SPEC §5 Dashboard: all my stats at a glance, for This year (default), Last 12 months or All time. Updates live.
+import { readTables } from '@/sync/db'
+import { DAY_TABLES, dayStats } from '@/journal/stats'
+import { useNow } from '@/composables/useNow'
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, onScopeDispose, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import PostItBoard from '@/postits/components/PostItBoard.vue'
 import { useBrainStore } from '@/stores/brain'
@@ -292,32 +295,25 @@ function setPeriod(p: Period) {
 }
 
 // A clock that ticks each minute, so streaks and "attended" follow the time of day.
-const now = ref(new Date())
-const tick = setInterval(() => (now.value = new Date()), 60_000)
-onScopeDispose(() => clearInterval(tick))
+const now = useNow()
 
 const stats = useLiveQuery(
   async () => {
     const db = brain.db
     if (!db) return null
     const from = periodStart(period.value, today.value)
-    const [habits, habitLogs, journal, events, tasks, questLogs, routines, steps, runs, logs, invites, buckets, vaultItems] = await Promise.all([
-      db.habits.toArray(),
-      db.habit_logs.toArray(),
-      db.journal_entries.toArray(),
-      db.events.toArray(),
-      db.tasks.toArray(),
-      db.quest_logs.toArray(),
-      db.routines.toArray(),
-      db.routine_steps.toArray(),
-      db.routine_runs.toArray(),
-      db.routine_step_logs.toArray(),
-      db.event_invites.toArray(),
-      db.vault_buckets.toArray(),
-      db.vault_items.toArray(),
-    ])
+    // One read of each table: yesterday's summary is worked out from the same rows as the rest.
+    const day = await readTables(db, DAY_TABLES)
+    const { journal, events, invites, buckets, vaultItems } = await readTables(db, {
+      journal: 'journal_entries',
+      events: 'events',
+      invites: 'event_invites',
+      buckets: 'vault_buckets',
+      vaultItems: 'vault_items',
+    })
+    const { habits, habitLogs, tasks, questLogs, routines, routineSteps: steps, routineRuns: runs, routineStepLogs: logs } = day
     return {
-      yesterday: yesterdaySummary(await brain.journalStats(addDays(today.value, -1), now.value, timeZone.value)),
+      yesterday: yesterdaySummary(dayStats(day, addDays(today.value, -1), now.value, timeZone.value)),
       habits: habitStats(habits, habitLogs, now.value, timeZone.value, from),
       journal: journalStreaks(journal, today.value),
       worstDay: daysSinceWorstDay(journal, today.value),

@@ -58,6 +58,7 @@
 <script setup lang="ts">
 // SPEC §5 Calendar and reminders: month, week and day views of my dated tasks, priority tasks and events.
 // Tap a day or time (or "+ New event") to add an event; tap an item to open it.
+import { useProfileStore } from '@/stores/profile'
 import { computed, onMounted, onScopeDispose, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import FullCalendar from '@fullcalendar/vue3'
@@ -79,7 +80,6 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { eventChanged } from '@/connections/connections'
 import ShareFlow from '@/events/components/ShareFlow.vue'
 import { invitePeople, inviteLink, inviteMessage, type PersonToInvite, type ShareTarget } from '@/events/sharing'
-import { supabase } from '@/lib/supabase'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
@@ -235,8 +235,7 @@ function shared(sent: number) {
 const shareTargets = ref<ShareTarget[]>([])
 const shareKind = ref<'invite' | 'cancel' | 'update'>('invite')
 async function myName() {
-  const { data } = await supabase.from('profiles').select('display_name').eq('user_id', brain.userId ?? '').maybeSingle()
-  return data?.display_name || 'A friend'
+  return (await useProfileStore().load())?.display_name || 'A friend'
 }
 // Changing the date or time of an event people are invited to offers to let them know (SPEC §10 Connections).
 const cm = messages.connections

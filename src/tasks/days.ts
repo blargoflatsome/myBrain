@@ -6,9 +6,17 @@ export function deviceTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 }
 
+// Building an Intl.DateTimeFormat is slow and "today" is asked for all over the app, so one is kept per time zone.
+const dayFormats = new Map<string, Intl.DateTimeFormat>()
+
 /** Today's calendar date in the given timezone. The day ends at midnight there. */
 export function todayIn(timeZone: string, now: Date = new Date()): string {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now)
+  let format = dayFormats.get(timeZone)
+  if (!format) {
+    format = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' })
+    dayFormats.set(timeZone, format)
+  }
+  const parts = format.formatToParts(now)
   const get = (t: string) => parts.find((p) => p.type === t)!.value
   return `${get('year')}-${get('month')}-${get('day')}`
 }

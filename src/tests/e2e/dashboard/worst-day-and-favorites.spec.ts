@@ -52,7 +52,7 @@ test.describe('Spec §5 Dashboard: worst day and favorite buckets', () => {
 
   test('with nothing starred there is no favorites section', async ({ page }) => {
     await open(page, '/')
-    await expect(page.getByRole('heading', { name: msg.nav.dashboard, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
     await expect(page.getByTestId('dash-favorites')).toHaveCount(0)
   })
 })

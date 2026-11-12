@@ -31,18 +31,16 @@
 </template>
 
 <script setup lang="ts">
+import { useProfileStore } from '@/stores/profile'
 import { safeNext } from '@/security/redirect'
 // SPEC §5 Accounts and contact info: after the first sign-in, a short step for my phone number and how event news
 // reaches me. Existing accounts see it once too.
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/stores/auth'
 import { isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
 import { fieldLabel, fieldOnPage, primaryButton } from '@/ui/styles'
 
-const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const m = messages.welcome
@@ -60,12 +58,9 @@ async function save() {
     return
   }
   saving.value = true
-  const { error: failed } = await supabase
-    .from('profiles')
-    .update({ phone: phone.value.trim(), event_notify_method: notify.value })
-    .eq('user_id', auth.user?.id ?? '')
+  const saved = await useProfileStore().update({ phone: phone.value.trim(), event_notify_method: notify.value })
   saving.value = false
-  if (failed) {
+  if (!saved) {
     error.value = m.offline
     return
   }

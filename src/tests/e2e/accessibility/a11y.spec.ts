@@ -212,7 +212,7 @@ for (const scheme of ['light', 'dark'] as const) {
 
     test('Focus timer, full screen and minimized', async ({ page }) => {
       await page.goto('/')
-      await expect(page.getByRole('heading', { name: msg.nav.dashboard, level: 1 })).toBeVisible()
+      await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
       await page.getByTestId('focus-open').locator('visible=true').click()
       await expect(page.getByRole('dialog', { name: msg.focus.menu })).toBeVisible()
       await scan(page, 'Focus timer')
@@ -321,7 +321,7 @@ test.describe('Spec §2 WCAG 2.2 AA: by hand checks made automatic', () => {
 
   test('the page name is announced after moving to another page (4.1.3)', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: msg.nav.dashboard, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
     await page.goto('/journal')
     await expect(page.getByRole('heading', { name: msg.nav.journal, level: 1 })).toBeVisible()
     await goTo(page, 'Habits')

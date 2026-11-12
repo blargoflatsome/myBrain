@@ -58,35 +58,35 @@ export class LocalDb extends Dexie {
       outbox: '++seq, table, rowId',
       meta: 'key',
     })
-    // Step 5: habits and their daily logs.
+    // Habits and their daily logs.
     this.version(2).stores({
       habits: 'id, updated_at',
       habit_logs: 'id, updated_at, habit_id, date',
     })
-    // Step 6: routines, their steps, daily runs and step logs.
+    // Routines, their steps, daily runs and step logs.
     this.version(3).stores({
       routines: 'id, updated_at',
       routine_steps: 'id, updated_at, routine_id',
       routine_runs: 'id, updated_at, routine_id, date',
       routine_step_logs: 'id, updated_at, run_id, step_id',
     })
-    // Step 7: priority tasks, their daily completions, and per-day reminder state (snooze / cancel).
+    // Priority tasks, their daily completions, and per-day reminder state (snooze / cancel).
     this.version(4).stores({
       priority_tasks: 'id, updated_at',
       priority_task_logs: 'id, updated_at, task_id, date',
       reminder_state: 'id, updated_at, item_id, date',
     })
-    // Step 8: journal entries, one per day.
+    // Journal entries, one per day.
     this.version(5).stores({
       journal_entries: 'id, updated_at, date',
     })
-    // Step 9: personal events, tags, and which items carry which tags.
+    // Personal events, tags, and which items carry which tags.
     this.version(6).stores({
       events: 'id, updated_at, start_date',
       tags: 'id, updated_at',
       item_tags: 'id, updated_at, item_id, tag_id',
     })
-    // Step 11: invitations (read-only here) and my availability.
+    // Invitations (read-only here) and my availability.
     this.version(7).stores({
       event_invites: 'id, updated_at, event_id',
       availability_rules: 'id, updated_at',
@@ -121,4 +121,11 @@ export class LocalDb extends Dexie {
   rows<T extends SyncTable>(table: T): Table<RowTypes[T], string> {
     return this.table(table) as Table<RowTypes[T], string>
   }
+}
+
+/** Every row of several tables, read at the same time: `{ habitLogs: 'habit_logs' }` gives `{ habitLogs: [...] }`. */
+export async function readTables<M extends Record<string, SyncTable>>(db: LocalDb, tables: M): Promise<{ [K in keyof M]: RowTypes[M[K]][] }> {
+  const keys = Object.keys(tables) as (keyof M & string)[]
+  const rows = await Promise.all(keys.map((k) => db.rows(tables[k]!).toArray()))
+  return Object.fromEntries(keys.map((k, i) => [k, rows[i]])) as { [K in keyof M]: RowTypes[M[K]][] }
 }

@@ -1,4 +1,4 @@
--- Checks for step 9: The Vault, events and their reminders, tags (SPEC §5, §8). Always rolls back. Run: npm run test:db
+-- Checks for The Vault, events and their reminders, and tags (SPEC §5, §8). Always rolls back. Run: npm run test:db
 do $$
 declare
   alice constant uuid := '11111111-1111-1111-1111-111111111111';

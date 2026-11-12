@@ -105,7 +105,7 @@
 
     <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" :aria-label="messages.signOut.button" data-testid="sign-out">
       <p class="min-w-0 text-sm text-muted">{{ g.signOutHint }}</p>
-      <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-4 font-medium" @click="signOut">
+      <button type="button" class="min-h-11 shrink-0 rounded-xl border border-line px-4 font-medium" @click="signOut(false)">
         {{ messages.signOut.button }}
       </button>
     </section>
@@ -122,86 +122,70 @@
       <RouterLink to="/terms" class="text-muted underline">{{ messages.legal.terms }}</RouterLink>
     </p>
 
-    <dialog
+    <TypeToConfirmDialog
       ref="confirmWipe"
-      :aria-label="messages.deleteData.heading"
-      class="m-auto max-h-[92dvh] w-[min(28rem,calc(100%-2rem))] rounded-2xl border border-line bg-bg p-5 text-ink backdrop:bg-black/60"
+      :heading="messages.deleteData.heading"
+      :word="messages.deleteData.word"
+      :type-label="messages.deleteData.typeLabel"
+      :confirm-label="messages.deleteData.confirm"
+      :keep-label="messages.deleteData.keep"
+      tone="warning"
+      :busy="wiping"
+      :ready="wipeChosen.length > 0"
+      :error="wipeError"
+      @confirm="wipeData"
     >
-      <form class="flex flex-col gap-3" @submit.prevent="wipeData">
-        <h2 class="text-xl font-bold">{{ messages.deleteData.heading }}</h2>
-        <p class="text-sm text-muted">{{ messages.deleteData.removes }}</p>
-        <fieldset class="flex flex-col gap-1" data-testid="wipe-removes">
-          <legend class="sr-only">{{ messages.deleteData.removes }}</legend>
-          <label v-for="p in wipeParts" :key="p" class="flex min-h-9 items-center gap-3 text-sm">
-            <input v-model="wipeChosen" type="checkbox" :value="p" class="size-5 shrink-0 accent-[var(--warning)]">
-            {{ messages.deleteData.parts[p] }}
-          </label>
-          <div class="flex gap-3 text-xs">
-            <button type="button" class="text-muted underline" @click="wipeChosen = [...wipeParts]">{{ messages.deleteData.selectAll }}</button>
-            <button type="button" class="text-muted underline" @click="wipeChosen = []">{{ messages.deleteData.selectNone }}</button>
-          </div>
-        </fieldset>
-        <p class="text-sm text-muted">{{ messages.deleteData.keeps }}</p>
-        <ul class="flex list-disc flex-col gap-0.5 pl-5 text-sm" data-testid="wipe-keeps">
-          <li v-for="p in wipeKept" :key="p">{{ messages.deleteData.parts[p] }}</li>
-          <li v-for="item in messages.deleteData.keepList" :key="item">{{ item }}</li>
-        </ul>
-        <p v-if="!wipeChosen.length" class="text-sm text-danger" role="alert">{{ messages.deleteData.noneTicked }}</p>
-        <p class="text-sm font-medium">{{ messages.deleteData.undo }}</p>
-        <label :class="fieldLabel">
-          {{ messages.deleteData.typeLabel }}
-          <input v-model="wipeTyped" :class="field" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <p class="text-sm text-muted">{{ messages.deleteData.removes }}</p>
+      <fieldset class="flex flex-col gap-1" data-testid="wipe-removes">
+        <legend class="sr-only">{{ messages.deleteData.removes }}</legend>
+        <label v-for="p in wipeParts" :key="p" class="flex min-h-9 items-center gap-3 text-sm">
+          <input v-model="wipeChosen" type="checkbox" :value="p" class="size-5 shrink-0 accent-[var(--warning)]">
+          {{ messages.deleteData.parts[p] }}
         </label>
-        <p v-if="wipeError" class="text-sm text-danger" role="alert">{{ wipeError }}</p>
-        <div class="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="submit"
-            class="min-h-12 flex-1 rounded-xl bg-warning px-4 font-semibold text-warning-ink disabled:opacity-50"
-            :disabled="wiping || !wipeChosen.length || wipeTyped.trim().toUpperCase() !== messages.deleteData.word"
-          >
-            {{ messages.deleteData.confirm }}
-          </button>
-          <button type="button" class="flex-1" :class="secondaryButton" @click="confirmWipe?.close()">{{ messages.deleteData.keep }}</button>
+        <div class="flex gap-3 text-xs">
+          <button type="button" class="text-muted underline" @click="wipeChosen = [...wipeParts]">{{ messages.deleteData.selectAll }}</button>
+          <button type="button" class="text-muted underline" @click="wipeChosen = []">{{ messages.deleteData.selectNone }}</button>
         </div>
-      </form>
-      <CloseX @click="confirmWipe?.close()" />
-    </dialog>
+      </fieldset>
+      <p class="text-sm text-muted">{{ messages.deleteData.keeps }}</p>
+      <ul class="flex list-disc flex-col gap-0.5 pl-5 text-sm" data-testid="wipe-keeps">
+        <li v-for="p in wipeKept" :key="p">{{ messages.deleteData.parts[p] }}</li>
+        <li v-for="item in messages.deleteData.keepList" :key="item">{{ item }}</li>
+      </ul>
+      <p v-if="!wipeChosen.length" class="text-sm text-danger" role="alert">{{ messages.deleteData.noneTicked }}</p>
+      <p class="text-sm font-medium">{{ messages.deleteData.undo }}</p>
+    </TypeToConfirmDialog>
 
-    <dialog
+    <TypeToConfirmDialog
       ref="confirmDelete"
-      :aria-label="m.deleteConfirm.heading"
-      class="m-auto w-[min(28rem,calc(100%-2rem))] rounded-2xl border border-line bg-bg p-5 text-ink backdrop:bg-black/60"
+      :heading="m.deleteConfirm.heading"
+      :word="m.deleteConfirm.word"
+      :type-label="m.deleteConfirm.typeLabel"
+      :confirm-label="m.deleteConfirm.confirm"
+      :keep-label="m.deleteConfirm.keep"
+      :busy="deleting"
+      :error="deleteError"
+      @confirm="deleteAccount"
     >
-      <form class="flex flex-col gap-4" @submit.prevent="deleteAccount">
-        <h2 class="text-xl font-bold">{{ m.deleteConfirm.heading }}</h2>
-        <p class="text-muted">{{ m.deleteConfirm.body }}</p>
-        <label :class="fieldLabel">
-          {{ m.deleteConfirm.typeLabel }}
-          <input v-model="typed" :class="field" autocomplete="off" autocapitalize="characters" spellcheck="false">
-        </label>
-        <p v-if="deleteError" class="text-sm text-danger" role="alert">{{ deleteError }}</p>
-        <div class="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="submit"
-            class="min-h-12 flex-1 rounded-xl bg-danger px-4 font-semibold text-danger-ink disabled:opacity-50"
-            :disabled="deleting || typed.trim().toUpperCase() !== m.deleteConfirm.word"
-          >
-            {{ m.deleteConfirm.confirm }}
-          </button>
-          <button type="button" class="flex-1" :class="secondaryButton" @click="confirmDelete?.close()">
-            {{ m.deleteConfirm.keep }}
-          </button>
-        </div>
-      </form>
-      <CloseX @click="confirmDelete?.close()" />
-    </dialog>
+      <p class="text-muted">{{ m.deleteConfirm.body }}</p>
+    </TypeToConfirmDialog>
+    <ConfirmDialog
+      ref="confirmUnsent"
+      :heading="messages.signOut.unsent.heading"
+      :body="messages.signOut.unsent.body(unsent)"
+      :confirm-label="messages.signOut.unsent.confirm"
+      :keep-label="messages.signOut.unsent.keep"
+      @confirm="signOut(true)"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
 // SPEC §5 Account page: display name, avatar and streak visibility, then settings. Streaks are on the Dashboard.
+import { useProfileStore } from '@/stores/profile'
 import AppIcon from '@/components/AppIcon.vue'
-import CloseX from '@/components/CloseX.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import TypeToConfirmDialog from '@/components/TypeToConfirmDialog.vue'
 import { computed, onMounted, ref } from 'vue'
 import AccountGroup from '@/account/components/AccountGroup.vue'
 import { RouterLink, useRouter } from 'vue-router'
@@ -215,14 +199,16 @@ import EventSettings from '@/events/components/EventSettings.vue'
 import MyPeople from '@/events/components/MyPeople.vue'
 import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
-import { field, fieldLabel, primaryButtonSmall, secondaryButton } from '@/ui/styles'
+import { clearAppKeys } from '@/ui/storage'
+import { field, fieldLabel, primaryButtonSmall } from '@/ui/styles'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { CELEBRATION_SETTINGS, parseSetting, type CelebrationSetting } from '@/celebrate/rules'
 
-type Visibility = 'private' | 'approved' | 'everyone'
+type Visibility = 'private' | 'approved'
 
 const auth = useAuthStore()
 const brain = useBrainStore()
+const profile = useProfileStore()
 const router = useRouter()
 const m = messages.profile
 const g = messages.accountGroups
@@ -238,11 +224,7 @@ const saving = ref(false)
 const notice = ref('')
 
 onMounted(async () => {
-  const { data } = await supabase
-    .from('profiles')
-    .select('display_name, avatar_url, streak_visibility, celebrations')
-    .eq('user_id', auth.user?.id ?? '')
-    .maybeSingle()
+  const data = await profile.load()
   if (data) {
     displayName.value = data.display_name ?? ''
     avatarUrl.value = data.avatar_url
@@ -255,12 +237,9 @@ onMounted(async () => {
 async function save() {
   notice.value = ''
   saving.value = true
-  const { error } = await supabase
-    .from('profiles')
-    .update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value })
-    .eq('user_id', auth.user?.id ?? '')
+  const ok = await profile.update({ display_name: displayName.value.trim() || null, streak_visibility: visibility.value })
   saving.value = false
-  notice.value = error ? m.offline : m.saved
+  notice.value = ok ? m.saved : m.offline
 }
 
 // Celebrations has its own Save in Account Settings.
@@ -269,25 +248,22 @@ const celebrationsNotice = ref('')
 async function saveCelebrations() {
   celebrationsNotice.value = ''
   savingCelebrations.value = true
-  const { error } = await supabase.from('profiles').update({ celebrations: celebrations.value }).eq('user_id', auth.user?.id ?? '')
+  const ok = await profile.update({ celebrations: celebrations.value })
   savingCelebrations.value = false
-  if (!error) celebrate.setSetting(celebrations.value)
-  celebrationsNotice.value = error ? m.offline : m.saved
+  if (ok) celebrate.setSetting(celebrations.value)
+  celebrationsNotice.value = ok ? m.saved : m.offline
 }
 
 
-// ---------- Delete My Account (SPEC §9): confirm, then delete everything ----------
-const confirmDelete = ref<HTMLDialogElement | null>(null)
-const typed = ref('')
+// ---------- Delete My Account (SPEC §5 Account page, §8): confirm, then delete everything ----------
+const confirmDelete = ref<InstanceType<typeof TypeToConfirmDialog> | null>(null)
 const deleting = ref(false)
 const deleteError = ref('')
 function askDelete() {
-  typed.value = ''
   deleteError.value = ''
-  confirmDelete.value?.showModal()
+  confirmDelete.value?.open()
 }
 async function deleteAccount() {
-  if (typed.value.trim().toUpperCase() !== m.deleteConfirm.word) return
   deleting.value = true
   deleteError.value = ''
   brain.stop()
@@ -318,8 +294,7 @@ async function exportData() {
 }
 
 // ---------- Delete my data: start fresh, keeping the account and settings (SPEC §8) ----------
-const confirmWipe = ref<HTMLDialogElement | null>(null)
-const wipeTyped = ref('')
+const confirmWipe = ref<InstanceType<typeof TypeToConfirmDialog> | null>(null)
 const wiping = ref(false)
 const wipeError = ref('')
 const wipeDone = ref('')
@@ -330,13 +305,11 @@ const wipeChosen = ref<WipePart[]>([...wipeParts])
 const wipeKept = computed(() => wipeParts.filter((p) => !wipeChosen.value.includes(p)))
 function askWipe() {
   wipeChosen.value = [...wipeParts]
-  wipeTyped.value = ''
   wipeError.value = ''
   wipeDone.value = ''
-  confirmWipe.value?.showModal()
+  confirmWipe.value?.open()
 }
 async function wipeData() {
-  if (wipeTyped.value.trim().toUpperCase() !== messages.deleteData.word || !wipeChosen.value.length) return
   wiping.value = true
   wipeError.value = ''
   const { data, error } = await supabase.rpc('delete_my_data', { parts: wipeChosen.value })
@@ -350,10 +323,21 @@ async function wipeData() {
   wipeDone.value = messages.deleteData.done
 }
 
-async function signOut() {
+// SPEC §8 Sign out: nothing of mine stays on this device. Queued changes upload first; if some can't (offline),
+// ask before throwing them away.
+const confirmUnsent = ref<InstanceType<typeof ConfirmDialog> | null>(null)
+const unsent = ref(0)
+async function signOut(discardUnsent: boolean) {
+  if (!discardUnsent) {
+    unsent.value = await brain.uploadBeforeSignOut()
+    if (unsent.value > 0) return confirmUnsent.value?.open()
+  }
+  confirmUnsent.value?.close()
+  await brain.forgetDevice()
+  clearAppKeys()
   await auth.signOut()
   await router.push({ name: 'sign-in' })
 }
 
-const visibilities: Visibility[] = ['private', 'approved', 'everyone']
+const visibilities: Visibility[] = ['private', 'approved']
 </script>

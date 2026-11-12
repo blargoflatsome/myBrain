@@ -78,14 +78,16 @@
 
 <script setup lang="ts">
 // SPEC §5 Habits: today's habits with their timer deadlines, streaks and best streaks.
+import { useNow } from '@/composables/useNow'
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, onScopeDispose, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import HabitEditor from '@/habits/components/HabitEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { dayStatus, deadline, dueByMidnight, isScheduled, newHabit, streaks } from '@/habits/rules'
+import { dayStatus, deadline, dueByMidnight, isScheduled, newHabit, streaks, type DayStatus } from '@/habits/rules'
+import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import { momentLabel } from '@/ui/dates'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
@@ -106,13 +108,20 @@ const habits = useLiveQuery<HabitRow[]>(
 const logs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
 
 // A clock that ticks each minute, so a timer running out shows as missed without a reload.
-const now = ref(new Date())
-const tick = setInterval(() => (now.value = new Date()), 60_000)
-onScopeDispose(() => clearInterval(tick))
+const now = useNow()
 
-// Record misses and refresh cached streaks whenever habits, the day or the minute changes.
+// SPEC §5 Habits: a timer runs out at its deadline. This only changes when one of today's or yesterday's
+// deadlines passes, so the minute clock doesn't redo the work below every minute.
+const deadlinesPassed = computed(() => {
+  const at = now.value.getTime()
+  const yesterday = addDays(today.value, -1)
+  return habits.value.filter((h) => at > deadline(h, today.value, timeZone.value)).length +
+    habits.value.filter((h) => at > deadline(h, yesterday, timeZone.value)).length
+})
+
+// Record misses and refresh cached streaks whenever habits, the day or a deadline changes.
 watch(
-  [() => habits.value.map((h) => h.id).join(), today, now, () => brain.habitsReady],
+  [() => habits.value.map((h) => h.id).join(), today, deadlinesPassed, () => brain.habitsReady],
   async () => {
     for (const h of habits.value) await brain.refreshHabit(h, now.value, timeZone.value)
   },
@@ -122,14 +131,23 @@ watch(
 const scheduledToday = computed(() => habits.value.filter((h) => isScheduled(h, today.value)))
 const notToday = computed(() => habits.value.filter((h) => !isScheduled(h, today.value)))
 
-/** Streaks straight from the logs, so they are right even before the cached numbers are refreshed. */
-function streakOf(h: HabitRow) {
-  return streaks(h, logs.value, now.value, timeZone.value)
-}
-
-function status(h: HabitRow) {
-  return dayStatus(h, today.value, logs.value, now.value, timeZone.value)
-}
+/**
+ * Each habit's status today and streaks, straight from the logs (so they are right even before the cached numbers
+ * are refreshed), worked out once per change rather than for every place the page shows them.
+ */
+const byHabit = computed(() => {
+  const map = new Map<string, { status: DayStatus; streak: { current: number; best: number } }>()
+  for (const h of habits.value) {
+    map.set(h.id, {
+      status: dayStatus(h, today.value, logs.value, now.value, timeZone.value),
+      streak: streaks(h, logs.value, now.value, timeZone.value),
+    })
+  }
+  return map
+})
+const none = { status: 'not_scheduled' as DayStatus, streak: { current: 0, best: 0 } }
+const streakOf = (h: HabitRow) => (byHabit.value.get(h.id) ?? none).streak
+const status = (h: HabitRow) => (byHabit.value.get(h.id) ?? none).status
 function dueText(h: HabitRow) {
   if (dueByMidnight(h, today.value)) return m.dueToday
   return m.dueBy(momentLabel(new Date(deadline(h, today.value, timeZone.value)).toISOString()))

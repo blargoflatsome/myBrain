@@ -87,6 +87,8 @@
 </template>
 
 <script setup lang="ts">
+import { useProfileStore } from '@/stores/profile'
+import { parseSetting } from '@/celebrate/rules'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref, watch } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
@@ -123,6 +125,7 @@ const capture = useCaptureStore()
 const searchWindow = useSearchStore()
 const celebrate = useCelebrateStore()
 celebrate.start()
+const profile = useProfileStore()
 
 // SPEC §5 Celebrations: after a capture is saved, the Capture button gives one soft pulse (once its window is closed,
 // so it can be seen).
@@ -155,23 +158,21 @@ document.addEventListener('visibilitychange', () => {
 watch(
   () => auth.user?.id,
   (id) => {
+    profile.follow(id ?? null)
     if (!id) return brain.stop()
     brain.start(id, supabaseRemote(supabase))
-    // SPEC §5 Tasks: keep the profile's timezone in step with the device, for server-side jobs.
-    void supabase.from('profiles').update({ timezone: deviceTimeZone() }).eq('user_id', id).then(() => {})
-    // One read of my profile: has my data been deleted elsewhere, my Celebrations setting, and my phone number.
+    // One read of my profile, shared by every screen: has my data been deleted elsewhere, my Celebrations
+    // setting, and my phone number.
     lastResetCheck = Date.now()
-    void supabase
-      .from('profiles')
-      .select('data_reset_at, phone, celebrations')
-      .eq('user_id', id)
-      .maybeSingle()
-      .then(async ({ data, error }) => {
+    void profile.load()
+      .then(async (data) => {
+        // SPEC §5 Tasks: keep the profile's timezone in step with the device, for server-side jobs.
+        if (data && data.timezone !== deviceTimeZone()) void profile.update({ timezone: deviceTimeZone() })
         await brain.applyDataReset(data?.data_reset_at)
         // SPEC §5 Celebrations: my setting follows me to this device.
-        if (data?.celebrations) celebrate.setSetting(data.celebrations)
+        if (data?.celebrations) celebrate.setSetting(parseSetting(data.celebrations))
         // SPEC §5 Accounts: the phone number is asked for once, right after sign-in (skipped when offline).
-        if (error || !data || data.phone) return
+        if (!data || data.phone) return
         await router.isReady()
         if (route.meta.public || route.name === 'welcome') return
         void router.replace({ name: 'welcome', query: { next: route.fullPath } })

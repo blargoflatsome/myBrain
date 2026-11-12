@@ -7,6 +7,8 @@ test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
 const NOW = new Date('2026-11-10T14:00:00Z')
 
 let server: FakeSupabase
+/** Server functions that only read. */
+const READS = ['people_with_accounts', 'trophy_counts']
 
 async function open(page: Page, path = '/habits', time = NOW) {
   await page.clock.install({ time })
@@ -26,10 +28,10 @@ test.describe('Spec §5 Account page', () => {
 
     await expect(page.getByLabel('Short bio')).toHaveCount(0)
     await page.getByLabel(msg.profile.displayName).fill('Jo')
-    await page.getByLabel(msg.profile.visibility).selectOption('everyone')
+    await page.getByLabel(msg.profile.visibility).selectOption('approved')
     await page.getByRole('button', { name: msg.profile.save }).click()
     await expect(page.getByText(msg.profile.saved, { exact: true })).toBeVisible()
-    expect(server.written('profiles').at(-1)).toMatchObject({ display_name: 'Jo', streak_visibility: 'everyone' })
+    expect(server.written('profiles').at(-1)).toMatchObject({ display_name: 'Jo', streak_visibility: 'approved' })
   })
 
   test('Spec §9: Delete My Account confirms first, then deletes everything and signs me out', async ({ page }) => {
@@ -44,8 +46,8 @@ test.describe('Spec §5 Account page', () => {
     await confirm.click()
     await expect(page).toHaveURL(/\/sign-in/)
     await expect(page.getByRole('status')).toHaveText(msg.signIn.deleted)
-    // Only reads besides the deletion (the Account page also checks which saved people use My Brain).
-    expect(server.rpcCalls.filter((c) => c !== 'people_with_accounts')).toEqual(['delete_my_account'])
+    // Nothing else is changed: the only other calls are reads (which saved people use My Brain, trophy counts).
+    expect(server.rpcCalls.filter((c) => !READS.includes(c))).toEqual(['delete_my_account'])
     // This device's copy is gone too.
     const names = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name))
     expect(names.filter((n) => n?.startsWith('my-brain-'))).toEqual([])
@@ -58,7 +60,7 @@ test.describe('Spec §5 Account page', () => {
     await dialog.getByRole('button', { name: msg.profile.deleteConfirm.keep }).click()
     await expect(dialog).toBeHidden()
     await expect(page).toHaveURL(/\/account$/)
-    expect(server.rpcCalls.filter((c) => c !== 'people_with_accounts')).toEqual([])
+    expect(server.rpcCalls.filter((c) => !READS.includes(c))).toEqual([])
   })
 
   test('Spec §9: if deletion fails, I am told and stay signed in', async ({ page }) => {

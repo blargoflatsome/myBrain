@@ -15,6 +15,7 @@ begin
   update public.profiles set email = 'alice@test.invalid', display_name = 'Alice' where user_id = alice;
   update public.profiles set email = 'bob@test.invalid', phone = '(555) 010-2000', display_name = 'Bob' where user_id = bob;
   update public.profiles set email = 'carol@test.invalid', display_name = 'Carol' where user_id = carol;
+  update public.profiles set phone_verified = true where user_id = bob;
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);

@@ -29,11 +29,19 @@ export function supabaseRemote(client: SupabaseClient): Remote {
       return data as RowTypes[T]
     },
 
+    async upsertMany<T extends SyncTable>(table: T, rows: RowTypes[T][]) {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) throw new NetworkError()
+      const { data, error, status } = await client.from(table).upsert(rows.map(forUpload) as never).select()
+      check(error, status)
+      return (data ?? []) as RowTypes[T][]
+    },
+
     async pullSince<T extends SyncTable>(table: T, since: string | null) {
       if (typeof navigator !== 'undefined' && !navigator.onLine) throw new NetworkError()
       const rows: RowTypes[T][] = []
       for (let from = 0; ; from += PAGE) {
-        let query = client.from(table).select('*').order('updated_at').range(from, from + PAGE - 1)
+        // id breaks ties, so rows sharing an updated_at at a page boundary are neither skipped nor repeated.
+        let query = client.from(table).select('*').order('updated_at').order('id').range(from, from + PAGE - 1)
         if (since) query = query.gte('updated_at', since)
         const { data, error, status } = await query
         check(error, status)

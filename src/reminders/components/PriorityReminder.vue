@@ -26,8 +26,9 @@
 
 <script setup lang="ts">
 // SPEC §5: full-screen reminder for due priority habits and tasks. Stays until slide to complete, Snooze or Cancel.
+import { useNow } from '@/composables/useNow'
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, onScopeDispose, ref } from 'vue'
+import { computed, ref } from 'vue'
 import SlideToComplete from '@/reminders/components/SlideToComplete.vue'
 import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
@@ -42,9 +43,7 @@ const brain = useBrainStore()
 const m = messages.priority
 
 // Re-check every 20 seconds so a reminder appears on time and a snooze comes back.
-const now = ref(new Date())
-const tick = setInterval(() => (now.value = new Date()), 20_000)
-onScopeDispose(() => clearInterval(tick))
+const now = useNow(20_000)
 const today = computed(() => todayIn(deviceTimeZone(), now.value))
 
 const all = <T,>(table: 'habits' | 'priority_tasks') =>

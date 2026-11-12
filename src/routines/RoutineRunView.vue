@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
 // SPEC §5 Routines: one step at a time. Skip moves on at once; Completed crosses the step out first.
-// The step 7 notification opens this screen directly (/routines/<id>/run).
+// A routine's reminder notification opens this screen directly (/routines/<id>/run).
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'

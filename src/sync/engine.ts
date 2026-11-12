@@ -17,6 +17,16 @@ function assertWritable(table: SyncTable) {
 
 /** How many tables download at the same time. */
 const PULL_AT_ONCE = 6
+/** At most this many queued changes go in one upload request. */
+const BATCH_SIZE = 50
+type SyncRow = RowTypes[SyncTable]
+/** Deleted rows are kept this long on the device, then removed (Undo only lasts 8 seconds). */
+const KEEP_DELETED_MS = 30 * 86_400_000
+/**
+ * Tables whose deleted rows nothing reads. Others stay: trophies and Dashboard stats count deleted tasks, habits,
+ * events, Vault items and quests ("events I deleted", "tasks created").
+ */
+const PURGEABLE = ['notifications', 'habit_logs', 'item_tags', 'post_its', 'inbox', 'people', 'priority_task_logs', 'quest_logs'] as const satisfies readonly SyncTable[]
 
 export class SyncEngine {
   private flushing: Promise<void> | null = null
@@ -119,40 +129,95 @@ export class SyncEngine {
       return
     }
     for (;;) {
-      const entry = await this.nextEntry()
-      if (!entry) break
-      // Rows are queued whole, so an older copy that a later save of the same row replaces needn't be sent.
-      if (await this.supersededLater(entry)) {
-        await this.db.outbox.delete(entry.seq!)
-        continue
-      }
+      const batch = await this.nextBatch()
+      if (!batch.length) break
       await this.setState('syncing')
       try {
-        const stored = await this.remote.upsert(entry.table, entry.row)
-        await this.db.transaction('rw', [this.db.rows(entry.table), this.db.outbox], async () => {
-          await this.db.outbox.delete(entry.seq!)
-          const stillQueued = await this.db.outbox.where('rowId').equals(entry.rowId).count()
-          if (!stillQueued) await this.db.rows(entry.table).put(stored)
-        })
+        if (batch.length === 1) await this.uploaded(batch, [await this.remote.upsert(batch[0]!.table, batch[0]!.row)])
+        else await this.uploaded(batch, await this.remote.upsertMany(batch[0]!.table, batch.map((e) => e.row)))
       } catch (err) {
         if (err instanceof NetworkError) {
           await this.setState('offline')
           return
         }
-        await this.db.outbox.update(entry.seq!, { error: err instanceof Error ? err.message : String(err) })
+        // A refused batch is sent again one row at a time, so only the row the server refuses is marked.
+        if (batch.length > 1) {
+          if (!(await this.uploadEach(batch))) return
+          continue
+        }
+        await this.db.outbox.update(batch[0]!.seq!, { error: err instanceof Error ? err.message : String(err) })
       }
     }
     const refused = await this.db.outbox.filter((e) => !!e.error).count()
     await this.setState(refused ? 'error' : 'synced')
   }
 
-  private nextEntry(): Promise<OutboxEntry | undefined> {
-    return this.db.outbox.orderBy('seq').filter((e) => !e.error).first()
+  /** Upload entries one at a time; false if the connection dropped. */
+  private async uploadEach(entries: OutboxEntry[]): Promise<boolean> {
+    for (const entry of entries) {
+      try {
+        await this.uploaded([entry], [await this.remote.upsert(entry.table, entry.row)])
+      } catch (err) {
+        if (err instanceof NetworkError) {
+          await this.setState('offline')
+          return false
+        }
+        await this.db.outbox.update(entry.seq!, { error: err instanceof Error ? err.message : String(err) })
+      }
+    }
+    return true
+  }
+
+  /** The server has these: drop them from the queue and keep the server's copy, unless a newer change is queued. */
+  private async uploaded(entries: OutboxEntry[], stored: SyncRow[]) {
+    const table = entries[0]!.table
+    const byId = new Map(stored.map((r) => [r.id, r]))
+    await this.db.transaction('rw', [this.db.rows(table), this.db.outbox], async () => {
+      await this.db.outbox.bulkDelete(entries.map((e) => e.seq!))
+      for (const entry of entries) {
+        const row = byId.get(entry.rowId)
+        const stillQueued = await this.db.outbox.where('rowId').equals(entry.rowId).count()
+        if (row && !stillQueued) await this.db.rows(table).put(row)
+      }
+    })
+  }
+
+  /**
+   * The queued changes to send next: the first one, plus the ones right after it for the same table with the same
+   * fields (so one request stores them exactly as one-by-one requests would). Older copies a later save of the same
+   * row replaces are dropped, since rows are queued whole.
+   */
+  private async nextBatch(): Promise<OutboxEntry[]> {
+    const batch: OutboxEntry[] = []
+    let shape = ''
+    for (const entry of await this.db.outbox.orderBy('seq').filter((e) => !e.error).toArray()) {
+      if (await this.supersededLater(entry)) {
+        await this.db.outbox.delete(entry.seq!)
+        continue
+      }
+      const fields = Object.keys(entry.row).sort().join()
+      if (batch.length && (entry.table !== batch[0]!.table || fields !== shape || batch.length >= BATCH_SIZE)) break
+      shape = fields
+      batch.push(entry)
+    }
+    return batch
   }
 
   private async supersededLater(entry: OutboxEntry): Promise<boolean> {
     const later = await this.db.outbox.where('rowId').equals(entry.rowId).filter((e) => e.seq! > entry.seq! && e.table === entry.table && !e.error).count()
     return later > 0
+  }
+
+  /** SPEC §7: remove from this device rows deleted over 30 days ago, unless a change to them is still queued. */
+  async purgeDeleted(now = Date.now()): Promise<void> {
+    const cutoff = new Date(now - KEEP_DELETED_MS).toISOString()
+    for (const table of PURGEABLE) {
+      await this.db.transaction('rw', [this.db.rows(table), this.db.outbox], async () => {
+        const queued = new Set((await this.db.outbox.toArray()).map((e) => e.rowId))
+        const old = await this.db.rows(table).filter((r) => !!r.deleted_at && r.deleted_at < cutoff && !queued.has(r.id)).primaryKeys()
+        await this.db.rows(table).bulkDelete(old)
+      })
+    }
   }
 
   /** Pull changes from the server. A row with changes still queued on this device is left alone. */
@@ -190,10 +255,12 @@ export class SyncEngine {
       for (const row of rows) {
         const queued = await this.db.outbox.where('rowId').equals(row.id).count()
         // A pull that started before my latest change uploaded can bring back an older copy: never step back.
+        // The same copy again (each pull asks from the newest time it has, inclusive) isn't written either, since
+        // every write makes every screen showing that table work itself out again.
         // (updated_at on the device always comes from the server, so the two are comparable.)
         const mine = queued ? undefined : await this.db.rows(table).get(row.id)
-        const older = !!(mine?.updated_at && row.updated_at && row.updated_at < mine.updated_at)
-        if (!queued && !older) await this.db.rows(table).put(row)
+        const notNewer = !!(mine?.updated_at && row.updated_at && row.updated_at <= mine.updated_at)
+        if (!queued && !notNewer) await this.db.rows(table).put(row)
         if (row.updated_at && (!latest || row.updated_at > latest)) latest = row.updated_at
       }
       if (latest) await this.db.meta.put({ key, value: latest })

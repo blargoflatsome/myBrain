@@ -66,4 +66,37 @@ test.describe('Spec §5 Account page: Sign out and Delete account', () => {
     await signOut.getByRole('button', { name: msg.signOut.button }).click()
     await expect(page).toHaveURL(/\/sign-in$/)
   })
+
+  test('Spec §8 Sign out: nothing of mine stays on this device, and unsent changes are only dropped if I agree', async ({ page, context }) => {
+    const server = new FakeSupabase()
+    await server.install(page)
+    await page.goto('/account')
+    await expect(page.getByTestId('sync-indicator')).toHaveText(msg.sync.online)
+    const myDb = () => page.evaluate(async () => (await indexedDB.databases()).some((d) => d.name?.startsWith('my-brain-')))
+    await expect.poll(myDb).toBe(true)
+
+    // Offline with a change waiting: asks first, and Stay signed in keeps everything.
+    await page.getByRole('button', { name: `+ ${msg.capture.openButton}` }).click()
+    const capture = page.getByRole('dialog', { name: msg.capture.windowLabel })
+    await expect(capture.getByRole('heading', { name: msg.capture.typeHeading })).toBeVisible()
+    await context.setOffline(true)
+    await capture.getByRole('button', { name: msg.capture.destinations.later, exact: true }).click()
+    await capture.getByLabel(msg.capture.placeholder).fill('idea on the subway')
+    await capture.getByRole('button', { name: msg.capture.save, exact: true }).click()
+    await expect(page.getByTestId('sync-indicator')).toContainText(msg.sync.pending(1))
+    await capture.getByRole('button', { name: msg.capture.close }).click()
+    await page.getByTestId('sign-out').getByRole('button', { name: msg.signOut.button }).click()
+    const ask = page.getByRole('alertdialog', { name: msg.signOut.unsent.heading })
+    await expect(ask).toContainText(msg.signOut.unsent.body(1))
+    await ask.getByRole('button', { name: msg.signOut.unsent.keep }).click()
+    await expect(page).toHaveURL(/\/account$/)
+
+    // Back online, it uploads first, then signs out and deletes this device's copy and remembered settings.
+    await context.setOffline(false)
+    await page.getByTestId('sign-out').getByRole('button', { name: msg.signOut.button }).click()
+    await expect(page).toHaveURL(/\/sign-in$/)
+    expect(server.written('inbox').at(-1)).toMatchObject({ body: 'idea on the subway' })
+    await expect.poll(myDb).toBe(false)
+    expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('my-brain:')))).toEqual([])
+  })
 })

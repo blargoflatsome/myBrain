@@ -375,6 +375,8 @@ export class NetworkError extends Error {
 export interface Remote {
   /** Insert or update one row; returns the row as stored (with server timestamps). */
   upsert<T extends SyncTable>(table: T, row: RowTypes[T]): Promise<RowTypes[T]>
+  /** Insert or update several rows of one table in one request; all are stored, or none (the request is refused). */
+  upsertMany<T extends SyncTable>(table: T, rows: RowTypes[T][]): Promise<RowTypes[T][]>
   /** Rows changed at or after `since` (all rows when null), oldest first. */
   pullSince<T extends SyncTable>(table: T, since: string | null): Promise<RowTypes[T][]>
   /** Calls back when another device changes a table. Returns an unsubscribe function. */

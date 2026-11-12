@@ -45,6 +45,7 @@ export class FakeRemote implements Remote {
 
   async upsert<T extends SyncTable>(table: T, row: RowTypes[T]): Promise<RowTypes[T]> {
     if (!this.online) throw new NetworkError()
+    if (this.refuse.has(row.id)) throw new Error(`refused ${row.id}`)
     if (this.rejectNext) {
       const reason = this.rejectNext
       this.rejectNext = null
@@ -55,6 +56,21 @@ export class FakeRemote implements Remote {
     const now = this.now()
     const stored = { ...row, created_at: existing?.created_at ?? now, updated_at: now } as RowTypes[T]
     this.tables[table].set(row.id, stored)
+    return stored
+  }
+
+  /** Upload requests that carried several rows. */
+  batches = 0
+  /** Ids the server refuses, alone or in a batch (a refused row fails its whole request, as in Postgres). */
+  refuse = new Set<string>()
+
+  async upsertMany<T extends SyncTable>(table: T, rows: RowTypes[T][]): Promise<RowTypes[T][]> {
+    if (!this.online) throw new NetworkError()
+    const refused = rows.find((r) => this.refuse.has(r.id))
+    if (refused) throw new Error(`refused ${refused.id}`)
+    this.batches += 1
+    const stored: RowTypes[T][] = []
+    for (const row of rows) stored.push(await this.upsert(table, row))
     return stored
   }
 

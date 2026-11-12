@@ -1,4 +1,4 @@
--- Checks for account deletion (SPEC §9, §5 Account page). Always rolls back. Run: npm run test:db
+-- Checks for account deletion (SPEC §5 Account page, §8). Always rolls back. Run: npm run test:db
 do $$
 declare
   alice constant uuid := '11111111-1111-1111-1111-111111111111';

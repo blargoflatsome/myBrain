@@ -157,11 +157,13 @@ export class FakeSupabase {
       return { json: typeof result === 'function' ? (result as (a: Record<string, unknown>) => unknown)(args) : result }
     }
     if (req.method() === 'POST') {
-      const body = req.postDataJSON() as Row
-      const row = { user_id: TEST_USER_ID, ...body }
-      this.writes.push({ table, row })
-      const stored = this.store(table, row)
-      return { json: single ? stored : [stored], status: 201 }
+      const body = req.postDataJSON() as Row | Row[]
+      const stored = (Array.isArray(body) ? body : [body]).map((b) => {
+        const row = { user_id: TEST_USER_ID, ...b }
+        this.writes.push({ table, row })
+        return this.store(table, row)
+      })
+      return { json: single ? stored[0] : stored, status: 201 }
     }
     return { status: 204, body: '' }
   }

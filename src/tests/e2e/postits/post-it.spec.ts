@@ -52,7 +52,7 @@ test.describe('Spec §5 Post It', () => {
 
   test('several Post Its are a stack showing one at a time, newest on top; with none there is no Post It section', async ({ page }, info) => {
     await open(page, '/')
-    await expect(page.getByRole('heading', { name: msg.nav.dashboard, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
     await expect(page.getByTestId('dash-postits')).toHaveCount(0)
     server.seed('post_its', [
       { id: 'p1', body: '<p>Older</p>', color: 'yellow', position: 0 },

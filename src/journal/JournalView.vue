@@ -89,6 +89,7 @@
 <script setup lang="ts">
 // SPEC §5 Journal: end-of-day check-in with the day's stats, formatted writing (full screen if wanted), and every
 // past entry, always editable. Tasks for tomorrow are added with Capture, like anywhere else.
+import { useNow } from '@/composables/useNow'
 import { computed, defineAsyncComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import JournalStatsCard from '@/journal/components/JournalStatsCard.vue'
@@ -132,9 +133,7 @@ const m = messages.journal
 const { today, timeZone } = useToday()
 
 // A clock that ticks each minute, so today's stats follow habit deadlines without a reload.
-const now = ref(new Date())
-const tick = setInterval(() => (now.value = new Date()), 60_000)
-onScopeDispose(() => clearInterval(tick))
+const now = useNow()
 
 const entries = useLiveQuery<JournalEntryRow[]>(
   async () => (brain.db ? live(await brain.db.journal_entries.toArray()) : []),
