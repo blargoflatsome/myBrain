@@ -151,20 +151,21 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
   it('Off still gives messages and badges, but no confetti', async () => {
     const brain = useBrainStore()
     brain.start(UID, remote)
+    await vi.waitFor(() => expect(brain.badgesReady).toBe(true))
     const celebrate = useCelebrateStore()
     celebrate.setSetting('off')
     celebrate.start()
     achieved({ kind: 'quest' })
-    await settle()
+    await vi.waitFor(async () => expect((await brain.db!.badges.toArray()).map((b) => b.kind)).toEqual(['first_quest']))
     expect(celebrate.bursts).toEqual([])
-    expect((await brain.db!.badges.toArray()).map((b) => b.kind)).toEqual(['first_quest'])
     expect(celebrate.message?.text).toBe(messages.celebrations.badgeEarned(messages.celebrations.badges.first_quest))
   })
 
   it('yesterday’s perfect day brings one congratulations alert, and earlier history badges come quietly', async () => {
     const brain = useBrainStore()
     brain.start(UID, remote)
-    await settle()
+    // Badges are only kept once this device has my badges from the server (the first download).
+    await vi.waitFor(() => expect(brain.badgesReady).toBe(true))
     const h = { ...habit(), user_id: UID }
     await brain.db!.habits.put(h)
     await brain.db!.habit_logs.put({ ...done(h.id, '2026-11-05'), user_id: UID })

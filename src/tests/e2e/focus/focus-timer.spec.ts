@@ -29,7 +29,7 @@ test.describe('Spec §5 Focus timer', { tag: '@phone' }, () => {
   test('full screen: the time counting down and what to do; it moves on to a short break', async ({ page }) => {
     test.skip(isSafari(test.info()), 'fast-forwarding many minutes takes over a minute on WebKit; the same logic runs on Chrome')
     await open(page, '/')
-    await expect(page.getByRole('heading', { name: msg.nav.dashboard, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
     const timer = await openTimer(page)
     await expect(timer.getByTestId('focus-phase')).toHaveText(msg.focus.phase.work)
     await expect(timer.getByTestId('focus-time')).toHaveText('25:00')
@@ -43,7 +43,7 @@ test.describe('Spec §5 Focus timer', { tag: '@phone' }, () => {
 
   test('minimize keeps it going as a pill on every page; tapping the pill opens it again; ✕ stops it', async ({ page }) => {
     await open(page, '/')
-    await expect(page.getByRole('heading', { name: msg.nav.dashboard, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
     const timer = await openTimer(page)
     await timer.getByRole('button', { name: msg.focus.minimize }).click()
     await expect(timer).toHaveCount(0)
@@ -63,7 +63,7 @@ test.describe('Spec §5 Focus timer', { tag: '@phone' }, () => {
 
   test('pause holds the time; skip moves to the next part', async ({ page }) => {
     await open(page, '/')
-    await expect(page.getByRole('heading', { name: msg.nav.dashboard, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
     const timer = await openTimer(page)
     await timer.getByRole('button', { name: msg.focus.pause }).click()
     await page.clock.runFor(5 * 60_000)

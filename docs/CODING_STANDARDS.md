@@ -37,7 +37,10 @@ file says *how* the code is written.
 | A feature's page, rules and components | `src/<feature>/` (`XView.vue`, `rules.ts`, `components/`) |
 | Rules and calculations for a feature | `src/<feature>/rules.ts` (pure functions, no Vue, no database) |
 | Data on the device and syncing | `src/sync/` (`live()` for "not deleted", the sync engine, row types in `types.ts`) |
-| Reading and writing data from screens | `src/stores/brain.ts` (one place, so every write goes through the sync queue) |
+| Reading and writing data from screens | `src/stores/brain.ts`, which hands out each feature's actions from `src/<feature>/actions.ts` (so screens import one store and every write goes through the sync queue) |
+| My profile (name, picture, settings) | `src/stores/profile.ts` (`load()` once per visit, `update(fields)`); screens use it rather than reading `profiles` themselves (the Delete-my-data check in `App.vue` reads fresh on purpose) |
+| Ids that must match on every device (a day's log, a fixed alert) | `src/sync/ids.ts` (`logIdFor`, `fixedId`) |
+| A clock that ticks (timers running out) | `src/composables/useNow.ts` (`useNow(everyMs)`), next to `useToday` |
 | Reusable screen behaviour | `src/composables/useX.ts` (a composable only one feature uses lives in that feature's folder) |
 | Shared look of controls | `src/ui/styles.ts` (fields, field labels, chips, main and secondary buttons, Delete links, checkboxes, windows, cards) |
 | Icons | `src/components/AppIcon.vue` with the set in `src/ui/icons.ts` (no hand-drawn `<svg>` icons) |
@@ -46,7 +49,7 @@ file says *how* the code is written.
 | Showing dates | `src/ui/dates.ts` (`dayLabel`, `timeLabel`, `dayTimeLabel`, `momentLabel`, `shortDay`, `shortDayWithYear`, `dateWithYear`) |
 | Day maths ("today", adding days, the day a moment fell on) | `src/tasks/days.ts` (`todayIn`, `addDays`, `dayOf`) |
 | Remembered on this device only | `src/ui/storage.ts` (`readKey`, `writeKey`, `readJson`, `writeJson`; never fails) |
-| "Are you sure?" before removing data | `src/components/ConfirmDialog.vue` |
+| "Are you sure?" before removing data | `src/components/ConfirmDialog.vue`; type DELETE first: `src/components/TypeToConfirmDialog.vue` |
 | Formatted text | `NotesEditor.vue` for notes fields, `RichTextEditor.vue` for the journal and Post Its; `cleanHtml()` to show |
 | Dates typed by people | `DateInput.vue` (type or pick on a computer, the device picker on a phone) |
 | Times typed by people | `TimeInput.vue` (type or pick on a computer, the device picker on a phone) |

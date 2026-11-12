@@ -13,7 +13,7 @@ async function open(page: Page, avatar: string | null, serve: 'ok' | 'broken' = 
   await server.install(page)
   await page.route(`${AVATAR}*`, (route) => (serve === 'ok' ? route.fulfill({ contentType: 'image/png', body: PNG }) : route.fulfill({ status: 404 })))
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: msg.nav.dashboard, level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
   return page.getByTestId('app-header')
 }
 
@@ -25,7 +25,7 @@ test.describe('Spec §2 Header: Account, Focus timer, alerts and sync on every s
     )
     const order = ['header-account', 'focus-open', 'alerts-bell', 'sync-indicator']
     expect(names.filter((n) => order.includes(n ?? ''))).toEqual(order)
-    await expect(header.getByRole('link', { name: msg.nav.account })).toBeVisible()
+    await expect(header.getByRole('link', { name: msg.header.account })).toBeVisible()
     await expect(header.getByRole('button', { name: msg.focus.menu })).toBeVisible()
     await expect(header.getByRole('button', { name: msg.signOut.button })).toHaveCount(0)
     await expect(header.getByTestId('sync-indicator')).toHaveText(msg.sync.online)
@@ -35,7 +35,7 @@ test.describe('Spec §2 Header: Account, Focus timer, alerts and sync on every s
     const header = await open(page, AVATAR)
     await expect(header.getByTestId('header-avatar')).toBeVisible()
     expect(await header.getByTestId('header-avatar').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1)
-    await header.getByRole('link', { name: msg.nav.account }).click()
+    await header.getByRole('link', { name: msg.header.account }).click()
     await expect(page).toHaveURL(/\/account$/)
   })
 
@@ -64,13 +64,13 @@ test.describe('Spec §2 Header: Account, Focus timer, alerts and sync on every s
       await page.getByTestId('nav-more').click()
       const more = page.locator('#nav-more')
       await expect(more.getByRole('link', { name: msg.nav.routines })).toBeVisible()
-      await expect(more.getByRole('link', { name: msg.nav.account })).toHaveCount(0)
+      await expect(more.getByRole('link', { name: msg.header.account })).toHaveCount(0)
       await expect(more.getByText(msg.focus.menu)).toHaveCount(0)
     } else {
       await page.getByTestId('bottom-tabs').getByRole('button', { name: msg.nav.more }).click()
       const sheet = page.getByTestId('more-sheet')
       await expect(sheet.getByRole('link', { name: msg.nav.routines })).toBeVisible()
-      await expect(sheet.getByRole('link', { name: msg.nav.account })).toHaveCount(0)
+      await expect(sheet.getByRole('link', { name: msg.header.account })).toHaveCount(0)
       await expect(sheet.getByText(msg.focus.menu)).toHaveCount(0)
     }
   })
@@ -115,9 +115,9 @@ test.describe('Spec §2 Header: Account, Focus timer, alerts and sync on every s
   test('the Home icon opens the Dashboard', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 })
     const header = await open(page, null)
-    await header.getByRole('link', { name: msg.nav.account }).click()
+    await header.getByRole('link', { name: msg.header.account }).click()
     await expect(page).toHaveURL(/\/account$/)
     await header.getByTestId('header-home').click()
-    await expect(page.getByRole('heading', { name: msg.nav.dashboard, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
   })
 })

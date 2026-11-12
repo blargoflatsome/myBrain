@@ -1,4 +1,5 @@
 // SPEC §5 Celebrations: which celebration fits, badges for first times, perfect days and comebacks.
+import { fixedId, logIdFor } from '@/sync/ids'
 import type { BadgeRow, HabitLogRow, HabitRow, InboxRow, JournalEntryRow, PostItRow, QuestLogRow, RoutineRunRow, TaskRow, VaultItemRow } from '@/sync/types'
 import { dayStatus, isScheduled } from '@/habits/rules'
 import { tasksForDay } from '@/tasks/rules'
@@ -40,8 +41,11 @@ export function badgeId(userId: string, kind: BadgeKind): string {
 
 /** The same id for a day's "all habits done" congratulations on every device, so it arrives once. */
 export function perfectDayAlertId(userId: string, date: string): string {
-  return `${userId.slice(0, 24)}${date.replaceAll('-', '')}0001`
+  return logIdFor(userId, date, '0001')
 }
+
+/** The one alert for trophies worked out the first time on a device: the same id everywhere, so it comes once. */
+export const firstTrophiesAlertId = (userId: string): string => fixedId(userId, 'ffff00000001')
 
 /** Badges I haven't got yet. */
 export function missingBadges(have: BadgeRow[], kinds: readonly BadgeKind[] = BADGES): BadgeKind[] {

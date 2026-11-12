@@ -37,7 +37,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * SPEC §9 / §5 Account page: permanently delete my account and everything in it on the server, then clear this
+   * SPEC §5 Account page, §8: permanently delete my account and everything in it on the server, then clear this
    * device (its stored copy and its push subscription) and sign out. Needs a connection; returns false if it failed.
    */
   async function deleteAccount(): Promise<boolean> {

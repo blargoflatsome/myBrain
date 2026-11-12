@@ -32,10 +32,9 @@
 <script setup lang="ts">
 // SPEC §5 Cancelling: "Cancel and notify". The confirmation lists exactly who will be told and shows my message;
 // nothing is sent unless I confirm. The creator cancels for everyone; an attendee only drops out.
+import { useProfileStore } from '@/stores/profile'
 import CloseX from '@/components/CloseX.vue'
 import { computed, ref, watch } from 'vue'
-import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/stores/auth'
 import { useBrainStore } from '@/stores/brain'
 import { cancelEvent, dropOut, eventPeople, whenText, type EventPerson, type ShareTarget } from '@/events/sharing'
 import { messages } from '@/messages'
@@ -45,7 +44,6 @@ import { secondaryButton } from '@/ui/styles'
 const props = defineProps<{ event: EventRow | null; mode: 'cancel' | 'drop' }>()
 const emit = defineEmits<{ done: [ShareTarget[]]; close: [] }>()
 const m = messages.cancelEvent
-const auth = useAuthStore()
 const brain = useBrainStore()
 
 const dialog = ref<HTMLDialogElement | null>(null)
@@ -63,7 +61,7 @@ watch(
     dialog.value?.showModal()
     if (!brain.online) return (error.value = m.offline)
     people.value = (await eventPeople(e.id).catch(() => [])).filter((p) => !p.is_me && p.response !== 'no' && p.response !== 'dropped')
-    const { data } = await supabase.from('profiles').select('cancel_event_message, cancel_dropout_message').eq('user_id', auth.user?.id ?? '').maybeSingle()
+    const data = await useProfileStore().load()
     template.value = (props.mode === 'cancel' ? data?.cancel_event_message : data?.cancel_dropout_message) ?? ''
   },
 )

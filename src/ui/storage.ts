@@ -33,3 +33,14 @@ export function readJson<T>(key: string): T | null {
 export function writeJson(key: string, value: unknown): void {
   writeKey(key, value === null ? null : JSON.stringify(value))
 }
+
+/** SPEC §8 Sign out: forget everything this app remembered on this device. */
+export function clearAppKeys(): void {
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('my-brain') || key === 'focus-timer') localStorage.removeItem(key)
+    }
+  } catch {
+    // Storage blocked: nothing was remembered.
+  }
+}

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
 import { dayStatus, deadline, isScheduled, logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, weekdayOf, wrongMisses, zonedTime } from '@/habits/rules'
 
+import { addDays } from '@/tasks/days'
+
 const NY = 'America/New_York'
 
 function habit(over: Partial<HabitRow> = {}): HabitRow {
@@ -127,6 +129,30 @@ describe('Spec §5 Habits: streaks and best streak', () => {
   it('history is recalculated from the logs, so deleted logs do not count', () => {
     const logs = [done('2026-11-01', { deleted_at: '2026-11-01T13:00:00Z' })]
     expect(streaks(habit(), logs, at('2026-11-02T01:00:00Z'), NY)).toEqual({ current: 0, best: 0 })
+  })
+
+  it("two years of history: every day counted, with another habit's logs and deleted logs mixed in", () => {
+    // Done every day for two years except every 50th day, which was left empty (a miss), plus a deleted log on
+    // one of those days and another habit's logs that must not count. The last week has an 11 pm notify time
+    // and a 2-hour timer, so yesterday's deadline is 1 am today.
+    const h = habit({ start_date: '2024-11-12', notify_time: '23:00', timer_minutes: 120 })
+    const logs: HabitLogRow[] = []
+    let current = 0
+    let best = 0
+    let day = 0
+    for (let d = '2024-11-12'; d < '2026-11-12'; d = addDays(d, 1), day++) {
+      logs.push(done(d, { habit_id: 'other', id: `o-${d}` }))
+      if (day % 50 === 49) {
+        logs.push(done(d, { deleted_at: `${d}T13:00:00Z` }))
+        current = 0
+      } else if (d < '2026-11-11') {
+        logs.push(done(d))
+        best = Math.max(best, ++current)
+      }
+    }
+    // 12:30 am on Nov 12: yesterday (Nov 11, nothing logged) is still open until 1 am, so it breaks nothing.
+    expect(streaks(h, logs, at('2026-11-12T05:30:00Z'), NY)).toEqual({ current, best })
+    expect(missedDaysToRecord(h, logs, at('2026-11-12T05:30:00Z'), NY)).toHaveLength(Math.floor(day / 50))
   })
 })
 

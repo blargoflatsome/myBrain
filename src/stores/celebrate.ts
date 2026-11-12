@@ -1,5 +1,6 @@
 // SPEC §5 Celebrations: turns finished things into a celebration that fits (confetti, a glow, a message, a badge),
 // at the level I chose. Bursts and messages are drawn by CelebrationLayer.vue.
+import { readTables } from '@/sync/db'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
@@ -12,6 +13,7 @@ import {
   isPerfectDay,
   missingBadges,
   parseSetting,
+  firstTrophiesAlertId,
   perfectDayAlertId,
   type BadgeKind,
   type CelebrationSetting,
@@ -163,7 +165,7 @@ export const useCelebrateStore = defineStore('celebrate', () => {
         writeKey(trophiesReadyKey(uid), '1')
         if (!raised) continue
         if (firstTime) {
-          const id = `${uid.slice(0, 24)}ffff00000001`
+          const id = firstTrophiesAlertId(uid)
           const today = todayIn(timeZone, now)
           await brain.addAlert({ id, kind: 'trophies', item_id: id, title: t.fromPast.title(raised), body: t.fromPast.body, url: '/#trophies', local_date: today, sent_at: now.toISOString() })
           continue
@@ -246,16 +248,16 @@ export const useCelebrateStore = defineStore('celebrate', () => {
   async function catchUp(now = new Date(), timeZone = deviceTimeZone()) {
     const local = brain.db
     if (!local || !brain.habitsReady || !brain.userId) return
-    const history = {
-      tasks: await local.tasks.toArray(),
-      habitLogs: await local.habit_logs.toArray(),
-      routineRuns: await local.routine_runs.toArray(),
-      journalEntries: await local.journal_entries.toArray(),
-      vaultItems: await local.vault_items.toArray(),
-      questLogs: await local.quest_logs.toArray(),
-      postIts: await local.post_its.toArray(),
-      inbox: await local.inbox.toArray(),
-    }
+    const history = await readTables(local, {
+      tasks: 'tasks',
+      habitLogs: 'habit_logs',
+      routineRuns: 'routine_runs',
+      journalEntries: 'journal_entries',
+      vaultItems: 'vault_items',
+      questLogs: 'quest_logs',
+      postIts: 'post_its',
+      inbox: 'inbox',
+    })
     const missing = new Set(missingBadges(await local.badges.toArray()))
     for (const kind of earnedFromHistory(history)) if (missing.has(kind)) await brain.saveBadge(kind, now)
     // Trophies are worked out alongside, without holding up the rest (asking the server can be slow).

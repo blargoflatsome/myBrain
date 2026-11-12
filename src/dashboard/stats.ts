@@ -1,6 +1,6 @@
 // Dashboard stats (SPEC §5 Dashboard): habits, journal, events, tasks, routines and quests, over a chosen period.
 import type { EventInviteRow, EventRow, HabitLogRow, HabitRow, JournalEntryRow, JournalStats, QuestLogRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
-import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
+import { dayStatuses, streaks, zonedTime } from '@/habits/rules'
 import { isAnytime, routineStats } from '@/routines/rules'
 import { occursOn } from '@/events/rules'
 import { addDays, dayOf, daysBetween, todayIn } from '@/tasks/days'
@@ -34,19 +34,13 @@ export interface HabitStats {
 }
 
 export function habitStats(habits: HabitRow[], logs: HabitLogRow[], now: Date, timeZone: string, from: string | null): HabitStats {
-  const today = todayIn(timeZone, now)
   const list = live(habits)
   const rows = list
-    .map((habit) => ({ habit, ...streaks(habit, logs.filter((l) => l.habit_id === habit.id), now, timeZone) }))
+    .map((habit) => ({ habit, ...streaks(habit, logs, now, timeZone) }))
     .sort((a, b) => b.current - a.current || b.best - a.best || a.habit.title.localeCompare(b.habit.title))
   const mostMissed = list
     .map((habit) => {
-      const mine = logs.filter((l) => l.habit_id === habit.id)
-      let missed = 0
-      const start = from && from > habit.start_date ? from : habit.start_date
-      for (let d = start; d <= today; d = addDays(d, 1)) {
-        if (habitScheduled(habit, d) && dayStatus(habit, d, mine, now, timeZone) === 'missed') missed++
-      }
+      const missed = dayStatuses(habit, logs, now, timeZone, from ?? habit.start_date).filter((d) => d.status === 'missed').length
       return { habit, missed }
     })
     .filter((x) => x.missed > 0)

@@ -77,17 +77,16 @@
 </template>
 
 <script setup lang="ts">
+import { useProfileStore } from '@/stores/profile'
 import { isPushEndpoint } from '@/notifications/pushEndpoints'
 import { isInstalled, isIOS } from '@/ui/device'
 // SPEC §6: Web Push and/or ntfy, quiet hours, and whether priority reminders ring during them.
 import TimeInput from '@/components/TimeInput.vue'
 import { onMounted, ref } from 'vue'
 import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/stores/auth'
 import { messages } from '@/messages'
 import { checkbox, field, fieldLabel, primaryButtonSmall } from '@/ui/styles'
 
-const auth = useAuthStore()
 const m = messages.notifications
 const VAPID = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
 
@@ -112,11 +111,7 @@ function base64UrlToBytes(b64: string) {
 }
 
 onMounted(async () => {
-  const { data } = await supabase
-    .from('profiles')
-    .select('notify_ntfy, ntfy_topic, quiet_hours_start, quiet_hours_end, quiet_hours_silence_priority, journal_reminder_time')
-    .eq('user_id', auth.user?.id ?? '')
-    .maybeSingle()
+  const data = await useProfileStore().load()
   if (data) {
     notifyNtfy.value = !!data.notify_ntfy
     topic.value = data.ntfy_topic ?? ''
@@ -175,18 +170,15 @@ function makeTopic() {
 
 async function save() {
   notice.value = ''
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      notify_ntfy: notifyNtfy.value && topic.value.length >= 16,
-      ntfy_topic: topic.value || null,
-      quiet_hours_start: quietStart.value || null,
-      quiet_hours_end: quietEnd.value || null,
-      quiet_hours_silence_priority: !priorityRings.value,
-      journal_reminder_time: journalOff.value || !journalTime.value ? null : journalTime.value,
-    })
-    .eq('user_id', auth.user?.id ?? '')
-  notice.value = error ? messages.profile.offline : m.saved
+  const ok = await useProfileStore().update({
+    notify_ntfy: notifyNtfy.value && topic.value.length >= 16,
+    ntfy_topic: topic.value || null,
+    quiet_hours_start: quietStart.value || null,
+    quiet_hours_end: quietEnd.value || null,
+    quiet_hours_silence_priority: !priorityRings.value,
+    journal_reminder_time: journalOff.value || !journalTime.value ? null : journalTime.value,
+  })
+  notice.value = ok ? m.saved : messages.profile.offline
 }
 
 async function test() {

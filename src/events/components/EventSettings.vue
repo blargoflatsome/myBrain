@@ -45,14 +45,12 @@
 <script setup lang="ts">
 // SPEC §5 Accounts and contact info, Cancelling: phone number, how event news reaches me, whether I can be found by
 // name, whether my free/busy is shared, and my two cancellation messages.
+import { useProfileStore } from '@/stores/profile'
 import { onMounted, ref } from 'vue'
-import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/stores/auth'
 import { isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
 import { checkbox, field, fieldLabel, primaryButtonSmall } from '@/ui/styles'
 
-const auth = useAuthStore()
 const m = messages.eventSettings
 const w = messages.welcome
 
@@ -68,11 +66,7 @@ const notice = ref('')
 const error = ref('')
 
 onMounted(async () => {
-  const { data } = await supabase
-    .from('profiles')
-    .select('phone, phone_verified, event_notify_method, share_availability, cancel_dropout_message, cancel_event_message')
-    .eq('user_id', auth.user?.id ?? '')
-    .maybeSingle()
+  const data = await useProfileStore().load()
   if (!data) return
   phone.value = data.phone ?? ''
   phoneVerified.value = !!data.phone_verified
@@ -90,17 +84,14 @@ async function save() {
     error.value = w.phoneError
     return
   }
-  const { error: failed } = await supabase
-    .from('profiles')
-    .update({
-      phone: phone.value.trim() || null,
-      event_notify_method: notify.value,
-      share_availability: shareAvailability.value,
-      cancel_dropout_message: dropoutMessage.value.trim() || undefined,
-      cancel_event_message: cancelMessage.value.trim() || undefined,
-    })
-    .eq('user_id', auth.user?.id ?? '')
-  if (failed) error.value = messages.profile.offline
+  const saved = await useProfileStore().update({
+    phone: phone.value.trim() || null,
+    event_notify_method: notify.value,
+    share_availability: shareAvailability.value,
+    cancel_dropout_message: dropoutMessage.value.trim() || undefined,
+    cancel_event_message: cancelMessage.value.trim() || undefined,
+  })
+  if (!saved) error.value = messages.profile.offline
   else notice.value = m.saved
 }
 </script>

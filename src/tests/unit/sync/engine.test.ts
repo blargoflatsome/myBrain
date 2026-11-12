@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
 import { FakeRemote } from '../../support/fakeRemote'
-import type { SyncStatus, TaskRow } from '@/sync/types'
+import type { NotificationRow, SyncStatus, TaskRow } from '@/sync/types'
 
 let db: LocalDb
 let remote: FakeRemote
@@ -80,8 +80,9 @@ describe('Spec §2/§7: capturing works offline and syncs later', () => {
 
   it('keeps the rest of the queue when the connection drops mid-upload', async () => {
     remote.online = false
+    // Two tables, so two requests.
     await engine.save('tasks', task('t1', 'one'))
-    await engine.save('tasks', task('t2', 'two'))
+    await engine.save('inbox', { id: 'n1', body: 'two', deleted_at: null })
     remote.online = true
     let calls = 0
     const upsert = remote.upsert.bind(remote)
@@ -93,8 +94,28 @@ describe('Spec §2/§7: capturing works offline and syncs later', () => {
     await engine.flush()
 
     expect(remote.tables.tasks.has('t1')).toBe(true)
-    expect(remote.tables.tasks.has('t2')).toBe(false)
+    expect(remote.tables.inbox.has('n1')).toBe(false)
     expect(await db.outbox.count()).toBe(1)
+  })
+
+  it('many changes to one table upload in one request; a refused one leaves the rest uploaded and only it marked', async () => {
+    remote.online = false
+    for (let i = 0; i < 10; i++) await engine.save('tasks', task(`t${i}`, `task ${i}`))
+    remote.online = true
+    await engine.flush()
+    expect(remote.batches).toBe(1)
+    expect(remote.tables.tasks.size).toBe(10)
+    expect(await db.tasks.get('t3')).toMatchObject({ updated_at: remote.tables.tasks.get('t3')?.updated_at })
+    expect(await db.outbox.count()).toBe(0)
+
+    remote.online = false
+    for (let i = 0; i < 5; i++) await engine.save('tasks', task(`t${i}`, `edited ${i}`))
+    remote.refuse.add('t2')
+    remote.online = true
+    await engine.flush()
+    expect([...remote.tables.tasks.values()].filter((t) => t.title.startsWith('edited')).map((t) => t.id)).toEqual(['t0', 't1', 't3', 't4'])
+    expect((await db.outbox.toArray()).map((e) => [e.rowId, !!e.error])).toEqual([['t2', true]])
+    expect(engine.getStatus().state).toBe('error')
   })
 })
 
@@ -208,6 +229,19 @@ describe('Spec §7: changes from other devices arrive by pull and Realtime', () 
     expect(seen[0]).toBe(remote.tables.inbox.get('n1')?.updated_at)
   })
 
+  it('a pull that brings back the copy this device already has writes nothing, so screens are not redrawn', async () => {
+    remote.writeFromOtherDevice('quests', { id: 'q1', title: 'learn to juggle', status: 'open', deleted_at: null })
+    await engine.pull()
+    let writes = 0
+    db.quests.hook('creating', () => void writes++)
+    db.quests.hook('updating', () => void writes++)
+    await engine.pull()
+    expect(writes).toBe(0)
+    remote.writeFromOtherDevice('quests', { id: 'q1', title: 'learn to unicycle', status: 'open', deleted_at: null })
+    await engine.pull()
+    expect(await db.quests.get('q1')).toMatchObject({ title: 'learn to unicycle' })
+  })
+
   it('does not overwrite a row that still has changes waiting to upload on this device', async () => {
     remote.writeFromOtherDevice('tasks', task('t1', 'from laptop'))
     remote.online = false
@@ -266,5 +300,19 @@ describe('Spec §5 Shared events: invitations change only through server functio
     await expect(engine.save('event_invites', invite)).rejects.toThrow(/read-only/)
     await expect(engine.patch('event_invites', 'i1', () => ({}))).rejects.toThrow(/read-only/)
     expect(await db.outbox.count()).toBe(0)
+  })
+})
+
+describe('Spec §7: deleted rows do not pile up on the device', () => {
+  it('a row deleted over 30 days ago is removed; a recent one and one with a change queued are kept', async () => {
+    const now = Date.parse('2026-11-11T12:00:00Z')
+    const old = new Date(now - 31 * 86_400_000).toISOString()
+    const alert = (id: string, deletedAt: string | null): NotificationRow => ({
+      id, kind: 'perfect_day', item_id: null, title: 'x', body: '', url: '/', local_date: '2026-09-01', sent_at: old, deleted_at: deletedAt,
+    })
+    await db.notifications.bulkPut([alert('old', old), alert('recent', new Date(now - 86_400_000).toISOString()), alert('live', null), alert('queued', old)])
+    await db.outbox.add({ table: 'notifications', rowId: 'queued', row: alert('queued', old) })
+    await engine.purgeDeleted(now)
+    expect((await db.notifications.toArray()).map((n) => n.id).sort()).toEqual(['live', 'queued', 'recent'])
   })
 })

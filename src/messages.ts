@@ -42,6 +42,14 @@ export const messages = {
   },
   signOut: {
     button: 'Sign out',
+    /** SPEC §8 Sign out: changes that couldn't upload would be lost. */
+    unsent: {
+      heading: 'Sign out with changes not uploaded?',
+      body: (n: number) =>
+        `Past you made ${n === 1 ? '1 change' : `${n} changes`} that haven't reached the server yet. Signing out deletes them from this device.`,
+      confirm: 'Sign out anyway',
+      keep: 'Stay signed in',
+    },
   },
   /** SPEC §2 Navigation, Header. */
   header: {
@@ -1255,15 +1263,15 @@ export const messages = {
     saved: 'Saved.',
     offline: 'Connect to the internet to edit your profile.',
     visibility: 'Who can see my streaks',
-    visibilityOptions: { private: 'Only me', approved: 'People I approve', everyone: 'Everyone' },
+    visibilityOptions: { private: 'Only me', approved: 'People I approve' },
     visibilityHint: 'Sharing starts later. Private habits are never shown.',
     settingsHeading: 'Your profile',
     longest: (n: number, title: string) => `Longest streak ever: ${n} (${title})`,
   },
   nav: {
     label: 'Main',
+    /** Only used to check there is no Menu button (SPEC §2 Navigation). */
     menu: 'Menu',
-    dashboard: 'Dashboard',
     home: 'Tasks',
     habits: 'Habits',
     routines: 'Routines',
@@ -1271,7 +1279,6 @@ export const messages = {
     calendar: 'Calendar',
     vault: 'The Vault',
     search: 'Search',
-    account: 'Account',
     quests: 'Quests',
     inbox: 'Orphans',
     connections: 'Connections',

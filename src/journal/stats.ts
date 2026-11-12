@@ -6,6 +6,21 @@ import { isTaskScheduled } from '@/reminders/priority'
 import { addDays, dayOf } from '@/tasks/days'
 import { live } from '@/sync/live'
 
+/** The tables a day's stats are worked out from, by the name `DayData` uses for each. */
+export const DAY_TABLES = {
+  tasks: 'tasks',
+  habits: 'habits',
+  habitLogs: 'habit_logs',
+  routines: 'routines',
+  routineSteps: 'routine_steps',
+  routineRuns: 'routine_runs',
+  routineStepLogs: 'routine_step_logs',
+  priorityTasks: 'priority_tasks',
+  priorityTaskLogs: 'priority_task_logs',
+  quests: 'quests',
+  questLogs: 'quest_logs',
+} as const
+
 export interface DayData {
   tasks: TaskRow[]
   habits: HabitRow[]

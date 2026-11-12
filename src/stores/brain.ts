@@ -1,28 +1,30 @@
-// The signed-in user's data: on-device store, sync engine, and the actions screens use (SPEC §5, §7).
+// The signed-in user's data (SPEC §5, §7): opens the on-device store and starts and stops syncing, then hands out
+// every feature's actions (src/<feature>/actions.ts) so screens import one store and every write goes through the
+// sync queue.
 import { defineStore } from 'pinia'
 import Dexie from 'dexie'
 import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
-import type { ActivityKind, ActivityLogRow, EventRow, HabitLogRow, HabitRow, JournalEntryRow, NotificationRow, PostItColor, PostItRow, QuestRow, Remote, RoutineRow, RoutineStepRow, RowTypes, SyncStatus, SyncTable, TagRow, TaggedType, TaskRow, VaultItemRow } from '@/sync/types'
-import { activeSteps, currentRun, habitDoneStepIds, recordStep, stepsForDay } from '@/routines/rules'
-import { cancelState, snoozeState, type DuePriority } from '@/reminders/priority'
-import { logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMisses } from '@/habits/rules'
+import type { EventRow, PostItColor, PostItRow, QuestRow, Remote, RowTypes, SyncStatus, SyncTable, TaskRow } from '@/sync/types'
+import type { ActionContext } from '@/sync/actions'
+import { habitActions } from '@/habits/actions'
+import { routineActions } from '@/routines/actions'
+import { journalActions } from '@/journal/actions'
+import { tagActions } from '@/tags/actions'
+import { trophyActions } from '@/trophies/actions'
+import { vaultActions } from '@/vault/actions'
+import { priorityActions } from '@/reminders/actions'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
-import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
-import { moveLinks, renameOutcome, tagChanges } from '@/tags/rules'
-import { trophyRowId, type TrophyId } from '@/trophies/definitions'
-import type { TrophyHistory } from '@/trophies/rules'
 import { normalizeBody } from '@/journal/body'
 import { frontPosition } from '@/postits/rules'
 import { peopleToSave } from '@/events/people'
 import type { PersonToInvite } from '@/events/sharing'
 import { live } from '@/sync/live'
 import { finishQuest as finishedQuest } from '@/quests/picker'
-import { buildBucket, buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
+import { buildCaptureRecord, buildConversion, type CaptureInput, type CaptureRecord } from '@/capture/capture'
 import { achieved } from '@/celebrate/bus'
-import { badgeId, type BadgeKind } from '@/celebrate/rules'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
 function background(work: Promise<unknown> | undefined) {
@@ -71,7 +73,7 @@ export const useBrainStore = defineStore('brain', () => {
     const markReady = async () => {
       if (await local.meta.get('downloaded:badges')) badgesReady.value = true
       if (await local.meta.get('downloaded:habit_logs')) habitsReady.value = true
-      if (habitsReady.value && (await local.meta.get('downloaded:journal_entries'))) await refreshJournal()
+      if (habitsReady.value && (await local.meta.get('downloaded:journal_entries'))) await journal.refreshJournal()
     }
     const synced = async () => {
       await markReady()
@@ -122,7 +124,12 @@ export const useBrainStore = defineStore('brain', () => {
     habitsReady.value = false
     badgesReady.value = false
     background(markReady())
-    background(engine.value.sync().then(synced))
+    // Once per app start, after a sync that reached the server, old deleted rows are cleared from the device.
+    const e = engine.value
+    background(e.sync().then(async () => {
+      if (e.getStatus().state === 'synced') await e.purgeDeleted()
+      await synced()
+    }))
   }
 
   function stop() {
@@ -132,6 +139,21 @@ export const useBrainStore = defineStore('brain', () => {
     db.value = null
     engine.value = null
     userId.value = null
+  }
+
+  /** SPEC §8 Sign out: upload what's queued; returns how many of my changes are still not uploaded. */
+  async function uploadBeforeSignOut(): Promise<number> {
+    const local = db.value
+    if (!local || !engine.value) return 0
+    await engine.value.flush().catch(() => {})
+    return local.outbox.filter((o) => o.table !== 'activity_log').count()
+  }
+
+  /** SPEC §8 Sign out: stop syncing and delete this user's stored copy from this device. */
+  async function forgetDevice(): Promise<void> {
+    const uid = userId.value
+    stop()
+    if (uid) await Dexie.delete(`my-brain-${uid}`).catch(() => {})
   }
 
   /**
@@ -152,38 +174,39 @@ export const useBrainStore = defineStore('brain', () => {
     return true
   }
 
-  function requireReady() {
+  const ready = () => {
     if (!engine.value || !userId.value || !db.value) throw new Error('Not signed in')
     return { engine: engine.value, uid: userId.value, local: db.value }
   }
+  const ctx: ActionContext = { ready, habitsReady, badgesReady }
+  const habits = habitActions(ctx)
+  const routines = routineActions(ctx, habits.completeHabit)
+  const journal = journalActions(ctx)
+  const tags = tagActions(ctx)
+  const trophies = trophyActions(ctx)
+  const vault = vaultActions(ctx)
+  const priority = priorityActions(ctx, habits.toggleHabit)
 
+  // ---------- Capture, tasks and quests (SPEC §5 Quick capture, Tasks, Random Quest) ----------
   /** Save a captured thought. Resolves once it is stored on this device, online or not. */
   async function capture(input: CaptureInput): Promise<CaptureRecord> {
-    const { engine: e, uid } = requireReady()
+    const { engine: e, uid } = ready()
     const record = buildCaptureRecord(input, uid)
     await e.save(record.table, record.row as never)
-    await logActivity('capture', { type: input.destination })
+    await trophies.logActivity('capture', { type: input.destination })
     achieved({ kind: 'capture', table: record.table })
     return record
   }
 
-  async function createBucket(name: string) {
-    const { engine: e, uid, local } = requireReady()
-    const last = await local.vault_buckets.orderBy('position').last()
-    const bucket = buildBucket(name, (last?.position ?? -1) + 1, uid)
-    await e.save('vault_buckets', bucket)
-    return bucket
-  }
-
   /** Convert an item to another type, or file an inbox item (SPEC §5). */
   async function convert(from: CaptureRecord, to: Omit<CaptureInput, 'text'>) {
-    const { engine: e, uid, local } = requireReady()
+    const { engine: e, uid, local } = ready()
     const { create, retire } = buildConversion(from, to, uid)
     await e.save(create.table, create.row as never)
     await e.remove(retire.table, retire.id)
     if (from.table === 'inbox') {
       // Emptying the Orphans list counts toward a trophy (SPEC §5 Trophies).
-      if (!live(await local.inbox.toArray()).length) await logActivity('orphans_cleared')
+      if (!live(await local.inbox.toArray()).length) await trophies.logActivity('orphans_cleared')
       achieved({ kind: 'orphan' })
     }
     return create
@@ -191,7 +214,7 @@ export const useBrainStore = defineStore('brain', () => {
 
   /** Add a task typed on the Tasks screen (source "manual", default priority Low). */
   async function addTask(title: string, dueDate: string | null) {
-    const { engine: e, uid } = requireReady()
+    const { engine: e, uid } = ready()
     const trimmed = title.trim()
     if (!trimmed) return null
     const row: TaskRow = {
@@ -208,7 +231,7 @@ export const useBrainStore = defineStore('brain', () => {
   }
 
   async function saveTask(row: TaskRow) {
-    const { engine: e, local } = requireReady()
+    const { engine: e, local } = ready()
     const before = await local.tasks.get(row.id)
     const saved = await e.save('tasks', row)
     // Crossed off just now (not a later edit of a task already done): celebrate it (SPEC §5 Celebrations).
@@ -218,7 +241,7 @@ export const useBrainStore = defineStore('brain', () => {
 
   /** Mark a quest done (SPEC §5 Random Quest): it goes back to the list, and the completion is logged for stats. */
   async function finishQuest(quest: QuestRow, now = new Date(), timeZone = deviceTimeZone()) {
-    const { engine: e, uid } = requireReady()
+    const { engine: e, uid } = ready()
     const done = finishedQuest(quest, now)
     const logId = crypto.randomUUID()
     await e.save('quest_logs', { id: logId, user_id: uid, quest_id: quest.id, date: todayIn(timeZone, now), completed_at: now.toISOString(), deleted_at: null })
@@ -229,334 +252,29 @@ export const useBrainStore = defineStore('brain', () => {
 
   /** Undo marking a quest done: the quest goes back as it was and its completion is taken off the log. */
   async function unfinishQuest(before: QuestRow, logId: string) {
-    const { engine: e } = requireReady()
+    const { engine: e } = ready()
     await e.remove('quest_logs', logId)
     await e.save('quests', before)
   }
 
-  async function addHabit(title: string) {
-    const { engine: e, uid } = requireReady()
-    if (!title.trim()) return null
-    return e.save('habits', newHabit(title, uid, deviceTimeZone()))
-  }
-
-  /** Delete a habit; any routine step linked to it is removed too (SPEC §5 Routines). */
-  async function deleteHabit(id: string) {
-    const { engine: e, local } = requireReady()
-    await e.remove('habits', id)
-    await e.removeMany('routine_steps', live(await local.routine_steps.toArray()).filter((s) => s.habit_id === id).map((s) => s.id))
-  }
-
-  async function logsFor(habitId: string): Promise<HabitLogRow[]> {
-    const { local } = requireReady()
-    return local.habit_logs.where('habit_id').equals(habitId).toArray()
-  }
-
-  /**
-   * SPEC §5 Habits: write a "missed" log for each scheduled day whose deadline passed, then refresh the cached
-   * streak numbers from the logs. Safe to run often; it only writes when something changed.
-   */
-  async function refreshHabit(habit: HabitRow, now = new Date(), timeZone = deviceTimeZone()) {
-    if (!habitsReady.value) return
-    const { engine: e, uid } = requireReady()
-    let logs = await logsFor(habit.id)
-    // Remove "missed" logs whose day is still open (written too early, e.g. on the day the habit was created).
-    for (const wrong of wrongMisses(habit, logs, now, timeZone)) {
-      await e.remove('habit_logs', wrong.id)
-      logs = logs.map((l) => (l.id === wrong.id ? { ...l, deleted_at: now.toISOString() } : l))
-    }
-    for (const date of missedDaysToRecord(habit, logs, now, timeZone)) {
-      const log: HabitLogRow = { id: logIdFor(habit.id, date), user_id: uid, habit_id: habit.id, date, status: 'missed', deleted_at: null }
-      await e.save('habit_logs', log)
-      logs = [...logs, log]
-    }
-    const { current, best } = streaks(habit, logs, now, timeZone)
-    // Update only the cached numbers on the latest copy, in one step, so an edit saved meanwhile is kept.
-    await e.patch('habits', habit.id, (fresh) =>
-      current !== fresh.current_streak || best !== fresh.best_streak ? { current_streak: current, best_streak: best } : null,
-    )
-  }
-
-  /** Complete today's habit, or undo a completion before its deadline. */
-  async function toggleHabit(habit: HabitRow, now = new Date(), timeZone = deviceTimeZone()) {
-    const { engine: e, uid } = requireReady()
-    const date = todayIn(timeZone, now)
-    const logs = await logsFor(habit.id)
-    const action = toggleAction(habit, date, logs, now, timeZone)
-    if (action.kind === 'complete') {
-      await e.save('habit_logs', {
-        id: logIdFor(habit.id, date),
-        user_id: uid,
-        habit_id: habit.id,
-        date,
-        status: 'completed',
-        completed_at: now.toISOString(),
-        deleted_at: null,
-      })
-    } else if (action.kind === 'undo') {
-      await e.remove('habit_logs', action.log.id)
-    }
-    await refreshHabit(habit, now, timeZone)
-    if (action.kind === 'complete') achieved({ kind: 'habit', habit })
-    return action.kind
-  }
-
-  /** A new routine starts today, runs every day, with no steps yet. */
-  function newRoutine(): RoutineRow {
-    return {
-      id: crypto.randomUUID(),
-      user_id: userId.value ?? undefined,
-      title: '',
-      notify_time: null,
-      weekdays: null, // a new routine runs any time until I give it a schedule (SPEC §5 Routines)
-      start_date: todayIn(deviceTimeZone()),
-      deleted_at: null,
-    }
-  }
-
-  /**
-   * Save a routine and its ordered steps. Steps keep their ids so history stays attached; steps no longer in the
-   * list are soft-deleted (their history is kept, SPEC §5 Routines).
-   */
-  async function saveRoutine(routine: RoutineRow, steps: { id?: string; title: string; habitId?: string | null }[]) {
-    const { engine: e, uid, local } = requireReady()
-    await e.save('routines', { ...routine, user_id: uid })
-    const existing = activeSteps(await local.routine_steps.where('routine_id').equals(routine.id).toArray(), routine.id)
-    const keep = new Set<string>()
-    const today = todayIn(deviceTimeZone())
-    for (const [position, s] of steps.entries()) {
-      if (!s.title.trim()) continue
-      const before = s.id ? existing.find((x) => x.id === s.id) : undefined
-      const habitId = s.habitId ?? null
-      const row: RoutineStepRow = before
-        ? { ...before, title: s.title.trim(), position, habit_id: habitId }
-        : { id: crypto.randomUUID(), user_id: uid, routine_id: routine.id, position, title: s.title.trim(), habit_id: habitId, start_date: today, deleted_at: null }
-      keep.add(row.id)
-      if (!before || before.title !== row.title || before.position !== row.position || (before.habit_id ?? null) !== habitId) {
-        await e.save('routine_steps', row)
-      }
-    }
-    await e.removeMany('routine_steps', existing.filter((old) => !keep.has(old.id)).map((old) => old.id))
-  }
-
-  async function deleteRoutine(id: string) {
-    await requireReady().engine.remove('routines', id)
-  }
-
-  /** Press Skip or Completed on the routine's current step for today (SPEC §5 Routines). */
-  async function recordRoutineStep(routine: RoutineRow, status: 'completed' | 'skipped', now = new Date()) {
-    const { engine: e, uid, local } = requireReady()
-    const date = todayIn(deviceTimeZone(), now)
-    const habits = await local.habits.toArray()
-    const steps = stepsForDay(activeSteps(await local.routine_steps.where('routine_id').equals(routine.id).toArray(), routine.id), habits, date)
-    const runs = await local.routine_runs.where('routine_id').equals(routine.id).toArray()
-    const run = currentRun(routine, runs, date)
-    const logs = run ? await local.routine_step_logs.where('run_id').equals(run.id).toArray() : []
-    const habitDone = habitDoneStepIds(steps, await local.habit_logs.toArray(), date)
-    const action = recordStep(routine, steps, run, logs, status, date, uid, now, habitDone)
-    if (!action) return null
-    if (action.run) await e.save('routine_runs', action.run)
-    for (const log of action.logs) await e.save('routine_step_logs', log)
-    if (action.finish) await e.save('routine_runs', action.finish)
-    if (status === 'completed' || action.finish) achieved({ kind: 'step', finished: !!action.finish })
-    // A completed habit step completes the habit for the day too (SPEC §5 Routines: one tick counts for both).
-    if (action.completeHabitId) {
-      const habit = habits.find((h) => h.id === action.completeHabitId && !h.deleted_at)
-      if (habit) await completeHabit(habit, now)
-    }
-    return action
-  }
-
-  /** Complete a habit for today if it is still open (never undoes a completion). */
-  async function completeHabit(habit: HabitRow, now = new Date(), timeZone = deviceTimeZone()) {
-    const date = todayIn(timeZone, now)
-    if (toggleAction(habit, date, await logsFor(habit.id), now, timeZone).kind === 'complete') await toggleHabit(habit, now, timeZone)
-  }
-
-  // ---------- Journal (SPEC §5 Journal) ----------
-  async function dayData(): Promise<DayData> {
-    const { local } = requireReady()
-    return {
-      tasks: await local.tasks.toArray(),
-      habits: await local.habits.toArray(),
-      habitLogs: await local.habit_logs.toArray(),
-      routines: await local.routines.toArray(),
-      routineSteps: await local.routine_steps.toArray(),
-      routineRuns: await local.routine_runs.toArray(),
-      routineStepLogs: await local.routine_step_logs.toArray(),
-      priorityTasks: await local.priority_tasks.toArray(),
-      priorityTaskLogs: await local.priority_task_logs.toArray(),
-      quests: await local.quests.toArray(),
-      questLogs: await local.quest_logs.toArray(),
-    }
-  }
-
-  /** The stats for a day, worked out from the on-device history (shown live for today). */
-  async function journalStats(date: string, now = new Date(), timeZone = deviceTimeZone()) {
-    return dayStats(await dayData(), date, now, timeZone)
-  }
-
-  /**
-   * Write an entry on my behalf for each day that ended without one (if I did something that day), keep today's stats current, and freeze the
-   * stats of days that have ended. Only runs once this device has the server's habits and journal, so a fresh
-   * device never writes over entries it has not downloaded yet. Safe to run often.
-   */
-  async function refreshJournal(now = new Date(), timeZone = deviceTimeZone()) {
-    const { engine: e, uid, local } = requireReady()
-    if (!habitsReady.value || !(await local.meta.get('downloaded:journal_entries'))) return
-    const today = todayIn(timeZone, now)
-    const data = await dayData()
-    const entries = await local.journal_entries.toArray()
-    // When this device started journaling, so no entries are invented for days before it.
-    let start = (await local.meta.get('journal_start'))?.value
-    if (!start) {
-      start = today
-      await local.meta.put({ key: 'journal_start', value: start })
-    }
-    for (const date of missingDays(entries, today, start)) {
-      const stats = dayStats(data, date, now, timeZone)
-      if (!hadActivity(stats)) continue // a day with nothing done gets no entry
-      await e.save('journal_entries', { ...emptyEntry(uid, date, true), stats, stats_final: true })
-    }
-    for (const entry of entries) {
-      if (entry.deleted_at || entry.stats_final) continue
-      const stats = dayStats(data, entry.date, now, timeZone)
-      await e.patch('journal_entries', entry.id, (fresh) => statsUpdate(fresh, stats, today))
-    }
-  }
-
-  // Saves for the same day run one at a time, so two saves at once (writing and the tomorrow box, or quick
-  // Yes/No taps) can't both find no entry and each make one: a day has one journal entry (SPEC §5 Journal).
-  const journalSaves = new Map<string, Promise<unknown>>()
-  function oneAtATime<T>(date: string, work: () => Promise<T>): Promise<T> {
-    const next = (journalSaves.get(date) ?? Promise.resolve()).catch(() => undefined).then(work)
-    journalSaves.set(date, next)
-    void next.finally(() => journalSaves.get(date) === next && journalSaves.delete(date)).catch(() => undefined)
-    return next
-  }
-
-  /** Save what I wrote for a day. Writing in an entry the app made makes it mine. Always editable (SPEC §5 Journal). */
-  function saveJournalBody(date: string, html: string, now = new Date(), timeZone = deviceTimeZone()) {
-    return oneAtATime(date, () => storeJournalBody(date, html, now, timeZone))
-  }
-  async function storeJournalBody(date: string, html: string, now: Date, timeZone: string) {
-    const { engine: e, uid, local } = requireReady()
-    const body = normalizeBody(html)
-    const today = todayIn(timeZone, now)
-    const existing = (await local.journal_entries.where('date').equals(date).toArray()).find((x) => !x.deleted_at)
-    const auto = (row: JournalEntryRow) => row.auto && !body
-    if (existing) {
-      if (existing.body === body) return
-      await e.patch('journal_entries', existing.id, (fresh) => (fresh.body === body ? null : { body, auto: auto(fresh) }))
-    } else {
-      const stats = dayStats(await dayData(), date, now, timeZone)
-      await e.save('journal_entries', { ...emptyEntry(uid, date, false), body, stats, stats_final: date < today })
-    }
-    if (body) achieved({ kind: 'journal' })
-  }
-
-  /**
-   * Save the journal's other answers for a day: "How to make tomorrow better?" and "Was today better than
-   * yesterday?" (SPEC §5 Journal). Creates the day's entry if needed; always editable.
-   */
-  function saveJournalFields(
-    date: string,
-    fields: { tomorrow?: string; better_than_yesterday?: boolean | null },
-    now = new Date(),
-    timeZone = deviceTimeZone(),
-  ) {
-    return oneAtATime(date, () => storeJournalFields(date, fields, now, timeZone))
-  }
-  async function storeJournalFields(date: string, fields: { tomorrow?: string; better_than_yesterday?: boolean | null }, now: Date, timeZone: string) {
-    const { engine: e, uid, local } = requireReady()
-    const today = todayIn(timeZone, now)
-    const existing = (await local.journal_entries.where('date').equals(date).toArray()).find((x) => !x.deleted_at)
-    if (fields.tomorrow !== undefined) fields = { ...fields, tomorrow: normalizeBody(fields.tomorrow) }
-    if (existing) {
-      await e.patch('journal_entries', existing.id, () => ({ ...fields, auto: false }))
-      return
-    }
-    const stats = dayStats(await dayData(), date, now, timeZone)
-    await e.save('journal_entries', { ...emptyEntry(uid, date, false), ...fields, stats, stats_final: date < today })
-  }
-
   // ---------- In-app alerts (SPEC §6) ----------
   async function clearNotification(id: string) {
-    await requireReady().engine.remove('notifications', id)
+    await ready().engine.remove('notifications', id)
   }
   /** Clear all alerts still showing. */
   async function clearNotifications() {
-    const { engine: e, local } = requireReady()
+    const { engine: e, local } = ready()
     await e.removeMany('notifications', live(await local.notifications.toArray()).map((n) => n.id))
   }
   /** Tapping an alert counts it as seen, on every device. */
   async function markNotificationRead(id: string) {
-    await requireReady().engine.patch('notifications', id, (n) => (n.read_at ? {} : { read_at: new Date().toISOString() }))
-  }
-
-  // ---------- Celebrations (SPEC §5 Celebrations) ----------
-  /** Keep a badge, earned now or (quietly) found in my history. Returns false if I already had it. */
-  async function saveBadge(kind: BadgeKind, now = new Date()) {
-    const { engine: e, uid, local } = requireReady()
-    // Until my badges have downloaded, this device can't tell a new badge from one I already have.
-    if (!badgesReady.value) return false
-    if ((await local.badges.where('kind').equals(kind).toArray()).some((b) => !b.deleted_at)) return false
-    await e.save('badges', { id: badgeId(uid, kind), user_id: uid, kind, earned_at: now.toISOString(), deleted_at: null })
-    return true
-  }
-  // ---------- Trophies (SPEC §5 Trophies) ----------
-  /** Record something the app didn't keep before: a finished Focus session, a capture, emptying Orphans. */
-  async function logActivity(kind: ActivityKind, detail: ActivityLogRow['detail'] = {}, now = new Date()) {
-    const { engine: e, uid } = requireReady()
-    await e.save('activity_log', { id: crypto.randomUUID(), user_id: uid, kind, at: now.toISOString(), detail, deleted_at: null })
-  }
-  /** Raise a trophy to a level (never lower), keeping the day each level was earned. Returns whether it rose. */
-  async function saveTrophyLevel(id: TrophyId, level: number, now = new Date()) {
-    const { engine: e, uid, local } = requireReady()
-    if (!badgesReady.value) return false
-    const rowId = trophyRowId(uid, id)
-    const existing = await local.badges.get(rowId)
-    const levels = [...(existing && !existing.deleted_at ? existing.levels ?? [] : [])]
-    if (levels.length >= level) return false
-    while (levels.length < level) levels.push(now.toISOString())
-    await e.save('badges', { id: rowId, user_id: uid, kind: id, earned_at: existing?.earned_at ?? levels[0]!, levels, deleted_at: null })
-    return true
-  }
-  /** Everything on this device that trophies are worked out from. */
-  async function trophyHistory(extra: Pick<TrophyHistory, 'accountCreated' | 'connections' | 'blocks'>): Promise<TrophyHistory> {
-    const { uid, local } = requireReady()
-    return {
-      tasks: await local.tasks.toArray(),
-      habits: await local.habits.toArray(),
-      habitLogs: await local.habit_logs.toArray(),
-      routines: await local.routines.toArray(),
-      routineRuns: await local.routine_runs.toArray(),
-      journalEntries: await local.journal_entries.toArray(),
-      quests: await local.quests.toArray(),
-      questLogs: await local.quest_logs.toArray(),
-      vaultItems: await local.vault_items.toArray(),
-      vaultBuckets: await local.vault_buckets.toArray(),
-      priorityTasks: await local.priority_tasks.toArray(),
-      priorityLogs: await local.priority_task_logs.toArray(),
-      events: await local.events.toArray(),
-      invites: await local.event_invites.toArray(),
-      activity: await local.activity_log.toArray(),
-      userId: uid,
-      ...extra,
-    }
-  }
-  /** An alert the app gives me itself (the next-day congratulations). Same id on every device, so it comes once. */
-  async function addAlert(row: Omit<NotificationRow, 'user_id' | 'deleted_at'>) {
-    const { engine: e, uid, local } = requireReady()
-    if (await local.notifications.get(row.id)) return false
-    await e.save('notifications', { ...row, user_id: uid, deleted_at: null })
-    return true
+    await ready().engine.patch('notifications', id, (n) => (n.read_at ? {} : { read_at: new Date().toISOString() }))
   }
 
   // ---------- Post Its (SPEC §5 Quick capture and Dashboard) ----------
   /** A new Post It goes in front of the others. Returns null when nothing was written. */
   async function addPostIt(html: string, color: PostItColor) {
-    const { engine: e, uid, local } = requireReady()
+    const { engine: e, uid, local } = ready()
     const body = normalizeBody(html)
     if (!body) return null
     const row: PostItRow = { id: crypto.randomUUID(), user_id: uid, body, color, position: frontPosition(await local.post_its.toArray()), deleted_at: null }
@@ -567,228 +285,92 @@ export const useBrainStore = defineStore('brain', () => {
   async function savePostIt(row: PostItRow) {
     const body = normalizeBody(row.body)
     if (!body) return null
-    return requireReady().engine.save('post_its', { ...row, body })
+    return ready().engine.save('post_its', { ...row, body })
   }
   /** Save a row as it is, for screens whose rows need no rules of their own (always as the signed-in user). */
   async function save<T extends SyncTable>(table: T, row: RowTypes[T]) {
-    const { engine: e, uid } = requireReady()
+    const { engine: e, uid } = ready()
     return e.save(table, { ...row, user_id: uid })
   }
   /** Delete a row (soft, so the deletion syncs; Undo can put it back with restore). */
   async function remove(table: SyncTable, id: string) {
-    await requireReady().engine.remove(table, id)
+    await ready().engine.remove(table, id)
   }
 
   /** Put back something just removed (SPEC §2 Undo): deletes are soft, so it comes back with everything it had. */
   async function restore(table: SyncTable, id: string) {
-    await requireReady().engine.patch(table, id, () => ({ deleted_at: null }))
+    await ready().engine.patch(table, id, () => ({ deleted_at: null }))
   }
 
   // ---------- My people (SPEC §5 Calendar) ----------
   /** Saving an event saves everyone I typed to my people (a new name replaces the old one). */
   async function savePeople(typed: PersonToInvite[]) {
-    const { engine: e, uid, local } = requireReady()
+    const { engine: e, uid, local } = ready()
     const { add, rename } = peopleToSave(live(await local.people.toArray()), typed)
     for (const r of rename) await e.patch('people', r.id, () => ({ name: r.name }))
     for (const p of add) await e.save('people', { id: crypto.randomUUID(), user_id: uid, name: p.name ?? null, email: p.email ?? null, phone: p.phone ?? null, deleted_at: null })
   }
 
-  // ---------- The Vault (SPEC §5 The Vault) ----------
-  /** Delete a bucket and the items in it (the caller has already confirmed). */
-  async function deleteBucket(id: string) {
-    const { engine: e, local } = requireReady()
-    await e.removeMany('vault_items', live(await local.vault_items.where('bucket_id').equals(id).toArray()).map((i) => i.id))
-    await e.remove('vault_buckets', id)
-  }
-
-  async function addVaultItem(bucketId: string, title: string) {
-    const { engine: e, uid } = requireReady()
-    const trimmed = title.trim()
-    if (!trimmed) return null
-    // created_at is set here too, so items keep the order they were added in before they reach the server.
-    const saved = await e.save('vault_items', { id: crypto.randomUUID(), user_id: uid, bucket_id: bucketId, title: trimmed, notes: null, rating: null, link: null, checked: false, created_at: new Date().toISOString(), deleted_at: null })
-    achieved({ kind: 'vault' })
-    return saved
-  }
-
-  async function saveVaultItem(row: VaultItemRow) {
-    const { engine: e, uid, local } = requireReady()
-    const isNew = !(await local.vault_items.get(row.id))
-    const saved = await e.save('vault_items', { ...row, user_id: uid })
-    if (isNew) achieved({ kind: 'vault' })
-    return saved
-  }
-
-  async function toggleVaultItem(id: string) {
-    await requireReady().engine.patch('vault_items', id, (fresh) => ({ checked: !fresh.checked }))
-  }
-
-  /** "Clear checked": delete the checked items in a checklist bucket (the caller has already confirmed). */
-  async function clearChecked(bucketId: string) {
-    const { engine: e, local } = requireReady()
-    const cleared = (await local.vault_items.where('bucket_id').equals(bucketId).toArray()).filter((i) => !i.deleted_at && i.checked)
-    await e.removeMany('vault_items', cleared.map((i) => i.id))
-    return cleared.map((i) => i.id)
-  }
-
   // ---------- Events (SPEC §5 Calendar and reminders) ----------
   async function saveEvent(row: EventRow) {
-    const { engine: e, uid } = requireReady()
+    const { engine: e, uid } = ready()
     return e.save('events', { ...row, title: row.title.trim(), user_id: uid })
   }
 
-  // ---------- Availability (SPEC §5 Availability schedule) ----------
-
   /** Fetch the latest from the server for some tables (after a server function changed them). */
   async function refresh(tables: SyncTable[]) {
-    const { engine: e } = requireReady()
+    const { engine: e } = ready()
     await e.flush()
     await e.pull(tables)
   }
 
-  // ---------- Tags (SPEC §5 Global search and tags) ----------
-  /** Set an item's tags by name: new tags are created, dropped ones are taken off the item (the tag itself stays). */
-  async function saveTags(type: TaggedType, itemId: string, names: string[]) {
-    const { engine: e, uid, local } = requireReady()
-    const changes = tagChanges(uid, type, itemId, names, await local.tags.toArray(), await local.item_tags.where('item_id').equals(itemId).toArray())
-    for (const tag of changes.newTags) await e.save('tags', tag)
-    for (const link of changes.add) await e.save('item_tags', link)
-    await e.removeMany('item_tags', changes.remove.map((l) => l.id))
-  }
-
-  // ---------- Tags page (SPEC §5 Tags page): each change hands back its undo ----------
-  /** Move every item from one tag to another and remove the first tag. */
-  async function mergeTags(fromId: string, intoId: string): Promise<() => Promise<void>> {
-    const { engine: e, uid, local } = requireReady()
-    const { add, remove } = moveLinks(uid, fromId, intoId, await local.item_tags.toArray())
-    for (const link of add) await e.save('item_tags', link)
-    await e.removeMany('item_tags', remove.map((l) => l.id))
-    await e.remove('tags', fromId)
-    return async () => {
-      await e.patch('tags', fromId, () => ({ deleted_at: null }))
-      for (const link of remove) await e.patch('item_tags', link.id, () => ({ deleted_at: null }))
-      await e.removeMany('item_tags', add.map((l) => l.id))
-    }
-  }
-  /** Rename a tag everywhere. Returns null when nothing changes, or when another tag has the name (merge instead). */
-  async function renameTag(tag: TagRow, typed: string): Promise<{ undo: () => Promise<void> } | { clash: TagRow } | null> {
-    const { engine: e, uid, local } = requireReady()
-    const outcome = renameOutcome(uid, tag, typed, await local.tags.toArray())
-    if (outcome.kind === 'empty' || outcome.kind === 'unchanged') return null
-    if (outcome.kind === 'clash') return { clash: outcome.other }
-    if (outcome.kind === 'respell') {
-      await e.patch('tags', tag.id, () => ({ name: outcome.name }))
-      return { undo: async () => void (await e.patch('tags', tag.id, () => ({ name: tag.name }))) }
-    }
-    await e.save('tags', outcome.newTag)
-    const undoMove = await mergeTags(tag.id, outcome.newTag.id)
-    return {
-      undo: async () => {
-        await undoMove()
-        await e.remove('tags', outcome.newTag.id)
-      },
-    }
-  }
-  /** Delete a tag: it comes off every item; the items stay. */
-  async function deleteTag(tagId: string): Promise<() => Promise<void>> {
-    const { engine: e, local } = requireReady()
-    const links = (await local.item_tags.toArray()).filter((it) => it.tag_id === tagId && !it.deleted_at)
-    await e.removeMany('item_tags', links.map((l) => l.id))
-    await e.remove('tags', tagId)
-    return async () => {
-      await e.patch('tags', tagId, () => ({ deleted_at: null }))
-      for (const link of links) await e.patch('item_tags', link.id, () => ({ deleted_at: null }))
-    }
-  }
-
-  // ---------- Priority reminders (SPEC §5) ----------
-  /** Slide to complete: a priority habit is completed for the day; a priority task gets today's completion. */
-  async function completePriority(item: DuePriority, now = new Date()) {
-    const { engine: e, uid, local } = requireReady()
-    if (item.kind === 'habit') {
-      const habit = await local.habits.get(item.id)
-      if (habit) await toggleHabit(habit, now)
-      return
-    }
-    await e.save('priority_task_logs', {
-      id: `${item.id.slice(0, 24)}${item.date.replaceAll('-', '')}0000`,
-      user_id: uid,
-      task_id: item.id,
-      date: item.date,
-      completed_at: now.toISOString(),
-      deleted_at: null,
-    })
-  }
-
-  async function snoozePriority(item: DuePriority, now = new Date()) {
-    const { engine: e, uid, local } = requireReady()
-    const existing = (await local.reminder_state.where('item_id').equals(item.id).toArray()).find((s) => s.date === item.date && !s.deleted_at)
-    await e.save('reminder_state', snoozeState(item, existing, uid, now))
-  }
-
-  async function cancelPriority(item: DuePriority, now = new Date()) {
-    const { engine: e, uid, local } = requireReady()
-    const existing = (await local.reminder_state.where('item_id').equals(item.id).toArray()).find((s) => s.date === item.date && !s.deleted_at)
-    await e.save('reminder_state', cancelState(item, existing, uid, now))
-  }
-
   return {
+    // Signed-in state and syncing
     db,
-    saveBadge,
-    addAlert,
-    saveJournalFields,
-    applyDataReset,
-    refresh,
-    deleteBucket,
-    addVaultItem,
-    addPostIt,
-    savePeople,
-    clearNotification,
-    markNotificationRead,
-    clearNotifications,
-    savePostIt,
-    saveVaultItem,
-    toggleVaultItem,
-    clearChecked,
-    saveEvent,
-    saveTags,
-    logActivity,
-    saveTrophyLevel,
-    trophyHistory,
-    mergeTags,
-    renameTag,
-    deleteTag,
-    journalStats,
-    refreshJournal,
-    saveJournalBody,
-    completePriority,
-    snoozePriority,
-    cancelPriority,
-    newRoutine,
-    saveRoutine,
-    deleteRoutine,
-    recordRoutineStep,
-    habitsReady,
-    syncedCount,
-    badgesReady,
-    addHabit,
-    deleteHabit,
-    refreshHabit,
-    toggleHabit,
+    userId,
     status,
     online,
-    userId,
+    habitsReady,
+    badgesReady,
+    syncedCount,
     start,
     stop,
+    applyDataReset,
+    uploadBeforeSignOut,
+    forgetDevice,
+    refresh,
+    // Any row with no rules of its own
+    save,
+    remove,
+    restore,
+    // Capture, tasks and quests
     capture,
-    createBucket,
     convert,
     addTask,
     saveTask,
     finishQuest,
     unfinishQuest,
-    restore,
-    save,
-    remove,
+    // Habits and routines
+    ...habits,
+    ...routines,
+    newRoutine: () => routines.newRoutine(userId.value),
+    // Priority reminders
+    ...priority,
+    // Journal
+    ...journal,
+    // The Vault
+    ...vault,
+    // Tags
+    ...tags,
+    // Celebrations and trophies
+    ...trophies,
+    // Alerts, Post Its, people and events
+    clearNotification,
+    clearNotifications,
+    markNotificationRead,
+    addPostIt,
+    savePostIt,
+    savePeople,
+    saveEvent,
   }
 })

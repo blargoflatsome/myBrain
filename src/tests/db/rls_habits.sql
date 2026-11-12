@@ -1,4 +1,4 @@
--- Database rule checks for habits and shared streaks (SPEC §5 Habits, Profile page, §8). Always rolls back.
+-- Database rule checks for habits (SPEC §5 Habits, §8, §10). Always rolls back.
 -- Run: npm run test:db
 do $$
 declare
@@ -26,9 +26,6 @@ begin
   if n <> 0 then raise exception 'FAIL: Spec §8: a user cannot read someone else''s habits'; end if;
   select count(*) into n from public.habit_logs where user_id = bob;
   if n <> 0 then raise exception 'FAIL: Spec §8: a user cannot read someone else''s habit logs'; end if;
-
-  select count(*) into n from public.shared_streaks() where user_id = bob;
-  if n <> 0 then raise exception 'FAIL: Spec §5 Profile page: streaks are private by default'; end if;
 
   begin
     insert into public.habit_logs (habit_id, date, status, completed_at) values (bob_habit, current_date + 1, 'completed', now());
@@ -61,31 +58,13 @@ begin
   exception when unique_violation then null;
   end;
 
-  -- Bob shares with everyone: Alice sees his public habit's title and streaks, never his private one.
-  execute 'reset role';
-  update public.profiles set streak_visibility = 'everyone' where user_id = bob;
-  execute 'set local role authenticated';
-  perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-
-  select count(*) into n from public.shared_streaks() where user_id = bob and title = 'Bob runs' and best_streak = 9;
-  if n <> 1 then raise exception 'FAIL: Spec §5 Profile page: shared streaks show habit title and streak numbers'; end if;
-  select count(*) into n from public.shared_streaks() where user_id = bob and title = 'Bob meds';
-  if n <> 0 then raise exception 'FAIL: Spec §5 Habits: a private habit never appears to other users'; end if;
-
-  -- "People I approve" shares nothing until Phase 2 approvals exist.
-  execute 'reset role';
-  update public.profiles set streak_visibility = 'approved' where user_id = bob;
-  execute 'set local role authenticated';
-  perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  select count(*) into n from public.shared_streaks() where user_id = bob;
-  if n <> 0 then raise exception 'FAIL: Spec §5 Profile page: approved-only streaks are not visible without approval'; end if;
-
-  execute 'reset role';
+  -- Nobody sees another user's streaks unless both agreed to connect: no "Everyone" choice, no shared list.
+  select count(*) into n from pg_proc where proname = 'shared_streaks' and pronamespace = 'public'::regnamespace;
+  if n <> 0 then raise exception 'FAIL: Spec §10: there is no list of streaks shared with every user'; end if;
   begin
-    execute 'set local role anon';
-    perform 1 from public.shared_streaks();
-    raise exception 'FAIL: Spec §8: signed-out visitors cannot read shared streaks';
-  exception when insufficient_privilege then null;
+    update public.profiles set streak_visibility = 'everyone' where user_id = alice;
+    raise exception 'FAIL: Spec §5 Account page: "Everyone" is not a visibility choice';
+  exception when check_violation then null;
   end;
 
   raise exception 'PASS: all habit rule checks passed (test data rolled back)';

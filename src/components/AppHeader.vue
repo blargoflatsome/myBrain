@@ -27,14 +27,13 @@
 <script setup lang="ts">
 // SPEC §2 Navigation, Header: Account (my picture or a person icon), Focus timer, alerts bell and sync status, on every signed-in page. Phones also get My Brain and Search here; wide screens have those in the
 // side menu.
-import { ref, watch } from 'vue'
+import { useProfileStore } from '@/stores/profile'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppIcon from '@/components/AppIcon.vue'
 import AlertsBell from '@/notifications/components/AlertsBell.vue'
 import SyncIndicator from '@/components/SyncIndicator.vue'
-import { useAuthStore } from '@/stores/auth'
 import { useSearchStore } from '@/stores/search'
-import { supabase } from '@/lib/supabase'
 import { messages } from '@/messages'
 
 defineProps<{ wide: boolean }>()
@@ -42,21 +41,11 @@ const emit = defineEmits<{ focus: [] }>()
 
 // 44 px, or 40 px under 360 px wide so everything fits on one line at 320 px (SPEC §2 Header).
 const iconButton = 'flex size-10 min-[360px]:size-11 shrink-0 items-center justify-center rounded-xl border border-line'
-const auth = useAuthStore()
 const searchWindow = useSearchStore()
 
 // The profile picture; when there is none, or it can't load (offline, removed), the plain person icon shows.
-const avatarUrl = ref<string | null>(null)
+const profile = useProfileStore()
+const avatarUrl = computed(() => profile.shown?.avatar_url ?? null)
 const avatarFailed = ref(false)
-watch(
-  () => auth.user?.id,
-  async (id) => {
-    avatarUrl.value = null
-    avatarFailed.value = false
-    if (!id) return
-    const { data } = await supabase.from('profiles').select('avatar_url').eq('user_id', id).maybeSingle()
-    if (auth.user?.id === id) avatarUrl.value = data?.avatar_url ?? null
-  },
-  { immediate: true },
-)
+watch(avatarUrl, () => (avatarFailed.value = false))
 </script>

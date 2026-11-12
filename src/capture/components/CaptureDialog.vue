@@ -19,15 +19,15 @@
 <script setup lang="ts">
 // SPEC §5 Quick capture: the Capture window, over the current page. Full screen on a phone, centred on wider screens.
 import CloseX from '@/components/CloseX.vue'
-import { defineAsyncComponent, nextTick, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { defineAsyncComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
+import { START_LOCATION, useRouter } from 'vue-router'
 import { useCaptureStore } from '@/stores/capture'
 import { messages } from '@/messages'
 
 // The form loads when the window first opens, so it isn't part of the app's first download.
 const CaptureForm = defineAsyncComponent(() => import('@/capture/components/CaptureForm.vue'))
 const capture = useCaptureStore()
-const route = useRoute()
+const router = useRouter()
 const dialog = ref<HTMLDialogElement | null>(null)
 
 watch(
@@ -38,6 +38,9 @@ watch(
     if (!open && dialog.value?.open) dialog.value.close()
   },
 )
-// Moving to another page closes it.
-watch(() => route.fullPath, () => capture.close())
+// Moving to another page closes it. The app's first navigation doesn't count: the Capture button can be tapped
+// while the first page is still loading, and that must not close the window it just opened.
+onScopeDispose(router.afterEach((to, from) => {
+  if (from !== START_LOCATION && to.fullPath !== from.fullPath) capture.close()
+}))
 </script>
