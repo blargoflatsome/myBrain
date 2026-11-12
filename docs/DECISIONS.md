@@ -199,3 +199,7 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 
 ## 2026-11-12 Dashboard stats trimmed
 - User: the long-run stats felt redundant next to Trophies and were mostly noise. Removed the More stats section (habit list, Needs some love, oldest habit, journal streaks, events, tasks, routines, quests), the Longest current streak and Best streak ever cards, and the period dropdown (it only applied to those). Kept Post Its, yesterday, Days since your worst day, favorite buckets and Trophies. `journalStreaks` stays for the Journal streak trophy. Next: guidance on what to do next (to be agreed).
+
+## 2026-11-12 Dashboard guidance
+- User chose Up next (one suggestion at a time), close to a trophy, keep it going and yesterday's leftovers, with Claude's picks for the details: keep it going is Up next's wording for a habit on a 3+ day run (no separate line); priority items come first even though they have their own reminder; the journal suggestion starts at the journal reminder time, or 7 pm without one; the trophy line needs 75% of the way to the next level; "soon" means 2 hours.
+- Claude's calls: a stuck task (carried over 3+ times) offers Today, Undated or Cancel task; skipped suggestions are kept per device until tomorrow; missed habits aren't listed as leftovers, since a missed day can't be fixed.

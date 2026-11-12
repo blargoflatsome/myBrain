@@ -5,9 +5,11 @@
       <p class="text-muted">{{ m.intro }}</p>
     </div>
 
-    <!-- The top row (SPEC §5 Dashboard): Post Its first; on a wide screen, how yesterday went sits to their left. -->
+    <!-- The top row (SPEC §5 Dashboard): Post Its, Up next, then yesterday; on a wide screen with Post Its, yesterday sits to
+         their left and Up next goes under them, full width. -->
     <div class="flex flex-col gap-5 xl:has-[[data-testid=dash-postits]]:grid xl:has-[[data-testid=dash-postits]]:grid-cols-[minmax(0,1fr)_32rem] xl:has-[[data-testid=dash-postits]]:items-start" data-testid="dash-top">
       <PostItBoard />
+      <UpNextCard />
       <!-- Yesterday (SPEC §5 Dashboard). Not affected by the period. -->
       <section v-if="stats" :class="[card, 'xl:order-first']" data-testid="dash-yesterday" aria-labelledby="dash-yesterday-heading">
         <h2 id="dash-yesterday-heading" class="text-lg font-semibold">{{ m.yesterdayHeading }}</h2>
@@ -45,6 +47,19 @@
             </li>
           </ul>
         </template>
+        <!-- Yesterday's leftovers (SPEC §5 Dashboard): tasks due yesterday still open, with Undated and Let it go. -->
+        <div v-if="stats.leftovers.length" class="flex flex-col gap-2" data-testid="dash-leftovers">
+          <h3 class="text-sm font-semibold">{{ m.leftoversHeading }}</h3>
+          <ul class="flex flex-col gap-2">
+            <li v-for="task in stats.leftovers" :key="task.id" class="flex flex-wrap items-center justify-between gap-2" data-testid="dash-leftover">
+              <span class="min-w-0 break-words">{{ task.title }}</span>
+              <span class="flex shrink-0 gap-2">
+                <button type="button" :class="smallButton" :aria-label="m.leftoverUndated(task.title)" @click="leftoverUndated(task)">{{ m.undated }}</button>
+                <button type="button" :class="smallButton" :aria-label="m.leftoverLetGo(task.title)" @click="leftoverLetGo(task)">{{ m.letGo }}</button>
+              </span>
+            </li>
+          </ul>
+        </div>
         <ul v-if="yesterdayTrophies.length" class="flex flex-wrap gap-2 text-sm" :aria-label="t.yesterday">
           <li v-for="item in yesterdayTrophies" :key="item.id" class="flex items-center gap-1 rounded-full border border-line px-3 py-1" data-testid="dash-yesterday-trophy">
             <AppIcon name="trophy" class="text-done" />{{ trophyName(item) }}
@@ -103,10 +118,14 @@ import PostItBoard from '@/postits/components/PostItBoard.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
-import { daysSinceWorstDay, favoriteBuckets, yesterdaySummary } from '@/dashboard/stats'
+import { daysSinceWorstDay, favoriteBuckets, yesterdayLeftovers, yesterdaySummary } from '@/dashboard/stats'
+import UpNextCard from '@/dashboard/components/UpNextCard.vue'
+import { cancelTask, moveTask } from '@/tasks/rules'
+import { useUndoStore } from '@/stores/undo'
+import type { TaskRow } from '@/sync/types'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
-import { bigNumber, card, smallNumber } from '@/ui/styles'
+import { bigNumber, card, smallButton, smallNumber } from '@/ui/styles'
 import TrophiesSection from '@/trophies/components/TrophiesSection.vue'
 import { useTrophyBoard } from '@/trophies/useTrophyBoard'
 import { earnedOn, trophyName } from '@/trophies/board'
@@ -137,6 +156,7 @@ const stats = useLiveQuery(
     })
     return {
       yesterday: yesterdaySummary(dayStats(day, addDays(today.value, -1), now.value, timeZone.value)),
+      leftovers: yesterdayLeftovers(day.tasks, today.value),
       worstDay: daysSinceWorstDay(journal, today.value),
       favorites: favoriteBuckets(buckets, vaultItems),
     }
@@ -146,4 +166,15 @@ const stats = useLiveQuery(
 )
 
 
+
+// Yesterday's leftovers (SPEC §5 Dashboard): Undated or Let it go (cancel), each with Undo.
+const undo = useUndoStore()
+async function leftoverUndated(task: TaskRow) {
+  await brain.saveTask(moveTask(task, null))
+  undo.offer(messages.undo.movedUndated(task.title), () => brain.saveTask(task))
+}
+async function leftoverLetGo(task: TaskRow) {
+  await brain.saveTask(cancelTask(task))
+  undo.offer(messages.undo.cancelled(task.title), () => brain.saveTask(task))
+}
 </script>

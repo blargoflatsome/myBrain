@@ -87,3 +87,17 @@ export function trophyName(item: BoardItem): string {
   if (item.hidden) return cm.trophies.hidden
   return item.category === 'firsts' ? cm.badges[item.id as keyof typeof cm.badges] : (cm.trophies.names[item.id] ?? item.id)
 }
+
+/** "Close to a trophy" needs this much of the way to the next level (SPEC §5 Dashboard). */
+export const CLOSE_TO = 0.75
+
+/**
+ * SPEC §5 Dashboard: the trophy nearest its next level, when it's at least 75% of the way there. Surprises never
+ * show. Nearest means the biggest share done, then the fewest left.
+ */
+export function closestTrophy(items: BoardItem[]): BoardItem | null {
+  const hidden = new Set(TROPHIES.filter((t) => t.hidden).map((t) => t.id))
+  const close = items.filter((i) => !hidden.has(i.id) && i.value !== null && i.next !== null && i.value < i.next && i.value / i.next >= CLOSE_TO)
+  const share = (i: BoardItem) => i.value! / i.next!
+  return close.sort((a, b) => share(b) - share(a) || a.next! - a.value! - (b.next! - b.value!))[0] ?? null
+}

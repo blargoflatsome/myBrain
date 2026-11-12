@@ -121,3 +121,14 @@ test.describe('SPEC §5 Trophies: earning them', () => {
     await expect.poll(() => server.written('badges').find((b) => b.kind === 'tasks_completed')?.levels).toHaveLength(1)
   })
 })
+
+test.describe('SPEC §5 Dashboard: close to a trophy', () => {
+  test('the trophy nearest its next level shows at the top of Trophies and opens it', async ({ page }) => {
+    server.seed('tasks', doneTasks(8)) // 8 of 10 tasks made and completed; ties go to the first in the list
+    await open(page)
+    const line = page.getByTestId('dash-trophy-close')
+    await expect(line).toHaveText(t.closeTo(2, 'count', `${t.names.tasks_created} ${t.tiers.bronze}`))
+    await line.click()
+    await expect(page.getByTestId('trophy-details')).toBeVisible()
+  })
+})

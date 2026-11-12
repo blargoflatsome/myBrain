@@ -17,6 +17,8 @@ export const messages = {
     removed: (name: string) => `Removed ${name}`,
     movedTomorrow: (title: string) => `Moved "${title}" to tomorrow`,
     movedUndated: (title: string) => `Moved "${title}" to Undated`,
+    movedToday: (title: string) => `Moved "${title}" to today`,
+    cancelled: (title: string) => `Cancelled "${title}"`,
     clearedTasks: (n: number) => (n === 1 ? 'Cleared 1 crossed-off task' : `Cleared ${n} crossed-off tasks`),
     clearedChecked: (n: number) => (n === 1 ? 'Cleared 1 checked item' : `Cleared ${n} checked items`),
     questDone: (title: string) => `Marked "${title}" done`,
@@ -964,6 +966,9 @@ export const messages = {
         healthy_brain: 'You reached a week on every streak trophy.',
         anniversary: 'You kept using My Brain.',
       } as Record<string, string>,
+      /** SPEC §5 Dashboard: the trophy nearest its next level. */
+      closeTo: (left: number, unit: 'days' | 'count' | 'hours' | 'words' | 'times', name: string) =>
+        unit === 'count' ? `${left.toLocaleString()} more for ${name}` : `${left.toLocaleString()} more ${left === 1 ? unit.slice(0, -1) : unit} for ${name}`,
       progress: (value: number, target: number, unit: 'days' | 'count' | 'hours' | 'words' | 'times') => {
         const of = `${value.toLocaleString()} of ${target.toLocaleString()}`
         return unit === 'count' ? of : `${of} ${unit}`
@@ -1037,6 +1042,40 @@ export const messages = {
     keyHeading: 'At a glance',
     worstDay: 'Days since your worst day',
     favoritesHeading: 'Favorite buckets',
+    /** SPEC §5 Dashboard: tasks due yesterday that are still open. */
+    leftoversHeading: 'Still open from yesterday',
+    leftoverUndated: (title: string) => `Move ${title} to Undated`,
+    leftoverLetGo: (title: string) => `Let ${title} go`,
+    undated: 'Undated',
+    letGo: 'Let it go',
+    /** SPEC §5 Dashboard Up next: one suggestion at a time. */
+    upNext: {
+      heading: 'Up next',
+      doIt: 'Do it',
+      somethingElse: 'Something else',
+      priority: 'A priority for today',
+      dueBy: (time: string) => `Due by ${time}`,
+      keepGoing: (days: number, time: string) => `On a ${days}-day run. Today keeps it going. Due by ${time}`,
+      routine: 'Time for this routine',
+      routineStarted: 'Pick up where you left off',
+      startRoutine: 'Start',
+      carryOn: 'Carry on',
+      event: (time: string) => `Starts at ${time}`,
+      openEvent: 'Open event',
+      stuck: (times: number) => `Carried over ${times} times. Still want this?`,
+      today: 'Today',
+      task: "Next on today's list",
+      orphansTitle: (n: number) => (n === 1 ? '1 thought waiting for a home' : `${n} thoughts waiting for a home`),
+      orphans: 'Orphans',
+      sortThem: 'Sort them',
+      journalTitle: "Tonight's journal",
+      journal: 'How did today go?',
+      write: 'Write',
+      doneTitle: 'Past you cleared the decks.',
+      pickQuest: 'Pick a quest',
+      allSkippedTitle: 'Nothing else for now.',
+      showSkipped: 'Show skipped',
+    },
   },
   vault: {
     heading: 'The Vault',

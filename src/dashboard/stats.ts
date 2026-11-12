@@ -1,6 +1,6 @@
-// Dashboard stats (SPEC §5 Dashboard): yesterday's summary, days since your worst day and favorite buckets.
+// Dashboard stats (SPEC §5 Dashboard): yesterday's summary and leftovers, days since your worst day and favorite buckets.
 // journalStreaks is also used by Trophies.
-import type { JournalEntryRow, JournalStats, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import type { JournalEntryRow, JournalStats, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { addDays, daysBetween } from '@/tasks/days'
 import { live } from '@/sync/live'
 
@@ -83,4 +83,12 @@ export function yesterdaySummary(stats: JournalStats): YesterdaySummary {
     quests: [...stats.quests],
     empty: !stats.habits.scheduled && !stats.tasks.due && !list.length && !stats.quests.length,
   }
+}
+
+/** Yesterday's leftovers (SPEC §5 Dashboard): tasks due yesterday that are still open, in the Tasks page order. */
+export function yesterdayLeftovers(tasks: TaskRow[], today: string): TaskRow[] {
+  const yesterday = addDays(today, -1)
+  return live(tasks)
+    .filter((t) => t.status === 'open' && t.due_date === yesterday)
+    .sort((a, b) => (b.priority ?? 1) - (a.priority ?? 1) || (a.created_at ?? '').localeCompare(b.created_at ?? ''))
 }
