@@ -90,7 +90,7 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - UI review (consistency, flows, ADHD fit, new feature ideas): given in chat, not yet written into the spec.
 
 ## Celebrations test clock (branch `fix-celebrate-clock`)
-- CI failed on every branch when it ran between 4 and 7 am UTC: two celebrations unit tests used the real clock and device timezone, so finishing a task earned Early bird too. Those test groups now run at a fixed midday in UTC (`src/tests/unit/celebrate/celebrate.test.ts`). Vitest 375 passes in UTC, Los Angeles and Auckland. No app change.
+- CI failed on every branch when it ran between 4 and 7 am UTC: two celebrations unit tests used the real clock and device timezone, so finishing a task earned Early bird too; and one test group kept localStorage between tests, so a leftover "trophies worked out" flag made catch-up announce a trophy instead of adding it quietly. Those test groups now run at a fixed midday in UTC and start each test with empty storage (`src/tests/unit/celebrate/celebrate.test.ts`). Vitest 375 passes in UTC, Los Angeles and Auckland. No app change.
 - UI review written as proposed spec changes in [docs/UI_REVIEW_TASKS.md](docs/UI_REVIEW_TASKS.md) (not in SPEC yet; user's choices filled in).
 
 ## Rules without a test yet

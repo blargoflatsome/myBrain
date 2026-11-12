@@ -124,6 +124,8 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-12T12:00:00Z') })
     setActivePinia(createPinia())
     remote = new FakeRemote()
+    // Each test is a fresh device: nothing remembered from the last one (like whether trophies were worked out).
+    localStorage.clear()
   })
   afterEach(async () => {
     vi.useRealTimers()
