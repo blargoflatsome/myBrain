@@ -230,3 +230,7 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 ## 2026-11-12 SEO and link previews
 - User approved Claude's audit proposal: one link preview for every link (name, one line, a picture), real 404s with a Page not found page, a canonical link and a one-page sitemap for the sign-in page, and browser colours matching the calm palette.
 - Claude's calls: previews are the same for every link so they never reveal an event or inviter to preview services; per-link-type previews (an Edge Function) wait until this has been live a while; no structured data or server rendering (one indexed page). The site address comes from Netlify's `URL` at build time, falling back to the live address for local builds.
+
+## 2026-11-12 Connection pushes; Alexa dropped
+- User: Alexa/voice is dropped from the Phase 2 plan.
+- User: build the push for connection requests (SPEC §5 Connections already said they get one). Claude's calls: acceptances are pushed too (SPEC §6 lists both as notifications); pushes wait during quiet hours like reminders, since a request isn't urgent; one already seen in the app, or more than a day old, isn't pushed; alerts from before the change are never pushed. Sent by a new every-minute job (`send_connection_pushes`) from the existing alert, so the request functions didn't change.
