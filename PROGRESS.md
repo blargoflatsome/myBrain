@@ -89,6 +89,9 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - Dev and prod migrated (second prod push confirms up to date); `npm run test:db` passes (29 files, new `rls_identity.sql`); `npm run test:flows` passes. Full review (2026-11-11): Vitest 375, Playwright 696/700; the 4 failures passed alone (two are the date-box race above, in `priority.spec.ts` and `shared-events.spec.ts` availability; the iPhone Dashboard habit-stats and dark a11y calendar-window flakes).
 - UI review (consistency, flows, ADHD fit, new feature ideas): given in chat, not yet written into the spec.
 
+## Date box race fixed (branch `fix-date-race`)
+- A full date (YYYY-MM-DD) typed or pasted is used at once, before the typed-date reader loads (`time/isoDate.ts`, `DateInput.vue`), so a quick Save never loses it (SPEC §5 Date fields; DECISIONS 2026-11-11). Test `src/tests/unit/time/date-input.test.ts`. The two flaky date tests passed 30/30 under load. No migration. Full review (2026-11-11): Vitest 376, Playwright 700/700, no failures.
+
 ## Celebrations test clock (branch `fix-celebrate-clock`)
 - CI failed on every branch when it ran between 4 and 7 am UTC: two celebrations unit tests used the real clock and device timezone, so finishing a task earned Early bird too; and one test group kept localStorage between tests, so a leftover "trophies worked out" flag made catch-up announce a trophy instead of adding it quietly. Those test groups now run at a fixed midday in UTC and start each test with empty storage (`src/tests/unit/celebrate/celebrate.test.ts`). Vitest 375 passes in UTC, Los Angeles and Auckland. No app change.
 - UI review written as proposed spec changes in [docs/UI_REVIEW_TASKS.md](docs/UI_REVIEW_TASKS.md) (not in SPEC yet; user's choices filled in).
