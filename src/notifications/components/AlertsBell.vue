@@ -14,7 +14,7 @@
 
   <dialog ref="dialog" :class="dialogBox" :aria-label="m.heading" data-testid="alerts-list" @close="listOpen = false">
     <div v-if="listOpen" class="flex max-h-[85dvh] flex-col gap-3 p-5">
-      <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center justify-between gap-3 pr-12">
         <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
         <button v-if="alerts.length" type="button" class="min-h-11 rounded-xl border border-line px-3 text-sm" @click="clearAll">{{ m.clearAll }}</button>
       </div>
