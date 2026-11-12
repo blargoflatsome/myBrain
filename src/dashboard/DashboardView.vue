@@ -9,7 +9,7 @@
          phone; on top without them), then Up next and yesterday. -->
     <div class="flex flex-col gap-5 sm:flex-row sm:items-start" data-testid="dash-top">
       <div class="min-w-0 empty:hidden sm:flex-1"><PostItBoard /></div>
-      <WorstDayPad v-if="stats" :days="stats.worstDay" class="sm:order-first sm:mx-0" />
+      <WorstDayBoard v-if="stats" :days="stats.worstDay" class="sm:order-first sm:mx-0" />
     </div>
     <UpNextCard />
     <!-- Yesterday (SPEC §5 Dashboard). -->
@@ -111,7 +111,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { daysSinceWorstDay, favoriteBuckets, yesterdayLeftovers, yesterdaySummary } from '@/dashboard/stats'
 import UpNextCard from '@/dashboard/components/UpNextCard.vue'
-import WorstDayPad from '@/dashboard/components/WorstDayPad.vue'
+import WorstDayBoard from '@/dashboard/components/WorstDayBoard.vue'
 import { cancelTask, moveTask } from '@/tasks/rules'
 import { useUndoStore } from '@/stores/undo'
 import type { TaskRow } from '@/sync/types'
