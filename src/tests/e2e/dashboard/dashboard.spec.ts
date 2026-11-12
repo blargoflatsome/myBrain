@@ -82,7 +82,10 @@ test.describe('Spec §5 Dashboard', () => {
     const p = (await pad.boundingBox())!
     const n = (await notes.boundingBox())!
     expect(p.x + p.width).toBeLessThanOrEqual(n.x)
-    expect(Math.abs(p.y - n.y)).toBeLessThan(40)
+    // Side by side on the one chalkboard: the count is level with the Post Its.
+    expect(p.y + p.height / 2).toBeGreaterThan(n.y)
+    expect(p.y + p.height / 2).toBeLessThan(n.y + n.height)
+    await expect(page.getByTestId('dash-top').getByTestId('dash-postits')).toBeVisible()
 
     await page.setViewportSize({ width: 390, height: 900 })
     await expect.poll(async () => (await notes.boundingBox())!.y >= (await pad.boundingBox())!.y + (await pad.boundingBox())!.height - 1).toBe(true)
