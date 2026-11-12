@@ -119,10 +119,15 @@ describe('Spec §5 Celebrations: comeback', () => {
 describe('Spec §5 Celebrations: what happens when I finish something', () => {
   let remote: FakeRemote
   beforeEach(() => {
+    // A fixed midday clock in UTC: the time of day decides trophies like Early bird (4 to 7 am).
+    vi.stubEnv('TZ', TZ)
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-12T12:00:00Z') })
     setActivePinia(createPinia())
     remote = new FakeRemote()
   })
   afterEach(async () => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
     const brain = useBrainStore()
     const db = brain.db
     brain.stop()
@@ -208,11 +213,16 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
 describe('SPEC §5 Trophies: earning levels', () => {
   let remote: FakeRemote
   beforeEach(() => {
+    // A fixed midday clock in UTC: the time of day decides trophies like Early bird (4 to 7 am).
+    vi.stubEnv('TZ', TZ)
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-12T12:00:00Z') })
     setActivePinia(createPinia())
     remote = new FakeRemote()
     localStorage.clear()
   })
   afterEach(async () => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
     const brain = useBrainStore()
     const db = brain.db
     brain.stop()
