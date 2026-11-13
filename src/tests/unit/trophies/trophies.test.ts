@@ -13,7 +13,7 @@ const empty = (): TrophyHistory => ({
   tasks: [], habits: [], habitLogs: [], routines: [], routineRuns: [], journalEntries: [], quests: [], questLogs: [], vaultItems: [],
   vaultBuckets: [], priorityTasks: [], priorityLogs: [], events: [], invites: [], activity: [], userId: U, accountCreated: null, connections: null, blocks: null,
 })
-const habit = (id: string, extra: Partial<HabitRow> = {}): HabitRow => ({ id, title: id, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-10-01', is_private: false, deleted_at: null, ...extra })
+const habit = (id: string, extra: Partial<HabitRow> = {}): HabitRow => ({ id, title: id, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-10-01', deleted_at: null, ...extra })
 const done = (habitId: string, date: string) => ({ id: `${habitId}-${date}`, habit_id: habitId, date, status: 'completed' as const, completed_at: `${date}T15:00:00Z`, deleted_at: null })
 const task = (id: string, extra: Partial<TaskRow> = {}): TaskRow => ({ id, title: id, due_date: '2026-11-10', status: 'open', source: 'manual', deleted_at: null, ...extra })
 const entry = (date: string, extra: Partial<JournalEntryRow> = {}): JournalEntryRow => ({ id: date, date, body: '<p>words here</p>', deleted_at: null, ...extra }) as JournalEntryRow

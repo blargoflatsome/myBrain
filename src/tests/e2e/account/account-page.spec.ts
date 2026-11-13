@@ -43,7 +43,7 @@ test.describe('Spec §5 Account page', () => {
     await dialog.getByLabel(msg.deleteData.typeLabel).fill('delete')
     await expect(confirm).toBeEnabled()
     await confirm.click()
-    await expect(page).toHaveURL(/\/sign-in/)
+    await expect(page).toHaveURL(/\/\?deleted=1$/)
     await expect(page.getByRole('status')).toHaveText(msg.signIn.deleted)
     // Nothing else is changed: the only other calls are reads (which saved people use My Brain, trophy counts).
     expect(server.rpcCalls.filter((c) => !READS.includes(c))).toEqual(['delete_my_account'])

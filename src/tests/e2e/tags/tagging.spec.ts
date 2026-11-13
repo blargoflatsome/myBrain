@@ -23,7 +23,7 @@ test.beforeEach(async ({ page }) => {
 test.describe('Spec §5 Tags: only on tasks, habits and routines', () => {
 
   test('a habit’s tag is saved, and search finds habits', async ({ page }) => {
-    server.seed('habits', [{ id: 'h1', title: 'Take out recycling', notify_time: null, timer_minutes: null, weekdays: [4], start_date: '2026-11-01', is_private: false, current_streak: 0, best_streak: 0 }])
+    server.seed('habits', [{ id: 'h1', title: 'Take out recycling', notify_time: null, timer_minutes: null, weekdays: [4], start_date: '2026-11-01', current_streak: 0, best_streak: 0 }])
     await open(page, '/habits')
     await page.getByRole('button', { name: /Take out recycling/ }).first().click()
     const dialog = page.getByRole('dialog', { name: msg.habits.editor.heading })

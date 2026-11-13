@@ -14,6 +14,10 @@
   to = "/index.html"
   status = 200
 [[redirects]]
+  from = "/help"
+  to = "/index.html"
+  status = 200
+[[redirects]]
   from = "/tasks"
   to = "/index.html"
   status = 200

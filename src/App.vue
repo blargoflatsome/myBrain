@@ -189,7 +189,10 @@ const inboxCount = useLiveQuery(
   [() => brain.db],
 )
 
-const showChrome = computed(() => !route.meta.public)
+// The signed-out home page (SPEC §5 Home page) has its own top bar, like the other public pages.
+// Nothing until the first page is worked out (route.matched is empty before that): a tap on the header in that gap
+// (Search, say) would be undone when the router's first navigation lands.
+const showChrome = computed(() => route.matched.length > 0 && !route.meta.public && !(route.meta.landing && !auth.isSignedIn))
 
 // SPEC §5 Focus timer: starts (or reopens) the full-screen timer.
 const focus = useFocusStore()

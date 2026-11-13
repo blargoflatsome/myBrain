@@ -132,7 +132,7 @@ test.describe('Spec §10 Connections part 4: the guest page, signed out', () => 
     await page.getByRole('button', { name: msg.guest.yes }).click()
     await expect(prompt).toBeVisible()
     await prompt.getByRole('button', { name: msg.guest.signUpButton }).click()
-    await expect(page).toHaveURL(/\/sign-in$/)
+    await expect(page).toHaveURL(/\/$/)
     expect(await page.evaluate(() => sessionStorage.getItem('my-brain:after-sign-in'))).toBe('/rsvp/inv-carol/tok-carol')
   })
 })

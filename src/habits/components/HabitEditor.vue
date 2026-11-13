@@ -18,7 +18,6 @@
       v-model:notify-time="notifyTime"
       v-model:timer="timer"
       v-model:is-priority="isPriority"
-      v-model:is-private="isPrivate"
       :min-start="earliestStart"
       :field-class="field"
       :reminders-open="remindersOpen"
@@ -43,7 +42,7 @@
 import EditorDialog from '@/components/EditorDialog.vue'
 import TitleField from '@/components/TitleField.vue'
 import HabitFields from '@/habits/components/HabitFields.vue'
-// New or edit habit: title, reminder time, timer, weekdays, private (SPEC §5 Habits). Delete asks first (SPEC §2).
+// New or edit habit: title, reminder time, timer, weekdays (SPEC §5 Habits). Delete asks first (SPEC §2).
 import { computed, ref, watch } from 'vue'
 import type { HabitRow } from '@/sync/types'
 import { ALL_WEEKDAYS } from '@/habits/rules'
@@ -67,7 +66,6 @@ const weekInterval = ref(1)
 const monthly = ref(false)
 const startDate = ref('')
 const tags = useItemTags('habit', computed(() => props.habit?.id))
-const isPrivate = ref(false)
 const isPriority = ref(false)
 // Reminders opens by itself when the habit has a reminder time or is a priority, so nothing set is hidden.
 const remindersOpen = ref(false)
@@ -83,7 +81,6 @@ watch(
     weekInterval.value = h.week_interval ?? 1
     monthly.value = !!h.monthly
     startDate.value = h.start_date
-    isPrivate.value = h.is_private
     isPriority.value = !!h.is_priority
     remindersOpen.value = !!h.notify_time || !!h.is_priority
   },
@@ -108,7 +105,6 @@ function save() {
     week_interval: weekInterval.value,
     monthly: monthly.value,
     start_date: startDate.value || props.habit.start_date,
-    is_private: isPrivate.value,
     is_priority: isPriority.value,
   })
 }

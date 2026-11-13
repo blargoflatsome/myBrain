@@ -121,6 +121,12 @@ export class LocalDb extends Dexie {
     this.version(14).stores({
       habit_pauses: 'id, updated_at',
     })
+    // Private habits were removed and the server dropped habits.is_private (2026-11-12): take it off this device's
+    // copies and waiting uploads, or an upload would name a column that no longer exists and be refused every time.
+    this.version(15).stores({}).upgrade(async (tx) => {
+      await tx.table('habits').toCollection().modify((row: Record<string, unknown>) => void delete row.is_private)
+      await tx.table('outbox').where('table').equals('habits').modify((entry: { row: Record<string, unknown> }) => void delete entry.row.is_private)
+    })
   }
 
   rows<T extends SyncTable>(table: T): Table<RowTypes[T], string> {

@@ -5,6 +5,15 @@
       <h1 class="text-2xl font-bold">{{ displayName || m.heading }}</h1>
     </div>
 
+    <!-- SPEC §5 Help: linked from here as well as from More. -->
+    <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" aria-labelledby="account-help" data-testid="account-help">
+      <span class="min-w-0">
+        <h2 id="account-help" class="font-semibold">{{ g.helpTitle }}</h2>
+        <span class="block text-sm text-muted">{{ g.helpHint }}</span>
+      </span>
+      <RouterLink to="/help" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openHelp }}</RouterLink>
+    </section>
+
     <AccountGroup id="profile" :title="m.settingsHeading" :summary="g.profile">
       <section data-testid="profile-settings" :aria-label="m.settingsHeading">
         <form v-if="loaded" class="flex flex-col gap-4" @submit.prevent="save">

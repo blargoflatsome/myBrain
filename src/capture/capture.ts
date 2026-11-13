@@ -42,7 +42,6 @@ export interface CaptureInput {
     startDate?: string | null
     notifyTime: string | null
     timerMinutes: number | null
-    isPrivate: boolean
     isPriority: boolean
   }
 }
@@ -129,7 +128,6 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
           notify_time: h?.notifyTime || null,
           // A timer needs a reminder time (SPEC §5 Habits).
           timer_minutes: h?.notifyTime && h.timerMinutes ? h.timerMinutes : null,
-          is_private: !!h?.isPrivate,
           is_priority: !!h?.isPriority,
         },
       }

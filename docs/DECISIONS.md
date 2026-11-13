@@ -234,3 +234,12 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 ## 2026-11-12 Connection pushes; Alexa dropped
 - User: Alexa/voice is dropped from the Phase 2 plan.
 - User: build the push for connection requests (SPEC §5 Connections already said they get one). Claude's calls: acceptances are pushed too (SPEC §6 lists both as notifications); pushes wait during quiet hours like reminders, since a request isn't urgent; one already seen in the app, or more than a day old, isn't pushed; alerts from before the change are never pushed. Sent by a new every-minute job (`send_connection_pushes`) from the existing alert, so the request functions didn't change.
+
+## 2026-11-12 Home page and Help
+- User: the app is feature complete apart from nice-to-haves, integrations and email, so the dropped Features and Docs pages come back as a signed-out marketing home page at `/` and a Help page for signed-in users, written for ADHD attention spans with pictures and short, direct text.
+- User's choices: two buttons (Sign in at the top, Create a free account with Google in the hero and at the end; both are Google sign-in); Help at `/help` under More and linked from Account; screenshots in dark mode only; Help and the home page are updated during the merge step, so they describe finished work.
+- Claude's calls: `/sign-in` goes to `/`; the home page replaces sign-in as the one indexed page; pictures are made by a script (`npm run docs:images`) from the browser tests' sample data, with a highlight ring around what to tap.
+
+## 2026-11-12 Private habits removed
+- User: private habits go, since no habits are shown on profiles or anywhere else to other people. The Private checkbox (habit editor, Capture, Orphans) and the Private badge on the Habits page are removed.
+- User: drop the `is_private` column too, since the user's own devices are the only copies of the app. Migration `20261112050000_drop_habit_private.sql`; the device database (version 15) removes the field from stored habits and waiting uploads so no upload names the dropped column.

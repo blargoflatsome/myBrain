@@ -13,7 +13,7 @@ const NOW = new Date('2026-11-10T14:00:00Z')
 let server: FakeSupabase
 
 const H1 = 'aaaaaaa1-0000-4000-8000-000000000001'
-const habit = (id: string) => ({ id, title: 'Walk', notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false, current_streak: 0, best_streak: 0 })
+const habit = (id: string) => ({ id, title: 'Walk', notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', current_streak: 0, best_streak: 0 })
 const log = (habitId: string, date: string) => ({ id: `${habitId.slice(0, 24)}${date.replaceAll('-', '')}0000`, habit_id: habitId, date, status: 'completed', completed_at: `${date}T15:00:00Z` })
 const BADGE_NUMBER = { first_task: 1, first_habit: 2, first_routine: 3, first_journal: 4 } as const
 const badge = (kind: keyof typeof BADGE_NUMBER, earned_at: string) => ({ id: `${TEST_USER_ID.slice(0, 24)}${String(BADGE_NUMBER[kind]).padStart(12, '0')}`, kind, earned_at })

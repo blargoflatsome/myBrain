@@ -278,7 +278,6 @@ export function newHabit(title: string, userId: string, timeZone: string, now = 
     timer_minutes: null,
     weekdays: [...ALL_WEEKDAYS],
     start_date: todayIn(timeZone, now),
-    is_private: false,
     current_streak: 0,
     best_streak: 0,
     deleted_at: null,

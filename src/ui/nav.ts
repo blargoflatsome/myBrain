@@ -17,6 +17,8 @@ export const MORE_NAV: { to: string; label: string; icon: IconName }[] = [
   { to: '/quests', label: messages.nav.quests, icon: 'shuffle' },
   { to: '/orphans', label: messages.nav.inbox, icon: 'inbox' },
   { to: '/connections', label: messages.nav.connections, icon: 'users' },
+  // SPEC §5 Help: last, after the pages it explains.
+  { to: '/help', label: messages.nav.help, icon: 'help' },
 ]
 /** Whether a page belongs under More (its tab or button shows as current). */
 export const inMore = (path: string) => MORE_NAV.some((i) => path === i.to || path.startsWith(`${i.to}/`))

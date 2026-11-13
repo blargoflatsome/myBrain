@@ -15,7 +15,6 @@ function habit(id: string, extra: Partial<HabitRow> = {}): HabitRow {
     timer_minutes: null,
     weekdays: [0, 1, 2, 3, 4, 5, 6],
     start_date: '2026-11-01',
-    is_private: false,
     current_streak: 0,
     best_streak: 0,
     deleted_at: null,

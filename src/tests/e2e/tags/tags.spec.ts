@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }) => {
     { id: 't1', title: 'Pay rent', due_date: '2026-11-10', priority: 1, status: 'open', source: 'manual' },
     { id: 't2', title: 'Sweep', due_date: '2026-11-10', priority: 1, status: 'open', source: 'manual' },
   ])
-  server.seed('habits', [{ id: 'h1', title: 'Water plants', notify_time: null, timer_minutes: null, weekdays: [4], start_date: '2026-11-01', is_private: false, current_streak: 0, best_streak: 0 }])
+  server.seed('habits', [{ id: 'h1', title: 'Water plants', notify_time: null, timer_minutes: null, weekdays: [4], start_date: '2026-11-01', current_streak: 0, best_streak: 0 }])
   server.seed('tags', [
     { id: 'tag-chores', name: 'chores' },
     { id: 'tag-money', name: 'Money' },

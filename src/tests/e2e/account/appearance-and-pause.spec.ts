@@ -34,7 +34,7 @@ test.describe('Spec §3 Visual style: Appearance', () => {
 test.describe('Spec §5 Habits: Pause all streaks', () => {
   test('turning it on pauses from today, and the Habits page says so', async ({ page }) => {
     await page.clock.install({ time: new Date('2026-11-10T15:00:00Z') })
-    server.seed('habits', [{ id: 'h1', title: 'Stretch', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false }])
+    server.seed('habits', [{ id: 'h1', title: 'Stretch', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' }])
     await page.goto('/account')
     await page.getByTestId('pause-streaks').check()
     await expect.poll(() => server.written('habit_pauses')[0]).toMatchObject({ start_date: '2026-11-10', end_date: null })

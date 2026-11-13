@@ -83,7 +83,7 @@ test.describe('Spec §2: one thing goes straight away, with Undo', () => {
 
 test.describe('Spec §2 Calm by design', () => {
   test('plain outline icons, no emoji, on the app’s pages', async ({ page }) => {
-    server.seed('habits', [{ id: 'h1', title: 'Take meds', notify_time: '08:00', timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: true, is_priority: true, current_streak: 3, best_streak: 5 }])
+    server.seed('habits', [{ id: 'h1', title: 'Take meds', notify_time: '08:00', timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_priority: true, current_streak: 3, best_streak: 5 }])
     const emoji = /\p{Extended_Pictographic}/u
     for (const path of ['/', '/habits', '/account', '/quests']) {
       await open(page, path)

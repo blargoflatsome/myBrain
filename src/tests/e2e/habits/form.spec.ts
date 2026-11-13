@@ -21,13 +21,13 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Habits: form layout', () => {
-  test('Private sits right under the title; Reminders folds away; no More details', async ({ page }) => {
+  test('How often comes first; Reminders folds away; no More details', async ({ page }) => {
     await open(page, '/habits')
     await page.getByRole('button', { name: msg.habits.add }).click()
     const dialog = page.getByRole('dialog', { name: msg.habits.editor.newHeading })
     const fields = dialog.getByTestId('habit-fields')
-    await expect(fields.locator(':scope > *').first().getByRole('checkbox', { name: /^Private/ })).toBeVisible()
     const howOften = dialog.getByTestId('habit-how-often')
+    expect(await fields.locator(':scope > *').first().getAttribute('data-testid')).toBe('habit-how-often')
     await expect(howOften.getByRole('radiogroup', { name: msg.forms.howOften })).toBeVisible()
     await expect(howOften.getByRole('group', { name: msg.habits.editor.weekdays })).toBeVisible()
     await expect(dialog.getByText(msg.forms.moreOptions)).toHaveCount(0)
@@ -41,7 +41,7 @@ test.describe('Spec §5 Habits: form layout', () => {
   })
 
   test('Reminders opens by itself when the habit has a reminder time', async ({ page }) => {
-    server.seed('habits', [{ id: 'h1', title: 'Stretch', notify_time: '08:00', timer_minutes: null, weekdays: [4], start_date: '2026-11-01', is_private: false, current_streak: 0, best_streak: 0 }])
+    server.seed('habits', [{ id: 'h1', title: 'Stretch', notify_time: '08:00', timer_minutes: null, weekdays: [4], start_date: '2026-11-01', current_streak: 0, best_streak: 0 }])
     await open(page, '/habits')
     await page.getByRole('button', { name: /Stretch/ }).first().click()
     await expect(page.getByRole('dialog', { name: msg.habits.editor.heading }).getByLabel(msg.habits.editor.notifyTime)).toBeVisible()

@@ -127,7 +127,6 @@ describe('Spec §7: anything a screen hands over can be saved', () => {
       title: 'Stretch',
       weekdays: [1, 2, 3],
       start_date: '2026-11-10',
-      is_private: false,
       deleted_at: null,
     })
     await engine.save('habits', habit)
@@ -137,14 +136,14 @@ describe('Spec §7: anything a screen hands over can be saved', () => {
 
 describe('Spec §7: background updates never overwrite an edit', () => {
   it('patch changes only the given fields of the latest stored copy', async () => {
-    await engine.save('habits', { id: 'h1', title: 'Stretch', weekdays: [1], start_date: '2026-11-10', is_private: false, is_priority: false, deleted_at: null })
-    await engine.save('habits', { id: 'h1', title: 'Stretch', weekdays: [1], start_date: '2026-11-10', is_private: false, is_priority: true, deleted_at: null })
+    await engine.save('habits', { id: 'h1', title: 'Stretch', weekdays: [1], start_date: '2026-11-10', is_priority: false, deleted_at: null })
+    await engine.save('habits', { id: 'h1', title: 'Stretch', weekdays: [1], start_date: '2026-11-10', is_priority: true, deleted_at: null })
     await engine.patch('habits', 'h1', () => ({ current_streak: 4 }))
     expect(await db.habits.get('h1')).toMatchObject({ is_priority: true, current_streak: 4 })
   })
 
   it('patch saves nothing when there is nothing to change', async () => {
-    await engine.save('habits', { id: 'h2', title: 'Read', weekdays: [1], start_date: '2026-11-10', is_private: false, deleted_at: null })
+    await engine.save('habits', { id: 'h2', title: 'Read', weekdays: [1], start_date: '2026-11-10', deleted_at: null })
     await engine.flush()
     expect(await engine.patch('habits', 'h2', () => null)).toBe(false)
     expect(await db.outbox.count()).toBe(0)
@@ -249,6 +248,20 @@ describe('Spec §7: changes from other devices arrive by pull and Realtime', () 
     remote.online = true
     await engine.pull()
     expect((await db.tasks.get('t1'))?.title).toBe('from phone, offline')
+  })
+
+  it('a table counts as downloaded once its own rows are stored, without waiting for the rest of the sync', async () => {
+    remote.writeFromOtherDevice('badges', { id: 'b1', kind: 'first_task', earned_at: '2026-11-05T15:00:00Z', deleted_at: null })
+    // Another table is still downloading (it never finishes in this test).
+    const pullSince = remote.pullSince.bind(remote)
+    remote.pullSince = (async (table, since) => (table === 'tasks' ? new Promise(() => {}) : pullSince(table, since))) as typeof remote.pullSince
+    const ready = new Promise<boolean>((resolve) => {
+      engine = new SyncEngine(db, remote, () => {}, () => true, (table) => {
+        if (table === 'badges') void db.badges.get('b1').then((b) => resolve(!!b))
+      })
+    })
+    void engine.pull(['tasks', 'badges'])
+    expect(await ready).toBe(true)
   })
 
   it('the last edit to reach the server wins', async () => {

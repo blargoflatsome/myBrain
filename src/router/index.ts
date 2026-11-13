@@ -1,7 +1,7 @@
 import { rememberReturn, takeReturn } from '@/router/returnTo'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { messages } from '@/messages'
-import DashboardView from '@/dashboard/DashboardView.vue'
+import HomeView from '@/home/HomeView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { authRedirect } from './guard'
 import { setCanonical } from '@/seo/canonical'
@@ -11,11 +11,13 @@ declare module 'vue-router' {
     public?: boolean
     /** Public pages anyone can open, signed in or not (guest answer page, privacy, terms). */
     guest?: boolean
+    /** SPEC §5 Home page: the home page for everyone; the marketing page when signed out, the Dashboard when signed in. */
+    landing?: boolean
   }
 }
 
-export const routes = [
-  { path: '/', name: 'dashboard', component: DashboardView },
+export const routes: RouteRecordRaw[] = [
+  { path: '/', name: 'dashboard', component: HomeView, meta: { landing: true } },
   { path: '/tasks', name: 'home', component: () => import('@/tasks/TasksView.vue') },
   { path: '/capture', name: 'capture', component: () => import('@/capture/CaptureView.vue') },
   { path: '/routines', name: 'routines', component: () => import('@/routines/RoutinesView.vue') },
@@ -26,6 +28,7 @@ export const routes = [
   { path: '/habits', name: 'habits', component: () => import('@/habits/HabitsView.vue') },
   { path: '/account', name: 'account', component: () => import('@/account/AccountView.vue') },
   { path: '/tags', name: 'tags', component: () => import('@/tags/TagsView.vue') },
+  { path: '/help', name: 'help', component: () => import('@/help/HelpView.vue') },
   { path: '/connections', name: 'connections', component: () => import('@/connections/ConnectionsView.vue') },
   { path: '/people/:id', name: 'person', component: () => import('@/profiles/ProfileView.vue') },
   { path: '/connect/:token', name: 'connect', component: () => import('@/connections/ConnectLinkView.vue'), meta: { returnAfterSignIn: true } },
@@ -39,7 +42,8 @@ export const routes = [
   { path: '/rsvp/:invite/:token', name: 'rsvp', component: () => import('@/events/GuestRsvpView.vue'), meta: { public: true, guest: true } },
   { path: '/privacy', name: 'privacy', component: () => import('@/legal/PrivacyView.vue'), meta: { public: true, guest: true } },
   { path: '/terms', name: 'terms', component: () => import('@/legal/TermsView.vue'), meta: { public: true, guest: true } },
-  { path: '/sign-in', name: 'sign-in', component: () => import('@/auth/SignInView.vue'), meta: { public: true } },
+  // SPEC §5 Home page: signing in happens on the home page now; old links (and ?deleted=1) go there.
+  { path: '/sign-in', name: 'sign-in', redirect: (to) => ({ name: 'dashboard', query: to.query }) },
   // SPEC §8: any other address (Netlify answers it with 404). Keep it last.
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/seo/NotFoundView.vue'), meta: { public: true, guest: true } },
 ]
@@ -51,7 +55,8 @@ export const router = createRouter({
 
 // Each page has its own title (WCAG 2.4.2).
 router.afterEach((to) => {
-  document.title = messages.pageTitle(messages.pageTitles[String(to.name)])
+  const signedOutHome = to.meta.landing && !useAuthStore().isSignedIn
+  document.title = messages.pageTitle(signedOutHome ? undefined : messages.pageTitles[String(to.name)])
   setCanonical(to.path)
 })
 
