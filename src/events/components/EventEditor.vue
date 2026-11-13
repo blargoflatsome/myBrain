@@ -45,6 +45,13 @@
         </select>
         <span v-if="allDay && reminder !== null" class="text-xs">{{ m.editor.reminderAllDay }}</span>
       </label>
+      <ChoiceChips :label="m.editor.showAs" :options="showAsOptions" :model-value="showAsShown" test-id="event-show-as" @update:model-value="showAs = $event" />
+      <FindATime
+        v-if="schedulingPeople.length && !event?.cancelled_at"
+        :scheduling="scheduling"
+        :people="schedulingPeople"
+        @pick="useSuggestion"
+      />
     </MoreOptions>
 
     <!-- SPEC §5 Shared events: who's going, then inviting people, folded into Attendees. -->
@@ -53,11 +60,8 @@
       v-model="people"
       :event-id="event.id"
       :is-new="isNew"
-      :start-date="startDate"
-      :start-time="allDay ? null : startTime"
-      :end-date="endDate || startDate"
-      :end-time="allDay ? null : endTime"
-      @suggest="useSuggestion"
+      :statuses="scheduling.statuses.value"
+      @invited="invited = $event"
     >
       <label class="flex items-center justify-between gap-4 text-sm">
         <span><span class="font-medium">{{ c.showGuests }}</span><span class="block text-xs text-muted">{{ c.showGuestsHint }}</span></span>
@@ -99,8 +103,11 @@ import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
 import { computed, ref, watch } from 'vue'
 import EventPeople from '@/events/components/EventPeople.vue'
+import FindATime from '@/events/components/FindATime.vue'
+import ChoiceChips from '@/components/ChoiceChips.vue'
+import { useScheduling, type SchedulingPerson } from '@/events/useScheduling'
 import { useBrainStore } from '@/stores/brain'
-import type { PersonToInvite } from '@/events/sharing'
+import type { EventPerson, PersonToInvite } from '@/events/sharing'
 import { eventProblem, nextWholeHour, REMINDERS, REPEATS } from '@/events/rules'
 import { messages } from '@/messages'
 import type { EventRepeat, EventRow } from '@/sync/types'
@@ -147,7 +154,24 @@ const scheduleSummary = computed(() => {
 const error = ref('')
 // People to invite when saving (SPEC §5 Shared events).
 const people = ref<PersonToInvite[]>([])
-// A suggested time when everyone's free (SPEC §10 Connections: scheduling).
+// SPEC §10 Scheduler: Show me as. Null keeps the usual rule (timed events busy, all-day events free).
+const showAs = ref<'busy' | 'free' | null>(null)
+const showAsShown = computed(() => showAs.value ?? (allDay.value ? 'free' : 'busy'))
+const showAsOptions = [
+  { value: 'busy' as const, label: m.editor.showAsOptions.busy },
+  { value: 'free' as const, label: m.editor.showAsOptions.free },
+]
+// SPEC §10 Scheduler: the connections on this event (invited, and about to be) and whether each is free.
+const invited = ref<EventPerson[]>([])
+const schedulingPeople = computed<SchedulingPerson[]>(() => [
+  ...invited.value.filter((p) => p.user_id).map((p) => ({ id: p.user_id!, name: p.name || '', optional: !!p.optional })),
+  ...people.value.filter((p) => p.user_id).map((p) => ({ id: p.user_id!, name: p.name || '', optional: !!p.optional })),
+])
+const scheduling = useScheduling(
+  schedulingPeople,
+  computed(() => ({ startDate: startDate.value, startTime: allDay.value ? null : startTime.value, endDate: endDate.value || startDate.value, endTime: allDay.value ? null : endTime.value })),
+)
+// A time picked from Find a time.
 function useSuggestion(s: { date: string; start: string; end: string }) {
   allDay.value = false
   startDate.value = s.date
@@ -169,6 +193,8 @@ watch(
     repeat.value = e.repeat
     reminder.value = e.reminder_minutes
     showGuests.value = e.show_guests ?? true
+    showAs.value = e.show_as ?? null
+    invited.value = []
     notes.value = e.notes ?? ''
     scheduleOpen.value = props.isNew
     error.value = ''
@@ -193,6 +219,7 @@ const draft = computed<EventRow | null>(() =>
         repeat: repeat.value,
         reminder_minutes: reminder.value,
         show_guests: showGuests.value,
+        show_as: showAs.value,
         notes: storedNotes(notes.value),
       }
     : null,

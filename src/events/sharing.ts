@@ -13,6 +13,8 @@ export interface PersonToInvite {
   name?: string
   email?: string
   phone?: string
+  /** SPEC §10 Scheduler: doesn't hold up a suggested time. */
+  optional?: boolean
 }
 export interface NewInvite {
   invite_id: string
@@ -37,6 +39,9 @@ export interface EventPerson {
   phone: string | null
   response: InviteResponse
   is_me: boolean
+  /** The connection this invitation is for (host only); null for a guest. */
+  user_id?: string | null
+  optional?: boolean
 }
 
 async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
@@ -57,6 +62,7 @@ export const uninvite = (invite: string) => call<void>('uninvite', { invite })
 export const respondToInvite = (invite: string, answer: 'yes' | 'maybe' | 'no') => call<void>('respond_to_invite', { invite, answer })
 export const eventPeople = (event: string) => list<EventPerson>('event_people', { event })
 /** Connections' free or busy times (SPEC §10 Connections: scheduling). */
+export const setInviteOptional = (invite: string, value: boolean) => call<void>('set_invite_optional', { invite, value })
 export const freeBusy = (people: string[]) => list<FreeBusyRow>('free_busy', { people })
 export interface Recipient {
   invite_id: string

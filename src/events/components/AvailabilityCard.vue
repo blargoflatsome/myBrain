@@ -25,7 +25,22 @@
         <p v-if="ruleError" class="col-span-3 text-sm text-danger" role="alert">{{ ruleError }}</p>
         <button type="submit" class="col-span-3" :class="primaryButtonSmall">{{ m.add }}</button>
       </form>
-      <button v-else type="button" class="min-h-11 self-start rounded-xl border border-dashed border-line px-3 text-sm" @click="addingRule = true">{{ m.addWeekly }}</button>
+      <div v-else-if="!addingWork" class="flex flex-wrap gap-2">
+        <button type="button" class="min-h-11 rounded-xl border border-dashed border-line px-3 text-sm" @click="addingRule = true">{{ m.addWeekly }}</button>
+        <button type="button" class="min-h-11 rounded-xl border border-dashed border-line px-3 text-sm" data-testid="add-work-hours" @click="addingWork = true">{{ m.workHours }}</button>
+      </div>
+      <!-- SPEC §10 Scheduler: Work hours adds the same times on several days at once. -->
+      <form v-if="addingWork" class="flex flex-col gap-2" data-testid="work-hours" @submit.prevent="addWorkHours">
+        <p class="text-xs text-muted">{{ m.workHoursHint }}</p>
+        <span id="work-days" class="text-xs text-muted">{{ m.days }}</span>
+        <WeekdayPicker v-model="workDays" labelledby="work-days" />
+        <div class="grid grid-cols-2 gap-2">
+          <TimeInput v-model="workFrom" :label="m.from" label-class="text-xs text-muted" :input-class="fieldCompact" />
+          <TimeInput v-model="workUntil" :label="m.until" label-class="text-xs text-muted" :input-class="fieldCompact" />
+        </div>
+        <p v-if="workError" class="text-sm text-danger" role="alert">{{ workError }}</p>
+        <button type="submit" :class="primaryButtonSmall">{{ m.addWorkHours }}</button>
+      </form>
     </div>
 
     <div class="flex flex-col gap-2 border-t border-line pt-4">
@@ -69,6 +84,7 @@
 // SPEC §5 Availability schedule: weekly times I'm never free, and one-off days (unavailable, or available after all).
 import TimeInput from '@/components/TimeInput.vue'
 import DateInput from '@/components/DateInput.vue'
+import WeekdayPicker from '@/components/WeekdayPicker.vue'
 import { computed, ref } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
@@ -115,6 +131,20 @@ async function addRule() {
   addingRule.value = false
 }
 
+// ---------- Work hours: the same times on several weekdays (Mon–Fri, 9 to 5 to start) ----------
+const addingWork = ref(false)
+const workDays = ref([1, 2, 3, 4, 5])
+const workFrom = ref('09:00')
+const workUntil = ref('17:00')
+const workError = ref('')
+async function addWorkHours() {
+  if (workUntil.value <= workFrom.value) return (workError.value = m.timeError)
+  workError.value = ''
+  for (const weekday of [...workDays.value].sort()) {
+    await brain.save('availability_rules', { id: crypto.randomUUID(), user_id: auth.user?.id, weekday, start_time: workFrom.value, end_time: workUntil.value, deleted_at: null })
+  }
+  addingWork.value = false
+}
 // ---------- One-off days ----------
 const addingException = ref(false)
 const exDate = ref(today)

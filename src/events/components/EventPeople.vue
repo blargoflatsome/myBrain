@@ -4,8 +4,12 @@
 
     <ul v-if="invited.length" class="flex flex-col gap-1" :aria-label="m.invited">
       <li v-for="p in invited" :key="p.invite_id" class="flex items-center justify-between gap-2 text-sm" data-testid="invited-person">
-        <span class="min-w-0 [overflow-wrap:anywhere]">{{ p.name || p.email || p.phone }}</span>
-        <span class="flex shrink-0 items-center gap-1">
+        <span class="min-w-0 [overflow-wrap:anywhere]">
+          {{ p.name || p.email || p.phone }}
+          <PersonStatus v-if="p.user_id" :status="statuses.get(p.user_id)" />
+        </span>
+        <span class="flex shrink-0 flex-wrap items-center justify-end gap-1">
+          <OptionalToggle v-if="p.user_id" :name="p.name || ''" :model-value="!!p.optional" @update:model-value="setOptional(p, $event)" />
           <span class="text-muted">{{ m.responses[p.response] }}</span>
           <button v-if="p.email || p.phone" type="button" class="min-h-9 rounded-lg px-2 text-sm underline" :aria-label="c.newLinkLabel(p.name || p.email || p.phone || '')" @click="newLink(p)">{{ c.newLink }}</button>
           <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(p.name || p.email || p.phone || '')" @click="remove(p)">✕</button>
@@ -24,19 +28,14 @@
       <li v-for="(p, i) in pending" :key="keyOf(p) ?? i" class="flex items-center justify-between gap-2 text-sm" data-testid="pending-person">
         <span class="min-w-0 [overflow-wrap:anywhere]">
           {{ personLabel(p) }}
-          <span v-if="p.user_id && slot" :class="conflicts.includes(p) ? 'text-danger' : 'text-accent'" data-testid="person-availability">
-            · {{ conflicts.includes(p) ? m.busy : m.free }}
-          </span>
+          <PersonStatus v-if="p.user_id" :status="statuses.get(p.user_id)" />
         </span>
-        <button type="button" class="size-9 shrink-0 rounded-lg text-muted" :aria-label="m.remove(personLabel(p))" @click="drop(i)">✕</button>
+        <span class="flex shrink-0 items-center gap-1">
+          <OptionalToggle v-if="p.user_id" :name="personLabel(p)" :model-value="!!p.optional" @update:model-value="setPendingOptional(i, $event)" />
+          <button type="button" class="size-9 shrink-0 rounded-lg text-muted" :aria-label="m.remove(personLabel(p))" @click="drop(i)">✕</button>
+        </span>
       </li>
     </ul>
-    <div v-if="suggestions.length" class="flex flex-col gap-1" data-testid="suggested-times">
-      <span class="text-xs text-muted">{{ m.everyoneFree }}</span>
-      <div class="flex flex-wrap gap-1.5">
-        <button v-for="s in suggestions" :key="s.start" type="button" class="min-h-11 rounded-full border border-accent px-3 text-sm" @click="pick(s)">{{ slotLabel(s) }}</button>
-      </div>
-    </div>
 
     <button type="button" :class="[smallButton, 'self-start font-medium']" data-testid="open-contacts" @click="contacts?.open()">
       {{ m.contacts }}
@@ -68,10 +67,10 @@ import MoreOptions from '@/components/MoreOptions.vue'
 import { contactKey, parseContact } from '@/events/contacts'
 import { personLabel } from '@/events/people'
 import { newInviteLink, type Connection } from '@/connections/connections'
-import { eventPeople, freeBusy, inviteLink, shareHref, uninvite, type EventPerson, type PersonToInvite } from '@/events/sharing'
-import { busyTimes, hasConflict, suggestTimes, type Interval } from '@/events/availability'
-import { zonedTime } from '@/habits/rules'
-import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
+import OptionalToggle from '@/events/components/OptionalToggle.vue'
+import PersonStatus from '@/events/components/PersonStatus.vue'
+import { eventPeople, inviteLink, setInviteOptional, shareHref, uninvite, type EventPerson, type PersonToInvite } from '@/events/sharing'
+import type { Status } from '@/events/availability'
 import { useBrainStore } from '@/stores/brain'
 import { messages } from '@/messages'
 import type { PersonRow } from '@/sync/types'
@@ -80,13 +79,11 @@ import { fieldCompact, fieldLabel, smallButton } from '@/ui/styles'
 const props = defineProps<{
   eventId: string
   isNew: boolean
-  startDate: string
-  startTime: string | null
-  endDate: string
-  endTime: string | null
   modelValue: PersonToInvite[]
+  /** SPEC §10 Scheduler: each connection's status for the chosen time, by user id. */
+  statuses: Map<string, Status>
 }>()
-const emit = defineEmits<{ 'update:modelValue': [PersonToInvite[]]; suggest: [{ date: string; start: string; end: string }] }>()
+const emit = defineEmits<{ 'update:modelValue': [PersonToInvite[]]; invited: [EventPerson[]] }>()
 const m = messages.invites
 const c = messages.connections
 const brain = useBrainStore()
@@ -96,6 +93,15 @@ const invited = ref<EventPerson[]>([])
 async function loadInvited() {
   if (props.isNew || !brain.online) return
   invited.value = await eventPeople(props.eventId).catch(() => [])
+}
+watch(invited, (list) => emit('invited', list))
+// SPEC §10 Scheduler: optional people don't hold up a suggested time; saved on the invitation straight away.
+async function setOptional(p: EventPerson, value: boolean) {
+  invited.value = invited.value.map((x) => (x.invite_id === p.invite_id ? { ...x, optional: value } : x))
+  await setInviteOptional(p.invite_id, value).catch(() => loadInvited())
+}
+function setPendingOptional(i: number, value: boolean) {
+  emit('update:modelValue', pending.value.map((x, j) => (j === i ? { ...x, optional: value } : x)))
 }
 watch(() => props.eventId, loadInvited, { immediate: true })
 async function remove(p: EventPerson) {
@@ -161,34 +167,4 @@ function undoSaved(p: PersonRow) {
   emit('update:modelValue', pending.value.filter((x) => contactKey(x) !== key))
   status.value = m.undone(personLabel(p))
 }
-// ---------- Availability: connections only (SPEC §10 Connections: scheduling) ----------
-const checkIds = computed(() => pending.value.filter((p) => p.user_id).map((p) => p.user_id!))
-const busy = ref<Map<string, Interval[]>>(new Map())
-const tz = deviceTimeZone()
-watch(
-  checkIds,
-  async (ids) => {
-    if (!ids.length || !brain.online) return (busy.value = new Map())
-    const from = todayIn(tz)
-    const rows = await freeBusy([...ids, ...(brain.userId ? [brain.userId] : [])]).catch(() => [])
-    busy.value = busyTimes(rows, from, addDays(from, 14))
-  },
-  { immediate: true },
-)
-const slot = computed<Interval | null>(() => {
-  if (!props.startTime || !props.endTime) return null
-  return { start: zonedTime(props.startDate, props.startTime.slice(0, 5), tz), end: zonedTime(props.endDate, props.endTime.slice(0, 5), tz) }
-})
-const conflicts = computed(() => (slot.value ? pending.value.filter((p) => p.user_id && hasConflict(busy.value.get(p.user_id), slot.value!)) : []))
-const suggestions = computed(() => {
-  if (!slot.value || !conflicts.value.length) return []
-  return suggestTimes(busy.value, slot.value.end - slot.value.start, new Date(), tz)
-})
-function pick(s: Interval) {
-  const date = todayIn(tz, new Date(s.start))
-  const fmt = (ms: number) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(ms))
-  emit('suggest', { date, start: fmt(s.start), end: fmt(s.end) })
-}
-const slotLabel = (s: Interval) =>
-  new Date(s.start).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: tz })
 </script>

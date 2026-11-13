@@ -84,29 +84,6 @@ test.describe('Spec §10 Connections, scheduling: availability for connections',
     await expect(card.getByTestId('availability-exception')).toContainText(msg.calendar.editor.allDay)
     await expect.poll(() => server.written('availability_exceptions').at(-1)).toMatchObject({ date: '2026-11-20', start_time: null, kind: 'unavailable' })
   })
-
-  test('inviting a connection shows whether they are free and suggests times when everyone is', async ({ page }) => {
-    server.seed('events', [calendarEvent()])
-    server.rpcResults.my_connections = [{ friend_id: 'bob-id', display_name: 'Bob Baker', avatar_url: null, since: '2026-11-01T00:00:00Z' }]
-    // Bob is unavailable Tuesdays 6 pm to 11 pm.
-    server.rpcResults.free_busy = [
-      { user_id: 'bob-id', timezone: 'America/New_York', kind: 'rule', weekday: 2, start_date: null, start_time: '18:00:00', end_date: null, end_time: '23:00:00', repeat: null, busy: true },
-    ]
-    await open(page, '/calendar?date=2026-11-10&event=' + EVENT)
-    await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
-    const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
-    await openAttendees(dialog)
-    await dialog.getByRole('button', { name: msg.invites.contacts }).click()
-    const contacts = page.getByRole('dialog', { name: msg.contacts.heading })
-    await contacts.getByRole('button', { name: 'Add Bob Baker' }).click()
-    await contacts.getByRole('button', { name: msg.calendar.view.done }).click()
-    await expect(dialog.getByTestId('person-availability')).toHaveText(/busy/)
-    const suggestions = dialog.getByTestId('suggested-times').getByRole('button')
-    await expect(suggestions).toHaveCount(3)
-    await suggestions.first().click()
-    await expect(dialog.getByLabel('Starts Time')).not.toHaveValue('19:00')
-    await expect(dialog.getByTestId('person-availability')).toHaveText(/free/)
-  })
 })
 
 test.describe('Spec §5 Shared events and invitations', () => {

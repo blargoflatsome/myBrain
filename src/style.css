@@ -307,6 +307,12 @@ textarea:focus {
   --fc-classic-faint: transparent;
   --fc-classic-highlight: color-mix(in srgb, var(--accent) 20%, transparent);
 }
+/* SPEC §10 Scheduler: my not-available times, shaded in Week and Day (with a key in words under the calendar). */
+.cal-wrap .unavailable,
+.unavailable-swatch {
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 22%, transparent) 0 6px, color-mix(in srgb, var(--muted) 10%, transparent) 6px 12px);
+  opacity: 1;
+}
 .cal-wrap .cal-task {
   --fc-classic-event: color-mix(in srgb, var(--ink) 8%, transparent);
   --fc-classic-event-contrast: var(--ink);

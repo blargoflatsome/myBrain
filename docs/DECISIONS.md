@@ -243,3 +243,8 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 ## 2026-11-12 Private habits removed
 - User: private habits go, since no habits are shown on profiles or anywhere else to other people. The Private checkbox (habit editor, Capture, Orphans) and the Private badge on the Habits page are removed.
 - User: drop the `is_private` column too, since the user's own devices are the only copies of the app. Migration `20261112050000_drop_habit_private.sql`; the device database (version 15) removes the field from stored habits and waiting uploads so no upload names the dropped column.
+
+## 2026-11-12 Scheduler
+- User asked for the Calendar Scheduler; Claude's proposal was revised after looking at Outlook (Scheduling Assistant, suggested times rated Good/Fair/Poor, Show as Busy/Free/Tentative, unknown shown apart from free, optional attendees, Scheduling Poll). User: "as recommended".
+- Fixed along the way: busy times were only fetched for the next 14 days, so a later event showed everyone free; a connection who doesn't share showed as free (now unknown); Maybe answers counted as fully busy (now tentative).
+- Claude's calls: availability stays "when I'm not available" with a Work hours shortcut; Find a time is a ranked list of up to 5 (no grid, as on Outlook's phone app); hours 8 am to 9 pm; optional is saved on the invitation; the guest poll is the next step.

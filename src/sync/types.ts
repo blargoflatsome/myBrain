@@ -128,6 +128,8 @@ export interface EventRow extends BaseRow {
   cancelled_at?: string | null
   /** Whether attendees can see who else is going (SPEC §10 Connections); on by default. */
   show_guests?: boolean
+  /** SPEC §10 Scheduler: Show me as. Null = timed events busy, all-day events free. */
+  show_as?: 'busy' | 'free' | null
 }
 
 export type InviteResponse = 'pending' | 'yes' | 'maybe' | 'no' | 'dropped'
