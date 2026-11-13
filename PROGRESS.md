@@ -7,6 +7,12 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 ## Next step
 - **Guest poll ("When can you come?"):** for guests without accounts, through their answer link: the host offers a few times, guests answer Prefer, Yes or No (like Outlook's Scheduling Poll). SPEC §10 Scheduler "Later". Agree the details with the user first.
 
+## Journal lock (merged via PR, branch `journal-lock`)
+- SPEC §5 Locking my journal; DECISIONS 2026-11-13 (user: opt in, unlock remembered until sign out, yes/no answer and word count stay readable, journal only, passkeys now). Encryption at the sync boundary (`src/journal/lockingRemote.ts`, AES-256-GCM per field, `enc:v1:`), passphrase (PBKDF2 600k) + recovery key + passkeys (WebAuthn PRF). `word_count`/`has_writing` drive trophies, streaks, Up next, dashboard and the reminder. Lock card under Account Settings; match hint and Show passphrase checkbox.
+- Migration `20261113010000_journal_lock.sql`: dev and prod migrated; `npm run test:db` passes. Help topic "Locking your journal" (picture `help-journal-lock`), home page "Also" line, Privacy page updated. Verified on dev: a real entry is stored as `enc:v1:` with word count readable.
+- Found by the full review: a badge message could be lost when catch-up saved the same badge at that moment (`celebrate.ts` now notes it before saving); a new device showed the Journal editor before the lock had downloaded (now "Checking whether your journal is locked…").
+- Still to try: a real passkey on a phone (PRF support varies by phone and password manager).
+
 ## Calendar Scheduler (merged via PR, branch `scheduler`)
 - SPEC §10 Connections, Scheduler; DECISIONS 2026-11-12 Scheduler (user: as recommended, after comparing with Outlook). Migration `20261112060000_scheduler.sql` (events.show_as, event_invites.optional, free_busy with a `shares` row and `level`, invite_people keeps optional, `set_invite_optional`, event_people gives the host user_id and optional): dev and prod migrated (second prod push confirms up to date).
 - Fixed: busy times were only read for the next 14 days (later events showed everyone free); a connection who doesn't share showed as free (now unknown); Maybe counted as busy (now tentative).

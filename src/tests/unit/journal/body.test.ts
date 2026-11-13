@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanHtml, normalizeBody, plainText, toEditorHtml } from '@/journal/body'
+import { cleanHtml, normalizeBody, plainText, toEditorHtml, wordsIn, writingFacts, wroteIn } from '@/journal/body'
 
 describe('Spec §5 Journal: formatted writing', () => {
   it('entries written as plain text open in the editor as paragraphs', () => {
@@ -38,5 +38,19 @@ describe('Spec §5 Journal: formatted writing', () => {
 
   it('plain words can be read back without formatting', () => {
     expect(plainText('<p><strong>Good</strong> day</p><ul><li><p>rent</p></li></ul>')).toBe('Good day rent')
+  })
+})
+
+describe('SPEC §5 Locking my journal: the facts kept beside the writing', () => {
+  it('counts words across paragraphs and list items, and nothing for an empty editor', () => {
+    expect(writingFacts('<p>Good day</p><ul><li><p>paid rent</p></li></ul>')).toEqual({ word_count: 4, has_writing: true })
+    expect(writingFacts('<ul><li><p> </p></li></ul>')).toEqual({ word_count: 0, has_writing: false })
+  })
+
+  it('reads the stored facts, and never counts encrypted writing as words when they are missing', () => {
+    const encrypted = { body: 'enc:v1:AAAA BBBB CCCC' }
+    expect([wroteIn(encrypted), wordsIn(encrypted)]).toEqual([false, 0])
+    expect([wroteIn({ ...encrypted, has_writing: true, word_count: 12 }), wordsIn({ ...encrypted, has_writing: true, word_count: 12 })]).toEqual([true, 12])
+    expect([wroteIn({ body: '<p>two words</p>' }), wordsIn({ body: '<p>two words</p>' })]).toEqual([true, 2])
   })
 })

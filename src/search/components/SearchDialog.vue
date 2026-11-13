@@ -36,6 +36,11 @@
       <div class="flex-1 overflow-y-auto px-3 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <p v-if="!searching" class="text-sm text-muted">{{ m.hint }}</p>
         <p v-else-if="!results.length" class="text-muted" role="status">{{ m.noResults }}</p>
+        <!-- SPEC §5 Locking my journal: journal writing isn't searched until this device unlocks it. -->
+        <p v-if="searching && journalLocked" class="mb-3 flex flex-wrap items-center gap-x-2 text-sm text-muted" data-testid="search-journal-locked">
+          {{ messages.journalLock.searchLocked }}
+          <button type="button" class="min-h-11 underline underline-offset-4" @click="openJournal">{{ messages.journalLock.openJournal }}</button>
+        </p>
         <section v-for="g in groups" :key="g.type" class="mb-4 flex flex-col gap-1" :data-testid="`results-${g.type}`">
           <h2 class="px-1 text-xs font-semibold tracking-wide text-muted uppercase">{{ m.types[g.type] }}</h2>
           <button
@@ -74,12 +79,18 @@ import type { TagRow } from '@/sync/types'
 import { dayLabel, shortDayWithYear } from '@/ui/dates'
 import { live } from '@/sync/live'
 import { selected } from '@/ui/styles'
+import { useJournalLock } from '@/journal/useJournalLock'
 
 const brain = useBrainStore()
 const store = useSearchStore()
 const route = useRoute()
 const router = useRouter()
 const m = messages.search
+const { locked: journalLocked } = useJournalLock()
+async function openJournal() {
+  store.close()
+  await router.push('/journal')
+}
 
 const dialog = ref<HTMLDialogElement | null>(null)
 const box = ref<HTMLInputElement | null>(null)

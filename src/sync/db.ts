@@ -15,6 +15,15 @@ export interface MetaEntry {
   value: string
 }
 
+/** Keys kept on this device only, never synced (SPEC §5 Locking my journal). */
+export interface SecretEntry {
+  key: string
+  /** The journal_keys row this key belongs to, so a key from an earlier lock is never used. */
+  keyRowId: string
+  /** Non-exportable: the page can use it but never read its bytes. */
+  value: CryptoKey
+}
+
 /** The on-device copy of the user's data plus the queue of changes waiting to upload (SPEC §7). */
 export class LocalDb extends Dexie {
   tasks!: Table<RowTypes['tasks'], string>
@@ -45,6 +54,9 @@ export class LocalDb extends Dexie {
   post_its!: Table<RowTypes['post_its'], string>
   people!: Table<RowTypes['people'], string>
   notifications!: Table<RowTypes['notifications'], string>
+  journal_keys!: Table<RowTypes['journal_keys'], string>
+  journal_passkeys!: Table<RowTypes['journal_passkeys'], string>
+  secrets!: Table<SecretEntry, string>
   outbox!: Table<OutboxEntry, number>
   meta!: Table<MetaEntry, string>
 
@@ -126,6 +138,12 @@ export class LocalDb extends Dexie {
     this.version(15).stores({}).upgrade(async (tx) => {
       await tx.table('habits').toCollection().modify((row: Record<string, unknown>) => void delete row.is_private)
       await tx.table('outbox').where('table').equals('habits').modify((entry: { row: Record<string, unknown> }) => void delete entry.row.is_private)
+    })
+    // Locking my journal (SPEC §5): the wrapped keys (synced) and this device's unlocked key (never synced).
+    this.version(16).stores({
+      journal_keys: 'id, updated_at',
+      journal_passkeys: 'id, updated_at',
+      secrets: 'key',
     })
   }
 

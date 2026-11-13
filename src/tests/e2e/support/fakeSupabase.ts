@@ -46,6 +46,8 @@ export class FakeSupabase {
     event_invites: new Map(),
     availability_rules: new Map(),
     availability_exceptions: new Map(),
+    journal_keys: new Map(),
+    journal_passkeys: new Map(),
     profiles: new Map(),
   }
   readonly writes: { table: string; row: Row }[] = []

@@ -7,7 +7,7 @@ import { isAnytime, isScheduled as routineScheduled, runFor } from '@/routines/r
 import { isTaskScheduled } from '@/reminders/priority'
 import { occursOn } from '@/events/rules'
 import { carryOverCount, tasksForDay } from '@/tasks/rules'
-import { plainText } from '@/journal/body'
+import { wroteIn } from '@/journal/body'
 import { todayIn } from '@/tasks/days'
 import { live } from '@/sync/live'
 
@@ -100,7 +100,7 @@ export function upNext(data: UpNextData, now: Date, timeZone: string, journalTim
   if (orphans) out.push({ key: 'orphans', kind: 'orphans', count: orphans })
 
   // 8. Tonight's journal, from my journal reminder time (or 7 pm), if I haven't written today.
-  const wrote = live(data.journal).some((e) => e.date === today && !e.auto && plainText(e.body))
+  const wrote = live(data.journal).some((e) => e.date === today && !e.auto && wroteIn(e))
   if (!wrote && at >= zonedTime(today, (journalTime ?? JOURNAL_TIME).slice(0, 5), timeZone)) out.push({ key: 'journal', kind: 'journal' })
 
   return out

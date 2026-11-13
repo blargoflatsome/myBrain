@@ -3,6 +3,7 @@
 import type { JournalEntryRow, JournalStats, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { addDays, daysBetween } from '@/tasks/days'
 import { live } from '@/sync/live'
+import { wroteIn } from '@/journal/body'
 
 // ---------- Journal ----------
 /**
@@ -10,7 +11,7 @@ import { live } from '@/sync/live'
  * streak is still alive today if I wrote yesterday and haven't written yet today.
  */
 export function journalStreaks(entries: JournalEntryRow[], today: string): { current: number; best: number } {
-  const days = new Set(live(entries).filter((e) => e.body.trim() && e.date <= today).map((e) => e.date))
+  const days = new Set(live(entries).filter((e) => wroteIn(e) && e.date <= today).map((e) => e.date))
   const sorted = [...days].sort()
   let best = 0
   let run = 0

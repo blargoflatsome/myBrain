@@ -23,7 +23,7 @@ import { isScheduled as routineScheduled } from '@/routines/rules'
 import { isTaskScheduled } from '@/reminders/priority'
 import { journalStreaks } from '@/dashboard/stats'
 import { perfectDays } from '@/celebrate/rules'
-import { plainText } from '@/journal/body'
+import { wordsIn, wroteIn } from '@/journal/body'
 import { addDays, daysBetween, todayIn } from '@/tasks/days'
 import { live } from '@/sync/live'
 import { levelFor, TROPHIES, type Trophy, type TrophyId } from '@/trophies/definitions'
@@ -79,7 +79,7 @@ function mostOnOneKey(keys: string[]): number {
 }
 
 function written(entries: JournalEntryRow[]): JournalEntryRow[] {
-  return live(entries).filter((e) => !e.auto && plainText(e.body).trim())
+  return live(entries).filter((e) => !e.auto && wroteIn(e))
 }
 
 /** Each habit's best streak, over its scheduled days (a completed day adds one; a day not done breaks it). */
@@ -233,7 +233,7 @@ export function trophyValues(h: TrophyHistory, now: Date, timeZone: string): Rec
   }
 
   // Reflection
-  v.words_written = entries.reduce((sum, e) => sum + plainText(e.body).trim().split(/\s+/).filter(Boolean).length, 0)
+  v.words_written = entries.reduce((sum, e) => sum + wordsIn(e), 0)
 
   // Time of day (early bird is 4 to 7 am, so staying up all night never earns it)
   const doneMoments = [

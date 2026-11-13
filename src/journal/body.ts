@@ -1,6 +1,7 @@
 // Journal writing is formatted text (SPEC §5 Journal): bold, italic, underline, strikethrough, headings, lists,
 // checklists, quotes and links. It is stored as HTML limited to those elements, and cleaned before it is shown.
 import DOMPurify from 'dompurify'
+import { isEncrypted } from '@/journal/crypto'
 
 const ALLOWED_TAGS = ['p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'a', 'label', 'input', 'div', 'span']
 const ALLOWED_ATTR = ['href', 'target', 'rel', 'type', 'checked', 'disabled', 'data-type', 'data-checked']
@@ -72,4 +73,27 @@ export function storedNotes(html: string | null | undefined): string | null {
 /** What to store: cleaned HTML, or '' when nothing was written (an empty editor still holds an empty paragraph). */
 export function normalizeBody(html: string): string {
   return plainText(html) ? cleanHtml(html) : ''
+}
+
+/** Words in some writing (SPEC §5 Trophies, Words written). */
+export function countWords(html: string): number {
+  return plainText(html).split(/\s+/).filter(Boolean).length
+}
+
+/** The facts kept readable beside the writing, worked out at save (SPEC §5 Locking my journal). */
+export function writingFacts(html: string): { word_count: number; has_writing: boolean } {
+  const word_count = countWords(html)
+  return { word_count, has_writing: word_count > 0 }
+}
+
+type Writing = { body: string; has_writing?: boolean; word_count?: number }
+/** Whether an entry has writing. Copies saved before these facts were kept are worked out from the writing. */
+export function wroteIn(entry: Writing): boolean {
+  if (entry.has_writing !== undefined) return entry.has_writing
+  return !isEncrypted(entry.body) && !!plainText(entry.body)
+}
+/** Words in an entry's writing (same fallback as wroteIn). */
+export function wordsIn(entry: Writing): number {
+  if (entry.word_count !== undefined) return entry.word_count
+  return isEncrypted(entry.body) ? 0 : countWords(entry.body)
 }

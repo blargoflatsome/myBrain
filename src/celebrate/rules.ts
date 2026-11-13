@@ -5,6 +5,7 @@ import { dayStatus, isScheduled } from '@/habits/rules'
 import { tasksForDay } from '@/tasks/rules'
 import { addDays } from '@/tasks/days'
 import { live } from '@/sync/live'
+import { wroteIn } from '@/journal/body'
 
 export type CelebrationSetting = 'full' | 'gentle' | 'off'
 export const CELEBRATION_SETTINGS: readonly CelebrationSetting[] = ['full', 'gentle', 'off']
@@ -73,7 +74,7 @@ export function earnedFromHistory(h: History): BadgeKind[] {
   if (h.tasks.some((t) => t.status === 'done')) earned.push('first_task')
   if (live(h.habitLogs).some((l) => l.status === 'completed')) earned.push('first_habit')
   if (live(h.routineRuns).some((r) => r.finished_at)) earned.push('first_routine')
-  if (live(h.journalEntries).some((e) => !e.auto && e.body.trim())) earned.push('first_journal')
+  if (live(h.journalEntries).some((e) => !e.auto && wroteIn(e))) earned.push('first_journal')
   if (h.vaultItems.length) earned.push('first_vault')
   if (h.questLogs.length) earned.push('first_quest')
   if (h.postIts.length) earned.push('first_postit')

@@ -32,12 +32,13 @@ begin
   insert into public.journal_entries (user_id, date, stats, auto) values (alice, '2026-11-10', '{"tasks":{"done":1,"due":2}}', false);
   select count(*) into n from public.due_reminders(t2101) where kind = 'journal' and user_id = alice;
   if n <> 1 then raise exception 'FAIL: Spec §5 Journal: an entry with no writing still gets the reminder'; end if;
-  update public.journal_entries set body = 'Good day.' where user_id = alice and date = '2026-11-10';
+  -- The app stores has_writing with the writing (SPEC §5 Locking my journal); the reminder reads it.
+  update public.journal_entries set body = 'Good day.', has_writing = true, word_count = 2 where user_id = alice and date = '2026-11-10';
   select count(*) into n from public.due_reminders(t2101) where kind = 'journal' and user_id = alice;
   if n <> 0 then raise exception 'FAIL: Spec §5 Journal: no reminder once I wrote something today'; end if;
 
   -- Quiet hours hold it (it is not a priority reminder).
-  update public.journal_entries set body = '' where user_id = alice and date = '2026-11-10';
+  update public.journal_entries set body = '', has_writing = false, word_count = 0 where user_id = alice and date = '2026-11-10';
   update public.profiles set journal_reminder_time = '23:00', quiet_hours_start = '22:00', quiet_hours_end = '07:00' where user_id = alice;
   select count(*) into n from public.due_reminders(t2301) where kind = 'journal' and user_id = alice;
   if n <> 0 then raise exception 'FAIL: Spec §5 Journal: the journal reminder respects quiet hours'; end if;

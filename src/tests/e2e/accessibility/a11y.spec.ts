@@ -169,6 +169,26 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'Capture Post It')
     })
 
+    test('Journal lock: the locked Journal, the Account card with a long passkey name, and the lock window', async ({ page }) => {
+      // Locked on another device: the key row is enough for the locked screens (nothing here is decrypted).
+      server.seed('journal_keys', [{ id: 'key-1', version: 1, kdf_salt: 'AAAAAAAAAAAAAAAAAAAAAA==', kdf_iterations: 600000, key_by_passphrase: 'AAAA', recovery_salt: 'AAAAAAAAAAAAAAAAAAAAAA==', key_by_recovery: 'AAAA' }])
+      server.seed('journal_passkeys', [{ id: 'pk-1', credential_id: 'AAAA', name: LONG_WORD, prf_salt: 'AAAA', wrapped_key: 'AAAA' }])
+      await page.goto('/journal')
+      // The lock comes with the first full download of the sample data, slow on a busy iPhone run.
+      await expect(page.getByTestId('journal-locked')).toBeVisible({ timeout: 20_000 })
+      await scan(page, 'Locked Journal')
+      await page.goto('/account')
+      await expect(page.getByTestId('journal-passkeys')).toBeVisible()
+      await scan(page, 'Journal lock card')
+      await page.getByTestId('journal-change-passphrase').click()
+      await expect(page.getByTestId('journal-lock-dialog').getByTestId('unlock-form')).toBeVisible()
+      await scan(page, 'Journal lock window')
+      // A long passkey name still fits a 320 px screen (SPEC §2 Long text).
+      await page.getByTestId('journal-lock-dialog').getByTestId('close-x').click()
+      await page.setViewportSize({ width: 320, height: 640 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+    })
+
     test('Search window with results', async ({ page }) => {
       await page.goto('/tasks')
       // Wait for the page to be ready, or the click can land before Search is wired up.
