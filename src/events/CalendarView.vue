@@ -2,7 +2,10 @@
   <main class="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
-      <NewButton :label="m.newEvent" data-testid="new-event" @click="startNew(range.from <= today && today <= range.to ? today : range.from, null)" />
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button" :class="smallButton" data-testid="open-availability" @click="availabilityDialog?.showModal()">{{ messages.availability.open }}</button>
+        <NewButton :label="m.newEvent" data-testid="new-event" @click="startNew(range.from <= today && today <= range.to ? today : range.from, null)" />
+      </div>
     </div>
 
     <div class="flex flex-wrap items-center justify-between gap-2">
@@ -31,6 +34,17 @@
       <FullCalendar ref="calendar" :options="options" />
     </div>
     <p v-if="emptyDay" class="text-muted" data-testid="calendar-empty">{{ m.emptyDay }}</p>
+    <!-- SPEC §10 Scheduler: the shading in Week and Day is the times I'm not available; said in words too. -->
+    <p v-if="view !== 'dayGridMonth' && unavailable.length" class="flex items-center gap-2 text-sm text-muted" data-testid="unavailable-key">
+      <span class="unavailable-swatch size-4 shrink-0 rounded" aria-hidden="true" />{{ messages.availability.shadingKey }}
+    </p>
+    <dialog ref="availabilityDialog" :class="dialogBox" :aria-label="messages.availability.open" data-testid="availability-dialog">
+      <div class="flex max-h-[85dvh] flex-col gap-3 overflow-y-auto p-5">
+        <h2 class="pr-10 text-xl font-bold">{{ messages.availability.open }}</h2>
+        <AvailabilityCard />
+      </div>
+      <CloseX @click="availabilityDialog?.close()" />
+    </dialog>
 
     <p v-if="inviteError" class="text-sm text-danger" role="alert">{{ inviteError }}</p>
     <p v-if="inviteNotice" class="rounded-xl border border-line bg-surface p-3 text-sm" role="status" data-testid="invite-notice">{{ inviteNotice }}</p>
@@ -89,8 +103,12 @@ import { messages } from '@/messages'
 import type { EventInviteRow, EventRow, PriorityTaskRow, TaskRow } from '@/sync/types'
 import { live } from '@/sync/live'
 import { useUndoStore } from '@/stores/undo'
-import { selected, smallButton } from '@/ui/styles'
+import { dialogBox, selected, smallButton } from '@/ui/styles'
 import NewButton from '@/components/NewButton.vue'
+import CloseX from '@/components/CloseX.vue'
+import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
+import { myUnavailable } from '@/events/availability'
+import type { AvailabilityExceptionRow, AvailabilityRuleRow } from '@/sync/types'
 
 const brain = useBrainStore()
 const route = useRoute()
@@ -133,6 +151,13 @@ const items = useLiveQuery<CalendarItem[]>(
 )
 const emptyDay = computed(() => view.value === 'timeGridDay' && !items.value.some((i) => i.start.slice(0, 10) <= range.value.from && (i.end ?? i.start).slice(0, 10) >= range.value.from))
 
+// SPEC §10 Scheduler: my not-available times, shaded in Week and Day (never shown to anyone else).
+const availabilityDialog = ref<HTMLDialogElement | null>(null)
+const myRules = useLiveQuery<AvailabilityRuleRow[]>(async () => (brain.db ? brain.db.availability_rules.toArray() : []), [], [() => brain.db])
+const myExceptions = useLiveQuery<AvailabilityExceptionRow[]>(async () => (brain.db ? brain.db.availability_exceptions.toArray() : []), [], [() => brain.db])
+const unavailable = computed(() => (view.value === 'dayGridMonth' ? [] : myUnavailable(myRules.value, myExceptions.value, range.value.from, range.value.to)))
+const shading = computed(() => unavailable.value.map((b) => ({ start: b.start, end: b.end, display: 'background', className: 'unavailable' })))
+
 // Dark or light like the rest of the app (SPEC §3 Appearance).
 const scheme = computed(() => (isDark.value ? 'dark' : 'light'))
 
@@ -147,7 +172,7 @@ const options = computed<CalendarOptions>(() => ({
   dayMaxEvents: 3,
   scrollTime: '07:00:00',
   colorScheme: scheme.value,
-  events: items.value,
+  events: [...items.value, ...shading.value],
   dateClick: (info: DateClickInfo) => startNew(info.dateStr.slice(0, 10), info.allDay ? null : info.dateStr.slice(11, 16)),
   eventClick: (info: EventClickInfo) => {
     info.jsEvent.preventDefault()

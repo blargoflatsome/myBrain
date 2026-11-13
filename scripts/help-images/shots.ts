@@ -3,7 +3,8 @@
 import type { Locator, Page } from '@playwright/test'
 import type { FakeSupabase } from '../../src/tests/e2e/support/fakeSupabase'
 import { messages as msg } from '../../src/messages'
-import { DAY, ROUTINE } from './sample'
+import { DAY, FRIEND, ROUTINE } from './sample'
+import { TEST_USER_ID } from '../../src/tests/e2e/support/fakeSupabase'
 
 export interface Shot {
   name: string
@@ -38,6 +39,19 @@ export const SHOTS: Shot[] = [
   { name: 'help-routines', path: '/routines', ready: waitFor('Morning'), ring: (p) => p.getByRole('button', { name: msg.routines.start }).first() },
   { name: 'help-calendar', path: '/calendar', ready: waitFor('November 2026'), ring: (p) => p.getByRole('button', { name: msg.calendar.newEvent }) },
   { name: 'help-inviting', path: `/calendar?date=2026-11-14&event=e2`, ready: async (p) => { await p.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click(); const d = p.getByRole('dialog').last(); await d.getByTestId('event-people').waitFor() }, ring: (p) => p.getByTestId('event-people').locator('summary') },
+  { name: 'help-scheduling', path: `/calendar?date=2026-11-14&event=e2`, seed: (server) => {
+      server.rpcResults.my_connections = [{ friend_id: FRIEND, display_name: 'Jo Park', avatar_url: null, since: '2026-11-01T00:00:00Z' }]
+      server.rpcResults.event_people = [{ invite_id: 'inv-jo', name: 'Jo Park', email: null, phone: null, response: 'yes', is_me: false, user_id: FRIEND, optional: false }]
+      const shares = (user_id: string) => ({ user_id, timezone: 'America/New_York', kind: 'shares', weekday: null, start_date: null, start_time: null, end_date: null, end_time: null, repeat: null, busy: false, level: null })
+      server.rpcResults.free_busy = [shares(FRIEND), shares(TEST_USER_ID), { ...shares(FRIEND), kind: 'rule', weekday: 6, start_time: '18:00:00', end_time: '23:00:00', busy: true, level: 'busy' }]
+    }, ready: async (p) => {
+      await p.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
+      const d = p.getByRole('dialog').last()
+      const fold = d.getByTestId('event-schedule')
+      if (!(await fold.evaluate((x) => (x as HTMLDetailsElement).open))) await fold.locator('summary').click()
+      await d.getByTestId('find-a-time-button').click()
+      await d.getByTestId('suggested-time').first().waitFor()
+    }, ring: (p) => p.getByTestId('find-a-time') },
   { name: 'help-connections', path: '/connections', ring: (p) => p.getByLabel(msg.connections.askLabel) },
   { name: 'help-vault', path: '/vault', ready: waitFor('Books to read'), ring: (p) => p.getByText('Books to read').first() },
   { name: 'help-journal', path: '/journal', ready: async (p) => { await p.getByTestId('journal-writing').waitFor() }, ring: (p) => p.getByTestId('journal-writing') },
@@ -59,6 +73,6 @@ export const SHOTS: Shot[] = [
   { name: 'home-calendar', path: `/calendar?date=${DAY}`, ready: waitFor('November 2026') },
   { name: 'home-vault', path: '/vault?bucket=b1', ready: waitFor('Dune') },
   { name: 'home-journal', path: '/journal', ready: async (p) => { await p.getByTestId('journal-writing').waitFor() } },
-  { name: 'home-quests', path: '/quests', ready: async (p) => { await p.getByRole('button', { name: msg.quests.pick }).click(); await p.getByText(/^Past you (thought|left)/).waitFor() } },
+  { name: 'home-quests', path: '/quests', ready: async (p) => { await waitFor('Repot the basil')(p); await p.getByRole('button', { name: msg.quests.pick }).click(); await p.getByText(/^Past you (thought|left)/).waitFor() } },
   { name: 'home-dashboard', path: '/', ready: async (p) => { await p.getByTestId('postit').first().waitFor() } },
 ]

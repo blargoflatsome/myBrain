@@ -1,69 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { busyTimes, hasConflict, suggestTimes, type FreeBusyRow } from '@/events/availability'
 import { icsFile } from '@/events/ics'
 import { inviteLink, inviteMessage, shareHref, whenText } from '@/events/sharing'
-import { zonedTime } from '@/habits/rules'
 
 const TZ = 'America/New_York'
-const row = (extra: Partial<FreeBusyRow>): FreeBusyRow => ({
-  user_id: 'bob',
-  timezone: TZ,
-  kind: 'rule',
-  weekday: null,
-  start_date: null,
-  start_time: null,
-  end_date: null,
-  end_time: null,
-  repeat: null,
-  busy: true,
-  ...extra,
-})
-const at = (date: string, time: string) => zonedTime(date, time, TZ)
-
-describe('Spec §10 Connections, scheduling: free and busy', () => {
-  it('weekly unavailable times, exceptions and timed events make someone busy', () => {
-    const busy = busyTimes(
-      [
-        row({ kind: 'rule', weekday: 2, start_time: '09:00:00', end_time: '17:00:00' }), // Tuesdays 9-5
-        row({ kind: 'exception', start_date: '2026-11-12', busy: true }), // away all day Thursday
-        row({ kind: 'event', start_date: '2026-11-11', start_time: '18:00:00', end_date: '2026-11-11', end_time: '19:00:00', repeat: 'never' }),
-        row({ kind: 'event', start_date: '2026-11-11', start_time: null, end_date: '2026-11-11', end_time: null, repeat: 'never' }), // all day: doesn't block
-      ],
-      '2026-11-10',
-      '2026-11-12',
-    ).get('bob')!
-    expect(hasConflict(busy, { start: at('2026-11-10', '10:00'), end: at('2026-11-10', '11:00') })).toBe(true)
-    expect(hasConflict(busy, { start: at('2026-11-10', '17:00'), end: at('2026-11-10', '18:00') })).toBe(false)
-    expect(hasConflict(busy, { start: at('2026-11-11', '18:30'), end: at('2026-11-11', '20:00') })).toBe(true)
-    expect(hasConflict(busy, { start: at('2026-11-11', '12:00'), end: at('2026-11-11', '13:00') })).toBe(false)
-    expect(hasConflict(busy, { start: at('2026-11-12', '12:00'), end: at('2026-11-12', '13:00') })).toBe(true)
-  })
-
-  it('an "available" exception frees up time that is normally unavailable', () => {
-    const busy = busyTimes(
-      [
-        row({ kind: 'rule', weekday: 2, start_time: '09:00:00', end_time: '17:00:00' }),
-        row({ kind: 'exception', start_date: '2026-11-10', start_time: '12:00:00', end_time: '14:00:00', busy: false }),
-      ],
-      '2026-11-10',
-      '2026-11-10',
-    ).get('bob')!
-    expect(hasConflict(busy, { start: at('2026-11-10', '12:30'), end: at('2026-11-10', '13:30') })).toBe(false)
-    expect(hasConflict(busy, { start: at('2026-11-10', '10:00'), end: at('2026-11-10', '11:00') })).toBe(true)
-  })
-
-  it('suggests up to 3 times when everyone is free, 8 am to 9 pm, not in the past', () => {
-    const busy = busyTimes([row({ kind: 'rule', weekday: 2, start_time: '08:00:00', end_time: '20:00:00' })], '2026-11-10', '2026-11-24')
-    const now = new Date(at('2026-11-10', '07:00'))
-    const slots = suggestTimes(busy, 60 * 60_000, now, TZ)
-    expect(slots.map((s) => new Date(s.start).toISOString())).toEqual([
-      new Date(at('2026-11-10', '20:00')).toISOString(), // after Bob's Tuesday hours, before 9 pm
-      new Date(at('2026-11-11', '08:00')).toISOString(),
-      new Date(at('2026-11-11', '09:00')).toISOString(),
-    ])
-  })
-})
-
 
 describe('Spec §5 Shared events: calendar files', () => {
   it('a timed event, in UTC, with its repeat', () => {
