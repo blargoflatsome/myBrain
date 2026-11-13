@@ -31,6 +31,8 @@ export const SYNC_TABLES = [
   'people',
   'quest_logs',
   'activity_log',
+  'journal_keys',
+  'journal_passkeys',
 ] as const
 
 /** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
@@ -342,6 +344,29 @@ export interface JournalEntryRow extends BaseRow {
   tomorrow?: string
   /** "Was today better than yesterday?" (null = not answered). */
   better_than_yesterday?: boolean | null
+  /** Words in the writing, worked out at save and kept readable (SPEC §5 Locking my journal). */
+  word_count?: number
+  /** Whether the writing has any words, worked out at save and kept readable. */
+  has_writing?: boolean
+}
+
+/** My journal key, wrapped by my passphrase and by my recovery key (SPEC §5 Locking my journal). Base64 strings. */
+export interface JournalKeyRow extends BaseRow {
+  version: number
+  kdf_salt: string
+  kdf_iterations: number
+  key_by_passphrase: string
+  recovery_salt: string
+  key_by_recovery: string
+}
+
+/** A passkey that can unlock my journal: my journal key wrapped by a key from its PRF output. */
+export interface JournalPasskeyRow extends BaseRow {
+  /** Base64url, as WebAuthn gives it. */
+  credential_id: string
+  name: string
+  prf_salt: string
+  wrapped_key: string
 }
 
 export interface RowTypes {
@@ -367,6 +392,8 @@ export interface RowTypes {
   priority_task_logs: PriorityTaskLogRow
   reminder_state: ReminderStateRow
   journal_entries: JournalEntryRow
+  journal_keys: JournalKeyRow
+  journal_passkeys: JournalPasskeyRow
   events: EventRow
   tags: TagRow
   item_tags: ItemTagRow

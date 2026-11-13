@@ -119,7 +119,7 @@ export function entryIdFor(userId: string, date: string): string {
 }
 
 export function emptyEntry(userId: string, date: string, auto: boolean): JournalEntryRow {
-  return { id: entryIdFor(userId, date), user_id: userId, date, body: '', stats: {}, stats_final: false, auto, deleted_at: null }
+  return { id: entryIdFor(userId, date), user_id: userId, date, body: '', word_count: 0, has_writing: false, stats: {}, stats_final: false, auto, deleted_at: null }
 }
 
 /**

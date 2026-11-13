@@ -2,7 +2,7 @@
   <main class="legal mx-auto flex w-full max-w-2xl flex-col gap-8 px-5 pt-8 md:px-8 pb-16">
     <RouterLink to="/" class="text-sm text-muted underline">← {{ messages.legal.back }}</RouterLink>
     <h1 class="text-2xl font-bold">Privacy policy</h1>
-    <p class="text-sm text-muted">Draft · last updated November 7, 2026</p>
+    <p class="text-sm text-muted">Draft · last updated November 13, 2026</p>
 
     <p>My Brain is a small personal productivity app. This page explains, in plain words, what it keeps about you and who can see it.</p>
 
@@ -22,6 +22,7 @@
     <h2>Who can see it</h2>
     <ul>
       <li>Your data is yours. Other users can't see your tasks, journal, Vault, habits, routines, reminders or events.</li>
+      <li>If you lock your journal, your writing is encrypted on your device before it's uploaded, so nobody else can read it, including whoever runs My Brain. Only the word count and whether you wrote anything stay readable, for streaks, trophies and reminders. If you lose your passphrase and your recovery key, your writing can't be recovered. The lock can't protect against a harmful update to the app itself, someone using your device while it's unlocked, or the word count and yes/no answer, which stay readable.</li>
       <li>Your connections can see your profile: your name, your Google picture and the trophies you have earned. Trophies never name a habit.</li>
       <li>People you invite to an event see its title, date, time and notes, and who invited them. The host sees each person's answer.</li>
       <li>No one can search for you by name. Typing your email or phone number never tells anyone whether you have an account.</li>
@@ -38,6 +39,7 @@
     <h2>Your choices</h2>
     <ul>
       <li><strong>Download my data</strong> on the Account page saves everything you have as one file.</li>
+      <li><strong>Lock my journal</strong> on the Account page encrypts your journal writing. You can turn it off again.</li>
       <li><strong>Delete My Account</strong> permanently removes your account and everything in it.</li>
       <li>Guests can use "Stop these emails" in any invitation to stop getting messages about events.</li>
     </ul>

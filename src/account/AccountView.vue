@@ -76,6 +76,9 @@
         </div>
       </section>
 
+      <!-- SPEC §5 Locking my journal. -->
+      <JournalLockCard />
+
       <!-- SPEC §5 Tags page: reached from here. -->
       <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line px-4 py-3" aria-labelledby="account-tags" data-testid="account-tags">
         <span class="min-w-0">
@@ -203,6 +206,13 @@
       :keep-label="messages.signOut.unsent.keep"
       @confirm="signOut(true)"
     />
+    <dialog ref="exportUnlock" :aria-labelledby="'export-unlock-heading'" :class="[confirmBox, 'flex-col gap-3 open:flex']" data-testid="export-unlock">
+      <h2 id="export-unlock-heading" class="pr-10 text-lg font-semibold">{{ messages.journalLock.exportHeading }}</h2>
+      <p class="text-sm text-muted">{{ messages.journalLock.exportIntro }}</p>
+      <UnlockForm purpose="unlock" @unlocked="exportAfterUnlock" />
+      <button type="button" :class="[smallButton, 'self-start']" data-testid="export-skip" @click="exportAfterUnlock">{{ messages.journalLock.exportSkip }}</button>
+      <CloseX :label="messages.journalLock.close" @click="exportUnlock?.close()" />
+    </dialog>
   </main>
 </template>
 
@@ -213,6 +223,10 @@ import AppIcon from '@/components/AppIcon.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import TypeToConfirmDialog from '@/components/TypeToConfirmDialog.vue'
+import CloseX from '@/components/CloseX.vue'
+import JournalLockCard from '@/journal/components/JournalLockCard.vue'
+import UnlockForm from '@/journal/components/UnlockForm.vue'
+import { useJournalLock } from '@/journal/useJournalLock'
 import { computed, onMounted, ref } from 'vue'
 import AccountGroup from '@/account/components/AccountGroup.vue'
 import { RouterLink, useRouter } from 'vue-router'
@@ -227,7 +241,7 @@ import MyPeople from '@/events/components/MyPeople.vue'
 import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
 import { clearAppKeys } from '@/ui/storage'
-import { checkbox, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
+import { checkbox, confirmBox, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
 import { appearance, APPEARANCES, setAppearance, type Appearance } from '@/ui/appearance'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { openPause } from '@/habits/rules'
@@ -328,11 +342,23 @@ async function deleteAccount() {
 // ---------- Download my data (SPEC §8) ----------
 const exporting = ref(false)
 const exportError = ref('')
+// SPEC §5 Locking my journal: a locked journal asks to be unlocked first, so the file has the writing readable;
+// Skip saves it encrypted.
+const { locked: journalLocked } = useJournalLock()
+const exportUnlock = ref<HTMLDialogElement | null>(null)
 async function exportData() {
+  if (journalLocked.value) return exportUnlock.value?.showModal()
+  await runExport()
+}
+async function exportAfterUnlock() {
+  exportUnlock.value?.close()
+  await runExport()
+}
+async function runExport() {
   exportError.value = ''
   exporting.value = true
   try {
-    await downloadMyData(auth.user?.id ?? '')
+    await downloadMyData(auth.user?.id ?? '', brain.openJournalRows)
   } catch {
     exportError.value = messages.dataExport.failed
   } finally {

@@ -34,5 +34,14 @@ describe('Spec §5 Global search', () => {
   it('a result shows the words around what was found, without formatting', () => {
     expect(snippet(search(docs, 'cafe').find((d) => d.id === 'j1')!, 'cafe')).toBe('Met Sam at the cafe.')
   })
+
+  it('SPEC §5 Locking my journal: writing still encrypted on this device is left out, not searched as gibberish', () => {
+    const locked = searchDocs({
+      tasks: [], vaultItems: [], buckets: [], quests: [], events: [], habits: [], routines: [], itemTags: [],
+      journal: [{ id: 'j2', date: '2026-11-08', body: 'enc:v1:c2VjcmV0', tomorrow: '<p>call Sam</p>', stats: {}, stats_final: true, auto: false, deleted_at: null }],
+    })
+    expect(search(locked, 'enc')).toEqual([])
+    expect(search(locked, 'sam').map((d) => d.id)).toEqual(['j2'])
+  })
 })
 

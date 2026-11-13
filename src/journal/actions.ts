@@ -4,7 +4,7 @@ import type { ActionContext } from '@/sync/actions'
 import type { LocalDb } from '@/sync/db'
 import { readTables } from '@/sync/db'
 import { DAY_TABLES, dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
-import { normalizeBody } from '@/journal/body'
+import { normalizeBody, writingFacts } from '@/journal/body'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { achieved } from '@/celebrate/bus'
 
@@ -71,14 +71,16 @@ export function journalActions({ ready, habitsReady }: ActionContext) {
   async function storeJournalBody(date: string, html: string, now: Date, timeZone: string) {
     const { engine: e, uid, local } = ready()
     const body = normalizeBody(html)
+    // Kept readable beside the writing, so trophies, streaks and reminders never need the writing (SPEC §5 Locking my journal).
+    const facts = writingFacts(body)
     const existing = await entryFor(local, date)
     const auto = (row: JournalEntryRow) => row.auto && !body
     if (existing) {
       if (existing.body === body) return
-      await e.patch('journal_entries', existing.id, (fresh) => (fresh.body === body ? null : { body, auto: auto(fresh) }))
+      await e.patch('journal_entries', existing.id, (fresh) => (fresh.body === body ? null : { body, ...facts, auto: auto(fresh) }))
     } else {
       const stats = dayStats(await dayData(), date, now, timeZone)
-      await e.save('journal_entries', { ...emptyEntry(uid, date, false), body, stats, stats_final: date < todayIn(timeZone, now) })
+      await e.save('journal_entries', { ...emptyEntry(uid, date, false), body, ...facts, stats, stats_final: date < todayIn(timeZone, now) })
     }
     if (body) achieved({ kind: 'journal' })
   }

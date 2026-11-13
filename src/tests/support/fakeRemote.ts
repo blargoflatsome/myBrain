@@ -37,6 +37,8 @@ export class FakeRemote implements Remote {
     event_invites: new Map(),
     availability_rules: new Map(),
     availability_exceptions: new Map(),
+    journal_keys: new Map(),
+    journal_passkeys: new Map(),
   }
 
   private now() {

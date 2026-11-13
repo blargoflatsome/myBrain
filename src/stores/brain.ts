@@ -11,6 +11,9 @@ import type { ActionContext } from '@/sync/actions'
 import { habitActions } from '@/habits/actions'
 import { routineActions } from '@/routines/actions'
 import { journalActions } from '@/journal/actions'
+import { journalLockActions } from '@/journal/lockActions'
+import { keyringFor } from '@/journal/keyring'
+import { lockingRemote } from '@/journal/lockingRemote'
 import { tagActions } from '@/tags/actions'
 import { trophyActions } from '@/trophies/actions'
 import { vaultActions } from '@/vault/actions'
@@ -61,13 +64,15 @@ export const useBrainStore = defineStore('brain', () => {
   let lastRemote: Remote | null = null
 
   /** Open this user's on-device store and start syncing. One store per user, so accounts never mix. */
-  function start(uid: string, remote: Remote) {
+  function start(uid: string, serverRemote: Remote) {
     if (userId.value === uid) return
     stop()
-    lastRemote = remote
+    lastRemote = serverRemote
     userId.value = uid
     db.value = new LocalDb(`my-brain-${uid}`)
     const local = db.value
+    // SPEC §5 Locking my journal: journal writing is encrypted on the way up and decrypted on the way down.
+    const remote = lockingRemote(serverRemote, keyringFor(local), uid)
     // A table that readiness depends on counts as soon as its own download is stored, not when the whole first sync
     // finishes, so a first badge (SPEC §5 Celebrations) isn't held up by every other table on a slow connection.
     const READY_TABLES: SyncTable[] = ['badges', 'habit_logs', 'habit_pauses', 'journal_entries']
@@ -187,6 +192,7 @@ export const useBrainStore = defineStore('brain', () => {
   const habits = habitActions(ctx)
   const routines = routineActions(ctx, habits.completeHabit)
   const journal = journalActions(ctx)
+  const journalLock = journalLockActions(ctx)
   const tags = tagActions(ctx)
   const trophies = trophyActions(ctx)
   const vault = vaultActions(ctx)
@@ -382,6 +388,7 @@ export const useBrainStore = defineStore('brain', () => {
     ...priority,
     // Journal
     ...journal,
+    ...journalLock,
     // The Vault
     ...vault,
     // Tags

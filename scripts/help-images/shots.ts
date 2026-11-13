@@ -55,6 +55,7 @@ export const SHOTS: Shot[] = [
   { name: 'help-connections', path: '/connections', ring: (p) => p.getByLabel(msg.connections.askLabel) },
   { name: 'help-vault', path: '/vault', ready: waitFor('Books to read'), ring: (p) => p.getByText('Books to read').first() },
   { name: 'help-journal', path: '/journal', ready: async (p) => { await p.getByTestId('journal-writing').waitFor() }, ring: (p) => p.getByTestId('journal-writing') },
+  { name: 'help-journal-lock', path: '/account', accountOpen: true, ready: async (p) => { await p.getByTestId('journal-lock').waitFor() }, ring: (p) => p.getByTestId('journal-lock') },
   { name: 'help-quests', path: '/quests', ready: waitFor('Repot the basil'), ring: (p) => p.getByRole('button', { name: msg.quests.pick }) },
   { name: 'help-focus', path: '/tasks', ready: waitFor('Pay rent'), ring: (p) => p.getByTestId('focus-open') },
   { name: 'help-dashboard', path: '/', ready: async (p) => { await p.getByTestId('postit').first().waitFor() }, ring: (p) => p.getByTestId('dash-postits') },

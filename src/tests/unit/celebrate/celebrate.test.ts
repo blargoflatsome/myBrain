@@ -179,6 +179,41 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     await vi.waitFor(() => expect(celebrate.message?.text).toBe(messages.celebrations.badgeEarned(messages.celebrations.badges.first_task)))
   })
 
+  it('a badge catch-up is still saving when my first task’s own save finds it there: the message still comes', async () => {
+    const brain = useBrainStore()
+    brain.start(UID, remote)
+    await vi.waitFor(() => expect(brain.badgesReady).toBe(true))
+    brain.habitsReady = true
+    // The celebration's save waits until catch-up's save has written; catch-up's save then holds until the end.
+    const save = brain.saveBadge
+    let written = () => {}
+    const wroteGate = new Promise<void>((r) => (written = r))
+    let finish = () => {}
+    const finishGate = new Promise<void>((r) => (finish = r))
+    vi.spyOn(brain, 'saveBadge').mockImplementation(async (kind, now) => {
+      if (now === undefined) {
+        await wroteGate
+        return save(kind, now)
+      }
+      const saved = await save(kind, now)
+      written()
+      await finishGate
+      return saved
+    })
+    const celebrate = useCelebrateStore()
+    celebrate.start()
+    const t = task({ due_date: null })
+    await brain.saveTask(t)
+    await brain.saveTask({ ...t, status: 'done', completed_at: new Date().toISOString() })
+    const catching = celebrate.catchUp(new Date(), TZ)
+    try {
+      await vi.waitFor(() => expect(celebrate.message?.text).toBe(messages.celebrations.badgeEarned(messages.celebrations.badges.first_task)))
+    } finally {
+      finish()
+      await catching
+    }
+  })
+
   it('Off still gives messages and badges, but no confetti', async () => {
     const brain = useBrainStore()
     brain.start(UID, remote)

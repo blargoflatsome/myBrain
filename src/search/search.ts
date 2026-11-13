@@ -1,6 +1,9 @@
 // Search (SPEC §5 Global search and tags): runs on the device's copy of my data, so it is instant and works offline.
 import type { EventRow, HabitRow, ItemTagRow, JournalEntryRow, QuestRow, RoutineRow, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { plainText } from '@/journal/body'
+import { isEncrypted } from '@/journal/crypto'
+
+const readable = (text: string | undefined) => (text && !isEncrypted(text) ? text : '')
 
 /** Everything search finds; only tasks, habits and routines carry tags. */
 export type SearchType = 'task' | 'habit' | 'routine' | 'event' | 'journal_entry' | 'vault_item' | 'quest'
@@ -64,8 +67,10 @@ export function searchDocs(data: SearchData): SearchDoc[] {
       .filter((v) => !v.deleted_at)
       .map((v) => doc('vault_item', v.id, v.title, [plainText(v.notes ?? ''), v.link].filter(Boolean).join('\n'), v.updated_at, { bucketId: v.bucket_id, context: bucketName.get(v.bucket_id) })),
     ...data.journal
-      .filter((j) => !j.deleted_at && (j.body.trim() || j.tomorrow?.trim()))
-      .map((j) => doc('journal_entry', j.id, j.date, [plainText(j.body), plainText(j.tomorrow ?? '')].filter(Boolean).join('\n'), j.updated_at, { date: j.date })),
+      // A locked journal's writing isn't searched until this device unlocks it (SPEC §5 Locking my journal).
+      .map((j) => ({ j, words: [readable(j.body), readable(j.tomorrow)].map(plainText).filter(Boolean).join('\n') }))
+      .filter(({ j, words }) => !j.deleted_at && words)
+      .map(({ j, words }) => doc('journal_entry', j.id, j.date, words, j.updated_at, { date: j.date })),
     ...data.quests.filter((q) => !q.deleted_at).map((q) => doc('quest', q.id, q.title, plainText(q.details ?? ''), q.updated_at)),
     ...data.events.filter((e) => !e.deleted_at).map((e) => doc('event', e.id, e.title, plainText(e.notes ?? ''), e.updated_at, { date: e.start_date })),
     ...data.habits.filter((h) => !h.deleted_at).map((h) => doc('habit', h.id, h.title, '', h.updated_at)),

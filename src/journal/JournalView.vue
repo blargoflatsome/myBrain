@@ -13,19 +13,24 @@
       <JournalStatsCard v-if="todayStats" :stats="todayStats" />
       <JournalBetter :key="today" :date="today" :entry="todayEntry" @busy="track(today, 'better', $event)" />
 
-      <!-- SPEC §5 Celebrations: a soft glow around the writing when it's saved. -->
-      <div class="rounded-xl" :class="{ 'celebrate-glow': glowing }" data-testid="journal-writing" :data-glowing="glowing || undefined">
-        <RichTextEditor
-          :model-value="draftOf(today, todayEntry)"
-          :label="m.writeLabel"
-          :placeholder="m.writePlaceholder"
-          min-height="18rem"
-          @update:model-value="onInput(today, $event)"
-          @blur="save(today)"
-        />
-      </div>
-      <SaveStatus class="-mt-2" :busy="busy.has(`${today}:body`)" :has-saved="!!todayEntry?.body" stamp test-id="save-status-writing" />
-      <JournalTomorrow :key="today" :date="today" :entry="todayEntry" @busy="track(today, 'tomorrow', $event)" />
+      <!-- SPEC §5 Locking my journal: on a device that hasn't unlocked it, the writing and editors wait. -->
+      <UnlockJournal v-if="locked" />
+      <p v-else-if="!lockKnown" class="text-muted" role="status" data-testid="journal-lock-checking">{{ lm.checking }}</p>
+      <template v-else>
+        <!-- SPEC §5 Celebrations: a soft glow around the writing when it's saved. -->
+        <div class="rounded-xl" :class="{ 'celebrate-glow': glowing }" data-testid="journal-writing" :data-glowing="glowing || undefined">
+          <RichTextEditor
+            :model-value="draftOf(today, todayEntry)"
+            :label="m.writeLabel"
+            :placeholder="m.writePlaceholder"
+            min-height="18rem"
+            @update:model-value="onInput(today, $event)"
+            @blur="save(today)"
+          />
+        </div>
+        <SaveStatus class="-mt-2" :busy="busy.has(`${today}:body`)" :has-saved="!!todayEntry?.body" stamp test-id="save-status-writing" />
+        <JournalTomorrow :key="today" :date="today" :entry="todayEntry" @busy="track(today, 'tomorrow', $event)" />
+      </template>
     </section>
 
 
@@ -43,7 +48,7 @@
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h3 class="font-semibold">
               <!-- SPEC §2 Rows look alike: tapping the day opens it for editing. -->
-              <button v-if="editingDate !== e.date" type="button" class="min-h-11 text-left underline-offset-4 hover:underline" :aria-label="m.editLabel(shortDay(e.date))" data-testid="journal-edit" @click="editingDate = e.date">{{ shortDay(e.date) }}</button>
+              <button v-if="editingDate !== e.date && !locked" type="button" class="min-h-11 text-left underline-offset-4 hover:underline" :aria-label="m.editLabel(shortDay(e.date))" data-testid="journal-edit" @click="editingDate = e.date">{{ shortDay(e.date) }}</button>
               <template v-else>{{ shortDay(e.date) }}</template>
             </h3>
             <SaveStatus v-if="editingDate === e.date" :busy="isBusy(e.date)" :has-saved="true" />
@@ -68,10 +73,13 @@
             {{ m.done }}
           </button>
         </template>
+        <template v-else-if="isEncrypted(e.body)">
+          <p v-if="!locked" class="text-sm text-muted" data-testid="journal-unreadable">{{ lm.couldNotOpen }}</p>
+        </template>
         <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
         <div v-else-if="e.body.trim()" class="rich" data-testid="journal-body" v-html="cleanHtml(e.body)" />
         <p v-else-if="e.auto" class="text-sm text-muted">{{ m.autoNote }}</p>
-        <div v-if="editingDate !== e.date && e.tomorrow?.trim()" class="flex flex-col gap-1 text-sm" data-testid="journal-tomorrow">
+        <div v-if="editingDate !== e.date && e.tomorrow?.trim() && !isEncrypted(e.tomorrow)" class="flex flex-col gap-1 text-sm" data-testid="journal-tomorrow">
           <span class="font-medium">{{ m.tomorrowLabel }}</span>
           <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
           <div class="rich" v-html="cleanHtml(e.tomorrow)" />
@@ -99,6 +107,9 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { hadActivity, hasStats } from '@/journal/stats'
 import { cleanHtml } from '@/journal/body'
+import { isEncrypted } from '@/journal/crypto'
+import UnlockJournal from '@/journal/components/UnlockJournal.vue'
+import { useJournalLock } from '@/journal/useJournalLock'
 import { messages } from '@/messages'
 import type { JournalEntryRow, JournalStats } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
@@ -126,6 +137,8 @@ watch(
 )
 onScopeDispose(() => clearTimeout(glowTimer))
 const m = messages.journal
+const lm = messages.journalLock
+const { locked, known: lockKnown } = useJournalLock()
 const { today, timeZone } = useToday()
 
 // A clock that ticks each minute, so today's stats follow habit deadlines without a reload.

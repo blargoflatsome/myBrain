@@ -124,7 +124,7 @@ export const useCelebrateStore = defineStore('celebrate', () => {
     })
   }
 
-  /** When catch-up last saved each badge quietly this session (Date.now()). */
+  /** When catch-up read the history it saved each badge quietly from, this session (Date.now()). */
   const quietlySaved = new Map<BadgeKind, number>()
   async function earnBadge(kind: BadgeKind, achievedAt: number) {
     if (!brain.db) return
@@ -264,9 +264,14 @@ export const useCelebrateStore = defineStore('celebrate', () => {
       postIts: 'post_its',
       inbox: 'inbox',
     })
+    const readAt = Date.now()
     const missing = new Set(missingBadges(await local.badges.toArray()))
     for (const kind of earnedFromHistory(history)) {
-      if (missing.has(kind) && (await brain.saveBadge(kind, now))) quietlySaved.set(kind, Date.now())
+      if (!missing.has(kind)) continue
+      // Noted before saving: a celebration whose own save finds this badge already there must know catch-up just
+      // saved it from history read after the thing I did, even while catch-up's save is still finishing.
+      quietlySaved.set(kind, readAt)
+      if (!(await brain.saveBadge(kind, now))) quietlySaved.delete(kind)
     }
     // Trophies are worked out alongside, without holding up the rest (asking the server can be slow).
     void refreshCounts()
