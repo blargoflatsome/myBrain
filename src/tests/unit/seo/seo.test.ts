@@ -22,9 +22,9 @@ describe('SPEC §8 Search listing and 404s', () => {
     expect(routePaths.at(-1)).toBe(CATCH_ALL)
   })
 
-  it('only the sign-in page has a canonical link, and leaving it removes the link', () => {
-    setCanonical('/sign-in')
-    expect(document.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(`${location.origin}/sign-in`)
+  it('only the home page has a canonical link, and leaving it removes the link', () => {
+    setCanonical('/')
+    expect(document.querySelector('link[rel="canonical"]')?.getAttribute('href')).toBe(`${location.origin}/`)
     setCanonical('/tasks')
     expect(document.querySelector('link[rel="canonical"]')).toBeNull()
   })

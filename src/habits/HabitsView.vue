@@ -40,7 +40,6 @@
                 <span data-testid="habit-streak" :class="{ 'celebrate-bounce': justDone === h.id }"><AppIcon name="flame" class="mr-1" />{{ m.streak(streakOf(h).current) }}</span>
                 <span data-testid="habit-best">{{ m.best(streakOf(h).best) }}</span>
                 <span v-if="keptOf(h).total" data-testid="habit-kept">{{ m.keptLately(keptOf(h).kept, keptOf(h).total) }}</span>
-                <span v-if="h.is_private"><AppIcon name="lock" class="mr-1" />{{ m.privateBadge }}</span>
                 <span v-if="h.is_priority" class="text-carried"><AppIcon name="alert" class="mr-1" />{{ m.priorityBadge }}</span>
               </span>
             </button>

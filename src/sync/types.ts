@@ -1,13 +1,17 @@
 // Offline-first sync (SPEC §7): a custom queue on Dexie. See engine.ts.
 
+// Downloaded in this order: the tables that readiness waits on (badges for celebrations, habit logs and pauses for
+// misses) come first, so a slow first sync doesn't hold them up (SPEC §5 Celebrations).
 export const SYNC_TABLES = [
+  'badges',
+  'habit_logs',
+  'habit_pauses',
   'tasks',
   'vault_buckets',
   'vault_items',
   'quests',
   'inbox',
   'habits',
-  'habit_logs',
   'routines',
   'routine_steps',
   'routine_runs',
@@ -26,9 +30,7 @@ export const SYNC_TABLES = [
   'notifications',
   'people',
   'quest_logs',
-  'badges',
   'activity_log',
-  'habit_pauses',
 ] as const
 
 /** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
@@ -231,7 +233,6 @@ export interface HabitRow extends BaseRow {
   weekdays: number[]
   /** First day the habit counts, YYYY-MM-DD. */
   start_date: string
-  is_private: boolean
   /** Priority habits get the full-screen reminder and slider (SPEC §5). */
   is_priority?: boolean
   current_streak?: number

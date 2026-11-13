@@ -71,7 +71,6 @@
       v-model:notify-time="habitTime"
       v-model:timer="habitTimer"
       v-model:is-priority="habitPriority"
-      v-model:is-private="habitPrivate"
       :min-start="habitToday"
       :field-class="fieldOnPage"
     />
@@ -210,7 +209,6 @@ const habitToday = todayIn(deviceTimeZone())
 const habitStart = ref(habitToday)
 const habitTime = ref('')
 const habitTimer = ref<number | null>(null)
-const habitPrivate = ref(false)
 const habitPriority = ref(false)
 function reset() {
   postBody.value = ''
@@ -221,7 +219,6 @@ function reset() {
   habitStart.value = habitToday
   habitTime.value = ''
   habitTimer.value = null
-  habitPrivate.value = false
   habitPriority.value = false
   type.value = 'later'
   title.value = ''
@@ -306,7 +303,6 @@ async function save() {
         startDate: habitStart.value,
         notifyTime: habitTime.value || null,
         timerMinutes: habitTime.value ? habitTimer.value : null,
-        isPrivate: habitPrivate.value,
         isPriority: habitPriority.value,
       },
     }

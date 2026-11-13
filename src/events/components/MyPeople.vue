@@ -9,7 +9,7 @@
     <p v-if="!people.length" class="text-muted">{{ m.empty }}</p>
     <ul v-else class="flex flex-col gap-2">
       <li v-for="p in pageItems" :key="p.id" class="flex min-w-0 items-center justify-between gap-2" data-testid="saved-person">
-        <button type="button" class="min-h-11 min-w-0 flex-1 text-left text-sm [overflow-wrap:anywhere]" :aria-label="m.editLabel(personLabel(p))" @click="startEdit(p)">
+        <button type="button" class="min-h-11 min-w-0 flex-1 text-left text-sm [overflow-wrap:anywhere]" :aria-label="m.editLabel(shownAs(p))" @click="startEdit(p)">
           <span class="font-medium">{{ personLabel(p) }}</span>
           <span v-if="p.name" class="text-muted"> · {{ p.email || p.phone }}</span>
         </button>
@@ -48,7 +48,7 @@ import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { contactKey, isEmail, isPhone } from '@/events/contacts'
-import { personLabel, sortPeople } from '@/events/people'
+import { personLabel, shownAs, sortPeople } from '@/events/people'
 import { peopleWithAccounts, requestConnection } from '@/connections/connections'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'

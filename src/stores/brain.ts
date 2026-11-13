@@ -67,9 +67,13 @@ export const useBrainStore = defineStore('brain', () => {
     lastRemote = remote
     userId.value = uid
     db.value = new LocalDb(`my-brain-${uid}`)
-    engine.value = new SyncEngine(db.value, remote, (s) => (status.value = s), () => online.value)
-
     const local = db.value
+    // A table that readiness depends on counts as soon as its own download is stored, not when the whole first sync
+    // finishes, so a first badge (SPEC §5 Celebrations) isn't held up by every other table on a slow connection.
+    const READY_TABLES: SyncTable[] = ['badges', 'habit_logs', 'habit_pauses', 'journal_entries']
+    engine.value = new SyncEngine(local, remote, (s) => (status.value = s), () => online.value, (table) => {
+      if (READY_TABLES.includes(table)) background(markReady())
+    })
     const markReady = async () => {
       if (await local.meta.get('downloaded:badges')) badgesReady.value = true
       // Misses are only worked out once logs and pauses are both here, so a paused day is never logged as missed.

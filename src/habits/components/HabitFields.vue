@@ -1,13 +1,5 @@
 <template>
   <div class="flex flex-col gap-8" data-testid="habit-fields">
-    <label class="flex items-start gap-3">
-      <input v-model="isPrivate" type="checkbox" class="mt-1" :class="checkbox">
-      <span>
-        <span class="font-medium">{{ m.editor.private }}</span>
-        <span class="block text-sm text-muted">{{ m.editor.privateHint }}</span>
-      </span>
-    </label>
-
     <fieldset class="flex flex-col gap-8" data-testid="habit-how-often">
       <legend class="sr-only">{{ f.howOften }}</legend>
       <HowOften :model-value="weekInterval" :monthly="monthly" :start-date="startDate" @update:model-value="weekInterval = $event" @update:monthly="monthly = $event" />
@@ -64,7 +56,6 @@ const startDate = defineModel<string>('startDate', { required: true })
 const notifyTime = defineModel<string>('notifyTime', { required: true })
 const timer = defineModel<number | null>('timer', { required: true })
 const isPriority = defineModel<boolean>('isPriority', { required: true })
-const isPrivate = defineModel<boolean>('isPrivate', { required: true })
 
 const m = messages.habits
 const f = messages.forms

@@ -10,7 +10,6 @@ const meds: HabitRow = {
   timer_minutes: 120,
   weekdays: [0, 1, 2, 3, 4, 5, 6],
   start_date: '2026-11-01',
-  is_private: true,
   is_priority: true,
   deleted_at: null,
 }

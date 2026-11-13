@@ -40,7 +40,7 @@ test.describe('Navigation', { tag: '@phone' }, () => {
     await openMore(page)
     const sheet = page.getByRole('dialog', { name: msg.nav.more })
     const moreLinks = (await sheet.isVisible()) ? sheet.getByRole('link') : page.locator('#nav-more').getByRole('link')
-    await expect(moreLinks).toHaveText(['Routines', 'Journal', 'Quests', /^Orphans/, 'Connections'])
+    await expect(moreLinks).toHaveText(['Routines', 'Journal', 'Quests', /^Orphans/, 'Connections', msg.nav.help])
   })
 
   test('on a phone, tabs along the bottom: Tasks, Habits, Calendar, The Vault and More; More opens the rest', async ({ page }, info) => {

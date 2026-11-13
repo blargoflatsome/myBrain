@@ -40,7 +40,7 @@ test.describe('SPEC §2 Rows look alike: the title edits, the trash can deletes'
       what: 'a habit',
       path: '/habits',
       table: 'habits',
-      seed: { id: 'h1', title: 'Stretch', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-10', is_private: false },
+      seed: { id: 'h1', title: 'Stretch', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-10' },
       label: msg.habits.deleteLabel('Stretch'),
       heading: msg.habits.confirmDelete.heading,
     },

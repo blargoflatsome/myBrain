@@ -75,7 +75,7 @@ describe('Spec §7: changes from other devices arrive through Realtime', () => {
 
 describe('Spec §5 Habits: misses are never invented on a device that has not downloaded the history', () => {
   it('a fresh device waits for the habit history before recording misses', async () => {
-    const habit = { id: '3f2b6c1e-9a7d-4c2e-8b1a-0f9e8d7c6b5a', title: 'Walk', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false, deleted_at: null }
+    const habit = { id: '3f2b6c1e-9a7d-4c2e-8b1a-0f9e8d7c6b5a', title: 'Walk', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', deleted_at: null }
     remote.writeFromOtherDevice('habits', habit)
     for (const date of ['2026-11-01', '2026-11-02', '2026-11-03']) {
       remote.writeFromOtherDevice('habit_logs', { id: `log-${date}`, habit_id: habit.id, date, status: 'completed', completed_at: `${date}T15:00:00Z`, deleted_at: null })

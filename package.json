@@ -23,7 +23,8 @@
     "test:db": "node scripts/test-db.mjs",
     "dev:accounts": "node scripts/dev-accounts.mjs",
     "test:flows": "node scripts/test-flows.mjs",
-    "og-image": "node scripts/og-image.mjs"
+    "og-image": "node scripts/og-image.mjs",
+    "docs:images": "playwright test --config playwright.help.config.ts"
   },
   "dependencies": {
     "@fullcalendar/vue3": "7.1.3",

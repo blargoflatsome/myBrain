@@ -17,7 +17,6 @@ function habit(id: string, title: string, extra: Record<string, unknown> = {}) {
     timer_minutes: null,
     weekdays: [0, 1, 2, 3, 4, 5, 6],
     start_date: '2026-11-10',
-    is_private: false,
     current_streak: 0,
     best_streak: 0,
     ...extra,
@@ -60,7 +59,6 @@ test.describe('Spec §5 Habits', () => {
       notify_time: '08:00',
       timer_minutes: 120,
       weekdays: [0, 1, 2, 3, 4, 5, 6],
-      is_private: false,
       start_date: '2026-11-10',
     })
   })
@@ -159,33 +157,22 @@ test.describe('Spec §5 Habits', () => {
   })
 })
 
-test.describe('Spec §5 Habits and Profile page: private habits', () => {
-  test('a private habit is marked on the Habits page; streaks are on the Dashboard, not the Account page', async ({ page }) => {
+test.describe('Spec §5 Habits and Account page', () => {
+  test('streaks are on the Habits page and the Dashboard, not the Account page', async ({ page }) => {
     server.seed('habits', [
       habit('h1', 'Run', { start_date: '2026-11-07' }),
-      habit('h2', 'Take meds', { is_private: true, start_date: '2026-11-01' }),
+      habit('h2', 'Take meds', { start_date: '2026-11-01' }),
     ])
     server.seed('habit_logs', [
       ...['2026-11-07', '2026-11-08', '2026-11-09'].map((d) => log('h1', d)),
       ...['01', '02', '03', '04', '05', '06', '07', '08', '09'].map((d) => log('h2', `2026-11-${d}`)),
     ])
     await open(page)
-    await expect(row(page, 'Take meds')).toContainText(msg.habits.privateBadge)
+    await expect(row(page, 'Take meds')).toBeVisible()
 
     await goTo(page, 'Account')
     await expect(page.getByTestId('profile-streak')).toHaveCount(0)
     await expect(page.getByText('Take meds')).toHaveCount(0)
-  })
-
-  test('new habits are not private by default, and can be made private', async ({ page }) => {
-    await open(page)
-    await page.getByRole('button', { name: msg.habits.add }).click()
-    const dialog = page.getByRole('dialog', { name: msg.habits.editor.newHeading })
-    await expect(dialog.getByRole('checkbox', { name: /Private/ })).not.toBeChecked()
-    await dialog.getByLabel(msg.habits.editor.title).fill('Journal privately')
-    await dialog.getByRole('checkbox', { name: /Private/ }).check()
-    await dialog.getByRole('button', { name: msg.capture.save }).click()
-    await expect.poll(() => server.written('habits').at(-1)).toMatchObject({ title: 'Journal privately', is_private: true })
   })
 })
 

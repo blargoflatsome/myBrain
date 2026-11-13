@@ -33,7 +33,6 @@ test.describe('Spec §5 Quick capture: Habit', () => {
     await howOften(page).getByRole('radio', { name: msg.howOften.biweekly }).click()
     await page.getByTestId('habit-reminders').locator('summary').click()
     await page.getByLabel(msg.habits.editor.notifyTime).fill('21:00')
-    await page.getByRole('checkbox', { name: /Private/ }).check()
     await page.getByTestId('capture-save').click()
     await expect(page.getByTestId('capture-notice')).toHaveText(msg.capture.saved.habit)
     await expect.poll(() => lastWrite('habits')).toMatchObject({
@@ -41,7 +40,6 @@ test.describe('Spec §5 Quick capture: Habit', () => {
       weekdays: [1, 2, 3, 4, 5, 6],
       week_interval: 2,
       notify_time: '21:00',
-      is_private: true,
     })
   })
 })

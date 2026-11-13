@@ -7,7 +7,7 @@ import { addDays } from '@/tasks/days'
 const NY = 'America/New_York'
 
 function habit(over: Partial<HabitRow> = {}): HabitRow {
-  return { id: 'h1', title: 'Stretch', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false, deleted_at: null, ...over }
+  return { id: 'h1', title: 'Stretch', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', deleted_at: null, ...over }
 }
 function done(date: string, extra: Partial<HabitLogRow> = {}): HabitLogRow {
   return { id: `l-${date}`, habit_id: 'h1', date, status: 'completed', completed_at: `${date}T12:00:00Z`, deleted_at: null, ...extra }
@@ -243,6 +243,6 @@ describe('Spec §7: one log per habit per day across devices', () => {
 describe('Spec §5 Habits: new habits', () => {
   it('repeat every day, are not private, and start today in my timezone', () => {
     const h = newHabit(' Drink water ', 'u1', NY, at('2026-11-11T03:00:00Z'), 'x') // 10 pm Nov 10 in NY
-    expect(h).toMatchObject({ title: 'Drink water', weekdays: [0, 1, 2, 3, 4, 5, 6], is_private: false, start_date: '2026-11-10' })
+    expect(h).toMatchObject({ title: 'Drink water', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-10' })
   })
 })

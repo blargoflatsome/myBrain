@@ -10,7 +10,6 @@ const habit = (extra: Partial<HabitRow>): HabitRow => ({
   timer_minutes: null,
   weekdays: [4],
   start_date: '2026-11-12',
-  is_private: false,
   current_streak: 0,
   best_streak: 0,
   deleted_at: null,

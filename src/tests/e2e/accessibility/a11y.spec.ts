@@ -27,7 +27,7 @@ function seedLong() {
   const day = '2026-11-10'
   server.seed('tasks', [{ id: 't-long', title: LONG_LINE, notes: `${PARAGRAPH}
 ${LONG_WORD}`, due_date: day, priority: 2, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:03Z' }])
-  server.seed('habits', [{ id: 'h-long', title: LONG_LINE, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false, current_streak: 12, best_streak: 40 }])
+  server.seed('habits', [{ id: 'h-long', title: LONG_LINE, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', current_streak: 12, best_streak: 40 }])
   server.seed('routines', [{ id: 'aaaaaaaa-0000-4000-8000-0000000000ff', title: LONG_LINE, notify_time: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' }])
   server.seed('routine_steps', [{ id: '00000003-0000-4000-8000-000000000003', routine_id: RID, position: 2, title: LONG_WORD, start_date: '2026-11-01' }])
   server.seed('quests', [{ id: 'q-long', title: LONG_LINE, details: `${PARAGRAPH} ${LONG_WORD}`, energy: 'meh', minutes: 60, completed_at: null }])
@@ -68,8 +68,8 @@ function seedData() {
     { id: 't2', title: 'email Sam', notes: null, due_date: day, priority: 1, status: 'done', source: 'manual', created_at: '2026-11-01T00:00:02Z' },
   ])
   server.seed('habits', [
-    { id: 'h1', title: 'Take meds', notify_time: '08:00', timer_minutes: 120, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: true, current_streak: 3, best_streak: 5 },
-    { id: 'h2', title: 'Run', notify_time: null, timer_minutes: null, weekdays: [1, 3, 5], start_date: '2026-11-01', is_private: false, current_streak: 0, best_streak: 2 },
+    { id: 'h1', title: 'Take meds', notify_time: '08:00', timer_minutes: 120, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', current_streak: 3, best_streak: 5 },
+    { id: 'h2', title: 'Run', notify_time: null, timer_minutes: null, weekdays: [1, 3, 5], start_date: '2026-11-01', current_streak: 0, best_streak: 2 },
   ])
   server.seed('routines', [{ id: RID, title: 'Morning', notify_time: '07:00', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' }])
   server.seed('routine_steps', [
@@ -125,6 +125,7 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Connections', '/connections', (p) => expect(p.getByRole('heading', { name: msg.nav.connections, level: 1 })).toBeVisible()],
   ['Profile', `/people/${FRIEND}`, (p) => expect(p.getByTestId('profile-trophies')).toBeVisible()],
   ['Tags', '/tags', (p) => expect(p.getByTestId('tag-row').first()).toBeVisible()],
+  ['Help', '/help', (p) => expect(p.getByTestId('help-topic').first()).toBeVisible()],
   ['Capture page', '/capture', (p) => expect(p.getByRole('heading', { name: msg.capture.typeHeading })).toBeVisible()],
   ['Privacy', '/privacy', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
   ['Terms', '/terms', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
@@ -254,12 +255,12 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'Full screen writing')
     })
 
-    test('Sign-in page (signed out)', async ({ browser, baseURL }) => {
+    test('Home page (signed out)', async ({ browser, baseURL }) => {
       const context = await browser.newContext({ colorScheme: scheme, baseURL })
       const page = await context.newPage()
-      await page.goto('/sign-in')
-      await expect(page.getByRole('button', { name: msg.signIn.button })).toBeVisible()
-      await scan(page, 'Sign-in')
+      await page.goto('/')
+      await expect(page.getByTestId('home-create').first()).toBeVisible()
+      await scan(page, 'Home page')
       await context.close()
     })
 

@@ -65,7 +65,7 @@ test.describe('Spec §5 Account page: Sign out and Delete account', () => {
     expect(next).toBe('sign-out')
     expect(await signOut.evaluate((el) => el.nextElementSibling?.getAttribute('data-testid'))).toBe('delete-account')
     await signOut.getByRole('button', { name: msg.signOut.button }).click()
-    await expect(page).toHaveURL(/\/sign-in$/)
+    await expect(page).toHaveURL(/\/$/)
   })
 
   test('Spec §8 Sign out: nothing of mine stays on this device, and unsent changes are only dropped if I agree', async ({ page, context }) => {
@@ -95,7 +95,7 @@ test.describe('Spec §5 Account page: Sign out and Delete account', () => {
     // Back online, it uploads first, then signs out and deletes this device's copy and remembered settings.
     await context.setOffline(false)
     await page.getByTestId('sign-out').getByRole('button', { name: msg.signOut.button }).click()
-    await expect(page).toHaveURL(/\/sign-in$/)
+    await expect(page).toHaveURL(/\/$/)
     expect(server.written('inbox').at(-1)).toMatchObject({ body: 'idea on the subway' })
     await expect.poll(myDb).toBe(false)
     expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('my-brain:')))).toEqual([])

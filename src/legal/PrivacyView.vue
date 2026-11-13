@@ -22,7 +22,7 @@
     <h2>Who can see it</h2>
     <ul>
       <li>Your data is yours. Other users can't see your tasks, journal, Vault, habits, routines, reminders or events.</li>
-      <li>If you choose to share streaks, others see only the habit name and streak numbers, never private habits.</li>
+      <li>Your connections can see your profile: your name, your Google picture and the trophies you have earned. Trophies never name a habit.</li>
       <li>People you invite to an event see its title, date, time and notes, and who invited them. The host sees each person's answer.</li>
       <li>No one can search for you by name. Typing your email or phone number never tells anyone whether you have an account.</li>
     </ul>

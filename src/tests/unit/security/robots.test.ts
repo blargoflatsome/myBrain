@@ -1,4 +1,4 @@
-// SPEC §8 Search engines: only the sign-in page may be indexed; every other route sends noindex (public/_headers).
+// SPEC §8 Search engines: only the home page may be indexed; every other route sends noindex (public/_headers).
 import { describe, expect, it } from 'vitest'
 import headersFile from '../../../../public/_headers?raw'
 import robotsFile from '../../../../public/robots.txt?raw'
@@ -25,18 +25,18 @@ const routePaths = [...routerFile.matchAll(/path: '([^']+)'/g)]
   .map((m) => m[1]!)
   .filter((p) => !p.startsWith('/:pathMatch'))
   .map((p) => p.replace(/:[^/]+/g, 'x'))
-const INDEXED = ['/', '/sign-in']
+const INDEXED = ['/']
 
 describe('SPEC §8 Search engines', () => {
   const rules = noindexRules()
 
-  it('every page but sign-in says noindex, including the public guest, Privacy and Terms pages', () => {
+  it('every page but the home page says noindex, including the public guest, Privacy and Terms pages', () => {
     expect(routePaths).toEqual(expect.arrayContaining(['/rsvp/x/x', '/privacy', '/terms', '/people/x']))
     const missing = routePaths.filter((p) => !INDEXED.includes(p) && !rules.some((r) => covers(r, p)))
     expect(missing).toEqual([])
   })
 
-  it('the sign-in page can be indexed, and robots.txt lets crawlers read the noindex', () => {
+  it('the home page can be indexed, and robots.txt lets crawlers read the noindex', () => {
     expect(rules.filter((r) => INDEXED.some((p) => covers(r, p)))).toEqual([])
     expect(robotsFile).not.toMatch(/^Disallow:\s*\/\s*$/m)
   })

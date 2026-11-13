@@ -12,7 +12,7 @@ begin
     (bob,   'bob@test.invalid',   '{"full_name":"Bob"}',   'authenticated', 'authenticated');
 
   insert into public.habits (user_id, title, current_streak, best_streak) values (bob, 'Bob runs', 3, 9) returning id into bob_habit;
-  insert into public.habits (user_id, title, is_private) values (bob, 'Bob meds', true);
+  insert into public.habits (user_id, title) values (bob, 'Bob meds');
   insert into public.habit_logs (user_id, habit_id, date, status, completed_at) values (bob, bob_habit, current_date, 'completed', now());
 
   select count(*) into n from pg_publication_tables where pubname = 'supabase_realtime' and tablename in ('habits', 'habit_logs');
@@ -46,8 +46,8 @@ begin
   end;
 
   insert into public.habits (title) values ('Alice stretches') ;
-  select count(*) into n from public.habits where user_id = alice and weekdays = '{0,1,2,3,4,5,6}' and is_private = false;
-  if n <> 1 then raise exception 'FAIL: Spec §5 Habits: new habits repeat every day and are not private by default'; end if;
+  select count(*) into n from public.habits where user_id = alice and weekdays = '{0,1,2,3,4,5,6}';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Habits: new habits repeat every day by default'; end if;
 
   insert into public.habit_logs (habit_id, date, status, completed_at)
     select id, current_date, 'completed', now() from public.habits where user_id = alice;

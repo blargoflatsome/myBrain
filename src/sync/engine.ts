@@ -38,6 +38,8 @@ export class SyncEngine {
     private readonly remote: Remote,
     private readonly onStatus: (status: SyncStatus) => void = () => {},
     private readonly isOnline: () => boolean = () => true,
+    /** Called once a table's first download is stored on this device, without waiting for the other tables. */
+    private readonly onDownloaded: (table: SyncTable) => void = () => {},
   ) {}
 
   /** Save a row on the device and queue it for upload. Resolves once it is safely stored locally. */
@@ -246,10 +248,17 @@ export class SyncEngine {
     const key = `pulled:${table}`
     const since = (await this.db.meta.get(key))?.value ?? null
     const rows = await this.remote.pullSince(table, since)
-    // Note that this device has the server's copy of the table, even when it was empty.
+    if (rows.length) await this.store(table, rows, key, since)
+    // Note that this device has the server's copy of the table, even when it was empty: only once its rows are
+    // stored, so nothing treats a half-written table as downloaded.
     const downloaded = `downloaded:${table}`
-    if (!(await this.db.meta.get(downloaded))) await this.db.meta.put({ key: downloaded, value: 'yes' })
-    if (!rows.length) return
+    if (!(await this.db.meta.get(downloaded))) {
+      await this.db.meta.put({ key: downloaded, value: 'yes' })
+      this.onDownloaded(table)
+    }
+  }
+
+  private async store(table: SyncTable, rows: RowTypes[SyncTable][], key: string, since: string | null) {
     await this.db.transaction('rw', [this.db.rows(table), this.db.outbox, this.db.meta], async () => {
       let latest = since
       for (const row of rows) {

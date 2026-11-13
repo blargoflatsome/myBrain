@@ -14,7 +14,7 @@ function task(id: string, title: string, extra: Record<string, unknown> = {}) {
   return { id, title, due_date: '2026-11-10', status: 'open', source: 'manual', priority: 1, created_at: '2026-11-01T00:00:00Z', ...extra }
 }
 function habit(id: string, title: string, extra: Record<string, unknown> = {}) {
-  return { id, title, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false, current_streak: 0, best_streak: 0, ...extra }
+  return { id, title, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', current_streak: 0, best_streak: 0, ...extra }
 }
 function log(habitId: string, date: string) {
   return { id: `${habitId.slice(0, 24)}${date.replaceAll('-', '')}0000`, habit_id: habitId, date, status: 'completed', completed_at: `${date}T15:00:00Z` }

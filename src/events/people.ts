@@ -7,6 +7,8 @@ type Contact = { name?: string | null; email?: string | null; phone?: string | n
 
 /** How a person is shown: their name, else their email or phone number. */
 export const personLabel = (p: Contact) => p.name || p.email || p.phone || ''
+/** Everything a saved person's row shows (name, then email or phone), so a button's name includes all its visible words (WCAG 2.5.3). */
+export const shownAs = (p: Contact) => (p.name ? `${p.name} · ${p.email || p.phone || ''}`.replace(/ · $/, '') : personLabel(p))
 
 /** A to Z by how they're shown, ignoring case and accents. */
 export function sortPeople<T extends Contact>(people: T[]): T[] {

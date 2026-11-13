@@ -227,7 +227,7 @@ test.describe('Spec §5 Routines: habits as steps', () => {
   const MEDS = 'mmmmmmmm-0000-4000-8000-000000000001'
   function seedMedsRoutine() {
     server.seed('habits', [
-      { id: MEDS, title: 'Take medication', notify_time: '08:00', timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: true, is_priority: true },
+      { id: MEDS, title: 'Take medication', notify_time: '08:00', timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_priority: true },
     ])
     server.seed('routines', [{ id: RID, title: 'Morning', notify_time: '07:00', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-10' }])
     server.seed('routine_steps', [
@@ -238,7 +238,7 @@ test.describe('Spec §5 Routines: habits as steps', () => {
   }
 
   test('a habit can be added as a step in the routine editor', async ({ page }) => {
-    server.seed('habits', [{ id: MEDS, title: 'Take medication', notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', is_private: false }])
+    server.seed('habits', [{ id: MEDS, title: 'Take medication', notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' }])
     await open(page, '/routines')
     await page.getByRole('button', { name: msg.routines.add }).click()
     const dialog = page.getByRole('dialog', { name: msg.routines.editor.newHeading })

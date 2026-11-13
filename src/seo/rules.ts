@@ -6,8 +6,8 @@ import { messages } from '../messages'
 export const LIVE_SITE = 'https://myadhdbrain.netlify.app'
 /** The share picture (public/og-image.png, made by `npm run og-image`). */
 export const SHARE_IMAGE = { path: '/og-image.png', width: 1200, height: 630 }
-/** The one page meant for search results. */
-export const INDEXED_PAGE = '/sign-in'
+/** The one page meant for search results: the home page (SPEC §5 Home page, the marketing page when signed out). */
+export const INDEXED_PAGE = '/'
 
 /** The site's address without a trailing slash: Netlify's `URL` when it builds, else the live site. */
 export function siteAddress(netlifyUrl: string | undefined): string {
@@ -36,7 +36,7 @@ export function shareTags(site: string): { name?: string; property?: string; con
   ]
 }
 
-/** sitemap.xml: just the sign-in page. */
+/** sitemap.xml: just the home page. */
 export function sitemap(site: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

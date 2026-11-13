@@ -124,11 +124,15 @@ export const useCelebrateStore = defineStore('celebrate', () => {
     })
   }
 
-  async function earn(kind: BadgeKind) {
+  /** When catch-up last saved each badge quietly this session (Date.now()). */
+  const quietlySaved = new Map<BadgeKind, number>()
+  async function earnBadge(kind: BadgeKind, achievedAt: number) {
     if (!brain.db) return
     // A badge earned before my badges downloaded waits for them, so one I already have is never celebrated again.
     if (!(await badgesDownloaded())) return
-    if (!(await brain.saveBadge(kind))) return
+    const saved = await brain.saveBadge(kind)
+    // Catch-up (below) may have saved this very badge quietly while it waited, from the thing I just did: still say it.
+    if (!saved && (quietlySaved.get(kind) ?? -1) < achievedAt) return
     burst('small')
     say(m.badgeEarned(m.badges[kind]))
   }
@@ -188,6 +192,8 @@ export const useCelebrateStore = defineStore('celebrate', () => {
   async function handle(a: Achievement) {
     const local = brain.db
     if (!local) return
+    const at = Date.now()
+    const earn = (kind: BadgeKind) => earnBadge(kind, at)
     soonCheckTrophies()
     const timeZone = deviceTimeZone()
     const now = new Date()
@@ -259,7 +265,9 @@ export const useCelebrateStore = defineStore('celebrate', () => {
       inbox: 'inbox',
     })
     const missing = new Set(missingBadges(await local.badges.toArray()))
-    for (const kind of earnedFromHistory(history)) if (missing.has(kind)) await brain.saveBadge(kind, now)
+    for (const kind of earnedFromHistory(history)) {
+      if (missing.has(kind) && (await brain.saveBadge(kind, now))) quietlySaved.set(kind, Date.now())
+    }
     // Trophies are worked out alongside, without holding up the rest (asking the server can be slow).
     void refreshCounts()
       .then(() => checkTrophies(now, timeZone))
@@ -299,5 +307,5 @@ export const useCelebrateStore = defineStore('celebrate', () => {
     setInterval(check, 60_000)
   }
 
-  return { setting, level, setSetting, bursts, burst, burstDone, message, say, dismiss, captureSaved, journalSaved, earn, catchUp, start, checkTrophies, counts }
+  return { setting, level, setSetting, bursts, burst, burstDone, message, say, dismiss, captureSaved, journalSaved, catchUp, start, checkTrophies, counts }
 })
