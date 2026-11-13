@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact picker test</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 16px; background: #0b1220; color: #e5e7eb; }
+    h1 { font-size: 1.3rem; margin: 0 0 8px; }
+    p { margin: 0 0 12px; color: #cbd5e1; }
+    button { display: block; width: 100%; min-height: 48px; margin: 0 0 10px; border-radius: 12px; border: 1px solid #475569; background: #111827; color: #e5e7eb; font-size: 1rem; text-align: left; padding: 8px 14px; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #020617; border: 1px solid #334155; border-radius: 12px; padding: 12px; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <h1>Contact picker test</h1>
+  <p>Tap each button, pick one contact (on Chrome's "Share contacts" screen tap them so a check shows, then Done), and screenshot the results box after each try. Nothing leaves your phone.</p>
+  <button type="button" data-props="name,email,tel" data-multiple="true">1. Names, emails, phones — several (what My Brain does)</button>
+  <button type="button" data-props="name,email,tel" data-multiple="false">2. Names, emails, phones — one</button>
+  <button type="button" data-props="name,tel" data-multiple="false">3. Names and phones only — one</button>
+  <button type="button" data-props="tel" data-multiple="false">4. Phones only — one</button>
+  <pre id="out">Starting…</pre>
+  <script src="test.js"></script>
+</body>
+</html>
