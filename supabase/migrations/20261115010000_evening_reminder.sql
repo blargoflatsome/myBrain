@@ -7,8 +7,8 @@ alter table public.profiles alter column evening_reminder_time set default '21:0
 -- The journal reminder was off by default, so no one chose off: everyone starts at 9:00 pm.
 update public.profiles set evening_reminder_time = '21:00' where evening_reminder_time is null;
 
-update public.reminder_state set kind = 'evening' where kind = 'journal';
 alter table public.reminder_state drop constraint reminder_state_kind_check;
+update public.reminder_state set kind = 'evening' where kind = 'journal';
 alter table public.reminder_state add constraint reminder_state_kind_check
   check (kind in ('habit', 'routine', 'priority_task', 'evening', 'event'));
 
