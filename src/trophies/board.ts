@@ -26,7 +26,7 @@ export interface BoardItem {
   next: number | null
   unit: TrophyUnit
   hidden: boolean
-  /** Not started: shown greyed out in the locked window. */
+  /** Not earned yet (started or not): shown greyed out in the locked window, never in See all. */
   locked: boolean
 }
 
@@ -60,7 +60,7 @@ export function trophyBoard(badges: BadgeRow[], values: Record<string, number> |
       next: trophy.levels[level] ?? null,
       unit: trophy.unit,
       hidden: !!trophy.hidden && !level,
-      locked: !level && !value,
+      locked: !level,
     }
   })
   return [...firsts, ...computed]

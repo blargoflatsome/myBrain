@@ -10,7 +10,7 @@ begin
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
     (alice, 'alice@test.invalid', '{}', 'authenticated', 'authenticated'),
     (bob, 'bob@test.invalid', '{}', 'authenticated', 'authenticated');
-  update public.profiles set timezone = 'America/New_York', journal_reminder_time = '21:00' where user_id = alice;
+  update public.profiles set timezone = 'America/New_York', evening_reminder_time = '21:00' where user_id = alice;
   insert into public.journal_keys (user_id, kdf_salt, kdf_iterations, key_by_passphrase, recovery_salt, key_by_recovery)
     values (bob, 's', 600000, 'k', 'r', 'k');
   insert into public.journal_passkeys (user_id, credential_id, name, prf_salt, wrapped_key) values (bob, 'c', 'Bob''s phone', 's', 'k');
@@ -20,7 +20,7 @@ begin
 
   -- The reminder reads has_writing: encrypted writing the server can't read still stops it.
   insert into public.journal_entries (user_id, date, body, has_writing, word_count) values (alice, '2026-11-10', 'enc:v1:AAAA', true, 5);
-  select count(*) into n from public.due_reminders(t2101) where kind = 'journal' and user_id = alice;
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice;
   if n <> 0 then raise exception 'FAIL: Spec §5 Journal: no reminder once I wrote today, even when the writing is encrypted'; end if;
 
   execute 'set local role authenticated';

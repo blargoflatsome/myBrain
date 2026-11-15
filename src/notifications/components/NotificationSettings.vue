@@ -54,16 +54,16 @@
           </label>
         </fieldset>
 
-        <fieldset class="flex flex-col gap-3 py-4" data-testid="journal-reminder">
+        <fieldset class="flex flex-col gap-3 py-4" data-testid="evening-reminder">
           <legend class="contents">
-            <span class="font-medium">{{ m.journalReminder }}</span>
+            <span class="font-medium">{{ m.eveningReminder }}</span>
           </legend>
-          <p class="-mt-2 text-xs text-muted">{{ m.journalReminderHint }}</p>
+          <p class="-mt-2 text-xs text-muted">{{ m.eveningReminderHint }}</p>
           <label class="flex items-center justify-between gap-4 text-sm">
-            {{ m.journalOff }}
-            <input v-model="journalOff" type="checkbox" :class="checkbox">
+            {{ m.eveningOff }}
+            <input v-model="eveningOff" type="checkbox" :class="checkbox">
           </label>
-          <TimeInput v-if="!journalOff" v-model="journalTime" :label="m.journalTime" :input-class="field" />
+          <TimeInput v-if="!eveningOff" v-model="eveningTime" :label="m.eveningTime" :input-class="field" />
         </fieldset>
       </template>
     </div>
@@ -98,9 +98,9 @@ const topic = ref('')
 const quietStart = ref('')
 const quietEnd = ref('')
 const priorityRings = ref(true)
-// SPEC §5 Journal: optional daily journal reminder, off by default.
-const journalOff = ref(true)
-const journalTime = ref('21:00')
+// SPEC §5 Journal: the evening reminder, on at 9:00 pm by default.
+const eveningOff = ref(false)
+const eveningTime = ref('21:00')
 const loaded = ref(false)
 const notice = ref('')
 
@@ -118,8 +118,8 @@ onMounted(async () => {
     quietStart.value = data.quiet_hours_start?.slice(0, 5) ?? ''
     quietEnd.value = data.quiet_hours_end?.slice(0, 5) ?? ''
     priorityRings.value = !data.quiet_hours_silence_priority
-    journalOff.value = !data.journal_reminder_time
-    if (data.journal_reminder_time) journalTime.value = data.journal_reminder_time.slice(0, 5)
+    eveningOff.value = !data.evening_reminder_time
+    if (data.evening_reminder_time) eveningTime.value = data.evening_reminder_time.slice(0, 5)
     loaded.value = true
   }
   if (supported) {
@@ -176,7 +176,7 @@ async function save() {
     quiet_hours_start: quietStart.value || null,
     quiet_hours_end: quietEnd.value || null,
     quiet_hours_silence_priority: !priorityRings.value,
-    journal_reminder_time: journalOff.value || !journalTime.value ? null : journalTime.value,
+    evening_reminder_time: eveningOff.value || !eveningTime.value ? null : eveningTime.value,
   })
   notice.value = ok ? m.saved : messages.profile.offline
 }

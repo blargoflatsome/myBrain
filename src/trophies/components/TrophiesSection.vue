@@ -62,7 +62,7 @@
 
 <script setup lang="ts">
 // SPEC §5 Trophies: the Dashboard's Trophies section: my 3 newest levels earned; See all trophies lists what I've
-// earned or started by category, with progress; See locked trophies opens a window with the rest (surprises as ???).
+// earned by category, with progress; See locked trophies opens a window with the rest, started or not (surprises as ???).
 // Tapping an earned trophy opens what I did to earn it.
 import { computed, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'

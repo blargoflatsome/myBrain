@@ -15,33 +15,44 @@ begin
   update public.profiles set timezone = 'America/New_York' where user_id in (alice, bob);
   insert into public.journal_entries (user_id, date, body) values (bob, '2026-11-09', 'Bob''s private day');
 
-  -- The journal reminder is off by default.
-  select count(*) into n from public.due_reminders(t2101) where kind = 'journal' and user_id = alice;
-  if n <> 0 then raise exception 'FAIL: Spec §5 Journal: the journal reminder is off by default'; end if;
+  -- SPEC §5 Journal: the evening reminder is on at 9:00 pm by default, waits for its time, opens the Dashboard, and
+  -- says how many things for today are left (here just the journal).
+  select count(*) into n from public.due_reminders(t2059) where kind = 'evening' and user_id = alice;
+  if n <> 0 then raise exception 'FAIL: Spec §5 Journal: the evening reminder waits for its time'; end if;
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and url = '/' and not is_priority and detail = '1';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: the evening reminder is on at 9:00 pm by default, counting the unwritten journal'; end if;
+  select count(*) into n from public.reminder_text('evening', 'Evening check-in', false, '1') where body like 'Past you left you 1 thing %';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: the evening reminder says one thing'; end if;
 
-  -- Due at the chosen local time; opens the journal.
-  update public.profiles set journal_reminder_time = '21:00' where user_id = alice;
-  select count(*) into n from public.due_reminders(t2059) where kind = 'journal' and user_id = alice;
-  if n <> 0 then raise exception 'FAIL: Spec §5 Journal: the journal reminder waits for its time'; end if;
-  select count(*) into n from public.due_reminders(t2101) where kind = 'journal' and user_id = alice and url = '/journal' and not is_priority;
-  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: the journal reminder is sent at the chosen time'; end if;
-  select count(*) into n from public.reminder_text('journal', 'Journal', false) where body = 'Reminder: Past you asked that you journal today.';
-  if n <> 1 then raise exception 'FAIL: Spec §2: the journal reminder uses the approved wording'; end if;
+  -- Open tasks due today or carried over count; done, cancelled, undated and future ones don't.
+  insert into public.tasks (user_id, title, due_date, status) values
+    (alice, 'Today', '2026-11-10', 'open'), (alice, 'Carried', '2026-11-08', 'open'), (alice, 'Done', '2026-11-10', 'done'),
+    (alice, 'Cancelled', '2026-11-10', 'cancelled'), (alice, 'Undated', null, 'open'), (alice, 'Tomorrow', '2026-11-11', 'open');
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and detail = '3';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: the evening reminder counts open tasks due today or carried over'; end if;
 
-  -- An entry with only stats (or written by the app) still gets the reminder; writing stops it.
+  -- An entry with only stats (or written by the app) still counts; writing stops the journal counting.
   insert into public.journal_entries (user_id, date, stats, auto) values (alice, '2026-11-10', '{"tasks":{"done":1,"due":2}}', false);
-  select count(*) into n from public.due_reminders(t2101) where kind = 'journal' and user_id = alice;
-  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: an entry with no writing still gets the reminder'; end if;
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and detail = '3';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: an entry with no writing still counts'; end if;
   -- The app stores has_writing with the writing (SPEC §5 Locking my journal); the reminder reads it.
   update public.journal_entries set body = 'Good day.', has_writing = true, word_count = 2 where user_id = alice and date = '2026-11-10';
-  select count(*) into n from public.due_reminders(t2101) where kind = 'journal' and user_id = alice;
-  if n <> 0 then raise exception 'FAIL: Spec §5 Journal: no reminder once I wrote something today'; end if;
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and detail = '2';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: writing today stops the journal counting'; end if;
 
-  -- Quiet hours hold it (it is not a priority reminder).
+  -- Nothing left: nothing is sent.
+  update public.tasks set status = 'done' where user_id = alice;
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice;
+  if n <> 0 then raise exception 'FAIL: Spec §5 Journal: no evening reminder when nothing is left'; end if;
+
+  -- It can be turned off, and quiet hours hold it (it is not a priority reminder).
   update public.journal_entries set body = '', has_writing = false, word_count = 0 where user_id = alice and date = '2026-11-10';
-  update public.profiles set journal_reminder_time = '23:00', quiet_hours_start = '22:00', quiet_hours_end = '07:00' where user_id = alice;
-  select count(*) into n from public.due_reminders(t2301) where kind = 'journal' and user_id = alice;
-  if n <> 0 then raise exception 'FAIL: Spec §5 Journal: the journal reminder respects quiet hours'; end if;
+  update public.profiles set evening_reminder_time = null where user_id = alice;
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice;
+  if n <> 0 then raise exception 'FAIL: Spec §5 Journal: the evening reminder can be turned off'; end if;
+  update public.profiles set evening_reminder_time = '23:00', quiet_hours_start = '22:00', quiet_hours_end = '07:00' where user_id = alice;
+  select count(*) into n from public.due_reminders(t2301) where kind = 'evening' and user_id = alice;
+  if n <> 0 then raise exception 'FAIL: Spec §5 Journal: the evening reminder respects quiet hours'; end if;
 
   -- Quests record when they were completed.
   select count(*) into n from information_schema.columns where table_schema = 'public' and table_name = 'quests' and column_name = 'completed_at';

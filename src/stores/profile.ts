@@ -25,7 +25,7 @@ export interface Profile {
   quiet_hours_start: string | null
   quiet_hours_end: string | null
   quiet_hours_silence_priority: boolean | null
-  journal_reminder_time: string | null
+  evening_reminder_time: string | null
   data_reset_at: string | null
 }
 

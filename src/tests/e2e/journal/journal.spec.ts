@@ -173,14 +173,17 @@ test.describe('Spec §5 Journal', () => {
     expect(server.written('journal_entries').filter((e) => e.date === '2026-11-09')).toHaveLength(0)
   })
 
-  test('the journal reminder is off by default and can be set on the Account page', async ({ page }) => {
+  test('the evening reminder is on at 9:00 pm by default and can be changed or turned off on the Account page', async ({ page }) => {
     await open(page, '/account')
-    const settings = page.getByTestId('journal-reminder')
-    await expect(settings.getByRole('checkbox', { name: "Don't remind me" })).toBeChecked()
-    await settings.getByRole('checkbox', { name: "Don't remind me" }).uncheck()
-    await settings.getByLabel(msg.notifications.journalTime).fill('21:30')
+    const settings = page.getByTestId('evening-reminder')
+    const off = settings.getByRole('checkbox', { name: msg.notifications.eveningOff })
+    await expect(off).not.toBeChecked()
+    await settings.getByLabel(msg.notifications.eveningTime).fill('21:30')
     await page.getByRole('button', { name: msg.notifications.save }).click()
     await expect(page.getByTestId('notification-settings').getByText(msg.profile.saved)).toBeVisible()
-    expect(server.written('profiles').at(-1)).toMatchObject({ journal_reminder_time: '21:30' })
+    expect(server.written('profiles').at(-1)).toMatchObject({ evening_reminder_time: '21:30' })
+    await off.check()
+    await page.getByRole('button', { name: msg.notifications.save }).click()
+    await expect.poll(() => server.written('profiles').at(-1)).toMatchObject({ evening_reminder_time: null })
   })
 })
