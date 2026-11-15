@@ -313,7 +313,7 @@ export interface PriorityTaskLogRow extends BaseRow {
 }
 
 export interface ReminderStateRow extends BaseRow {
-  kind: 'habit' | 'routine' | 'priority_task' | 'journal' | 'event'
+  kind: 'habit' | 'routine' | 'priority_task' | 'evening' | 'event'
   item_id: string
   date: string
   snoozed_until?: string | null

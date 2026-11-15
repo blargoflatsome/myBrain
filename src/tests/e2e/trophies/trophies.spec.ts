@@ -46,7 +46,7 @@ test.describe('SPEC §5 Trophies on the Dashboard', () => {
     await expect(trophies.getByTestId('dash-trophy-count')).toHaveText('4 trophies')
   })
 
-  test('See all trophies groups what I have earned or started by category, with progress', async ({ page }) => {
+  test('See all trophies groups only what I have earned by category, with progress; started ones wait in the locked window', async ({ page }) => {
     server.seed('habits', [habit(H1)])
     server.seed('habit_logs', [log(H1, '2026-11-08'), log(H1, '2026-11-09')])
     server.seed('badges', [badge('first_task', '2026-11-05T15:00:00Z')])
@@ -60,10 +60,12 @@ test.describe('SPEC §5 Trophies on the Dashboard', () => {
     const perfect = trophies.getByTestId('trophy-category-perfect').getByTestId('trophy-perfect_days')
     await expect(perfect.getByTestId('trophy-level')).toHaveText(msg.celebrations.trophies.tiers.bronze)
     await expect(perfect.getByTestId('trophy-progress')).toHaveText('2 of 10 days')
-    const streak = trophies.getByTestId('trophy-category-streaks').getByTestId('trophy-habit_streak')
-    await expect(streak.getByTestId('trophy-progress')).toHaveText('2 of 3 days')
-    await expect(trophies.getByTestId('trophy-groups').getByTestId('trophy-first_quest')).toHaveCount(0) // not started: in the locked window
+    await expect(trophies.getByTestId('trophy-groups').getByTestId('trophy-habit_streak')).toHaveCount(0) // started, not earned
+    await expect(trophies.getByTestId('trophy-groups').getByTestId('trophy-first_quest')).toHaveCount(0) // not started
     await expect(more).toHaveText(msg.celebrations.trophies.seeFewer)
+    await trophies.getByTestId('dash-trophies-locked').click()
+    const locked = page.getByRole('dialog', { name: msg.celebrations.trophies.lockedHeading })
+    await expect(locked.getByTestId('trophy-habit_streak').getByTestId('trophy-progress')).toHaveText('2 of 3 days')
   })
 
   test('See locked trophies opens a window by category; surprises show as ???', async ({ page }) => {

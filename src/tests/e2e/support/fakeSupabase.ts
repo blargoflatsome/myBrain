@@ -73,6 +73,7 @@ export class FakeSupabase {
       cancel_event_message: "Hi {{name}}, I'm sorry, but I have to cancel {{event}} on {{date}} at {{time}}. Sorry for the short notice!",
       timezone: 'UTC',
       celebrations: 'full',
+      evening_reminder_time: '21:00:00',
       deleted_at: null,
     })
   }

@@ -7,6 +7,12 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 ## Next step
 - **Guest poll ("When can you come?"):** for guests without accounts, through their answer link: the host offers a few times, guests answer Prefer, Yes or No (like Outlook's Scheduling Poll). SPEC §10 Scheduler "Later". Agree the details with the user first.
 
+## Evening reminder, journal Edit, See all trophies (merged via PR, branch `evening-reminder`)
+- SPEC §5 Journal, §2 Rows look alike, §5 Trophies; DECISIONS 2026-11-15. The journal reminder became the **evening reminder**: on at 9:00 pm by default, sent only if something for today is left (open tasks due or carried over, habits, routines, priority tasks, unwritten journal), saying how many; opens the Dashboard. Column renamed `evening_reminder_time`, reminder kind `evening`; existing accounts set to 9:00 pm.
+- Past journal days have an Edit button; the date is plain text. See all trophies shows only earned ones; started ones are in the Locked window with progress.
+- Migration `20261115010000_evening_reminder.sql`: dev and prod migrated; `npm run test:db` passes. Prod first refused it (old `journal` reminder rows renamed before the check was loosened; fixed the order). Help: Journal (Edit) and Reminders (evening reminder) steps; `help-reminders` picture retaken. `npm run test:all` passed.
+- Still to try: the 9 pm push arriving on the phone tonight.
+
 ## Journal lock (merged via PR, branch `journal-lock`)
 - SPEC §5 Locking my journal; DECISIONS 2026-11-13 (user: opt in, unlock remembered until sign out, yes/no answer and word count stay readable, journal only, passkeys now). Encryption at the sync boundary (`src/journal/lockingRemote.ts`, AES-256-GCM per field, `enc:v1:`), passphrase (PBKDF2 600k) + recovery key + passkeys (WebAuthn PRF). `word_count`/`has_writing` drive trophies, streaks, Up next, dashboard and the reminder. Lock card under Account Settings; match hint and Show passphrase checkbox.
 - Migration `20261113010000_journal_lock.sql`: dev and prod migrated; `npm run test:db` passes. Help topic "Locking your journal" (picture `help-journal-lock`), home page "Also" line, Privacy page updated. Verified on dev: a real entry is stored as `enc:v1:` with word count readable.

@@ -51,7 +51,7 @@ const journalTime = ref<string | null>(null)
 void useProfileStore()
   .load()
   .then((p) => {
-    journalTime.value = p?.journal_reminder_time ?? null
+    journalTime.value = p?.evening_reminder_time ?? null
   })
 
 const suggestions = useLiveQuery(
