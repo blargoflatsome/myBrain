@@ -1,115 +1,125 @@
 <template>
-  <div
-    class="flex flex-col overflow-hidden border border-control bg-surface text-ink focus-within:border-accent"
-    :class="fullScreen ? 'fixed inset-0 z-50 rounded-none' : 'rounded-xl'"
-    :role="fullScreen ? 'dialog' : undefined"
-    :aria-modal="fullScreen ? 'true' : undefined"
-    :aria-label="fullScreen ? label : undefined"
-    @keydown="onKey"
-  >
-    <!-- Toolbar buttons never take focus from the writing, so the phone keyboard stays open and typing continues. -->
-    <div
-      v-if="editor"
-      class="flex items-center gap-1 border-b border-line p-1"
-      role="toolbar"
-      :aria-label="`${m.toolbar}: ${label}`"
-      @mousedown.prevent
-    >
-      <!-- Formatting buttons scroll sideways on narrow screens; Full screen stays pinned on the right. -->
-      <div class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [&>button]:shrink-0">
-        <button
-          v-for="mk in marks"
-          :key="mk.key"
-          type="button"
-          :class="[btn(editor.isActive(mk.key)), mk.cls]"
-          :aria-label="mk.label"
-          :aria-pressed="editor.isActive(mk.key)"
-          @click="toggleMark(mk.key)"
+  <div>
+    <!-- Full screen moves the whole box (same editor, same text) into its own window below, so it sits above any window
+         it was opened from, and Escape leaves full screen without closing that window. -->
+    <Teleport defer :to="`#${fullScreenId}`" :disabled="!fullScreen">
+      <div
+        class="flex flex-col overflow-hidden border border-control bg-surface text-ink focus-within:border-accent"
+        :class="fullScreen ? 'h-full rounded-none border-0' : 'rounded-xl'"
+      >
+        <!-- Toolbar buttons never take focus from the writing, so the phone keyboard stays open and typing continues. -->
+        <div
+          v-if="editor"
+          class="flex items-center gap-1 border-b border-line p-1"
+          role="toolbar"
+          :aria-label="`${m.toolbar}: ${label}`"
+          @mousedown.prevent
         >
-          <span aria-hidden="true">{{ mk.text }}</span>
-        </button>
-        <button
-          type="button"
-          :class="btn(editor.isActive('heading', { level: 2 }))"
-          :aria-label="m.heading"
-          :aria-pressed="editor.isActive('heading', { level: 2 })"
-          @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
-        >
-          <span aria-hidden="true">H</span>
-        </button>
-        <button
-          type="button"
-          :class="btn(editor.isActive('bulletList'))"
-          :aria-label="m.bullets"
-          :aria-pressed="editor.isActive('bulletList')"
-          @click="editor.chain().focus().toggleBulletList().run()"
-        >
-          <span aria-hidden="true">•</span>
-        </button>
-        <button
-          type="button"
-          :class="btn(editor.isActive('orderedList'))"
-          :aria-label="m.numbers"
-          :aria-pressed="editor.isActive('orderedList')"
-          @click="editor.chain().focus().toggleOrderedList().run()"
-        >
-          <span aria-hidden="true" class="before:content-['1.']" />
-        </button>
-        <button
-          type="button"
-          :class="btn(editor.isActive('taskList'))"
-          :aria-label="m.checklist"
-          :aria-pressed="editor.isActive('taskList')"
-          @click="editor.chain().focus().toggleTaskList().run()"
-        >
-          <AppIcon name="checklist" />
-        </button>
-        <button
-          type="button"
-          :class="btn(editor.isActive('blockquote'))"
-          :aria-label="m.quote"
-          :aria-pressed="editor.isActive('blockquote')"
-          @click="editor.chain().focus().toggleBlockquote().run()"
-        >
-          <AppIcon name="quote" />
-        </button>
-        <button type="button" :class="btn(editor.isActive('link'))" :aria-label="m.link" :aria-pressed="editor.isActive('link')" @click="openLink">
-          <AppIcon name="link" />
-        </button>
+          <!-- Formatting buttons scroll sideways on narrow screens; Full screen stays pinned on the right. -->
+          <div class="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [&>button]:shrink-0">
+            <button
+              v-for="mk in marks"
+              :key="mk.key"
+              type="button"
+              :class="[btn(editor.isActive(mk.key)), mk.cls]"
+              :aria-label="mk.label"
+              :aria-pressed="editor.isActive(mk.key)"
+              @click="toggleMark(mk.key)"
+            >
+              <span aria-hidden="true">{{ mk.text }}</span>
+            </button>
+            <button
+              type="button"
+              :class="btn(editor.isActive('heading', { level: 2 }))"
+              :aria-label="m.heading"
+              :aria-pressed="editor.isActive('heading', { level: 2 })"
+              @click="editor.chain().focus().toggleHeading({ level: 2 }).run()"
+            >
+              <span aria-hidden="true">H</span>
+            </button>
+            <button
+              type="button"
+              :class="btn(editor.isActive('bulletList'))"
+              :aria-label="m.bullets"
+              :aria-pressed="editor.isActive('bulletList')"
+              @click="editor.chain().focus().toggleBulletList().run()"
+            >
+              <span aria-hidden="true">•</span>
+            </button>
+            <button
+              type="button"
+              :class="btn(editor.isActive('orderedList'))"
+              :aria-label="m.numbers"
+              :aria-pressed="editor.isActive('orderedList')"
+              @click="editor.chain().focus().toggleOrderedList().run()"
+            >
+              <span aria-hidden="true" class="before:content-['1.']" />
+            </button>
+            <button
+              type="button"
+              :class="btn(editor.isActive('taskList'))"
+              :aria-label="m.checklist"
+              :aria-pressed="editor.isActive('taskList')"
+              @click="editor.chain().focus().toggleTaskList().run()"
+            >
+              <AppIcon name="checklist" />
+            </button>
+            <button
+              type="button"
+              :class="btn(editor.isActive('blockquote'))"
+              :aria-label="m.quote"
+              :aria-pressed="editor.isActive('blockquote')"
+              @click="editor.chain().focus().toggleBlockquote().run()"
+            >
+              <AppIcon name="quote" />
+            </button>
+            <button type="button" :class="btn(editor.isActive('link'))" :aria-label="m.link" :aria-pressed="editor.isActive('link')" @click="openLink">
+              <AppIcon name="link" />
+            </button>
+          </div>
+          <button
+            type="button"
+            :class="[btn(false), 'shrink-0 border-l border-line', fullScreen ? 'px-3 font-semibold' : 'text-lg']"
+            :aria-label="fullScreen ? m.exitFullScreen : m.fullScreen"
+            :title="fullScreen ? m.exitFullScreen : m.fullScreen"
+            :aria-pressed="fullScreen"
+            @click="toggleFullScreen"
+          >
+            <span v-if="fullScreen">{{ m.exitFullScreen }}</span><span v-else aria-hidden="true">⤢</span>
+          </button>
+        </div>
+
+        <form v-if="linkOpen" class="flex gap-2 border-b border-line p-2" @submit.prevent="applyLink">
+          <input
+            ref="linkBox"
+            v-model="linkUrl"
+            type="text"
+            autocomplete="url"
+            inputmode="url"
+            class="min-h-10 flex-1 rounded-lg border border-line bg-bg px-2 text-base text-ink"
+            :aria-label="m.linkAddress"
+            :placeholder="m.linkPlaceholder"
+          >
+          <button type="submit" class="min-h-10 rounded-lg bg-accent px-3 text-sm font-semibold text-accent-ink">{{ m.linkApply }}</button>
+          <button type="button" class="min-h-10 rounded-lg border border-line px-3 text-sm" @click="linkOpen = false">{{ m.linkCancel }}</button>
+        </form>
+
+        <EditorContent
+          :editor="editor"
+          class="flex-1 cursor-text overflow-y-auto px-3 py-2 text-base"
+          :class="fullScreen ? 'mx-auto w-full max-w-2xl text-lg' : ''"
+          :style="fullScreen ? undefined : { minHeight: minHeight ?? '16rem' }"
+          @click="editor?.commands.focus()"
+        />
       </div>
-      <button
-        type="button"
-        :class="[btn(false), 'shrink-0 border-l border-line', fullScreen ? 'px-3 font-semibold' : 'text-lg']"
-        :aria-label="fullScreen ? m.exitFullScreen : m.fullScreen"
-        :title="fullScreen ? m.exitFullScreen : m.fullScreen"
-        :aria-pressed="fullScreen"
-        @click="toggleFullScreen"
-      >
-        <span v-if="fullScreen">{{ m.exitFullScreen }}</span><span v-else aria-hidden="true">⤢</span>
-      </button>
-    </div>
-
-    <form v-if="linkOpen" class="flex gap-2 border-b border-line p-2" @submit.prevent="applyLink">
-      <input
-        ref="linkBox"
-        v-model="linkUrl"
-        type="text"
-        autocomplete="url"
-        inputmode="url"
-        class="min-h-10 flex-1 rounded-lg border border-line bg-bg px-2 text-base text-ink"
-        :aria-label="m.linkAddress"
-        :placeholder="m.linkPlaceholder"
-      >
-      <button type="submit" class="min-h-10 rounded-lg bg-accent px-3 text-sm font-semibold text-accent-ink">{{ m.linkApply }}</button>
-      <button type="button" class="min-h-10 rounded-lg border border-line px-3 text-sm" @click="linkOpen = false">{{ m.linkCancel }}</button>
-    </form>
-
-    <EditorContent
-      :editor="editor"
-      class="flex-1 cursor-text overflow-y-auto px-3 py-2 text-base"
-      :class="fullScreen ? 'mx-auto w-full max-w-2xl text-lg' : ''"
-      :style="fullScreen ? undefined : { minHeight: minHeight ?? '16rem' }"
-      @click="editor?.commands.focus()"
+    </Teleport>
+    <dialog
+      :id="fullScreenId"
+      ref="fullScreenWindow"
+      class="m-0 h-dvh max-h-none w-full max-w-none border-0 bg-surface p-0 text-ink"
+      :aria-label="label"
+      @cancel="onCancel"
+      @close="fullScreen = false"
     />
   </div>
 </template>
@@ -118,7 +128,7 @@
 // SPEC §5 Journal: a formatted-text editor (bold, italic, underline, strikethrough, headings, lists, checklists,
 // quotes, links) that can be opened full screen for easier typing.
 import AppIcon from '@/components/AppIcon.vue'
-import { onBeforeUnmount, nextTick, ref, watch } from 'vue'
+import { onBeforeUnmount, nextTick, ref, useId, watch } from 'vue'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
@@ -211,16 +221,26 @@ function applyLink() {
 
 // ---------- Full screen ----------
 const fullScreen = ref(false)
+const fullScreenId = `rte-full-${useId()}`
+const fullScreenWindow = ref<HTMLDialogElement | null>(null)
 async function toggleFullScreen() {
-  fullScreen.value = !fullScreen.value
+  if (fullScreen.value) {
+    // Closing puts the box back (@close); focus goes back to what had it before, like any window (SPEC §2).
+    fullScreenWindow.value?.close()
+    return
+  }
+  // Open the window before moving the box in: moving the writing drops its focus, and the window remembers what had
+  // focus when it opened.
+  fullScreenWindow.value?.showModal()
+  fullScreen.value = true
   await nextTick()
   editor.value?.commands.focus('end')
 }
-function onKey(event: KeyboardEvent) {
-  if (event.key === 'Escape' && fullScreen.value) {
-    if (linkOpen.value) linkOpen.value = false
-    else fullScreen.value = false
-  }
+// Escape closes the link box first; the next Escape leaves full screen (the window's close puts the box back).
+function onCancel(event: Event) {
+  if (!linkOpen.value) return
+  event.preventDefault()
+  linkOpen.value = false
 }
 
 const btn = (on: boolean) => [

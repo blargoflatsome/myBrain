@@ -7,6 +7,14 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 ## Next step
 - **Guest poll ("When can you come?"):** for guests without accounts, through their answer link: the host offers a few times, guests answer Prefer, Yes or No (like Outlook's Scheduling Poll). SPEC §10 Scheduler "Later". Agree the details with the user first.
 
+## Modern web guidance audit (branch `modern-web-audit`, not merged)
+- Added the `modern-web-guidance` skill (GoogleChrome) with a Baseline Widely available policy in CLAUDE.md, then audited the app against it. SPEC §2 Accessibility (windows) and §8 Browser colours; DECISIONS 2026-11-15.
+- Windows close on an outside click with the browser's own `closedby="any"` (set for every window in `src/a11y/focus.ts`); our click code now runs only where that's missing (Safari). Scrolling over a window or its backdrop no longer scrolls the page (`overscroll-behavior` in `style.css`; Chrome and Firefox).
+- The three hand-built full-screen overlays are real `<dialog>`s: Focus timer (Escape minimizes), priority reminder (`closedby="none"`, reopens if a browser closes it anyway), full-screen writing (the editor moves into its own window with Teleport). Fixes: the priority reminder used to sit under an open window, where it couldn't be used; Escape in full-screen writing inside a window closed that window too.
+- `<meta name="color-scheme">` in `index.html`; `theme-color` follows the chosen Appearance (`src/ui/appearance.ts`).
+- Tests: full-screen writing opened from Capture (a11y.spec), reminder over an open window (priority.spec), top-bar colour (appearance-and-pause.spec); each fails on the old code. Quick checks pass; the full review runs at merge.
+- Not done: the forms guide (how errors are shown and announced) wasn't compared in depth.
+
 ## Evening reminder, journal Edit, See all trophies (merged via PR, branch `evening-reminder`)
 - SPEC §5 Journal, §2 Rows look alike, §5 Trophies; DECISIONS 2026-11-15. The journal reminder became the **evening reminder**: on at 9:00 pm by default, sent only if something for today is left (open tasks due or carried over, habits, routines, priority tasks, unwritten journal), saying how many; opens the Dashboard. Column renamed `evening_reminder_time`, reminder kind `evening`; existing accounts set to 9:00 pm.
 - Past journal days have an Edit button; the date is plain text. See all trophies shows only earned ones; started ones are in the Locked window with progress.

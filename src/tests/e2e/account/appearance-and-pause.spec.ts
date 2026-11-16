@@ -14,10 +14,15 @@ test.describe('Spec §3 Visual style: Appearance', () => {
   test('choosing Dark applies at once, is saved to my profile, and is there straight away next visit', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' })
     await page.goto('/account')
+    // SPEC §8 Browser colours: the phone's top bar (theme-color) follows the chosen appearance, not just the device.
+    const barColours = () => page.locator('meta[name="theme-color"]').evaluateAll((els) => els.map((el) => (el as HTMLMetaElement).content))
+    const systemBars = await barColours()
     await page.getByTestId('appearance-setting').selectOption('dark')
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
     const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor)
     const darkBg = await bg()
+    const darkVar = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim())
+    expect(await barColours()).toEqual(systemBars.map(() => darkVar))
     await expect.poll(() => server.profile.appearance).toBe('dark')
 
     await page.goto('/habits')
@@ -28,6 +33,7 @@ test.describe('Spec §3 Visual style: Appearance', () => {
     await page.getByTestId('appearance-setting').selectOption('system')
     await expect(page.locator('html')).not.toHaveAttribute('data-theme')
     expect(await bg()).not.toBe(darkBg)
+    expect(await barColours()).toEqual(systemBars)
   })
 })
 

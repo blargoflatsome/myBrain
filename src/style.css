@@ -168,6 +168,16 @@ textarea:focus {
     scroll-behavior: auto !important;
   }
 }
+/* SPEC §2 Windows: scrolling over a window or its dimmed background doesn't scroll the page behind it. The backdrop
+   only honours overscroll-behavior as a scroll container (overflow: hidden). Browsers that don't yet apply it to
+   containers that can't scroll just behave as before; the page is never locked with overflow on html or body. */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
 
 /* Post It colours (SPEC §5): soft paper tints, with dark text in light mode and light text in dark mode (WCAG 1.4.3). */
 .note-yellow { background: #fbf3d6; color: #451a03; }

@@ -455,6 +455,29 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
     await tabsStayInside(page, dialog, 15)
   })
 
+  test('full screen writing opened from a window is a window on top: Escape leaves full screen and keeps the first one open', async ({ page }) => {
+    await page.goto('/habits')
+    await page.getByRole('button', { name: '+ Capture' }).click()
+    const capture = page.getByRole('dialog', { name: msg.capture.windowLabel })
+    await capture.getByRole('group', { name: msg.capture.whereHeading }).getByRole('button', { name: 'Post It', exact: true }).click()
+    const toggle = capture.getByRole('toolbar', { name: `${msg.editor.toolbar}: ${msg.postIts.label}` }).getByRole('button', { name: msg.editor.fullScreen })
+    const writing = capture.getByRole('textbox', { name: msg.postIts.label })
+    await writing.click()
+    await expect(writing).toBeFocused()
+    await toggle.click()
+    const full = page.getByRole('dialog', { name: msg.postIts.label })
+    await expect(full).toBeVisible()
+    await expect(full.getByRole('textbox', { name: msg.postIts.label })).toBeFocused()
+    await page.keyboard.type('Milk')
+    await tabsStayInside(page, full, 12)
+    await page.keyboard.press('Escape')
+    await expect(full).toBeHidden()
+    await expect(capture).toBeVisible()
+    await expect(writing).toHaveText('Milk')
+    // Focus goes back to what had it before full screen: the writing.
+    await expect(writing).toBeFocused()
+  })
+
   test('on a phone the More panel traps Tab, and Escape closes it and returns focus to More', async ({ page }, info) => {
     test.skip(!isPhone(info) || isSafari(info), 'the More panel is a window only on a phone; Safari Tabs to links only with Option+Tab')
     await page.goto('/tasks')
