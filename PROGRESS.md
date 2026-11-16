@@ -5,6 +5,12 @@ Tracks build steps from [docs/SPEC.md §11](docs/SPEC.md#11-suggested-build-orde
 Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tidy-up and the rest up to PR #41) are in [docs/PROGRESS_ARCHIVE.md](docs/PROGRESS_ARCHIVE.md). Keep this file to the current state plus the last few pieces of work; move older sections to the archive.
 
 ## Next step
+- **Cheers and the focus room** (specced 2026-11-15, SPEC §5 Cheers, §5 Focus timer; Breathe is done). Add a Breathe Help topic and picture with it. Includes the smug giver-side wording and the new trophies (Breathe, Cheers, focus room; SPEC §5 Trophies, `cheer_tally`, Breathe now logged in `activity_log`). **Needs from the user:** the smug lines (after reacting, unstuck alert, feed subtitle) and the Cheering others on trophy names and "You…" lines.
+
+## Postgres skill and database check (branch `db-fk-indexes`)
+- Added Supabase's `supabase-postgres-best-practices` skill (`.claude/skills/`, our standards win), new database safety rules (CODING_STANDARDS §9) and two accessibility rules (§7); DECISIONS 2026-11-15 Skills review.
+- Checked the dev database against the rules: policies, RLS, views and `security definer` functions all pass; 9 foreign key columns had no index, now added (`20261115020000_fk_indexes.sql`).
+- **Merge tasks and priority tasks** (user idea, 2026-11-15; agree the details and the spec first): a high-priority task becomes a priority task, with a **Priority** label on it like priority habits have. To settle: does every high-priority task need a reminder time and the full-screen reminder, what happens to existing priority tasks (Tasks > Priority) and to tasks already marked high, and whether one-off and repeating priority tasks both fit the task editor.
 - **Guest poll ("When can you come?"):** for guests without accounts, through their answer link: the host offers a few times, guests answer Prefer, Yes or No (like Outlook's Scheduling Poll). SPEC §10 Scheduler "Later". Agree the details with the user first.
 
 ## Breathe, then Cheers and the focus room (branch `social-breathe`, from `modern-web-audit`; not merged)

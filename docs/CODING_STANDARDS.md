@@ -113,6 +113,10 @@ it's missing, make it shared first, then use it in every place.
 - Anything done by dragging or swiping also works with a tap and with the keyboard.
 - Windows use `<dialog>` with `showModal()` (focus is trapped and returned by `src/a11y/focus.ts`).
 - Hidden-until-hover controls also appear on keyboard focus.
+- Focus is never hidden behind the sticky header or bottom bar (WCAG 2.4.11): scrolling areas get `scroll-margin` /
+  `scroll-padding` the height of the bars (2026-11-15).
+- When a save is refused, the field with the problem gets `aria-invalid="true"` and its message
+  (`aria-describedby`), and focus moves to the first such field (2026-11-15).
 - New pages and windows get an axe check in `src/tests/e2e/accessibility/a11y.spec.ts`.
 
 ## 8. Security
@@ -131,6 +135,20 @@ it's missing, make it shared first, then use it in every place.
 - Ids are made on the device so offline saves never duplicate.
 - Schema changes are migrations in `supabase/migrations/`, applied to dev, checked with `npm run test:db`, then prod
   before merging. Constraints added to existing tables use `NOT VALID` so old rows can't block the change.
+- **Database safety (2026-11-15, from Supabase's agent skills; details in the `supabase-postgres-best-practices`
+  skill):**
+  - Policies name their role (`to authenticated`) and still check ownership: `using ((select auth.uid()) = user_id)`.
+    `(select auth.uid())` runs once per query, not once per row. Never `auth.role()`.
+  - UPDATE and `for all` policies need `with check` as well as `using`, or someone could move a row to another user.
+    An UPDATE also needs a SELECT policy, or it silently changes 0 rows.
+  - Every `security definer` function: `set search_path = ''`, checks `auth.uid()` itself, and is followed by
+    `revoke execute on function … from public, anon;` plus a `grant execute … to authenticated` (Postgres lets
+    everyone run new functions by default). The one exception is the guest-link functions (`guest_*`), which `anon`
+    may run because they check the link's token instead. Never add `security definer` just to get past a permission
+    error.
+  - Views skip RLS unless made `with (security_invoker = true)`; prefer a server function.
+  - Never decide permissions from `user_metadata` (people can edit their own); use our tables or `app_metadata`.
+  - Index the columns that policies filter on and every foreign key column (Postgres doesn't index them itself).
 
 ## 10. Performance
 

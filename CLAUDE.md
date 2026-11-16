@@ -10,6 +10,7 @@
 - **Help and the home page are updated at merge time** (SPEC §5 Home page and Help): when the user says to merge, any change to what a page does or how it's used updates its Help section (`/help`), the signed-out home page if it's a main feature, and reruns `npm run docs:images` for affected pictures, in the same branch.
 - Secrets live only in `.env.local` (gitignored) and Netlify env vars. Only the Supabase anon key may reach the browser. Ask for each credential when first needed.
 - Every table: `id, user_id, created_at, updated_at (server-set), deleted_at`, with RLS.
+- **Database work:** for migrations, tables, RLS policies, indexes and server functions, use the `supabase-postgres-best-practices` skill (`.claude/skills/supabase-postgres-best-practices`, from supabase/agent-skills) with CODING_STANDARDS §9; where they differ, ours wins.
 - All user-facing wording in the "past you" voice, kept in one messages file.
 - **Reuse, never copy** (CODING_STANDARDS §6 Forms and page parts): before writing a field, choice, button or row, find the shared component; each item type has one `*Fields.vue` used by Capture, its editor and Orphans. Lint enforces it.
 - Accessibility: everything meets WCAG 2.2 Level AA (SPEC §2). Keyboard and screen reader use, visible focus, contrast in light and dark, targets ≥24 px (44 px where practical), labels on every control. New pages get an axe check in `src/tests/e2e/accessibility/a11y.spec.ts`; review by hand what axe can't check.
