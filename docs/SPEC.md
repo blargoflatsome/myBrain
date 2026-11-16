@@ -125,6 +125,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **cheer_posts (2026-11-15):** kind (did it, stuck, unstuck), text (up to 140 characters; empty for stuck), created_at; readable by every signed-in person through a server function that never returns the author. Gone from the feed after 48 hours.
 - **cheer_reactions:** post id, reaction (one of the four), one per person per post, never on my own post. Only the post's author can read the counts.
 - **cheer_blocks:** whose posts I've hidden, stored server-side from the post I blocked from; I never see who it is.
+- **cheer_tally (2026-11-15):** my own totals for the Cheering others on trophies (reactions given, days I cheered, first reactions, people I cheered on who got unstuck, and whether I cheered on a day I was stuck), kept by the server as I react so they outlast the 48-hour posts. Only I can read mine, and it never says which posts.
 - **focus_presence:** one row per person while their Focus timer runs: last check-in, the part (work or break) and when the part ends. Only counts and anonymous dots ever leave the server. Rows older than a few minutes are ignored and cleared.
 - **profiles.focus_room:** whether I show in the focus room (on by default).
 - **push_subscriptions:** user id, device label, push endpoint and keys, last_seen. One per device (phone, laptop); remove subscriptions that the push service reports as invalid.
@@ -340,7 +341,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - A full-screen window with a **5-minute timer** in the middle, surrounded by a ring that slowly grows while I breathe in (about 4 seconds) and shrinks while I breathe out (about 6), with **Breathe in** / **Breathe out** written inside it. Opened from the header, from **I'm stuck** (Cheers) and from the Focus timer screen.
 - With reduce motion on, the ring stays still and only the words change. Screen readers hear when it starts and ends, not every breath.
 - When the 5 minutes are up: a short vibration on phones (no sound, §2) and a closing line. **Pause / Resume** and the ✕ to stop.
-- It lives on this device only; nothing is saved or shared.
+- It lives on this device only and nothing is shared. The one thing kept is a note that I finished one (when, in my private `activity_log`, like Focus sessions), for its trophies (2026-11-15, user).
 
 ### Cheers (2026-11-15, user)
 - A feed of short posts from **everyone** using My Brain, newest first, from the last 48 hours (older ones are gone). Listed under More.
@@ -352,6 +353,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - One quiet **"People cheered you on"** alert per post, once it has 4 or more reactions (quiet hours apply).
 - **Block:** a ⋯ menu on each post has **Hide posts from this person**. It works from the post, so I never learn who it is, and they're never told.
 - A few posts a day per person at most, so the feed can't be flooded.
+- **Smug, for the one cheering (2026-11-15, user):** Cheers is themed around the smug satisfaction of encouraging someone selflessly, where nobody will ever know it was me. The smugness is only ever shown to **the person giving the cheer**; the poster only ever sees sincere encouragement (the reactions, "People cheered you on"), and **I'm stuck** never jokes. It shows up in: a short smug line once after I react (picked at random from a list); the "Someone you cheered on got unstuck!" alert; the feed's one-line subtitle; and the **Cheering others on** trophies (§5 Trophies), which are my smug tally. The user writes all of this wording.
 
 ### Random Quest (boredom buster)
 - A bucket of projects I want to do, each with details, estimated time, and energy level.
@@ -460,7 +462,7 @@ Finishing something should feel good. Each celebration plays right after my acti
   - **Orphans cleared:** filing or deleting the last orphan shows a friendly "all sorted" empty state.
   - **All habits done today:** completing the last scheduled habit of the day gives the biggest confetti. The **next day**, the first time I open the app, I get a congratulations alert (bell and banner, §6 In-app alerts); it isn't pushed and works offline. Yesterday is checked when the app opens and again once that visit's download finishes, so habits ticked on another device count. It counts as a **perfect day**.
   - **Comeback:** doing a habit on its first scheduled day after missing it 2 or more scheduled days in a row shows a "welcome back" message instead of anything about the lost streak.
-- **Badges (first times):** a one-time badge, with a small burst and a message, the first time I: cross off a task, complete a habit, finish a routine, write a journal entry, save to the Vault, finish a quest, finish a Focus session, make a Post It, sort an orphan, and create a shared event. Earned badges are kept (synced, with the day earned) and shown in **Trophies** on the Dashboard. Badges my history already shows (tasks, habits, routines, journal, Vault, quests, Post Its I did before this was built, or on another device) are awarded quietly (no celebration) once this device has downloaded my data; orphans, Focus sessions and shared events leave no history, so those badges come the next time. A badge earned before my badges have downloaded waits for them, so one I already have is never celebrated twice. **Delete my data** leaves badges alone (like my settings); Delete My Account removes them.
+- **Badges (first times):** a one-time badge, with a small burst and a message, the first time I: cross off a task, complete a habit, finish a routine, write a journal entry, save to the Vault, finish a quest, finish a Focus session, make a Post It, sort an orphan, create a shared event, finish a Breathe, post to Cheers, and cheer someone on (the last three added 2026-11-15, user). Earned badges are kept (synced, with the day earned) and shown in **Trophies** on the Dashboard. Badges my history already shows (tasks, habits, routines, journal, Vault, quests, Post Its I did before this was built, or on another device) are awarded quietly (no celebration) once this device has downloaded my data; orphans, Focus sessions, shared events and Breathe before trophies counted it leave no history, so those badges come the next time. A badge earned before my badges have downloaded waits for them, so one I already have is never celebrated twice. **Delete my data** leaves badges alone (like my settings); Delete My Account removes them.
 - **Messages:** every celebration message is in the messages file in the "past you" voice; the user writes the playful lines.
 - **Setting:** **Celebrations** in Account Settings on the Account page, saved with its own Save: **Full** (default), **Gentle** (no confetti or bouncing; a soft glow or fade and the message only) or **Off** (no animation; messages and badges still happen). If the device's reduce-motion setting is on, Full acts as Gentle. Saved to my profile, so it follows me to my other devices (and kept on this device, so it works offline).
 - **Accessibility:** animations are decorative (hidden from screen readers); each message is announced in a polite live region. Confetti never flashes more than 3 times a second (WCAG 2.3.1).
@@ -477,7 +479,7 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 
 **Categories and trophies** (names are plain placeholders; the user writes the playful ones):
 
-1. **Firsts:** the ten first-time badges from Celebrations, unchanged (one level each).
+1. **Firsts:** the thirteen first-time badges from Celebrations (one level each).
 2. **Streaks** (streak levels):
    - **Habit streak:** my best streak on any one habit.
    - **Journal streak:** days in a row with a journal entry I wrote (entries the app wrote for me don't count).
@@ -499,6 +501,7 @@ Trophies give me things to work toward and a little dopamine for using the app. 
    - **Full cycle:** 4 Focus sessions finished in one day.
    - **Focus days:** finished a Focus session on 5, 20 and 50 different days.
    - **Focus hours:** 10, 50 and 100 hours of finished Focus work in total.
+   - **Focused together (2026-11-15, user):** finished a Focus session while at least one other person was in the focus room, on 5, 20 and 50 different days (the server's check-in says whether anyone else was there; with Show me in the focus room off, it doesn't count).
 6. **Perfect days and weeks:**
    - **Perfect days:** 1, 10 and 50 perfect days in total.
    - **Perfect week:** every scheduled habit, every day, Sunday to Saturday (like the calendar).
@@ -510,6 +513,7 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 8. **Taking care of myself** (priority tasks and priority habits, like meds):
    - **On it:** a priority reminder marked done on its day (snoozes are fine), 7, 30 and 100 times in a row that it was due.
    - **Full month of care:** one priority habit done on every scheduled day of a calendar month.
+   - **Breathing days (2026-11-15, user):** finished a 5-minute Breathe on 5, 20 and 50 different days (stopping early doesn't count).
 9. **Reflection:**
    - **Words written:** 1,000 and 10,000 words in my journal in total.
 10. **Time-of-day fun** (one level each):
@@ -527,7 +531,14 @@ Trophies give me things to work toward and a little dopamine for using the app. 
     - **Just in time:** a task done between 11:50 and 11:59 pm on the day it was due.
     - **Protecting your boundaries:** blocked a connection.
     - **A healthy brain:** reached the 1-week level on every streak trophy.
+    - **Cheering while stuck (2026-11-15, user):** cheered someone else on the same day I posted I'm stuck.
 15. **Anniversaries:** 1 week, 1 month, 6 months and 1 year since my account was made (Bronze to Platinum).
+16. **Cheering others on** (2026-11-15, user; the smug tally, §5 Cheers): the user writes these names and their "You…" lines to be smugly satisfying, unlike the plain names elsewhere.
+    - **Cheers given:** reactions I gave, at the total levels (10 to 1,000).
+    - **Cheer days:** cheered someone on on 5, 20, 50 and 100 different days.
+    - **First to cheer:** the first reaction on someone's post, 5, 25 and 100 times.
+    - **Got someone unstuck:** someone I cheered on got unstuck, 1, 5, 25 and 100 times.
+    - **Rules:** only what I give counts. Nothing rewards reactions I received or how much I post (it's not a popularity contest, and posts are limited anyway). Like Connections, they're counted on the server. They show on my profile like any other trophy (2026-11-15, user).
 
 **Where they show:**
 - The Dashboard's **Trophies** section keeps its place and shows my 3 newest trophy levels earned (icon, name, level, day earned) and how many trophies I have. Perfect days aren't shown there as a number (2026-11-11, user): they're a trophy. **Tapping an earned trophy** opens a window saying what I did to earn it ("You kept one habit going on its days in a row."), with each level, what it needed and the day I reached it (or just the day, for a one-step trophy). Locked trophies can't be tapped.
@@ -544,7 +555,7 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 
 **Sync status:** the activity log uploads quietly; it isn't counted in "waiting to sync".
 
-**Data:** earned trophies are kept in **badges** with a level (`tier`; empty for Firsts), one row per trophy, the id made from my user id and the trophy, so every device writes the same row; moving up a level updates it, with the day each level was earned. A new **activity_log** (kind, when, detail) records what the app didn't keep before: finished Focus sessions (with their length), captures (with their type) and emptying the Orphans list. Trophies are defined as data (id, category, levels, rule) so new ones can be added without restructuring.
+**Data:** earned trophies are kept in **badges** with a level (`tier`; empty for Firsts), one row per trophy, the id made from my user id and the trophy, so every device writes the same row; moving up a level updates it, with the day each level was earned. A new **activity_log** (kind, when, detail) records what the app didn't keep before: finished Focus sessions (with their length, and whether anyone else was in the focus room), finished Breathes (2026-11-15), captures (with their type) and emptying the Orphans list. Trophies are defined as data (id, category, levels, rule) so new ones can be added without restructuring.
 
 ## 6. Notifications
 - Support both Web Push and ntfy, selectable in settings.
