@@ -17,6 +17,9 @@
         <button type="button" :class="iconButton" :aria-label="messages.header.timer" data-testid="focus-open" @click="emit('focus')">
           <AppIcon name="timer" size="size-5" />
         </button>
+        <button type="button" :class="iconButton" :aria-label="messages.header.breathe" data-testid="breathe-open" @click="breathe.open()">
+          <AppIcon name="wind" size="size-5" />
+        </button>
         <AlertsBell />
         <SyncIndicator :compact="!wide" />
       </div>
@@ -25,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-// SPEC §2 Navigation, Header: Account (my picture or a person icon), Focus timer, alerts bell and sync status, on every signed-in page. Phones also get My Brain and Search here; wide screens have those in the
+// SPEC §2 Navigation, Header: Account (my picture or a person icon), Focus timer, Breathe, alerts bell and sync status, on every signed-in page. Phones also get My Brain and Search here; wide screens have those in the
 // side menu.
 import { useProfileStore } from '@/stores/profile'
 import { computed, ref, watch } from 'vue'
@@ -34,6 +37,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import AlertsBell from '@/notifications/components/AlertsBell.vue'
 import SyncIndicator from '@/components/SyncIndicator.vue'
 import { useSearchStore } from '@/stores/search'
+import { useBreatheStore } from '@/stores/breathe'
 import { messages } from '@/messages'
 
 defineProps<{ wide: boolean }>()
@@ -42,6 +46,7 @@ const emit = defineEmits<{ focus: [] }>()
 // 44 px, or 40 px under 360 px wide so everything fits on one line at 320 px (SPEC §2 Header).
 const iconButton = 'flex size-10 min-[360px]:size-11 shrink-0 items-center justify-center rounded-xl border border-line'
 const searchWindow = useSearchStore()
+const breathe = useBreatheStore()
 
 // The profile picture; when there is none, or it can't load (offline, removed), the plain person icon shows.
 const profile = useProfileStore()

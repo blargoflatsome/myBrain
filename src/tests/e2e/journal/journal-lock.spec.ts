@@ -155,7 +155,8 @@ test.describe('SPEC §5 Locking my journal', () => {
     await expect.poll(() => server.tables.journal_entries!.get('j9')?.body).toBe('')
     expect(server.tables.journal_entries!.get('j9')).toMatchObject({ word_count: 8, has_writing: true })
     expect(server.tables.journal_keys!.get('key-1')?.deleted_at).toBeTruthy()
-    expect([...server.tables.journal_keys!.values()].filter((k) => !k.deleted_at)).toHaveLength(1)
+    // The new key uploads a moment after the recovery key shows, so wait for it.
+    await expect.poll(() => [...server.tables.journal_keys!.values()].filter((k) => !k.deleted_at).length).toBe(1)
   })
 
   test('turning it off needs the passphrase and uploads the writing readable again', async ({ page }) => {

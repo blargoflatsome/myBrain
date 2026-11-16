@@ -83,6 +83,7 @@
     <PriorityReminder v-if="showChrome" />
     <UndoBar v-if="showChrome" />
     <FocusTimer v-if="showChrome" />
+    <BreatheWindow v-if="showChrome" />
     <CelebrationLayer v-if="showChrome" />
   </div>
 </template>
@@ -101,6 +102,7 @@ import { MAIN_NAV, MORE_NAV, inMore } from '@/ui/nav'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import PriorityReminder from '@/reminders/components/PriorityReminder.vue'
 import FocusTimer from '@/focus/components/FocusTimer.vue'
+import BreatheWindow from '@/breathe/components/BreatheWindow.vue'
 import CelebrationLayer from '@/celebrate/components/CelebrationLayer.vue'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { useFocusStore } from '@/stores/focus'

@@ -269,6 +269,14 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'Focus timer pill')
     })
 
+    test('Breathe', async ({ page }) => {
+      await page.goto('/')
+      await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
+      await page.getByTestId('breathe-open').locator('visible=true').click()
+      await expect(page.getByRole('dialog', { name: msg.breathe.heading })).toBeVisible()
+      await scan(page, 'Breathe')
+    })
+
     test('Journal full screen writing', async ({ page }) => {
       await page.goto('/journal')
       await page.getByRole('toolbar', { name: 'Formatting: How the day went' }).getByRole('button', { name: msg.editor.fullScreen }).click()

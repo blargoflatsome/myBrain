@@ -57,6 +57,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
    - "Past you agreed to this event. Are you going to go?"
 
 - Write the rest of the messages in this same style for tasks, carried-over tasks, habits, routines, priority tasks, streaks, achievements, and event invitations and RSVPs. Keep all message wording in one place (a single file or table) so the voice is easy to adjust. Draft them and show me before finalizing.
+- "Past you" is only for what I set up or did earlier. Something I'm doing right now is plain "you" ("You got unstuck!", never "Past you got unstuck") (2026-11-15).
 - "Past you" only speaks to the user about themselves. Messages sent to other people, such as the standard cancellation text to guests and invitees, are written normally from the user to them.
 
 ## 3. Tech stack
@@ -72,8 +73,8 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 
 ### Navigation
 - **"My Brain" goes home:** the Home icon in the header (phones) and the app name at the top of the side menu (wide screens) open the Dashboard, the home page. The Dashboard isn't a tab or menu item of its own.
-- **Phones (under 768 px wide):** a **tab bar along the bottom** with five tabs, each an icon with its name: **Tasks, Habits, Calendar, The Vault, More**. The current page's tab is highlighted (and marked as the current page for screen readers). **More** opens a panel from the bottom with everything else: Routines, Journal, Quests, Orphans (with its count), Connections and Help (Focus timer and Account are in the header); its tab is highlighted when I'm on one of those pages, and shows the Orphans count too. There's no Menu button. The Capture button and the minimized Focus timer sit just above the tab bar, and pages leave room so nothing is hidden behind it.
-- **Header (2026-11-10, user's choices):** a bar along the top of every signed-in page, on phones and wide screens. Phones: a **Home** icon (named My Brain for screen readers; opens the Dashboard) and **Search** on the left. Then, in this order: **Account** (my profile picture, or a plain person icon when I have none or it can't load; opens the Account page), **Focus timer** (stopwatch icon; starts or reopens the timer), the **alerts bell** and **sync status**. Sign out is on the Account page, not in the header (2026-11-11). Wide screens keep My Brain and Search at the top of the side menu, so the bar has the other four, on the right. Sync status on phones is the coloured dot alone, with its words for screen readers and on hover; wide screens show the words too. Everything stays on **one line** on every phone, down to 320 px wide, without scrolling sideways: controls are 44 px, or 40 px on screens under 360 px wide. Every control has a name for screen readers.
+- **Phones (under 768 px wide):** a **tab bar along the bottom** with five tabs, each an icon with its name: **Tasks, Habits, Calendar, The Vault, More**. The current page's tab is highlighted (and marked as the current page for screen readers). **More** opens a panel from the bottom with everything else: Routines, Journal, Quests, Cheers, Orphans (with its count), Connections and Help (Focus timer and Account are in the header); its tab is highlighted when I'm on one of those pages, and shows the Orphans count too. There's no Menu button. The Capture button and the minimized Focus timer sit just above the tab bar, and pages leave room so nothing is hidden behind it.
+- **Header (2026-11-10, user's choices):** a bar along the top of every signed-in page, on phones and wide screens. Phones: a **Home** icon (named My Brain for screen readers; opens the Dashboard) and **Search** on the left. Then, in this order: **Account** (my profile picture, or a plain person icon when I have none or it can't load; opens the Account page), **Focus timer** (stopwatch icon; starts or reopens the timer), **Breathe** (a wind icon; opens Breathe, 2026-11-15), the **alerts bell** and **sync status**. Sign out is on the Account page, not in the header (2026-11-11). Wide screens keep My Brain and Search at the top of the side menu, so the bar has the other four, on the right. Sync status on phones is the coloured dot alone, with its words for screen readers and on hover; wide screens show the words too. Everything stays on **one line** on every phone, down to 320 px wide, without scrolling sideways: controls are 44 px, or 40 px on screens under 360 px wide. Every control has a name for screen readers.
 - **Icons:** every menu item has its icon, the same one in the tab bar, the side menu and the More panel (2026-11-12).
 - **Wide screens:** the side menu shows My Brain, Search, then **Tasks, Habits, Calendar, The Vault**, then a **More** button that opens or closes the rest of the list (the same pages as the phone's More) right there in the menu. More stays open or closed as I left it on this device, and opens by itself when I'm on one of its pages.
 - Everything works with a keyboard and screen readers; every tab and item is at least 44 px tall.
@@ -121,6 +122,11 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **availability_rules:** user id, weekday, start and end time, available or unavailable. **availability_exceptions:** user id, date range, available or unavailable, note.
 - **external_calendar_links:** user id, provider (Google), encrypted tokens (server-side only), sync settings, sync token, and a mapping between event ids and Google event ids.
 
+- **cheer_posts (2026-11-15):** kind (did it, stuck, unstuck), text (up to 140 characters; empty for stuck), created_at; readable by every signed-in person through a server function that never returns the author. Gone from the feed after 48 hours.
+- **cheer_reactions:** post id, reaction (one of the four), one per person per post, never on my own post. Only the post's author can read the counts.
+- **cheer_blocks:** whose posts I've hidden, stored server-side from the post I blocked from; I never see who it is.
+- **focus_presence:** one row per person while their Focus timer runs: last check-in, the part (work or break) and when the part ends. Only counts and anonymous dots ever leave the server. Rows older than a few minutes are ignored and cleared.
+- **profiles.focus_room:** whether I show in the focus room (on by default).
 - **push_subscriptions:** user id, device label, push endpoint and keys, last_seen. One per device (phone, laptop); remove subscriptions that the push service reports as invalid.
 - **tags / item_tags:** user-defined tags (a name, unique per user ignoring case) attached to tasks, habits and routines.
 - **Search:** runs on the device's own copy of my data (see Global search and tags).
@@ -326,7 +332,26 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - Controls: **Pause / Resume**, **Skip** (to the next part), **Minimize**, and an **✕** in the top right corner that stops and closes it.
 - **Minimized**, it keeps going as a small pill in the bottom-left corner of every page showing the part and time left (for example "Work · 18:42"); tapping it opens the full screen again. It keeps time across pages, reloads and app switches (it works from the start and end times, not a ticking counter).
 - When a part ends: a soft chime, a short vibration on phones, and, if I'm in another app, a notification ("Past you set a timer: time for a short break."). On a phone that's asleep the alert may only come when I open the app again.
-- While the full screen is showing, the screen is kept awake. The timer lives on this device only (it isn't synced).
+- While the full screen is showing, the screen is kept awake. The timer lives on this device only (it isn't synced); only the focus room check-in below is sent.
+- **Waves (2026-11-15, user):** work parts are 25 minutes, so sessions line up on **:00 and :30**. Starting is never held back: **Start now** is always the main button, with a smaller **Join the :30 wave** ("in 4 min · 9 joining") beside it. While a timer runs off the wave, **Sync with the next wave** stretches or trims the current part so the next one starts on the wave.
+- **The quiet room (body doubling without talking):** faint dots on the black screen, one per person focusing right now, with no count and no names; a dot glows softly when that person finishes a part. When no one else is there the room is empty; it's never faked. While the timer runs it checks in with the server once a minute, nothing more. **Show me in the focus room** on the Account page, on by default. Later: invite a connection to focus together (timers in step, their dot only, no chat).
+
+### Breathe (2026-11-15, user)
+- A full-screen window with a **5-minute timer** in the middle, surrounded by a ring that slowly grows while I breathe in (about 4 seconds) and shrinks while I breathe out (about 6), with **Breathe in** / **Breathe out** written inside it. Opened from the header, from **I'm stuck** (Cheers) and from the Focus timer screen.
+- With reduce motion on, the ring stays still and only the words change. Screen readers hear when it starts and ends, not every breath.
+- When the 5 minutes are up: a short vibration on phones (no sound, §2) and a closing line. **Pause / Resume** and the ✕ to stop.
+- It lives on this device only; nothing is saved or shared.
+
+### Cheers (2026-11-15, user)
+- A feed of short posts from **everyone** using My Brain, newest first, from the last 48 hours (older ones are gone). Listed under More.
+- **Everything is anonymous**, even to connections: a post shows what was said and when ("2 h ago"), no name, no picture. It's for feeling less alone and getting a bit of encouragement, not a popularity contest, and it doesn't pull focus.
+- **I did it!** posts something I accomplished, in the app or outside it. The app suggests a line from what I actually did, never using private titles ("I completed a 4-day-old task", "I did an ugh quest!"); I can change it or write my own, up to **140 characters**. It's offered at natural moments (a trophy, a streak, a routine finished, an old task done), never posted for me.
+- **I'm stuck** posts that I'm stuck (no text). It then shows **"You're not the only one stuck today"** with how many others are (leaving me out, hidden at 0), one random suggestion or encouraging line from a list, and offers **Breathe**.
+- **I got unstuck!**: if I finish a habit, task, routine or quest the same day I posted I'm stuck, the app offers to post it. Everyone who reacted to my stuck post gets a quiet "Someone you cheered on got unstuck!"
+- **Reactions are the only thing anyone can do**: four encouraging icons (you've got this, proud of you, sending strength, celebrate). One per person per post, final once picked, not on my own posts. **Only the poster sees the counts**; everyone else sees only the one they picked. No comments.
+- One quiet **"People cheered you on"** alert per post, once it has 4 or more reactions (quiet hours apply).
+- **Block:** a ⋯ menu on each post has **Hide posts from this person**. It works from the post, so I never learn who it is, and they're never told.
+- A few posts a day per person at most, so the feed can't be flooded.
 
 ### Random Quest (boredom buster)
 - A bucket of projects I want to do, each with details, estimated time, and energy level.
@@ -529,6 +554,7 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 - Quiet hours (notifications are held until they end) and snooze options on reminders and routine prompts. Priority tasks are exempt from quiet hours unless I choose otherwise.
 - **In-app alerts:** every notification the app sends me (reminders for habits, routines, priority tasks and events, and the evening reminder; event news; connection requests and acceptances) is also an alert inside the app, whether or not "Notify this device" or ntfy is on. A **bell** in the header, on every page, shows how many alerts I haven't dealt with (a number badge, hidden at zero; "9+" past nine). Tapping it opens my alerts, newest first, 5 per page, each with its title, text and time; new ones stand out. With no alerts, tapping it opens nothing: a short **"All caught up."** message appears and fades by itself (2026-11-11, the user's choice; an empty list felt negative). Tapping an alert takes me where I deal with it (its link) and counts it as seen; **✕** clears one and **Clear all** clears them all. The count goes down one at a time, as I tap or clear alerts (the user's choice). A priority reminder sent again counts as new again. Alerts are kept for **7 days**, then removed. **While the app is open**, a new alert also slides in as a **banner** at the top of the screen with its title and text: tapping it goes to its link (and counts it as seen), ✕ closes it, and it hides after **8 seconds** unless the mouse or keyboard is on it. Screen readers hear it (a polite live region). Several at once show one after another. Alerts sync across my devices, so seeing one on my phone counts it as seen on my computer too.
 - **Connection pushes** (2026-11-12): a connection request or acceptance is also pushed (Web Push and/or ntfy, as I've chosen) within a minute. It waits during quiet hours and goes out when they end. One I've already seen in the app, or more than a day old, isn't pushed.
+- **Cheers (2026-11-15):** "People cheered you on" once a post reaches 4 reactions, and "Someone you cheered on got unstuck!"; both are in-app alerts and pushes, and wait for quiet hours.
 - Each device (phone, laptop) registers its own push subscription. Remove stale subscriptions when the push service reports them invalid.
 - Reminder timing is critical, and it must respect each user's timezone: reminder times are local times in the profile's timezone, which the app keeps in step with the device.
 
@@ -637,6 +663,7 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 1. The Vault buckets, global search and tags, and the basic calendar view.
 1. Dashboard with all my stats.
 1. Shared events: contact info at signup, invitations, RSVPs, cancellations and notifications, and the availability schedule. Data export, account deletion, privacy policy and terms, and rate limits must be in place before anyone other than me uses the app.
+1. Breathe, then Cheers, then the focus room (2026-11-15).
 1. Phase 2 integrations.
 1. Phase 3: iPhone support.
 1. Phase 3: Discord server invites.

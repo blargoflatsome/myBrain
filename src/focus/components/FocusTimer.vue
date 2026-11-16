@@ -22,6 +22,8 @@
         <button type="button" :class="pill" data-testid="focus-pause" autofocus @click="focus.togglePause()">{{ paused ? m.resume : m.pause }}</button>
         <button type="button" :class="pill" @click="focus.skipPart()">{{ m.skip }}</button>
         <button type="button" :class="pill" data-testid="focus-minimize" @click="focus.minimized = true">{{ m.minimize }}</button>
+        <!-- SPEC §5 Breathe: opens over the timer, which keeps going. -->
+        <button type="button" :class="pill" data-testid="focus-breathe" @click="breathe.open()">{{ messages.breathe.open }}</button>
       </div>
     </template>
   </dialog>
@@ -50,8 +52,11 @@ import { useFocusStore } from '@/stores/focus'
 import { clock, remainingMs } from '@/focus/timer'
 import { messages } from '@/messages'
 import { achieved } from '@/celebrate/bus'
+import { useWakeLock } from '@/composables/useWakeLock'
+import { useBreatheStore } from '@/stores/breathe'
 
 const focus = useFocusStore()
+const breathe = useBreatheStore()
 const m = messages.focus
 
 const now = ref(Date.now())
@@ -132,22 +137,12 @@ function chime() {
 }
 
 // Keep the screen awake while the full-screen timer is showing.
-let wakeLock: { release(): Promise<void> } | null = null
+useWakeLock(() => showing.value)
+// Ask once, when the timer starts, so a notification can arrive while I'm in another app.
 watch(
   showing,
-  async (isShowing) => {
-    if (isShowing) {
-      // Ask once, when the timer starts, so a notification can arrive while I'm in another app.
-      if ('Notification' in window && Notification.permission === 'default') void Notification.requestPermission().catch(() => {})
-      try {
-        wakeLock = (await (navigator as unknown as { wakeLock?: { request(t: 'screen'): Promise<{ release(): Promise<void> }> } }).wakeLock?.request('screen')) ?? null
-      } catch {
-        wakeLock = null
-      }
-    } else {
-      await wakeLock?.release().catch(() => {})
-      wakeLock = null
-    }
+  (isShowing) => {
+    if (isShowing && 'Notification' in window && Notification.permission === 'default') void Notification.requestPermission().catch(() => {})
   },
   { immediate: true },
 )
