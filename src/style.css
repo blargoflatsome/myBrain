@@ -12,6 +12,17 @@
   }
 }
 
+/* SPEC §2 Calm by design: everything I can click shows the pointer (Tailwind 4 no longer does this for buttons). */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary,
+  select:not(:disabled),
+  input:is([type='checkbox'], [type='radio']):not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 /* SPEC §2 Calm by design, §3 visual style: warm neutrals, one soft blue accent, muted status colours, light or dark
    following the system setting. Every text colour still meets WCAG AA contrast on its background. */
 @theme {

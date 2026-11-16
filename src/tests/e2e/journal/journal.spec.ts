@@ -151,6 +151,7 @@ test.describe('Spec §5 Journal', () => {
     await expect(entry).toContainText(msg.journal.autoNote)
     await expect(entry.getByTestId('stat-habits').getByTestId('stat-value')).toHaveText('1 of 1')
 
+    await expect(entry.getByTestId('journal-edit')).toHaveCSS('cursor', 'pointer') // SPEC §2 Clickable things look clickable
     await entry.getByTestId('journal-edit').click()
     await entry.getByRole('textbox', { name: msg.journal.writeLabel }).click()
     await page.keyboard.type('Remembering now: it was a good one.')
