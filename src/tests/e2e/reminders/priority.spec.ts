@@ -45,6 +45,23 @@ test.describe('Spec §5: full-screen reminder for priority habits', { tag: '@pho
     await expect(overlay(page)).toContainText(msg.priority.reliability)
   })
 
+  test('it comes up above a window that is already open, and can be used there', async ({ page }) => {
+    seedMeds()
+    await open(page, '/habits', '2026-11-10T12:59:00Z') // 7:59 am
+    await page.getByRole('button', { name: '+ Capture' }).click()
+    const capture = page.getByRole('dialog', { name: msg.capture.windowLabel })
+    await expect(capture).toBeVisible()
+    await page.clock.runFor(2 * 60_000)
+    await expect(overlay(page)).toBeVisible()
+    // Escape and a click where the window's backdrop would be don't dismiss it; only acting on it does.
+    await page.keyboard.press('Escape')
+    await page.mouse.click(5, 5)
+    await expect(overlay(page)).toBeVisible()
+    await overlay(page).getByRole('button', { name: msg.priority.snooze }).click()
+    await expect(overlay(page)).toHaveCount(0)
+    await expect(capture).toBeVisible()
+  })
+
   test('slide to complete completes the habit for the day and closes the reminder', async ({ page }) => {
     seedMeds()
     await open(page, '/habits', '2026-11-10T13:05:00Z')

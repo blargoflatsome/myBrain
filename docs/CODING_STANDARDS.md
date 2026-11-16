@@ -26,6 +26,7 @@ file says *how* the code is written.
 - Every word the app shows lives in `src/messages.ts`, in the "past you" voice (SPEC §2). No user-facing strings in
   components or modules.
 - Messages that need values are small functions: `deleteItem: (title: string) => \`Delete ${title}\``.
+- "Past you" is only for what the user set up or did earlier; something they're doing now is plain "you" (SPEC §2 Voice).
 - Messages to other people (guests, invitees) are written plainly from the user, not in the "past you" voice.
 - Long-form pages (Privacy, Terms) keep their text in their own page file, written plainly for anyone, since it is a document rather than interface wording.
 - **Features and Docs:** dropped (2026-11-11); there are none.

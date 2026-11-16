@@ -1,6 +1,6 @@
 // SPEC §2 Accessibility: while a window (modal) is open, Tab and Shift+Tab stay inside it; when it closes, focus goes
-// back to what opened it. One place handles every window: native <dialog>s opened with showModal(), and anything
-// marked aria-modal="true" (the full-screen editor, the phone menu).
+// back to what opened it. Every window is a native <dialog> opened with showModal() (the full-screen screens too), so the
+// browser makes the page behind it inert; this file adds the Tab wrap, the focus fallback and click-outside.
 
 const FOCUSABLE = [
   'a[href]',
@@ -24,15 +24,14 @@ export function focusables(root: Element): HTMLElement[] {
 /** Modal <dialog>s in the order they opened, so a confirmation opened over an editor is on top. */
 const opened: HTMLDialogElement[] = []
 
-/** The window on top: the most recently opened modal <dialog>, else the last visible aria-modal element. */
-export function topModal(doc: Document = document): HTMLElement | null {
+/** The window on top: the most recently opened modal <dialog> that is still open. */
+export function topModal(): HTMLDialogElement | null {
   for (let i = opened.length - 1; i >= 0; i--) {
     const d = opened[i]!
     if (d.isConnected && d.open && d.matches(':modal')) return d
     opened.splice(i, 1)
   }
-  const marked = [...doc.querySelectorAll<HTMLElement>('[aria-modal="true"]')].filter((el) => !(el instanceof HTMLDialogElement) && el.getClientRects().length > 0)
-  return marked.at(-1) ?? null
+  return null
 }
 
 /** Keep Tab inside the window on top: from the last item it wraps to the first, and back. */
@@ -83,13 +82,17 @@ function outside(dialog: HTMLDialogElement, x: number, y: number) {
   return x < r.left || x > r.right || y < r.top || y > r.bottom
 }
 
+/** Whether the browser closes windows on a backdrop click itself (<dialog closedby="any">; not in Safari yet). */
+export const nativeClosedBy = typeof HTMLDialogElement !== 'undefined' && 'closedBy' in HTMLDialogElement.prototype
+
 /**
  * SPEC §2 Windows: a click on the backdrop closes the window, like Escape: a "cancel" event goes first, so a window
  * that must not close yet (sharing, one person at a time) can stop it. The press has to start outside too, so
- * selecting text inside and letting go outside doesn't close anything.
+ * selecting text inside and letting go outside doesn't close anything. Browsers with closedby do all this themselves;
+ * this is the fallback for the rest, and only for windows marked closedby="any".
  */
 export function closeOnOutsideClick(dialog: HTMLDialogElement) {
-  if (outsideWatched.has(dialog)) return
+  if (outsideWatched.has(dialog) || dialog.getAttribute('closedby') !== 'any') return
   outsideWatched.add(dialog)
   let pressedOutside = false
   dialog.addEventListener('pointerdown', (e) => {
@@ -116,9 +119,11 @@ export function installModalFocus() {
   const showModal = proto.showModal
   proto.showModal = function (this: HTMLDialogElement) {
     const opener = document.activeElement
+    // Every window closes on a click outside unless it says otherwise (the priority reminder says closedby="none").
+    if (!this.hasAttribute('closedby')) this.setAttribute('closedby', 'any')
     showModal.call(this)
     opened.push(this)
-    closeOnOutsideClick(this)
+    if (!nativeClosedBy) closeOnOutsideClick(this)
     this.addEventListener(
       'close',
       () => {

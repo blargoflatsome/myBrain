@@ -23,8 +23,21 @@ export function setAppearance(value: Appearance): void {
   if (typeof document !== 'undefined') {
     if (value === 'system') delete document.documentElement.dataset.theme
     else document.documentElement.dataset.theme = value
+    syncBrowserColour(value)
   }
   writeKey(KEY, value === 'system' ? null : value)
+}
+
+/**
+ * SPEC §8 Browser colours: the phone's top bar matches the page. index.html has one theme-color per device setting;
+ * a chosen Light or Dark sets both to that page background (--bg), and System puts index.html's colours back.
+ */
+function syncBrowserColour(value: Appearance): void {
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()
+  for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
+    meta.dataset.system ??= meta.content
+    meta.content = value === 'system' || !bg ? meta.dataset.system : bg
+  }
 }
 
 /** Run once when the app starts: the saved appearance, and following the device's setting for System. */

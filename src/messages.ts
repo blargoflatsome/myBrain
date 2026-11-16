@@ -57,6 +57,7 @@ export const messages = {
     label: 'Top bar',
     account: 'Account',
     timer: 'Focus timer',
+    breathe: 'Breathe',
   },
   capture: {
     windowLabel: 'Capture',
@@ -882,6 +883,21 @@ export const messages = {
     close: 'Stop and close the timer',
     openPill: (phase: string, time: string) => `Focus timer: ${phase}, ${time} left. Open`,
   },
+  /** SPEC §5 Breathe: a 5-minute breathing guide. Plain for now; the user writes the playful lines. */
+  breathe: {
+    open: 'Breathe',
+    heading: 'Breathe',
+    in: 'Breathe in',
+    out: 'Breathe out',
+    timeLeft: (time: string) => `${time} left`,
+    pause: 'Pause',
+    resume: 'Resume',
+    close: 'Stop and close Breathe',
+    started: 'Breathe for 5 minutes. Follow the ring: in as it grows, out as it shrinks.',
+    doneShort: 'Done',
+    done: "That's 5 minutes. Take that calm with you.",
+    finish: 'Done',
+  },
   /** SPEC §5 Celebrations: messages after finishing something, badges, Trophies and the setting. Plain for now; the user writes the playful lines. */
   celebrations: {
     allHabits: 'Every habit done today. Past you would be proud.',
@@ -1521,7 +1537,7 @@ export const messages = {
       { id: 'journal', title: 'Journal', what: 'A few lines a day.', steps: ['Open More, then Journal.', "Write in today's box. It saves as you type.", 'Answer "Was today better than yesterday?" and leave a note for tomorrow.', 'To change an earlier day, tap Edit beside it.'], alt: "The Journal page with today's writing box highlighted." },
       { id: 'journal-lock', title: 'Locking your journal', what: 'Encrypt your journal so only you can read it, even if someone sees the database.', steps: ['Open Account, then Account Settings, and tap Lock my journal.', 'Pick a passphrase and save your recovery key somewhere safe.', 'On a new device, unlock with your passphrase, your recovery key or a passkey.'], alt: 'The Lock my journal section of the Account page highlighted.' },
       { id: 'quests', title: 'Random Quest', what: 'Bored? Let the app pick something to do.', steps: ['Open More, then Quests.', 'Pick your energy and how much time you have.', 'Tap Pick a quest for me.'], alt: 'The Random Quest page with the Pick a quest for me button highlighted.' },
-      { id: 'focus', title: 'Focus timer', what: 'A timer for working in short bursts.', steps: ['Tap the stopwatch at the top.', 'It fills the screen while it runs.', 'Tap Minimize to keep using the app.'], alt: 'The top of the screen with the stopwatch button highlighted.' },
+      { id: 'focus', title: 'Focus timer', what: 'A timer for working in short bursts. The wind icon next to it opens Breathe: 5 calm minutes with a breathing ring.', steps: ['Tap the stopwatch at the top.', 'It fills the screen while it runs.', 'Tap Minimize to keep using the app.'], alt: 'The top of the screen with the stopwatch button highlighted.' },
       { id: 'dashboard', title: 'Dashboard and Post Its', what: "Your home page: Post Its, what's up next, and how yesterday went.", steps: ['Tap the house at the top.', 'Post Its hold quick notes. Swipe to see the next one.', 'Up next suggests one thing to do now.'], alt: 'The Dashboard with the Post Its on the chalkboard highlighted.' },
       { id: 'trophies', title: 'Trophies', what: 'Trophies reward you for keeping at it.', steps: ['Find them on your Dashboard.', 'Tap See all trophies to see what you have earned.', 'Close to the next one? The Dashboard says so.'], alt: 'The Trophies section of the Dashboard highlighted.' },
       { id: 'alerts', title: 'Alerts', what: 'Every reminder and message also lands under the bell.', steps: ['Tap the bell. The number is how many are new.', 'Tap an alert to go to it.', 'Tap ✕ to clear one, or Clear all.'], alt: 'The Alerts list open from the bell, highlighted.' },

@@ -1,34 +1,40 @@
 <template>
-  <div
-    v-if="current"
-    class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-8 bg-bg p-6 text-center"
+  <!-- A real window (showModal), so it sits above any other open window. It only goes when I act on it: no Escape,
+       no click outside (closedby="none", and cancel is stopped for browsers without closedby). -->
+  <dialog
+    ref="dialog"
+    closedby="none"
+    class="m-0 h-dvh max-h-none w-full max-w-none flex-col items-center justify-center gap-8 border-0 bg-bg p-6 text-center text-ink open:flex"
     role="alertdialog"
-    aria-modal="true"
     :aria-label="m.overlayLabel"
     data-testid="priority-reminder"
+    @cancel.prevent
+    @close="onClose"
   >
-    <div class="flex max-w-md flex-col gap-3">
-      <p class="text-sm font-semibold text-carried"><AppIcon name="alert" class="mr-1" />{{ m.eyebrow }}</p>
-      <h2 class="text-4xl font-bold break-words" data-testid="priority-title">{{ current.title }}</h2>
-      <RichNotes :value="current.description" class="text-lg text-muted" />
-      <p v-if="due.length > 1" class="text-sm text-muted">{{ m.more(due.length - 1) }}</p>
-    </div>
-    <div class="flex w-full max-w-md flex-col gap-4">
-      <SlideToComplete :key="`${current.id}-${slider}`" :label="m.slide" :hint="m.slideHint" @complete="act('complete')" />
-      <div class="grid grid-cols-2 gap-3">
-        <button type="button" class="font-medium" :class="secondaryButton" @click="act('snooze')">{{ m.snooze }}</button>
-        <button type="button" class="font-medium" :class="secondaryButton" @click="act('cancel')">{{ m.cancel }}</button>
+    <template v-if="current">
+      <div class="flex max-w-md flex-col gap-3">
+        <p class="text-sm font-semibold text-carried"><AppIcon name="alert" class="mr-1" />{{ m.eyebrow }}</p>
+        <h2 class="text-4xl font-bold break-words" data-testid="priority-title">{{ current.title }}</h2>
+        <RichNotes :value="current.description" class="text-lg text-muted" />
+        <p v-if="due.length > 1" class="text-sm text-muted">{{ m.more(due.length - 1) }}</p>
       </div>
-    </div>
-    <p class="max-w-md text-xs text-muted">{{ m.reliability }}</p>
-  </div>
+      <div class="flex w-full max-w-md flex-col gap-4">
+        <SlideToComplete :key="`${current.id}-${slider}`" :label="m.slide" :hint="m.slideHint" @complete="act('complete')" />
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" class="font-medium" :class="secondaryButton" @click="act('snooze')">{{ m.snooze }}</button>
+          <button type="button" class="font-medium" :class="secondaryButton" @click="act('cancel')">{{ m.cancel }}</button>
+        </div>
+      </div>
+      <p class="max-w-md text-xs text-muted">{{ m.reliability }}</p>
+    </template>
+  </dialog>
 </template>
 
 <script setup lang="ts">
 // SPEC §5: full-screen reminder for due priority habits and tasks. Stays until slide to complete, Snooze or Cancel.
 import { useNow } from '@/composables/useNow'
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import SlideToComplete from '@/reminders/components/SlideToComplete.vue'
 import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
@@ -64,6 +70,23 @@ const due = computed(() =>
 )
 const current = computed<DuePriority | undefined>(() => due.value[0])
 const slider = ref(0)
+
+const dialog = ref<HTMLDialogElement | null>(null)
+watch(
+  [() => !!current.value, dialog],
+  ([show, el]) => {
+    if (!el) return
+    if (show && !el.open) el.showModal()
+    else if (!show && el.open) el.close()
+  },
+  { immediate: true, flush: 'post' },
+)
+// A browser can still close it (a second Escape with no tap in between): open it again while something is due.
+function onClose() {
+  void nextTick(() => {
+    if (current.value && dialog.value && !dialog.value.open) dialog.value.showModal()
+  })
+}
 
 async function act(kind: 'complete' | 'snooze' | 'cancel') {
   const item = current.value

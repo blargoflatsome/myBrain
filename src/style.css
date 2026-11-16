@@ -168,6 +168,35 @@ textarea:focus {
     scroll-behavior: auto !important;
   }
 }
+/* SPEC §2 Windows: scrolling over a window or its dimmed background doesn't scroll the page behind it. The backdrop
+   only honours overscroll-behavior as a scroll container (overflow: hidden). Browsers that don't yet apply it to
+   containers that can't scroll just behave as before; the page is never locked with overflow on html or body. */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* SPEC §5 Breathe: the ring grows for 4 s (breathe in) and shrinks for 6 s (breathe out), like src/breathe/breathe.ts.
+   With reduce motion on, the rule above stops it, so the ring stays still and only the words change. */
+@keyframes breathe {
+  0%,
+  100% {
+    scale: 0.6;
+  }
+  40% {
+    scale: 1;
+  }
+}
+.breathe-ring {
+  scale: 0.8;
+  animation: breathe 10s ease-in-out infinite;
+}
+.breathe-ring-paused {
+  animation-play-state: paused;
+}
 
 /* Post It colours (SPEC §5): soft paper tints, with dark text in light mode and light text in dark mode (WCAG 1.4.3). */
 .note-yellow { background: #fbf3d6; color: #451a03; }

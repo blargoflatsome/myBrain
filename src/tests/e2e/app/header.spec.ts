@@ -99,7 +99,8 @@ test.describe('Spec §2 Header: Account, Focus timer, alerts and sync on every s
       const header = await open(page, AVATAR)
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
       const controls = await header.locator('a:visible, button:visible, [role=status]').all()
-      expect(controls).toHaveLength(6)
+      // Home, Search, Account, Focus timer, Breathe, the bell and sync status.
+      expect(controls).toHaveLength(7)
       const middles: number[] = []
       for (const el of controls) {
         const box = (await el.boundingBox())!
