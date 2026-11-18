@@ -50,7 +50,6 @@
     <p v-if="inviteNotice" class="rounded-xl border border-line bg-surface p-3 text-sm" role="status" data-testid="invite-notice">{{ inviteNotice }}</p>
     <CalendarItemDialog :item="viewItem" @edit="editItem" @close="viewItem = null" />
     <TaskEditor :task="editingTask" @save="saveTask" @delete="deleteTask" @close="editingTask = null" />
-    <PriorityTasks editor-only :open-id="editPriority" @opened="editPriority = null" />
     <EventEditor :event="editing" :is-new="isNew" :with-people="startPeople" @save="saveEvent" @delete="deleteEvent" @cancel="startCancel" @close="editing = null" />
     <InvitedEventDialog :event="viewing" :invite="viewingInvite" @drop-out="startDropOut" @close="viewing = null" />
     <CancelEventDialog :event="cancelling" :mode="cancelMode" @done="cancelled" @close="cancelling = null" />
@@ -68,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-// SPEC §5 Calendar and reminders: month, week and day views of my dated tasks, priority tasks and events.
+// SPEC §5 Calendar and reminders: month, week and day views of my dated tasks and events.
 // Tap a day or time (or "+ New event") to add an event; tap an item to open it.
 import { useProfileStore } from '@/stores/profile'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -86,7 +85,6 @@ import type { CalendarOptions, DateClickInfo, DatesSetInfo, EventClickInfo } fro
 import EventEditor from '@/events/components/EventEditor.vue'
 import CalendarItemDialog, { type CalendarView } from '@/events/components/CalendarItemDialog.vue'
 import TaskEditor from '@/tasks/components/TaskEditor.vue'
-import PriorityTasks from '@/reminders/components/PriorityTasks.vue'
 import InvitedEventDialog from '@/events/components/InvitedEventDialog.vue'
 import CancelEventDialog from '@/events/components/CancelEventDialog.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -100,7 +98,7 @@ import { useToday } from '@/composables/useToday'
 import { calendarItems, newEvent, nextWholeHour, type CalendarItem } from '@/events/rules'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
-import type { EventInviteRow, EventRow, PriorityTaskRow, TaskRow } from '@/sync/types'
+import type { EventInviteRow, EventRow, TaskRow } from '@/sync/types'
 import { live } from '@/sync/live'
 import { useUndoStore } from '@/stores/undo'
 import { dialogBox, selected, smallButton } from '@/ui/styles'
@@ -137,7 +135,6 @@ const items = useLiveQuery<CalendarItem[]>(
     return calendarItems(
       {
         tasks: await db.tasks.toArray(),
-        priorityTasks: await db.priority_tasks.toArray(),
         events: await db.events.toArray(),
         invites: await db.event_invites.toArray(),
         me: brain.userId,
@@ -179,9 +176,6 @@ const options = computed<CalendarOptions>(() => ({
     const { kind, itemId, date } = info.event.extendedProps as CalendarItem['extendedProps']
     if (kind === 'task') {
       const row = tasks.value.find((t) => t.id === itemId)
-      if (row) viewItem.value = { kind, title: row.title, date, row }
-    } else if (kind === 'priority_task') {
-      const row = priorityTasks.value.find((p) => p.id === itemId)
       if (row) viewItem.value = { kind, title: row.title, date, row }
     } else openEvent(itemId, date)
   },
@@ -226,14 +220,11 @@ function openEvent(id: string, date?: string) {
 
 // ---------- Viewing my own items read-only, then editing them here (SPEC §5 Calendar) ----------
 const tasks = useLiveQuery<TaskRow[]>(async () => (brain.db ? live(await brain.db.tasks.toArray()) : []), [], [() => brain.db])
-const priorityTasks = useLiveQuery<PriorityTaskRow[]>(async () => (brain.db ? live(await brain.db.priority_tasks.toArray()) : []), [], [() => brain.db])
 const viewItem = ref<CalendarView | null>(null)
 const editingTask = ref<TaskRow | null>(null)
-const editPriority = ref<string | null>(null)
 function editItem(item: CalendarView) {
   viewItem.value = null
   if (item.kind === 'task') editingTask.value = item.row
-  else if (item.kind === 'priority_task') editPriority.value = item.row.id
   else {
     isNew.value = false
     editing.value = item.row

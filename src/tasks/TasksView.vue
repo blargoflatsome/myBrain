@@ -1,8 +1,7 @@
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
-    <PageHeading :heading="m.heading" :intro="view === 'priority' ? m.intro : undefined" intro-test-id="tasks-intro">
-      <NewButton v-if="view === 'priority'" :label="messages.priority.add" data-testid="new-priority" @click="priorityList?.startNew()" />
-      <NewButton v-else :label="m.newTask" data-testid="new-task" @click="startNew" />
+    <PageHeading :heading="m.heading" intro-test-id="tasks-intro">
+      <NewButton :label="m.newTask" data-testid="new-task" @click="startNew" />
     </PageHeading>
     <div class="flex gap-2 rounded-2xl bg-surface p-1" role="tablist">
       <button
@@ -23,65 +22,79 @@
       >
         {{ m.undatedHeading }}
       </button>
-      <button
-        type="button"
-        role="tab"
-        :aria-selected="view === 'priority'"
-        :class="[tab, view === 'priority' ? tabOn : 'text-muted']"
-        @click="view = 'priority'"
-      >
-        {{ messages.priority.tabHeading }}
-      </button>
     </div>
 
-    <PriorityTasks v-if="view === 'priority'" ref="priorityList" :open-id="openPriority" @opened="(openPriority = null), router.replace({ query: {} })" />
-    <template v-else>
-      <!-- SPEC §5 Tasks: moving between days works like the Calendar (bordered arrows, Today when elsewhere). -->
-      <div v-if="view === 'day'" class="flex items-center gap-1">
-        <button type="button" :class="dayArrow" :aria-label="m.day.previous" @click="day = addDays(day, -1)">‹</button>
-        <button v-if="offset !== 0" type="button" :class="smallButton" data-testid="tasks-today" @click="day = today">{{ m.day.today }}</button>
-        <button type="button" :class="dayArrow" :aria-label="m.day.next" @click="day = addDays(day, 1)">›</button>
-        <h2 class="ml-2 text-xl font-bold">{{ dayLabel }}</h2>
-      </div>
-      <h2 v-else class="text-xl font-bold">{{ m.undatedHeading }}</h2>
+    <!-- SPEC §5 Tasks: moving between days works like the Calendar (bordered arrows, Today when elsewhere). -->
+    <div v-if="view === 'day'" class="flex items-center gap-1">
+      <button type="button" :class="dayArrow" :aria-label="m.day.previous" @click="day = addDays(day, -1)">‹</button>
+      <button v-if="offset !== 0" type="button" :class="smallButton" data-testid="tasks-today" @click="day = today">{{ m.day.today }}</button>
+      <button type="button" :class="dayArrow" :aria-label="m.day.next" @click="day = addDays(day, 1)">›</button>
+      <h2 class="ml-2 text-xl font-bold">{{ dayLabel }}</h2>
+    </div>
+    <h2 v-else class="text-xl font-bold">{{ m.undatedHeading }}</h2>
 
-      <form v-if="canAdd" class="flex gap-2" @submit.prevent="add">
-        <input
-          v-model="newTitle" maxlength="500"
-          :placeholder="addLabel"
-          :aria-label="addLabel"
-          class="min-h-12 flex-1 rounded-xl border border-line bg-surface px-3 text-base text-ink"
-        >
-        <button type="submit" :class="primaryButton">{{ m.add }}</button>
-      </form>
-
-      <!-- SPEC §5 Tasks: one muted line above the list, never a stack of them. -->
-      <p class="text-muted" :role="allDoneToday ? 'status' : undefined" data-testid="tasks-line">{{ topLine }}</p>
-
-      <button
-        v-if="canPick"
-        type="button"
-        :class="[chip(pickOn), 'self-start']"
-        :aria-pressed="pickOn"
-        data-testid="pick-three"
-        @click="setPick(!pickOn)"
+    <form v-if="canAdd" class="flex gap-2" @submit.prevent="add">
+      <input
+        v-model="newTitle" maxlength="500"
+        :placeholder="addLabel"
+        :aria-label="addLabel"
+        class="min-h-12 flex-1 rounded-xl border border-line bg-surface px-3 text-base text-ink"
       >
-        <span v-if="pickOn" aria-hidden="true">✓ </span>{{ m.pickThree }}
-      </button>
+      <button type="submit" :class="primaryButton">{{ m.add }}</button>
+    </form>
 
+    <!-- SPEC §5 Tasks: one muted line above the list, never a stack of them. -->
+    <p class="text-muted" :role="allDoneToday ? 'status' : undefined" data-testid="tasks-line">{{ topLine }}</p>
+
+    <button
+      v-if="canPick"
+      type="button"
+      :class="[chip(pickOn), 'self-start']"
+      :aria-pressed="pickOn"
+      data-testid="pick-three"
+      @click="setPick(!pickOn)"
+    >
+      <span v-if="pickOn" aria-hidden="true">✓ </span>{{ m.pickThree }}
+    </button>
+
+    <button
+      v-if="doneInList"
+      type="button"
+      :class="[smallButton, 'self-end']"
+      data-testid="clear-done"
+      @click="clearCrossedOff"
+    >
+      {{ m.clearDone(doneInList) }}
+    </button>
+
+    <ul class="flex flex-col gap-2">
+      <TaskItem
+        v-for="t in shownTasks"
+        :key="t.id"
+        :task="t"
+        :today="today"
+        @toggle="brain.saveTask(toggleDone(t))"
+        @edit="edit(t)"
+        @delete="remove(t)"
+        @cancel="brain.saveTask(cancelTask(t))"
+        @tomorrow="move(t, addDays(today, 1))"
+        @undated="move(t, null)"
+      />
+    </ul>
+    <template v-if="picking && picked.rest.length">
       <button
-        v-if="doneInList"
         type="button"
-        :class="[smallButton, 'self-end']"
-        data-testid="clear-done"
-        @click="clearCrossedOff"
+        :class="[smallButton, 'self-start']"
+        :aria-expanded="showRest"
+        aria-controls="tasks-rest"
+        data-testid="show-rest"
+        @click="showRest = !showRest"
       >
-        {{ m.clearDone(doneInList) }}
+        {{ showRest ? m.hideRest : m.showRest(picked.rest.length) }}
       </button>
-
-      <ul class="flex flex-col gap-2">
+      <ul v-show="showRest" id="tasks-rest" class="flex flex-col gap-2">
         <TaskItem
-          v-for="t in shownTasks"
+          v-for="t in picked.rest"
           :key="t.id"
           :task="t"
           :today="today"
@@ -93,32 +106,6 @@
           @undated="move(t, null)"
         />
       </ul>
-      <template v-if="picking && picked.rest.length">
-        <button
-          type="button"
-          :class="[smallButton, 'self-start']"
-          :aria-expanded="showRest"
-          aria-controls="tasks-rest"
-          data-testid="show-rest"
-          @click="showRest = !showRest"
-        >
-          {{ showRest ? m.hideRest : m.showRest(picked.rest.length) }}
-        </button>
-        <ul v-show="showRest" id="tasks-rest" class="flex flex-col gap-2">
-          <TaskItem
-            v-for="t in picked.rest"
-            :key="t.id"
-            :task="t"
-            :today="today"
-            @toggle="brain.saveTask(toggleDone(t))"
-            @edit="edit(t)"
-            @delete="remove(t)"
-            @cancel="brain.saveTask(cancelTask(t))"
-            @tomorrow="move(t, addDays(today, 1))"
-            @undated="move(t, null)"
-          />
-        </ul>
-      </template>
     </template>
 
     <TaskEditor :task="editing" :is-new="isNew" @save="saveEdit" @delete="remove" @close="editing = null" />
@@ -131,7 +118,6 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TaskItem from '@/tasks/components/TaskItem.vue'
 import TaskEditor from '@/tasks/components/TaskEditor.vue'
-import PriorityTasks from '@/reminders/components/PriorityTasks.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
 import { useBrainStore } from '@/stores/brain'
@@ -151,7 +137,7 @@ const brain = useBrainStore()
 const m = messages.tasks
 const { today, timeZone } = useToday()
 
-const view = ref<'day' | 'undated' | 'priority'>('day')
+const view = ref<'day' | 'undated'>('day')
 const day = ref(today.value)
 // When midnight passes while the app is open on today, follow it to the new day.
 watch(today, (next, prev) => {
@@ -248,19 +234,6 @@ function startNew() {
 }
 const route = useRoute()
 const router = useRouter()
-// The Priority tab's + New sits in the page heading like every other page's (CODING_STANDARDS §6).
-const priorityList = ref<InstanceType<typeof PriorityTasks> | null>(null)
-// Opened with ?priority=<id> (from the calendar): show the Priority tab and open that priority task.
-const openPriority = ref<string | null>(null)
-watch(
-  () => route.query.priority,
-  (id) => {
-    if (typeof id !== 'string') return
-    view.value = 'priority'
-    openPriority.value = id
-  },
-  { immediate: true },
-)
 // Opened with ?task=<id> (from search or the calendar): show its day and open its editor.
 watch(
   [() => route.query.task, all],

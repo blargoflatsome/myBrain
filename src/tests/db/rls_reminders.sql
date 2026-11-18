@@ -1,4 +1,4 @@
--- Checks for the reminder job (SPEC §5 priority reminders, §6 Notifications). Always rolls back. Run: npm run test:db
+-- Checks for the reminder job (SPEC §5 High-priority tasks and priority habits, §6 Notifications). Always rolls back. Run: npm run test:db
 do $$
 declare
   alice constant uuid := '11111111-1111-1111-1111-111111111111';
@@ -7,6 +7,8 @@ declare
   morning uuid;
   insulin uuid;
   once uuid;
+  undated uuid;
+  low uuid;
   n int;
   -- Tue Nov 10 2026 in New York (UTC-5).
   t0759 constant timestamptz := '2026-11-10 07:59:00-05';
@@ -19,16 +21,30 @@ begin
   insert into public.habits (user_id, title, notify_time, start_date, is_priority) values (alice, 'Meds', '08:00', '2026-11-01', true) returning id into meds;
   insert into public.habits (user_id, title, notify_time, start_date) values (alice, 'Stretch', '08:00', '2026-11-01') returning id into stretch;
   insert into public.routines (user_id, title, notify_time, start_date) values (alice, 'Morning', '08:00', '2026-11-01') returning id into morning;
-  insert into public.priority_tasks (user_id, title, reminder_time, weekdays, start_date) values (alice, 'Insulin', '08:00', '{1,2,3,4,5}', '2026-11-01') returning id into insulin;
-  insert into public.priority_tasks (user_id, title, reminder_time, due_date) values (alice, 'Once', '08:00', '2026-11-12') returning id into once;
+  -- High tasks (SPEC §5, 2026-11-18): Insulin carried over from yesterday, Once is for Thursday, Undated has no reminder.
+  insert into public.tasks (user_id, title, priority, reminder_time, due_date) values (alice, 'Insulin', 3, '08:00', '2026-11-09') returning id into insulin;
+  insert into public.tasks (user_id, title, priority, reminder_time, due_date) values (alice, 'Once', 3, '08:00', '2026-11-12') returning id into once;
+  insert into public.tasks (user_id, title, priority) values (alice, 'Undated', 3) returning id into undated;
+  begin
+    insert into public.tasks (user_id, title, priority, reminder_time, due_date) values (alice, 'Low', 1, '08:00', '2026-11-10') returning id into low;
+    raise exception 'FAIL: Spec §5: only High tasks can have a reminder';
+  exception when check_violation then null;
+  end;
+  begin
+    insert into public.tasks (user_id, title, priority, reminder_time) values (alice, 'No date', 3, '08:00');
+    raise exception 'FAIL: Spec §5: a task reminder needs a date';
+  exception when check_violation then null;
+  end;
 
   -- Due at the reminder time, in the user's own timezone.
   select count(*) into n from public.due_reminders(t0759) where user_id = alice;
   if n <> 0 then raise exception 'FAIL: Spec §6: nothing is due before its local reminder time'; end if;
   select count(*) into n from public.due_reminders(t0801) where user_id = alice;
-  if n <> 4 then raise exception 'FAIL: Spec §6: habits, routine and weekday priority task are due at 8:01 local (got %)', n; end if;
+  if n <> 4 then raise exception 'FAIL: Spec §6: habits, routine and the carried-over High task are due at 8:01 local (got %)', n; end if;
   select count(*) into n from public.due_reminders(t0801) where item_id = once;
-  if n <> 0 then raise exception 'FAIL: Spec §5: a one-off priority task is only due on its date'; end if;
+  if n <> 0 then raise exception 'FAIL: Spec §5: a High task''s reminder waits for its date'; end if;
+  select count(*) into n from public.due_reminders(t0801) where item_id = insulin and kind = 'task' and is_priority and url = '/tasks';
+  if n <> 1 then raise exception 'FAIL: Spec §5: a High task''s reminder is a priority reminder that opens Tasks'; end if;
   select count(*) into n from public.due_reminders(t0801) where item_id = meds and is_priority;
   if n <> 1 then raise exception 'FAIL: Spec §5: a priority habit is sent as a priority reminder'; end if;
   select count(*) into n from public.due_reminders(t0801) where item_id = morning and url = '/routines/' || morning || '/run';
@@ -38,6 +54,10 @@ begin
   insert into public.habit_logs (user_id, habit_id, date, status, completed_at) values (alice, stretch, '2026-11-10', 'completed', t0759);
   select count(*) into n from public.due_reminders(t0801) where item_id = stretch;
   if n <> 0 then raise exception 'FAIL: Spec §6: a completed habit is not reminded'; end if;
+  update public.tasks set status = 'done' where id = insulin;
+  select count(*) into n from public.due_reminders(t0801) where item_id = insulin;
+  if n <> 0 then raise exception 'FAIL: Spec §5: a crossed-off High task is not reminded'; end if;
+  update public.tasks set status = 'open' where id = insulin;
 
   -- Sent once a day; again only after a snooze runs out.
   insert into public.reminder_state (user_id, kind, item_id, date, last_sent_at) values (alice, 'habit', meds, '2026-11-10', t0801);
@@ -50,7 +70,7 @@ begin
   if n <> 1 then raise exception 'FAIL: Spec §5: a snoozed reminder comes back after 10 minutes'; end if;
 
   -- Cancel stops it for the day.
-  insert into public.reminder_state (user_id, kind, item_id, date, cancelled_at) values (alice, 'priority_task', insulin, '2026-11-10', t0801);
+  insert into public.reminder_state (user_id, kind, item_id, date, cancelled_at) values (alice, 'task', insulin, '2026-11-10', t0801);
   select count(*) into n from public.due_reminders(t0801 + interval '1 hour') where item_id = insulin;
   if n <> 0 then raise exception 'FAIL: Spec §5: a cancelled priority reminder is not sent again today'; end if;
 

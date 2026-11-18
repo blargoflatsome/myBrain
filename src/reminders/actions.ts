@@ -1,28 +1,26 @@
-// What the priority reminder's slide, snooze and cancel write (SPEC §5 Priority tasks and priority habits).
-import type { HabitRow, ReminderStateRow } from '@/sync/types'
+// What the priority reminder's slide, snooze and cancel write (SPEC §5 High-priority tasks and priority habits).
+import type { HabitRow, ReminderStateRow, TaskRow } from '@/sync/types'
 import type { ActionContext } from '@/sync/actions'
 import { cancelState, snoozeState, type DuePriority } from '@/reminders/priority'
-import { logIdFor } from '@/sync/ids'
+import { toggleDone } from '@/tasks/rules'
 
 type NextState = (item: DuePriority, existing: ReminderStateRow | undefined, uid: string, now: Date) => ReminderStateRow
 
-export function priorityActions({ ready }: ActionContext, toggleHabit: (habit: HabitRow, now: Date) => Promise<unknown>) {
-  /** Slide to complete: a priority habit is completed for the day; a priority task gets today's completion. */
+export function priorityActions(
+  { ready }: ActionContext,
+  toggleHabit: (habit: HabitRow, now: Date) => Promise<unknown>,
+  saveTask: (task: TaskRow) => Promise<unknown>,
+) {
+  /** Slide to complete: a priority habit is completed for the day; a High task is crossed off. */
   async function completePriority(item: DuePriority, now = new Date()) {
-    const { engine: e, uid, local } = ready()
+    const { local } = ready()
     if (item.kind === 'habit') {
       const habit = await local.habits.get(item.id)
       if (habit) await toggleHabit(habit, now)
       return
     }
-    await e.save('priority_task_logs', {
-      id: logIdFor(item.id, item.date),
-      user_id: uid,
-      task_id: item.id,
-      date: item.date,
-      completed_at: now.toISOString(),
-      deleted_at: null,
-    })
+    const task = await local.tasks.get(item.id)
+    if (task && task.status === 'open') await saveTask(toggleDone(task, now))
   }
 
   /** Save today's reminder state for an item, worked out from what it was. */

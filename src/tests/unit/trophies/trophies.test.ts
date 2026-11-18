@@ -11,7 +11,7 @@ const U = '11111111-1111-4111-8111-111111111111'
 const NOW = new Date('2026-11-10T17:00:00Z') // Tue Nov 10, noon in New York
 const empty = (): TrophyHistory => ({
   tasks: [], habits: [], habitLogs: [], routines: [], routineRuns: [], journalEntries: [], quests: [], questLogs: [], vaultItems: [],
-  vaultBuckets: [], priorityTasks: [], priorityLogs: [], events: [], invites: [], activity: [], userId: U, accountCreated: null, connections: null, blocks: null, cheers: null,
+  vaultBuckets: [], events: [], invites: [], activity: [], userId: U, accountCreated: null, connections: null, blocks: null, cheers: null,
 })
 const habit = (id: string, extra: Partial<HabitRow> = {}): HabitRow => ({ id, title: id, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-10-01', deleted_at: null, ...extra })
 const done = (habitId: string, date: string) => ({ id: `${habitId}-${date}`, habit_id: habitId, date, status: 'completed' as const, completed_at: `${date}T15:00:00Z`, deleted_at: null })
@@ -123,10 +123,10 @@ describe('SPEC §5 Trophies: perfect weeks and taking care of myself', () => {
     expect(values({ habits: [habit('h1', { start_date: '2026-11-01' })], habitLogs: logs }).perfect_week).toBe(1)
     expect(values({ habits: [habit('h1', { start_date: '2026-11-01' })], habitLogs: logs.slice(1) }).perfect_week).toBe(0)
   })
-  it('a priority reminder done on its day counts, in a row', () => {
-    const p = { id: 'p1', title: 'Meds', reminder_time: '08:00', due_date: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', deleted_at: null }
-    const logs = days('2026-11-01', 7).map((d) => ({ id: d, task_id: 'p1', date: d, completed_at: `${d}T20:00:00Z`, deleted_at: null }))
-    expect(values({ priorityTasks: [p], priorityLogs: logs }).on_it).toBe(7)
+  it('a priority habit done on its days counts, in a row', () => {
+    const logs = days('2026-11-01', 7).map((d) => done('h1', d))
+    expect(values({ habits: [habit('h1', { start_date: '2026-11-01', is_priority: true })], habitLogs: logs }).on_it).toBe(7)
+    expect(values({ habits: [habit('h1', { start_date: '2026-11-01' })], habitLogs: logs }).on_it).toBe(0)
   })
 })
 

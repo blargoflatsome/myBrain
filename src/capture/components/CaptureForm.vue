@@ -59,7 +59,16 @@
     />
 
     <!-- Task: the shared task form (SPEC §5 Forms). -->
-    <TaskFields v-if="type === 'task'" v-model:due-date="dueDate" v-model:notes="notes" v-model:priority="priority" :field-class="fieldOnPage" notes-test-id="capture-notes" />
+    <TaskFields
+      v-if="type === 'task'"
+      v-model:due-date="dueDate"
+      v-model:notes="notes"
+      v-model:priority="priority"
+      v-model:reminder-time="reminderTime"
+      :reminder-error="reminderError"
+      :field-class="fieldOnPage"
+      notes-test-id="capture-notes"
+    />
 
     <!-- Habit: the full habit form (SPEC §5 Quick capture) -->
     <HabitFields
@@ -100,6 +109,7 @@ import ChoiceChips from '@/components/ChoiceChips.vue'
 import PostItColors from '@/postits/components/PostItColors.vue'
 import QuestFields from '@/quests/components/QuestFields.vue'
 import TaskFields from '@/tasks/components/TaskFields.vue'
+import { reminderInPast, taskReminder } from '@/reminders/priority'
 import VaultItemFields from '@/vault/components/VaultItemFields.vue'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_POST_IT_COLOR } from '@/postits/rules'
@@ -140,6 +150,8 @@ const title = ref('')
 const notes = ref('')
 const dueDate = ref('')
 const priority = ref(DEFAULT_TASK_PRIORITY)
+const reminderTime = ref('')
+const reminderError = ref('')
 const energy = ref<EnergyLevel>(DEFAULT_QUEST_ENERGY)
 const time = ref<TimeBucket>(DEFAULT_QUEST_TIME)
 const bucketId = ref<string | null>(null)
@@ -225,6 +237,8 @@ function reset() {
   notes.value = ''
   dueDate.value = ''
   priority.value = DEFAULT_TASK_PRIORITY
+  reminderTime.value = ''
+  reminderError.value = ''
   energy.value = DEFAULT_QUEST_ENERGY
   time.value = DEFAULT_QUEST_TIME
   newBucketName.value = null
@@ -280,6 +294,13 @@ async function save() {
     titleBox.value?.focus()
     return
   }
+  // SPEC §5 High-priority tasks: saving never sets a reminder off at once.
+  reminderError.value = ''
+  const reminder = type.value === 'task' ? taskReminder(priority.value, dueDate.value || null, reminderTime.value) : null
+  if (reminderInPast({ due_date: dueDate.value || null, reminder_time: reminder }, null)) {
+    reminderError.value = messages.tasks.reminderPast
+    return
+  }
   saving.value = true
   try {
     if (type.value === 'vault' && newBucketName.value?.trim()) {
@@ -291,6 +312,7 @@ async function save() {
       notes: storedNotes(notes.value) ?? '',
       dueDate: dueDate.value || null,
       priority: priority.value,
+      reminderTime: reminder,
       bucketId: bucketId.value ?? undefined,
       rating: rating.value,
       link: link.value,

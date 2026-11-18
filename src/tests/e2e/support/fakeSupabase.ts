@@ -36,8 +36,6 @@ export class FakeSupabase {
     routine_steps: new Map(),
     routine_runs: new Map(),
     routine_step_logs: new Map(),
-    priority_tasks: new Map(),
-    priority_task_logs: new Map(),
     reminder_state: new Map(),
     journal_entries: new Map(),
     events: new Map(),

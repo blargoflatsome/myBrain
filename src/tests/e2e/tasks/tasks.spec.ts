@@ -26,7 +26,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Tasks: the daily list', () => {
-  test('today orders open tasks High, Medium, Low with colored markers', async ({ page }) => {
+  test('today orders open tasks High, Medium, Low; High shows the Priority label (SPEC §5 High-priority tasks)', async ({ page }) => {
     server.seed('tasks', [
       task('a', 'water plants', '2026-11-10', { priority: 1 }),
       task('bb', 'pay rent', '2026-11-10', { priority: 3 }),
@@ -34,7 +34,7 @@ test.describe('Spec §5 Tasks: the daily list', () => {
     ])
     await open(page)
     await expect(page.getByTestId('task-title')).toHaveText(['pay rent', 'email Sam', 'water plants'])
-    await expect(page.getByTestId('task-priority')).toHaveText(['High', 'Medium', 'Low'])
+    await expect(page.getByTestId('task-priority')).toHaveText([msg.habits.priorityBadge, msg.tasks.priority.medium, msg.tasks.priority.low])
   })
 
   test('completing a task crosses it off and moves it below open tasks', async ({ page }) => {

@@ -4,7 +4,7 @@ import type { DayData } from '@/journal/stats'
 import type { EventInviteRow, EventRow, InboxRow, JournalEntryRow, TaskRow } from '@/sync/types'
 import { dayStatus, deadline, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
 import { isAnytime, isScheduled as routineScheduled, runFor } from '@/routines/rules'
-import { isTaskScheduled } from '@/reminders/priority'
+import { remindsOn } from '@/reminders/priority'
 import { occursOn } from '@/events/rules'
 import { carryOverCount, tasksForDay } from '@/tasks/rules'
 import { wroteIn } from '@/journal/body'
@@ -49,15 +49,16 @@ export function upNext(data: UpNextData, now: Date, timeZone: string, journalTim
   const pauses = live(data.habitPauses ?? [])
   const out: Suggestion[] = []
 
-  // 1. Priority habits and priority tasks due today, earliest reminder first.
+  // 1. Priority habits and High tasks with a reminder, due today (or carried over), earliest reminder first.
   const priority: { when: number; s: Suggestion }[] = []
   const openHabits = live(data.habits).filter((h) => habitScheduled(h, today) && dayStatus(h, today, data.habitLogs, now, timeZone, pauses) === 'open')
   for (const h of openHabits.filter((h) => h.is_priority)) {
     priority.push({ when: h.notify_time ? zonedTime(today, h.notify_time, timeZone) : deadline(h, today, timeZone), s: { key: `habit:${h.id}`, kind: 'priority_habit', id: h.id, title: h.title } })
   }
-  const taskLogs = live(data.priorityTaskLogs)
-  for (const t of live(data.priorityTasks).filter((t) => isTaskScheduled(t, today) && !taskLogs.some((l) => l.task_id === t.id && l.date === today))) {
-    priority.push({ when: zonedTime(today, t.reminder_time, timeZone), s: { key: `priority:${t.id}`, kind: 'priority_task', id: t.id, title: t.title, date: today } })
+  const reminded = new Set<string>()
+  for (const t of (data.tasks as TaskRow[]).filter((t) => remindsOn(t, today))) {
+    reminded.add(t.id)
+    priority.push({ when: zonedTime(today, t.reminder_time, timeZone), s: { key: `task:${t.id}`, kind: 'priority_task', id: t.id, title: t.title, date: today } })
   }
   out.push(...priority.sort((a, b) => a.when - b.when).map((p) => p.s))
 
@@ -90,7 +91,7 @@ export function upNext(data: UpNextData, now: Date, timeZone: string, journalTim
   out.push(...events.map(({ e }) => ({ key: `event:${e.id}`, kind: 'event' as const, id: e.id, title: e.title, date: today, time: e.start_time!.slice(0, 5) })))
 
   // 5 and 6. Today's open tasks in the Tasks page order; ones carried over 3+ times first, asking "Still want this?".
-  const open = tasksForDay(data.tasks as TaskRow[], today, today, timeZone).filter((t) => t.status === 'open')
+  const open = tasksForDay(data.tasks as TaskRow[], today, today, timeZone).filter((t) => t.status === 'open' && !reminded.has(t.id))
   const stuck = open.filter((t) => carryOverCount(t, today) >= STUCK_TIMES)
   out.push(...stuck.map((t) => ({ key: `task:${t.id}`, kind: 'stuck_task' as const, id: t.id, title: t.title, times: carryOverCount(t, today) })))
   out.push(...open.filter((t) => !stuck.includes(t)).map((t) => ({ key: `task:${t.id}`, kind: 'task' as const, id: t.id, title: t.title })))

@@ -40,8 +40,6 @@ function data(extra: Partial<DayData> = {}): DayData {
     routineSteps: [],
     routineRuns: [],
     routineStepLogs: [],
-    priorityTasks: [],
-    priorityTaskLogs: [],
     quests: [],
     questLogs: [],
     ...extra,
@@ -100,24 +98,17 @@ describe('Spec §5 Journal: the day’s stats', () => {
     expect(s.routines).toEqual([{ id: 'r', title: 'Morning', done: 2, total: 4 }])
   })
 
-  it('priority habits and priority tasks are listed with whether they were completed', () => {
+  it('priority habits are listed with whether they were completed', () => {
     const s = dayStats(
       data({
         habits: [habit('Meds', { is_priority: true })],
         habitLogs: [done('Meds', '2026-11-10')],
-        priorityTasks: [
-          { id: 'p1', title: 'Insulin', reminder_time: '12:00', due_date: null, weekdays: [2], start_date: '2026-11-01', deleted_at: null },
-          { id: 'p2', title: 'Booster', reminder_time: '09:00', due_date: '2026-11-12', weekdays: null, start_date: '2026-11-01', deleted_at: null },
-        ],
       }),
       '2026-11-10',
       NOW,
       TZ,
     )
-    expect(s.priority).toEqual([
-      { title: 'Meds', done: true },
-      { title: 'Insulin', done: false },
-    ])
+    expect(s.priority).toEqual([{ title: 'Meds', done: true }])
   })
 
   it('streaks reached that day, and streaks reset that day, are noted', () => {

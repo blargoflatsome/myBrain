@@ -1,7 +1,6 @@
 // Event rules (SPEC §5 Calendar and reminders): repeats, occurrences in a date range, and what the calendar shows.
-import type { EventInviteRow, EventRepeat, EventRow, PriorityTaskRow, TaskRow } from '@/sync/types'
+import type { EventInviteRow, EventRepeat, EventRow, TaskRow } from '@/sync/types'
 import { weekdayOf } from '@/habits/rules'
-import { isTaskScheduled } from '@/reminders/priority'
 import { addDays, daysBetween } from '@/tasks/days'
 
 export const REPEATS: EventRepeat[] = ['never', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'yearly']
@@ -50,14 +49,14 @@ export interface CalendarItem {
   allDay: boolean
   /** CSS classes, space separated (FullCalendar 7's className). */
   className: string
-  extendedProps: { kind: 'task' | 'priority_task' | 'event'; itemId: string; date: string }
+  extendedProps: { kind: 'task' | 'event'; itemId: string; date: string }
 }
 
 const hhmm = (time: string) => time.slice(0, 5)
 
-/** Everything the calendar shows between two dates: dated tasks, priority tasks, and my events (SPEC §5 Calendar). */
+/** Everything the calendar shows between two dates: dated tasks and my events (SPEC §5 Calendar). */
 export function calendarItems(
-  data: { tasks: TaskRow[]; priorityTasks: PriorityTaskRow[]; events: EventRow[]; invites?: EventInviteRow[]; me?: string | null },
+  data: { tasks: TaskRow[]; events: EventRow[]; invites?: EventInviteRow[]; me?: string | null },
   from: string,
   to: string,
 ): CalendarItem[] {
@@ -74,21 +73,6 @@ export function calendarItems(
       className: ['cal-task', `cal-${priority}`, ...(t.status === 'done' ? ['cal-done'] : [])].join(' '),
       extendedProps: { kind: 'task', itemId: t.id, date: t.due_date },
     })
-  }
-  for (const p of data.priorityTasks) {
-    if (p.deleted_at) continue
-    for (let d = from; d <= to; d = addDays(d, 1)) {
-      if (!isTaskScheduled(p, d)) continue
-      items.push({
-        id: `priority:${p.id}:${d}`,
-        // Marked in words as well as colour (WCAG 1.4.1), without an emoji (SPEC §2 Calm by design).
-        title: `Priority: ${p.title}`,
-        start: `${d}T${hhmm(p.reminder_time)}`,
-        allDay: false,
-        className: 'cal-priority',
-        extendedProps: { kind: 'priority_task', itemId: p.id, date: d },
-      })
-    }
   }
   for (const e of data.events) {
     if (e.deleted_at) continue

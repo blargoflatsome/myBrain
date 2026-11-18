@@ -8,8 +8,6 @@ import type {
   HabitLogRow,
   HabitRow,
   JournalEntryRow,
-  PriorityTaskLogRow,
-  PriorityTaskRow,
   QuestLogRow,
   QuestRow,
   RoutineRunRow,
@@ -20,7 +18,6 @@ import type {
 } from '@/sync/types'
 import { isScheduled as habitScheduled } from '@/habits/rules'
 import { isScheduled as routineScheduled } from '@/routines/rules'
-import { isTaskScheduled } from '@/reminders/priority'
 import { journalStreaks } from '@/dashboard/stats'
 import { perfectDays } from '@/celebrate/rules'
 import { wordsIn, wroteIn } from '@/journal/body'
@@ -39,8 +36,6 @@ export interface TrophyHistory {
   questLogs: QuestLogRow[]
   vaultItems: VaultItemRow[]
   vaultBuckets: VaultBucketRow[]
-  priorityTasks: PriorityTaskRow[]
-  priorityLogs: PriorityTaskLogRow[]
   events: EventRow[]
   invites: EventInviteRow[]
   activity: ActivityLogRow[]
@@ -214,20 +209,10 @@ export function trophyValues(h: TrophyHistory, now: Date, timeZone: string): Rec
   v.every_energy = new Set(questLogs.map((l) => questById.get(l.quest_id)?.energy_level).filter(Boolean)).size
   v.quest_month = mostOnOneKey(questLogs.map((l) => l.date.slice(0, 7)))
 
-  // Taking care of myself: priority reminders done on their day, in a row; a whole month of a priority habit.
-  const taskLogDays = new Set(live(h.priorityLogs).map((l) => `${l.task_id}|${l.date}`))
-  const priorityRuns = live(h.priorityTasks).map((p) => {
-    const flags: boolean[] = []
-    const from = p.due_date ?? p.start_date
-    for (let d = from; d <= today; d = addDays(d, 1)) {
-      if (!isTaskScheduled(p, d) || (d === today && !taskLogDays.has(`${p.id}|${d}`))) continue
-      flags.push(taskLogDays.has(`${p.id}|${d}`))
-      if (p.due_date) break
-    }
-    return bestRun(flags)
-  })
+  // Taking care of myself: a priority habit done on its days, in a row; a whole month of a priority habit. (High tasks
+  // never repeat, so they can't make a run; SPEC §5 Trophies, 2026-11-18.)
   const priorityHabits = habits.filter((x) => x.is_priority)
-  v.on_it = Math.max(0, ...priorityRuns, ...priorityHabits.map((x) => bestHabitStreak(x, done, today)))
+  v.on_it = Math.max(0, ...priorityHabits.map((x) => bestHabitStreak(x, done, today)))
   v.care_month = 0
   for (const x of priorityHabits) {
     for (let month = x.start_date.slice(0, 7); monthEnd(month) <= today && !v.care_month; month = addMonth(month)) {

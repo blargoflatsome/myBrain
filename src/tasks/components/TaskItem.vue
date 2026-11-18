@@ -10,7 +10,12 @@
         >
           {{ task.title }}
         </span>
-        <span class="flex items-center gap-1.5 text-xs text-muted" data-testid="task-priority">
+        <!-- SPEC §5 High-priority tasks: a High task shows the Priority label priority habits have, and its reminder time. -->
+        <span v-if="priority === 'high'" class="flex flex-wrap items-center gap-x-1.5 text-xs text-carried" data-testid="task-priority">
+          <span><AppIcon name="alert" class="mr-1" />{{ messages.habits.priorityBadge }}</span>
+          <span v-if="task.reminder_time" class="text-muted tabular-nums" data-testid="task-reminder-time">· {{ timeLabel(task.reminder_time) }}</span>
+        </span>
+        <span v-else class="flex items-center gap-1.5 text-xs text-muted" data-testid="task-priority">
           <span class="size-2 rounded-full" :class="dot[priority]" aria-hidden="true" />
           {{ m.priority[priority] }}
         </span>
@@ -39,6 +44,8 @@ import { carryOverCount, needsDecision, priorityKey } from '@/tasks/rules'
 import { messages } from '@/messages'
 import { priorityDot, rowAction } from '@/ui/styles'
 import CheckCircle from '@/components/CheckCircle.vue'
+import AppIcon from '@/components/AppIcon.vue'
+import { timeLabel } from '@/ui/dates'
 import RowDelete from '@/components/RowDelete.vue'
 
 const props = defineProps<{ task: TaskRow; today: string }>()

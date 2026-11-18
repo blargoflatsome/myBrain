@@ -43,7 +43,7 @@ import { duePriorities, type DuePriority } from '@/reminders/priority'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { messages } from '@/messages'
 import { live } from '@/sync/live'
-import type { HabitLogRow, HabitPauseRow, HabitRow, PriorityTaskLogRow, PriorityTaskRow, ReminderStateRow } from '@/sync/types'
+import type { HabitLogRow, HabitPauseRow, HabitRow, ReminderStateRow, TaskRow } from '@/sync/types'
 import { secondaryButton } from '@/ui/styles'
 
 const brain = useBrainStore()
@@ -53,20 +53,19 @@ const m = messages.priority
 const now = useNow(20_000)
 const today = computed(() => todayIn(deviceTimeZone(), now.value))
 
-const all = <T,>(table: 'habits' | 'priority_tasks') =>
+const all = <T,>(table: 'habits' | 'tasks') =>
   useLiveQuery<T[]>(async () => (brain.db ? ((await brain.db.table(table).toArray()) as T[]) : []), [], [() => brain.db])
 // Only today's logs and snoozes matter here, so the whole history isn't kept in memory.
-const todays = <T,>(table: 'habit_logs' | 'priority_task_logs' | 'reminder_state') =>
+const todays = <T,>(table: 'habit_logs' | 'reminder_state') =>
   useLiveQuery<T[]>(async () => (brain.db ? ((await brain.db.table(table).where('date').equals(today.value).toArray()) as T[]) : []), [], [() => brain.db, today])
 const habits = all<HabitRow>('habits')
-const tasks = all<PriorityTaskRow>('priority_tasks')
+const tasks = all<TaskRow>('tasks')
 const habitLogs = todays<HabitLogRow>('habit_logs')
-const taskLogs = todays<PriorityTaskLogRow>('priority_task_logs')
 const states = todays<ReminderStateRow>('reminder_state')
 const pauses = useLiveQuery<HabitPauseRow[]>(async () => (brain.db ? live(await brain.db.habit_pauses.toArray()) : []), [], [() => brain.db])
 
 const due = computed(() =>
-  duePriorities(habits.value, habitLogs.value, tasks.value, taskLogs.value, states.value, now.value, deviceTimeZone(), pauses.value),
+  duePriorities(habits.value, habitLogs.value, tasks.value, states.value, now.value, deviceTimeZone(), pauses.value),
 )
 const current = computed<DuePriority | undefined>(() => due.value[0])
 const slider = ref(0)

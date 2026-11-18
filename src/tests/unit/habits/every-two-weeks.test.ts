@@ -3,7 +3,6 @@ import type { HabitLogRow, HabitRow } from '@/sync/types'
 import { onWeek } from '@/tasks/days'
 import { isScheduled, streaks } from '@/habits/rules'
 import { occursOn } from '@/events/rules'
-import { isTaskScheduled } from '@/reminders/priority'
 import { icsFile } from '@/events/ics'
 
 const habit = (extra: Partial<HabitRow> = {}): HabitRow => ({
@@ -37,10 +36,7 @@ describe('Spec §5: every week or every 2 weeks', () => {
     expect(streaks(h, logs, new Date('2026-11-20T12:00:00Z'), 'America/New_York')).toEqual({ current: 2, best: 2 })
   })
 
-  it('repeating priority tasks and events can repeat every 2 weeks', () => {
-    const task = { id: 'p', title: 'Shot', reminder_time: '08:00', due_date: null, weekdays: [2], start_date: '2026-11-03', week_interval: 2, deleted_at: null }
-    expect(isTaskScheduled(task, '2026-11-10')).toBe(false)
-    expect(isTaskScheduled(task, '2026-11-17')).toBe(true)
+  it('events can repeat every 2 weeks', () => {
     expect(occursOn({ start_date: '2026-11-03', repeat: 'biweekly' }, '2026-11-17')).toBe(true)
     expect(occursOn({ start_date: '2026-11-03', repeat: 'biweekly' }, '2026-11-10')).toBe(false)
     const ics = icsFile({ uid: 'x', title: 'Pay day', start_date: '2026-11-06', start_time: null, end_date: '2026-11-06', end_time: null, repeat: 'biweekly', timezone: 'UTC' })

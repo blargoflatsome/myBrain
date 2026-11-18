@@ -1,8 +1,7 @@
 // Journal rules (SPEC §5 Journal): the day's stats, missed days written on my behalf, and when stats freeze.
-import type { HabitLogRow, HabitPauseRow, HabitRow, JournalEntryRow, JournalStats, PriorityTaskLogRow, PriorityTaskRow, QuestLogRow, QuestRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow } from '@/sync/types'
+import type { HabitLogRow, HabitPauseRow, HabitRow, JournalEntryRow, JournalStats, QuestLogRow, QuestRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow } from '@/sync/types'
 import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
 import { activeSteps, isAnytime, isScheduled as routineScheduled, runFor, stepsForDay } from '@/routines/rules'
-import { isTaskScheduled } from '@/reminders/priority'
 import { addDays, dayOf } from '@/tasks/days'
 import { live } from '@/sync/live'
 
@@ -16,8 +15,6 @@ export const DAY_TABLES = {
   routineSteps: 'routine_steps',
   routineRuns: 'routine_runs',
   routineStepLogs: 'routine_step_logs',
-  priorityTasks: 'priority_tasks',
-  priorityTaskLogs: 'priority_task_logs',
   quests: 'quests',
   questLogs: 'quest_logs',
 } as const
@@ -32,8 +29,6 @@ export interface DayData {
   routineSteps: RoutineStepRow[]
   routineRuns: RoutineRunRow[]
   routineStepLogs: RoutineStepLogRow[]
-  priorityTasks: PriorityTaskRow[]
-  priorityTaskLogs: PriorityTaskLogRow[]
   quests: QuestRow[]
   questLogs: QuestLogRow[]
 }
@@ -100,10 +95,6 @@ export function dayStats(data: DayData, date: string, now: Date, timeZone: strin
       return { id: r.id, title: r.title, done: Math.min(done, steps.length), total: steps.length }
     })
     .filter((r): r is JournalStats['routines'][number] => !!r)
-
-  for (const t of live(data.priorityTasks).filter((t) => isTaskScheduled(t, date))) {
-    priority.push({ title: t.title, done: live(data.priorityTaskLogs).some((l) => l.task_id === t.id && l.date === date) })
-  }
 
   const titles = new Map(data.quests.map((q) => [q.id, q.title]))
   const quests = live(data.questLogs)

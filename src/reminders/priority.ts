@@ -1,13 +1,14 @@
-// Priority reminders in the app (SPEC §5 Priority tasks and priority habits): which ones are due right now.
+// Priority reminders in the app (SPEC §5 High-priority tasks and priority habits): which ones are due right now.
 // The server sends the notifications; the app shows the full-screen reminder while one is due.
-import type { HabitLogRow, HabitPauseRow, HabitRow, PriorityTaskLogRow, PriorityTaskRow, ReminderStateRow } from '@/sync/types'
-import { dayStatus, isScheduled, weekdayOf, zonedTime } from '@/habits/rules'
-import { addDays, onWeek, todayIn } from '@/tasks/days'
+import type { HabitLogRow, HabitPauseRow, HabitRow, ReminderStateRow, TaskRow } from '@/sync/types'
+import { dayStatus, isScheduled, zonedTime } from '@/habits/rules'
+import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { HIGH } from '@/tasks/rules'
 
 export const SNOOZE_MINUTES = 10
 
 export interface DuePriority {
-  kind: 'habit' | 'priority_task'
+  kind: 'habit' | 'task'
   id: string
   title: string
   description: string | null
@@ -30,27 +31,44 @@ function held(state: ReminderStateRow | undefined, now: Date): boolean {
   return !!state.snoozed_until && new Date(state.snoozed_until).getTime() > now.getTime()
 }
 
-/** SPEC §5 Priority tasks: a repeating one starts today if its time is still to come, otherwise tomorrow, so it never
- * goes off the moment it's saved. Times are "HH:MM" in my time zone. */
-export function firstFutureDay(time: string, today: string, nowTime: string): string {
-  return time.slice(0, 5) > nowTime ? today : addDays(today, 1)
-}
-
-/** SPEC §5 Priority tasks: a one-off reminder must be later than now. */
+/** SPEC §5 High-priority tasks: a reminder must be later than now (a task on an earlier day counts as today's). */
 export function isLater(date: string, time: string, today: string, nowTime: string): boolean {
-  return date > today || (date === today && time.slice(0, 5) > nowTime)
+  return date > today || time.slice(0, 5) > nowTime
 }
 
-export function isTaskScheduled(task: PriorityTaskRow, date: string): boolean {
-  if (task.due_date) return task.due_date === date
-  return date >= task.start_date && (task.weekdays ?? []).includes(weekdayOf(date)) && onWeek(task.start_date, task.week_interval, date)
+/** SPEC §5 High-priority tasks: only a High task with a date keeps a reminder time; otherwise it's cleared. */
+export function taskReminder(priority: number, dueDate: string | null, time: string | null | undefined): string | null {
+  return priority === HIGH && dueDate && time ? time.slice(0, 5) : null
+}
+
+/**
+ * Whether a task's new reminder would go off at once: a changed reminder (or date) must be later than now. An unchanged
+ * one is fine, so editing a task whose reminder already went off today still saves.
+ */
+export function reminderInPast(
+  next: { due_date: string | null; reminder_time: string | null },
+  before: { due_date: string | null; reminder_time?: string | null } | null,
+  now: Date = new Date(),
+): boolean {
+  if (!next.reminder_time || !next.due_date) return false
+  if (before && before.reminder_time?.slice(0, 5) === next.reminder_time && before.due_date === next.due_date) return false
+  const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  const today = todayIn(deviceTimeZone(), now)
+  return !isLater(next.due_date, next.reminder_time, today, nowTime)
+}
+
+/**
+ * SPEC §5 High-priority tasks: an open High task with a reminder time is reminded on its day, and each later day while
+ * it carries over. Times are "HH:MM" in my time zone.
+ */
+export function remindsOn(task: TaskRow, date: string): task is TaskRow & { due_date: string; reminder_time: string } {
+  return !task.deleted_at && task.status === 'open' && task.priority === HIGH && !!task.reminder_time && !!task.due_date && task.due_date <= date
 }
 
 export function duePriorities(
   habits: HabitRow[],
   habitLogs: HabitLogRow[],
-  tasks: PriorityTaskRow[],
-  taskLogs: PriorityTaskLogRow[],
+  tasks: TaskRow[],
   states: ReminderStateRow[],
   now: Date,
   timeZone: string,
@@ -70,11 +88,10 @@ export function duePriorities(
   }
 
   for (const t of tasks) {
-    if (t.deleted_at || !isTaskScheduled(t, today)) continue
+    if (!remindsOn(t, today)) continue
     if (now.getTime() < zonedTime(today, t.reminder_time, timeZone)) continue
-    if (taskLogs.some((l) => l.task_id === t.id && l.date === today && !l.deleted_at)) continue
     if (held(stateFor(states, t.id, today), now)) continue
-    due.push({ kind: 'priority_task', id: t.id, title: t.title, description: t.description ?? null, date: today })
+    due.push({ kind: 'task', id: t.id, title: t.title, description: t.notes ?? null, date: today })
   }
   return due
 }

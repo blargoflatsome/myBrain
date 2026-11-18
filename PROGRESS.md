@@ -5,9 +5,14 @@ Tracks build steps from [docs/SPEC.md §11](docs/SPEC.md#11-suggested-build-orde
 Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tidy-up and the rest up to PR #41) are in [docs/PROGRESS_ARCHIVE.md](docs/PROGRESS_ARCHIVE.md). Keep this file to the current state plus the last few pieces of work; move older sections to the archive.
 
 ## Next step
-- Breathe, Cheers and the focus room are all merged. Pick the next step with the user (ideas waiting: merge tasks and priority tasks, the guest poll).
+- Breathe, Cheers and the focus room are all merged. Pick the next step with the user (idea waiting: the guest poll).
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
+
+## Priority tasks merged into High tasks (merged via PR, branch `high-priority-tasks`)
+- User 2026-11-18: a High task is a priority task (⚠ Priority label, like priority habits); no date or reminder needed; an optional Reminder time (High with a date only) gives the full-screen reminder on its day and while it carries over. Priority tasks, the Priority tab and their tables are removed (no users). SPEC §5 High-priority tasks and priority habits; DECISIONS 2026-11-18.
+- Migration `20261118010000_high_priority_tasks.sql` on dev and prod; `npm run test:db` passes (35 files; `rls_focus_room.sql` now clears the room first, since real check-ins on dev broke it). Prod at merge.
+- Help Priority topic rewritten; task, calendar and Dashboard pictures retaken. `npm run test:all`: Vitest 445, Playwright 814 passed, 1 flaky (Search window focus in `a11y.spec.ts`, passed 5 of 5 on rerun).
 
 ## Feedback: Vault, evening reminder, no waves (merged via PR, branch `feedback-vault-evening-waves`)
 - Vault page: + New bucket removed (buckets are made from Capture; Help's Vault topic says so).
@@ -33,7 +38,7 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 ## Postgres skill and database check (branch `db-fk-indexes`)
 - Added Supabase's `supabase-postgres-best-practices` skill (`.claude/skills/`, our standards win), new database safety rules (CODING_STANDARDS §9) and two accessibility rules (§7); DECISIONS 2026-11-15 Skills review.
 - Checked the dev database against the rules: policies, RLS, views and `security definer` functions all pass; 9 foreign key columns had no index, now added (`20261115020000_fk_indexes.sql`).
-- **Merge tasks and priority tasks** (user idea, 2026-11-15; agree the details and the spec first): a high-priority task becomes a priority task, with a **Priority** label on it like priority habits have. To settle: does every high-priority task need a reminder time and the full-screen reminder, what happens to existing priority tasks (Tasks > Priority) and to tasks already marked high, and whether one-off and repeating priority tasks both fit the task editor.
+- **Merge tasks and priority tasks** (user idea, 2026-11-15): built 2026-11-18, see "Priority tasks merged into High tasks" above.
 - **Guest poll ("When can you come?"):** for guests without accounts, through their answer link: the host offers a few times, guests answer Prefer, Yes or No (like Outlook's Scheduling Poll). SPEC §10 Scheduler "Later". Agree the details with the user first.
 
 ## Breathe, then Cheers and the focus room (branch `social-breathe`, from `modern-web-audit`; not merged)

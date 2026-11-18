@@ -145,7 +145,7 @@ async function doIt() {
       return
     }
     case 'priority_task':
-      return brain.completePriority({ kind: 'priority_task', id: s.id, title: s.title, description: null, date: s.date })
+      return brain.completePriority({ kind: 'task', id: s.id, title: s.title, description: null, date: s.date })
     case 'task': {
       const task = await db.tasks.get(s.id)
       if (task) await brain.saveTask(toggleDone(task))
