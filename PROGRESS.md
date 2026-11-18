@@ -9,6 +9,12 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## Feedback: Vault, evening reminder, no waves (merged via PR, branch `feedback-vault-evening-waves`)
+- Vault page: + New bucket removed (buckets are made from Capture; Help's Vault topic says so).
+- Evening reminder names up to 3 things left, then "and N more" (`20261117070000_evening_reminder_names.sql`).
+- Focus timer: Breathe button removed; waves removed altogether (user), along with the start screen: the stopwatch starts work right away; the dots stay (`20261117080000_focus_no_waves.sql`). Help and Privacy updated.
+- Both migrations on dev and prod; `npm run test:db` passes (35 files). Help Vault picture retaken. `npm run test:all` passed: Vitest 446, Playwright 823. SPEC §4 focus_presence, §5 Vault, Journal, Breathe, Focus timer; DECISIONS 2026-11-17 Feedback.
+
 ## The focus room (merged via PR #84, branch `focus-room`)
 - Database (`20261117050000_focus_room.sql`, dev and prod): `profiles.focus_room` (on by default), `focus_presence` (no write policies), `focus_room(phase, ends_at)` (check in, or just look: anonymous dots for others, how many join the next wave, whether it counts as together), `focus_leave()`, old check-ins cleared every 10 minutes. SQL checks `src/tests/db/rls_focus_room.sql` (all 35 files pass).
 - App: the stopwatch opens a start screen (Start now, Join the :30 wave "in 10 min · 9 joining"); waiting for the wave (Start now instead); Sync with the next wave while off it (`src/focus/waves.ts`); the quiet room's dots, glowing when that person's part ends (`src/focus/room.ts`, check-ins in `stores/focus.ts`); Show me in the focus room in Account Settings; the Focused together trophy (5, 20, 50 days; `together` on the Focus session in `activity_log`). SPEC §5 Focus timer and DECISIONS 2026-11-17.

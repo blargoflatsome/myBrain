@@ -156,7 +156,7 @@ test.describe('Spec §5 Quick capture: The Vault form', () => {
 
   test('a new bucket can be made from the form', async ({ page }) => {
     await startCapture(page, 'The Vault')
-    await page.getByRole('button', { name: msg.vault.newBucket }).click()
+    await page.getByRole('button', { name: msg.capture.newBucket }).click()
     await page.getByRole('textbox', { name: msg.capture.newBucket }).fill('Books')
     await titleBox(page).fill('Piranesi')
     await save(page).click()

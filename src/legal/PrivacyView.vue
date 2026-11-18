@@ -27,7 +27,7 @@
       <li>If you lock your journal, your writing is encrypted on your device before it's uploaded, so nobody else can read it, including whoever runs My Brain. Only the word count and whether you wrote anything stay readable, for streaks, trophies and reminders. If you lose your passphrase and your recovery key, your writing can't be recovered. The lock can't protect against a harmful update to the app itself, someone using your device while it's unlocked, or the word count and yes/no answer, which stay readable.</li>
       <li>Your connections can see your profile: your name, your Google picture and the trophies you have earned. Trophies never name a habit.</li>
       <li>Everyone using My Brain can see your Cheers posts for 48 hours, without your name or picture, even your connections. Nobody can see who reacted to a post or whose posts were hidden, and only you can see how many reactions your posts got.</li>
-      <li>While your Focus timer runs, others using the Focus timer may see a faint dot for you, with no name or picture, and you're counted in "joining" while you wait for a wave. Nobody can tell which dot is you. Turn off Show me in the focus room on the Account page to stay out of it.</li>
+      <li>While your Focus timer runs, others using the Focus timer may see a faint dot for you, with no name or picture. Nobody can tell which dot is you. Turn off Show me in the focus room on the Account page to stay out of it.</li>
       <li>People you invite to an event see its title, date, time and notes, and who invited them. The host sees each person's answer.</li>
       <li>No one can search for you by name. Typing your email or phone number never tells anyone whether you have an account.</li>
     </ul>
