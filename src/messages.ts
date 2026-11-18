@@ -927,19 +927,22 @@ export const messages = {
     /** The four reactions (SPEC §5 Cheers). */
     reactions: { got_this: 'You’ve got this', proud: 'Proud of you', strength: 'Sending strength', celebrate: 'Celebrate' } as Record<string, string>,
     reactionsLabel: 'Cheer them on',
-    reactWith: (name: string) => `Send ${name}`,
-    youSent: (name: string) => `You sent ${name}`,
-    takeBack: (name: string) => `You sent ${name}. Tap to take it back`,
     countLabel: (name: string, n: number) => `${name}: ${n}`,
     yourPost: 'Your post',
     nobodyYet: 'No cheers yet. They’ll come.',
     /** Placeholder smug lines after reacting; the user writes the real ones. */
     afterReact: ['Cheer sent. Nobody knows it was you.'],
-    more: 'More for this post',
     hide: 'Hide posts from this person',
-    hideConfirm: 'Hide posts from this person? You won’t see their posts again, and they’re never told.',
-    hideYes: 'Hide their posts',
-    hidden: 'Hidden. You won’t see their posts again.',
+    hidden: 'Hidden. You won’t see their posts.',
+    hideFailed: 'That didn’t go through. Try again.',
+    /** SPEC §5 Cheers, Hidden people: each known only by the post I hid them from. */
+    hiddenHeading: 'Hidden people',
+    hiddenCount: (n: number) => (n === 1 ? '1 person' : `${n} people`),
+    hiddenUnknown: 'A post you hid',
+    hiddenOn: (day: string) => `Hidden ${day}`,
+    showAgain: 'Show again',
+    showAgainLabel: (post: string) => `Show again: the person who posted “${post}”`,
+    shownAgain: 'Their posts will show again.',
     /** The bar offered at natural moments (SPEC §5 Cheers). */
     offer: {
       share: 'Share',
@@ -1623,7 +1626,7 @@ export const messages = {
       { id: 'quests', title: 'Random Quest', what: 'Bored? Let the app pick something to do.', steps: ['Open More, then Quests.', 'Pick your energy and how much time you have.', 'Tap Pick a quest for me.'], alt: 'The Random Quest page with the Pick a quest for me button highlighted.' },
       { id: 'focus', title: 'Focus timer', what: 'A timer for working in short bursts.', steps: ['Tap the stopwatch at the top. It starts right away.', 'Faint dots are other people focusing too.', 'Tap Minimize to keep using the app.'], alt: 'The top of the screen with the stopwatch button highlighted.' },
       { id: 'breathe', title: 'Breathe', what: '5 calm minutes. Breathe in as the ring grows, out as it shrinks.', steps: ['Tap the wind icon at the top, next to the stopwatch.', 'Follow the ring until the 5 minutes are up.', 'It’s also there after I’m stuck in Cheers.'], alt: 'The top of the screen with the wind button highlighted.' },
-      { id: 'cheers', title: 'Cheers', what: 'Share a win or say you’re stuck, and cheer others on. Nobody sees who posted.', steps: ['Open More, then Cheers.', 'Tap I did it! or I’m stuck. While you’re stuck, I got unstuck! is there instead.', 'Tap a reaction to cheer someone on. Tap it again to take it back.'], alt: 'The Cheers page with the reactions on a post highlighted.' },
+      { id: 'cheers', title: 'Cheers', what: 'Share a win or say you’re stuck, and cheer others on. Nobody sees who posted.', steps: ['Open More, then Cheers.', 'Tap I did it! or I’m stuck. While you’re stuck, I got unstuck! is there instead.', 'Tap a reaction to cheer someone on. Tap it again to take it back, or another to switch.', 'Tap 🚫 to hide someone’s posts. Hidden people, at the bottom, lets you show them again.'], alt: 'The Cheers page with the reactions on a post highlighted.' },
       { id: 'dashboard', title: 'Dashboard and Post Its', what: "Your home page: Post Its, what's up next, and how yesterday went.", steps: ['Tap the house at the top.', 'Post Its hold quick notes. Swipe to see the next one.', 'Up next suggests one thing to do now.'], alt: 'The Dashboard with the Post Its on the chalkboard highlighted.' },
       { id: 'trophies', title: 'Trophies', what: 'Trophies reward you for keeping at it.', steps: ['Find them on your Dashboard.', 'Tap See all trophies to see what you have earned.', 'Close to the next one? The Dashboard says so.'], alt: 'The Trophies section of the Dashboard highlighted.' },
       { id: 'alerts', title: 'Alerts', what: 'Every reminder and message also lands under the bell.', steps: ['Tap the bell. The number is how many are new.', 'Tap an alert to go to it.', 'Tap ✕ to clear one, or Clear all.'], alt: 'The Alerts list open from the bell, highlighted.' },

@@ -9,6 +9,10 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## Cheers: compact reactions, block icon, Hidden people (merged via PR, branch `cheers-slim-block`)
+- User 2026-11-18. Cheering while stuck no longer counts after I got unstuck! (server bug). Reactions are one compact row: the picked icon coloured and bolder, the rest muted; tap mine to take back, another to switch (icons aren't disabled while sending, so focus stays). ⋯ menu replaced by a 🚫 icon that hides straight away with Undo. Hidden people fold-out lists each hide by the post I hid them from, with Show again (`cheer_hidden`, `cheer_unhide`; hides keep `post_kind`/`post_body`).
+- Migration `20261118020000_cheers_hidden_list.sql` on dev and prod; `npm run test:db` passes (35), and `rls_cheers.sql` now clears real dev posts inside its rollback. `npm run test:all` passed (Vitest 445, Playwright 818; the celebrations reduce-motion test flaked once, 5/5 on rerun). Help Cheers steps, picture and Privacy updated. SPEC §4 cheer_tally, §5 Cheers, Trophies; DECISIONS 2026-11-18 Cheers.
+
 ## Vault add-bucket box back (merged via PR, branch `vault-add-bucket`)
 - User 2026-11-18: only the + New bucket button was to go. The Vault page has an always-shown name box + Add bucket again; Help Vault step and picture updated. SPEC §5 Vault; DECISIONS 2026-11-18. `npm run test:all` passed (Playwright 816).
 

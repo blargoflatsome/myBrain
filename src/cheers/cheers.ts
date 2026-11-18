@@ -31,7 +31,19 @@ export const postCheer = (kind: CheerKind, body = '') => call<string>('post_chee
 export const reactCheer = (post: string, reaction: Reaction) => call<boolean>('react_cheer', { post, p_reaction: reaction })
 /** Take my reaction back, so I can pick again (SPEC §5 Cheers). */
 export const unreactCheer = (post: string) => call<void>('unreact_cheer', { post })
-export const hideAuthor = (post: string) => call<void>('block_cheer_author', { post })
+/** Hide posts from this person; returns the hide's id, for Undo (null if there was nothing to hide). */
+export const hideAuthor = (post: string) => call<string | null>('block_cheer_author', { post })
+
+/** Someone I hid, known only by the post I hid them from (SPEC §5 Cheers, Hidden people). */
+export interface HiddenPerson {
+  id: string
+  /** Null for hides made before the post was kept. */
+  post_kind: CheerKind | null
+  post_body: string | null
+  created_at: string
+}
+export const hiddenPeople = async () => (await call<HiddenPerson[] | null>('cheer_hidden')) ?? []
+export const showAgain = (hide: string) => call<void>('cheer_unhide', { hide })
 export const stuckCount = async () => (await call<number | null>('cheer_stuck_count')) ?? 0
 export const amStuck = async () => !!(await call<boolean | null>('cheer_am_stuck'))
 export const reasonOf = (err: unknown): CheerError => ((err as { reason?: CheerError })?.reason === 'limit' ? 'limit' : 'failed')

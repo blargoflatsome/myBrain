@@ -8,6 +8,7 @@ declare
   bob_post uuid;
   bob_stuck uuid;
   alice_post uuid;
+  hide uuid;
   n int;
   i int;
   ok boolean;
@@ -18,6 +19,8 @@ begin
     (alice, 'alice@test.invalid', '{}', 'authenticated', 'authenticated'),
     (bob,   'bob@test.invalid',   '{}', 'authenticated', 'authenticated'),
     (carol, 'carol@test.invalid', '{}', 'authenticated', 'authenticated');
+  -- Real posts on the dev project would change the counts; this is rolled back.
+  delete from public.cheer_posts;
   execute 'set local role authenticated';
 
   -- Bob posts.
@@ -90,9 +93,22 @@ begin
   end if;
 
   -- Alice hides Bob from one of his posts: his posts go, she can't see who it was, and he can't be cheered by her.
-  perform public.block_cheer_author(bob_post);
+  hide := public.block_cheer_author(bob_post);
   select count(*) into n from public.cheer_feed() where id in (bob_post, bob_stuck);
   if n <> 0 then raise exception 'FAIL: Spec §5 Cheers: hiding someone hides all their posts'; end if;
+  -- Hidden people lists them by the post I hid them from, never who it is; Show again (or Undo) brings them back.
+  select count(*) into n from public.cheer_hidden() h where h.id = hide and h.post_kind = 'did_it' and h.post_body = 'I finished a 4-day-old task';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Cheers: Hidden people shows the post I hid them from'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', carol, 'role', 'authenticated')::text, true);
+  perform public.cheer_unhide(hide);
+  if exists (select 1 from public.cheer_hidden()) then raise exception 'FAIL: Spec §8: I only see my own hidden people'; end if;
+  perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
+  select count(*) into n from public.cheer_hidden();
+  if n <> 1 then raise exception 'FAIL: Spec §8: nobody else can show my hidden people again'; end if;
+  perform public.cheer_unhide(hide);
+  select count(*) into n from public.cheer_feed() where id in (bob_post, bob_stuck);
+  if n <> 2 then raise exception 'FAIL: Spec §5 Cheers: Show again brings their posts back'; end if;
+  perform public.block_cheer_author(bob_post);
   begin
     select count(*) into n from public.cheer_blocks;
     raise exception 'FAIL: Spec §5 Cheers: I never see who I hid';
@@ -114,6 +130,9 @@ begin
   end;
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
   perform public.react_cheer(alice_post, 'got_this');
+  -- Bob posted I'm stuck today but then got unstuck: cheering now isn't Cheering while stuck.
+  select * into t from public.trophy_counts();
+  if t.cheer_while_stuck then raise exception 'FAIL: Spec §5 Trophies: cheering after I got unstuck isn''t Cheering while stuck'; end if;
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
   select count(*) into n from public.notifications where kind = 'cheer_reactions';
   if n <> 0 then raise exception 'FAIL: Spec §6 Cheers: no alert before 4 reactions'; end if;
