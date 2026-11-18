@@ -5,14 +5,16 @@ Tracks build steps from [docs/SPEC.md §11](docs/SPEC.md#11-suggested-build-orde
 Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tidy-up and the rest up to PR #41) are in [docs/PROGRESS_ARCHIVE.md](docs/PROGRESS_ARCHIVE.md). Keep this file to the current state plus the last few pieces of work; move older sections to the archive.
 
 ## Next step
-- **Finish Cheers on branch `cheers`, then the focus room** (SPEC §5 Focus timer: waves, the quiet room, Focused together trophy, `focus_presence`, Show me in the focus room).
-- **Needs from the user:** the smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in the migration's `post_cheer`, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders now. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
-- **At merge:** Help topics for Breathe and Cheers with pictures (`npm run docs:images`), Cheers on the signed-out home page if it counts as a main feature, the Privacy page (Cheers posts are seen by everyone, anonymously), full review, prod migration.
+- **The focus room** (SPEC §5 Focus timer: waves, the quiet room, Focused together trophy, `focus_presence`, Show me in the focus room).
+- **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
+- **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
-## Cheers (branch `cheers`, not merged)
+## Cheers (branch `cheers`, PR #83)
 - Database (`20261117010000_cheers.sql`, `…020000_cheers_unstuck_same_moment.sql`, on dev): `cheer_posts`, `cheer_reactions`, `cheer_blocks` (no read policy), `cheer_tally`; server functions `cheer_feed` (never the author; counts only on mine), `post_cheer` (10 per 24 h, unstuck tells everyone who reacted), `react_cheer` (one live reaction, not mine; alert once at 4), `unreact_cheer` (take it back; picking again isn't counted twice), `block_cheer_author`, `cheer_stuck_count`, `cheer_am_stuck`; `trophy_counts` gains the tally; Cheers alerts pushed like connection alerts; posts removed after 72 h; Delete my data gains Cheers; `activity_log` allows `breathe`. SQL checks `src/tests/db/rls_cheers.sql` (all 34 files pass).
 - App: `/cheers` under More (`src/cheers/`, `src/stores/cheers.ts`): feed, I did it! (140 characters), I'm stuck (others stuck, a line, Breathe), four reactions, Hide posts from this person. The "Share it in Cheers?" offer uses the Undo bar with a Share label (user's choice). Finished Breathes are logged; new Firsts (Breathe, Cheers post, cheer) and trophies (Breathing days, Cheering others on, Cheering while stuck). SPEC §5 Cheers and DECISIONS 2026-11-17.
-- Quick checks pass (Vitest 445, desktop browser tests). Not yet tried against the real dev backend in a browser.
+- Changes from the user: 10 posts in any 24 hours; an I got unstuck! button while stuck; tap my reaction again to take it back (`20261117030000`, `20261117040000`).
+- Help: new Breathe and Cheers topics with pictures (the picture script hides the Undo bar); home page Also list gains Cheers and Breathe; Privacy page says what Cheers keeps and who sees it.
+- Not tried against the real backend in a browser (the stand-in server covers the screens; `rls_cheers.sql` covers the database).
 
 ## Postgres skill and database check (branch `db-fk-indexes`)
 - Added Supabase's `supabase-postgres-best-practices` skill (`.claude/skills/`, our standards win), new database safety rules (CODING_STANDARDS §9) and two accessibility rules (§7); DECISIONS 2026-11-15 Skills review.
