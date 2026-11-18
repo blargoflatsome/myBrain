@@ -1,11 +1,10 @@
--- Checks for the focus room: anonymous dots, the wave count, Show me in the focus room and Focused together
+-- Checks for the focus room: anonymous dots, Show me in the focus room and Focused together
 -- (SPEC §4 focus_presence, §5 Focus timer, §5 Trophies, §8). Always rolls back. Run: npm run test:db
 do $$
 declare
   alice constant uuid := '11111111-1111-1111-1111-111111111111';
   bob   constant uuid := '22222222-2222-2222-2222-222222222222';
   carol constant uuid := '33333333-3333-3333-3333-333333333333';
-  wave constant timestamptz := to_timestamp((floor(extract(epoch from now()) / 1800) + 1) * 1800);
   r jsonb;
   n int;
 begin
@@ -29,9 +28,9 @@ begin
   exception when insufficient_privilege then null;
   end;
 
-  -- Bob joins the next wave; Carol is focusing but has the room setting off.
+  -- Bob is on a break; Carol is focusing but has the room setting off.
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  r := public.focus_room('wait', wave);
+  r := public.focus_room('short', now() + interval '5 minutes');
   if jsonb_array_length(r->'dots') <> 1 or not (r->>'together')::boolean then
     raise exception 'FAIL: Spec §5 Focus timer: Bob sees Alice''s dot (got %)', r;
   end if;
@@ -45,13 +44,12 @@ begin
   update public.profiles set focus_room = false where user_id = carol;
   r := public.focus_room('work', now() + interval '10 minutes');
   if (r->>'together')::boolean then raise exception 'FAIL: Spec §5 Trophies: with Show me in the focus room off, it doesn''t count'; end if;
-  if jsonb_array_length(r->'dots') <> 1 then raise exception 'FAIL: Spec §5 Focus timer: waiting for a wave isn''t a dot (got %)', r; end if;
+  if jsonb_array_length(r->'dots') <> 2 then raise exception 'FAIL: Spec §5 Focus timer: Carol sees Alice and Bob (got %)', r; end if;
 
-  -- Alice: Carol isn't shown, Bob is waiting (a joiner, not a dot).
+  -- Alice: Carol isn't shown, Bob is.
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
   r := public.focus_room();
-  if jsonb_array_length(r->'dots') <> 0 then raise exception 'FAIL: Spec §5 Focus timer: someone with the setting off has no dot (got %)', r; end if;
-  if (r->>'joining')::int <> 1 then raise exception 'FAIL: Spec §5 Focus timer: the next wave says how many join (got %)', r; end if;
+  if jsonb_array_length(r->'dots') <> 1 then raise exception 'FAIL: Spec §5 Focus timer: someone with the setting off has no dot (got %)', r; end if;
   if (r->>'together')::boolean then raise exception 'FAIL: Spec §5 Trophies: just looking never counts'; end if;
   begin
     perform public.focus_room('work', now() + interval '3 hours');
@@ -64,7 +62,8 @@ begin
   perform public.focus_leave();
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
   r := public.focus_room();
-  if (r->>'joining')::int <> 0 then raise exception 'FAIL: Spec §5 Focus timer: stopping the timer leaves the room'; end if;
+  if jsonb_array_length(r->'dots') <> 0 then raise exception 'FAIL: Spec §5 Focus timer: stopping the timer leaves the room (got %)', r; end if;
+  if r ? 'joining' then raise exception 'FAIL: Spec §5 Focus timer: no wave count any more (got %)', r; end if;
 
   -- However many are focusing, a check-in returns at most 40 dots (SPEC §5 Focus timer: small and calm).
   execute 'reset role';

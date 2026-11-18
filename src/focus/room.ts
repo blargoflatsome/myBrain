@@ -1,4 +1,4 @@
-// SPEC §5 Focus timer, the quiet room: the server calls. Only anonymous dots and counts ever come back.
+// SPEC §5 Focus timer, the quiet room: the server calls. Only anonymous dots ever come back.
 import { supabase } from '@/lib/supabase'
 import type { FocusPhase } from '@/focus/timer'
 
@@ -13,8 +13,6 @@ export interface RoomDot {
 
 export interface Room {
   dots: RoomDot[]
-  /** Others who start with the next wave. */
-  joining: number
   /** This check-in counts for Focused together: I'm shown and someone else is there. */
   together: boolean
 }
@@ -22,20 +20,18 @@ export interface Room {
 interface Answer {
   /** s: seconds until that person's part ends (kept short so a check-in stays small). */
   dots: { id: string; s: number }[]
-  joining: number
   together: boolean
 }
 
-/** Check in with my current part (or, with none, just look) and see the room. */
-export async function checkIn(part: { phase: FocusPhase; endsAt: number } | null): Promise<Room> {
-  const args = part ? { p_phase: part.phase, p_ends_at: new Date(part.endsAt).toISOString() } : {}
+/** Check in with my current part and see the room. */
+export async function checkIn(part: { phase: FocusPhase; endsAt: number }): Promise<Room> {
+  const args = { p_phase: part.phase, p_ends_at: new Date(part.endsAt).toISOString() }
   const { data, error } = await supabase.rpc('focus_room', args)
   const now = Date.now()
   if (error) throw new Error(error.message)
   const a = (data ?? {}) as Partial<Answer>
   return {
     dots: (a.dots ?? []).slice(0, MAX_DOTS).map((d) => ({ id: d.id, endsAt: now + d.s * 1000 })),
-    joining: a.joining ?? 0,
     together: !!a.together,
   }
 }

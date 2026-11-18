@@ -19,25 +19,31 @@ begin
   -- says how many things for today are left (here just the journal).
   select count(*) into n from public.due_reminders(t2059) where kind = 'evening' and user_id = alice;
   if n <> 0 then raise exception 'FAIL: Spec §5 Journal: the evening reminder waits for its time'; end if;
-  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and url = '/' and not is_priority and detail = '1';
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and url = '/' and not is_priority and detail = E'1\nyour journal';
   if n <> 1 then raise exception 'FAIL: Spec §5 Journal: the evening reminder is on at 9:00 pm by default, counting the unwritten journal'; end if;
-  select count(*) into n from public.reminder_text('evening', 'Evening check-in', false, '1') where body like 'Past you left you 1 thing %';
-  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: the evening reminder says one thing'; end if;
+  select count(*) into n from public.reminder_text('evening', 'Evening check-in', false, E'1\nyour journal')
+    where body = 'Past you left you 1 thing for today: your journal. Want to take a look before bed?';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: the evening reminder says one thing and names it'; end if;
 
   -- Open tasks due today or carried over count; done, cancelled, undated and future ones don't.
   insert into public.tasks (user_id, title, due_date, status) values
     (alice, 'Today', '2026-11-10', 'open'), (alice, 'Carried', '2026-11-08', 'open'), (alice, 'Done', '2026-11-10', 'done'),
     (alice, 'Cancelled', '2026-11-10', 'cancelled'), (alice, 'Undated', null, 'open'), (alice, 'Tomorrow', '2026-11-11', 'open');
-  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and detail = '3';
-  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: the evening reminder counts open tasks due today or carried over'; end if;
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and detail = E'3\nCarried, Today and your journal';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: the evening reminder counts and names open tasks due today or carried over'; end if;
+  -- Past 3, it names 3 and says how many more.
+  insert into public.tasks (user_id, title, due_date, status) values (alice, 'Also today', '2026-11-10', 'open');
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and detail = E'4\nAlso today, Carried, Today and 1 more';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Journal: the evening reminder names up to 3 things, then how many more'; end if;
+  update public.tasks set status = 'done' where user_id = alice and title = 'Also today';
 
   -- An entry with only stats (or written by the app) still counts; writing stops the journal counting.
   insert into public.journal_entries (user_id, date, stats, auto) values (alice, '2026-11-10', '{"tasks":{"done":1,"due":2}}', false);
-  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and detail = '3';
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and split_part(detail, E'\n', 1) = '3';
   if n <> 1 then raise exception 'FAIL: Spec §5 Journal: an entry with no writing still counts'; end if;
   -- The app stores has_writing with the writing (SPEC §5 Locking my journal); the reminder reads it.
   update public.journal_entries set body = 'Good day.', has_writing = true, word_count = 2 where user_id = alice and date = '2026-11-10';
-  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and detail = '2';
+  select count(*) into n from public.due_reminders(t2101) where kind = 'evening' and user_id = alice and split_part(detail, E'\n', 1) = '2';
   if n <> 1 then raise exception 'FAIL: Spec §5 Journal: writing today stops the journal counting'; end if;
 
   -- Nothing left: nothing is sent.

@@ -1,16 +1,15 @@
 // Focus timer (SPEC §5 Focus timer): standard Pomodoro, worked out from start and end times, not a ticking counter,
 // so it keeps time across pages, reloads and app switches.
 
-/** wait = waiting to start with a wave (SPEC §5 Focus timer Waves); it ends when the wave starts. */
-export type FocusPhase = 'wait' | 'work' | 'short' | 'long'
+export type FocusPhase = 'work' | 'short' | 'long'
 
 export const WORK_MS = 25 * 60_000
 export const SHORT_MS = 5 * 60_000
 export const LONG_MS = 15 * 60_000
 export const ROUNDS = 4
 
-/** How long a part lasts (a wait is never a next part, so it has no length of its own). */
-export const durationOf = (phase: FocusPhase) => (phase === 'work' ? WORK_MS : phase === 'short' ? SHORT_MS : phase === 'long' ? LONG_MS : 0)
+/** How long a part lasts. */
+export const durationOf = (phase: FocusPhase) => (phase === 'work' ? WORK_MS : phase === 'short' ? SHORT_MS : LONG_MS)
 
 export interface FocusState {
   phase: FocusPhase
@@ -28,7 +27,6 @@ export function startFocus(now: number): FocusState {
 
 /** What comes after a part: a break after work (every 4th a long one), then the next round of work. */
 export function nextPart(phase: FocusPhase, round: number): { phase: FocusPhase; round: number } {
-  if (phase === 'wait') return { phase: 'work', round: 1 }
   if (phase === 'work') return { phase: round % ROUNDS === 0 ? 'long' : 'short', round }
   return { phase: 'work', round: phase === 'long' ? 1 : round + 1 }
 }

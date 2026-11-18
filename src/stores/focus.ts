@@ -4,7 +4,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { WORK_MS, catchUp, nextPart, pause, resume, skip, startFocus, type FocusState } from '@/focus/timer'
-import { joinWave as waitForWave, syncToWave } from '@/focus/waves'
 import { checkIn, leave, type Room } from '@/focus/room'
 import { useBrainStore } from '@/stores/brain'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
@@ -14,8 +13,8 @@ const KEY = 'focus-timer'
 const TODAY_KEY = 'my-brain:focus-today'
 const CHECK_IN_MS = 60_000
 /**
- * Waves line everyone's parts up to the second, so a part that ends by itself checks in after a random wait of up to
- * this long, spreading the check-ins out (the dots are a minute old anyway). Things I do check in at once.
+ * Parts that end by themselves check in after a random wait of up to this long, so many timers started together
+ * don't all check in in the same second (the dots are a minute old anyway). Things I do check in at once.
  */
 const SPREAD_MS = 20_000
 
@@ -27,10 +26,11 @@ function loadToday(day: string): number {
 
 function load(): { state: FocusState | null; minimized: boolean } {
   const saved = readJson<{ state: FocusState; minimized: boolean }>(KEY)
-  return saved?.state ? saved : { state: null, minimized: false }
+  // A timer saved while waiting for a wave (before waves were removed, 2026-11-17) isn't running.
+  return saved?.state && ['work', 'short', 'long'].includes(saved.state.phase) ? saved : { state: null, minimized: false }
 }
 
-const emptyRoom = (): Room => ({ dots: [], joining: 0, together: false })
+const emptyRoom = (): Room => ({ dots: [], together: false })
 
 export const useFocusStore = defineStore('focus', () => {
   const brain = useBrainStore()
@@ -38,34 +38,18 @@ export const useFocusStore = defineStore('focus', () => {
   /** null when no timer is running. */
   const state = ref<FocusState | null>(saved.state)
   const minimized = ref(saved.minimized)
-  /** The start screen (Start now, or join the next wave) is showing. */
-  const ready = ref(false)
 
   watch([state, minimized], () => {
     writeJson(KEY, state.value ? { state: state.value, minimized: minimized.value } : null)
   })
 
-  /** Open the timer: the running one, or the start screen. */
-  function open() {
-    if (state.value) minimized.value = false
-    else {
-      ready.value = true
-      void look()
-    }
-  }
-  function startNow(now = Date.now()) {
-    state.value = startFocus(now)
-    ready.value = false
-    minimized.value = false
-  }
-  function joinWave(now = Date.now()) {
-    state.value = waitForWave(now)
-    ready.value = false
+  /** Open the timer: the running one, or start work now. */
+  function open(now = Date.now()) {
+    if (!state.value) state.value = startFocus(now)
     minimized.value = false
   }
   function stop() {
     state.value = null
-    ready.value = false
     minimized.value = false
   }
   function togglePause() {
@@ -74,10 +58,6 @@ export const useFocusStore = defineStore('focus', () => {
   }
   function skipPart() {
     if (state.value) state.value = skip(state.value, Date.now())
-  }
-  /** Sync with the next wave. */
-  function sync(now = Date.now()) {
-    if (state.value) state.value = syncToWave(state.value, now)
   }
   /** Catch up to now; returns how many parts ended since the last check, and how many of them were work. */
   function tick(now = Date.now()): number {
@@ -113,7 +93,7 @@ export const useFocusStore = defineStore('focus', () => {
   }
 
   // ---------- The quiet room ----------
-  /** The others in the room, as anonymous dots, and how many join the next wave. Empty when offline: never faked. */
+  /** The others in the room, as anonymous dots. Empty when offline: never faked. */
   const room = ref<Room>(emptyRoom())
   let togetherThisPart = false
   let inRoom = false
@@ -121,7 +101,7 @@ export const useFocusStore = defineStore('focus', () => {
   let spread: ReturnType<typeof setTimeout> | null = null
 
   const canAsk = () => brain.online && !!brain.userId
-  async function ask(part: { phase: FocusState['phase']; endsAt: number } | null) {
+  async function ask(part: { phase: FocusState['phase']; endsAt: number }) {
     if (!canAsk()) {
       room.value = emptyRoom()
       return
@@ -129,15 +109,12 @@ export const useFocusStore = defineStore('focus', () => {
     try {
       const answer = await checkIn(part)
       room.value = answer
-      if (part) inRoom = true
+      inRoom = true
       if (answer.together && state.value?.phase === 'work') togetherThisPart = true
     } catch {
       room.value = emptyRoom()
     }
   }
-  /** Look at the room without checking in (the start screen). */
-  const look = () => ask(null)
-
   /** Check in with the current part; a paused or stopped timer leaves the room. */
   function report() {
     const s = state.value
@@ -149,7 +126,7 @@ export const useFocusStore = defineStore('focus', () => {
     room.value = emptyRoom()
   }
 
-  // A new part, a pause, a sync or a stop is sent at once; otherwise once a minute while the timer runs.
+  // A new part, a pause or a stop is sent at once; otherwise once a minute while the timer runs.
   watch(
     () => [state.value?.phase, state.value?.endsAt, state.value?.round],
     ([phase], [before]) => {
@@ -191,5 +168,5 @@ export const useFocusStore = defineStore('focus', () => {
     { immediate: true },
   )
 
-  return { state, minimized, ready, open, startNow, joinWave, stop, togglePause, skipPart, sync, tick, workEnded, workTogether, focusToday, room, look }
+  return { state, minimized, open, stop, togglePause, skipPart, tick, workEnded, workTogether, focusToday, room }
 })
