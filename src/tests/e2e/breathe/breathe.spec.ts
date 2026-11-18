@@ -32,6 +32,8 @@ test.describe('Spec §5 Breathe', { tag: '@phone' }, () => {
     await page.clock.runFor(5 * 60_000)
     await expect(win.getByTestId('breathe-done')).toHaveText(msg.breathe.done)
     await expect(win.getByTestId('breathe-time')).toHaveText('00:00')
+    // Kept for its trophies (SPEC §5 Trophies, Breathing days).
+    await expect.poll(() => server.written('activity_log').map((r) => r.kind)).toContain('breathe')
     await win.getByRole('button', { name: msg.breathe.finish, exact: true }).click()
     await expect(win).toBeHidden()
     await page.clock.runFor(10)

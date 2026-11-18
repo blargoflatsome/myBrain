@@ -210,7 +210,7 @@ export interface BadgeRow extends BaseRow {
   levels?: string[]
 }
 
-export type ActivityKind = 'focus' | 'capture' | 'orphans_cleared'
+export type ActivityKind = 'focus' | 'capture' | 'orphans_cleared' | 'breathe'
 
 /** What the app didn't record before trophies: Focus sessions, captures and emptying Orphans (SPEC §5 Trophies). */
 export interface ActivityLogRow extends BaseRow {

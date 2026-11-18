@@ -118,6 +118,7 @@ import { supabaseRemote } from '@/sync/supabaseRemote'
 import { messages } from '@/messages'
 import { deviceTimeZone } from '@/tasks/days'
 import { useWideScreen } from '@/composables/useWideScreen'
+import { useCheersStore } from '@/stores/cheers'
 import { live } from '@/sync/live'
 import { readKey, writeKey } from '@/ui/storage'
 
@@ -129,6 +130,8 @@ const capture = useCaptureStore()
 const searchWindow = useSearchStore()
 const celebrate = useCelebrateStore()
 celebrate.start()
+// SPEC §5 Cheers: the quiet "Share it in Cheers?" offer listens for finished things.
+useCheersStore().start()
 const profile = useProfileStore()
 
 // SPEC §5 Celebrations: after a capture is saved, the Capture button gives one soft pulse (once its window is closed,

@@ -16,7 +16,7 @@
     >
       <span class="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]" data-testid="undo-message">{{ undo.current.message }}</span>
       <button type="button" class="min-h-11 shrink-0 rounded-xl border border-accent px-4 font-semibold text-accent" data-testid="undo-button" @click="undo.run()">
-        {{ m.undo }}
+        {{ undo.current.label ?? m.undo }}
       </button>
       <button type="button" class="flex size-11 shrink-0 items-center justify-center rounded-xl text-muted" :aria-label="m.dismiss" @click="undo.dismiss()">
         <span aria-hidden="true">✕</span>
@@ -26,7 +26,8 @@
 </template>
 
 <script setup lang="ts">
-// SPEC §2: the Undo bar shown for 8 seconds after removing one thing or clearing a list. A polite live region, so
+// SPEC §2: the Undo bar shown for 8 seconds after removing one thing or clearing a list (also Cheers' quiet "Share it
+// in Cheers?" offer, SPEC §5 Cheers). A polite live region, so
 // screen readers hear it without being interrupted; it sits above the phone's tab bar and Capture button.
 import { useUndoStore } from '@/stores/undo'
 import { messages } from '@/messages'

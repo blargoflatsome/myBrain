@@ -35,6 +35,7 @@ export const routes: RouteRecordRaw[] = [
   // The page was called Profile before; old links still work.
   { path: '/profile', redirect: '/account' },
   { path: '/quests', name: 'quests', component: () => import('@/quests/QuestsView.vue') },
+  { path: '/cheers', name: 'cheers', component: () => import('@/cheers/CheersView.vue') },
   { path: '/orphans', name: 'inbox', component: () => import('@/capture/InboxView.vue') },
   // Orphans was called Inbox before; old links still work.
   { path: '/inbox', redirect: '/orphans' },

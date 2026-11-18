@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { journalComeback, localMoment, newLevels, shownLevel, taskComeback, trophyStates, trophyValues, type TrophyHistory } from '@/trophies/rules'
 import { levelFor, TIERS, TROPHIES, trophyRowId } from '@/trophies/definitions'
 import { badgeId, BADGES } from '@/celebrate/rules'
-import type { HabitRow, JournalEntryRow, TaskRow } from '@/sync/types'
+import type { ActivityKind, HabitRow, JournalEntryRow, TaskRow } from '@/sync/types'
 import { addDays } from '@/tasks/days'
 
 const TZ = 'America/New_York'
@@ -11,7 +11,7 @@ const U = '11111111-1111-4111-8111-111111111111'
 const NOW = new Date('2026-11-10T17:00:00Z') // Tue Nov 10, noon in New York
 const empty = (): TrophyHistory => ({
   tasks: [], habits: [], habitLogs: [], routines: [], routineRuns: [], journalEntries: [], quests: [], questLogs: [], vaultItems: [],
-  vaultBuckets: [], priorityTasks: [], priorityLogs: [], events: [], invites: [], activity: [], userId: U, accountCreated: null, connections: null, blocks: null,
+  vaultBuckets: [], priorityTasks: [], priorityLogs: [], events: [], invites: [], activity: [], userId: U, accountCreated: null, connections: null, blocks: null, cheers: null,
 })
 const habit = (id: string, extra: Partial<HabitRow> = {}): HabitRow => ({ id, title: id, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-10-01', deleted_at: null, ...extra })
 const done = (habitId: string, date: string) => ({ id: `${habitId}-${date}`, habit_id: habitId, date, status: 'completed' as const, completed_at: `${date}T15:00:00Z`, deleted_at: null })
@@ -76,7 +76,7 @@ describe('SPEC §5 Trophies: totals', () => {
 })
 
 describe('SPEC §5 Trophies: brain dumps and focus (from the activity log)', () => {
-  const act = (kind: 'focus' | 'capture' | 'orphans_cleared', at: string, detail = {}) => ({ id: `${kind}${at}`, kind, at, detail, deleted_at: null })
+  const act = (kind: ActivityKind, at: string, detail = {}) => ({ id: `${kind}${at}`, kind, at, detail, deleted_at: null })
   it('most captures in one day, Capture types tried, and times the Orphans list was emptied', () => {
     const v = values({
       activity: [
@@ -90,6 +90,20 @@ describe('SPEC §5 Trophies: brain dumps and focus (from the activity log)', () 
   it('a full cycle is 4 sessions in one day; hours add up the minutes', () => {
     const v = values({ activity: [0, 1, 2, 3].map((i) => act('focus', `2026-11-09T1${i}:00:00Z`, { minutes: 25 })) })
     expect(v).toMatchObject({ full_cycle: 4, focus_days: 1, focus_hours: 1 })
+  })
+  it('Breathing days count different days with a finished Breathe', () => {
+    const v = values({ activity: ['2026-11-08T15:00:00Z', '2026-11-08T18:00:00Z', '2026-11-09T15:00:00Z'].map((at) => act('breathe', at)) })
+    expect(v.breathing_days).toBe(2)
+  })
+})
+
+describe('SPEC §5 Trophies: Cheering others on', () => {
+  it("comes from my tally on the server, and waits (nothing earned) while it can't be asked", () => {
+    const v = values({ cheers: { given: 12, days: 5, firsts: 5, unstuck: 1, whileStuck: true } })
+    expect(v).toMatchObject({ cheers_given: 12, cheer_days: 5, cheer_firsts: 5, cheer_unstuck: 1, cheering_while_stuck: 1 })
+    const levels = trophyStates(v, []).filter((s) => s.trophy.category === 'cheering' || s.trophy.id === 'cheering_while_stuck').map((s) => [s.trophy.id, s.level])
+    expect(Object.fromEntries(levels)).toEqual({ cheers_given: 1, cheer_days: 1, cheer_firsts: 1, cheer_unstuck: 1, cheering_while_stuck: 1 })
+    expect(values({}).cheers_given).toBe(0)
   })
 })
 

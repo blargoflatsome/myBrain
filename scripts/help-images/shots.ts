@@ -58,6 +58,15 @@ export const SHOTS: Shot[] = [
   { name: 'help-journal-lock', path: '/account', accountOpen: true, ready: async (p) => { await p.getByTestId('journal-lock').waitFor() }, ring: (p) => p.getByTestId('journal-lock') },
   { name: 'help-quests', path: '/quests', ready: waitFor('Repot the basil'), ring: (p) => p.getByRole('button', { name: msg.quests.pick }) },
   { name: 'help-focus', path: '/tasks', ready: waitFor('Pay rent'), ring: (p) => p.getByTestId('focus-open') },
+  { name: 'help-breathe', path: '/tasks', ready: waitFor('Pay rent'), ring: (p) => p.getByTestId('breathe-open').locator('visible=true') },
+  { name: 'help-cheers', path: '/cheers', seed: (server) => {
+      const post = (id: string, kind: string, body: string, created_at: string) => ({ id, kind, body, created_at, mine: false, my_reaction: null, got_this: null, proud: null, strength: null, celebrate: null })
+      server.rpcResults.cheer_feed = [
+        post('c1', 'did_it', 'I finally called the dentist!', '2026-11-10T13:20:00Z'),
+        post('c2', 'stuck', '', '2026-11-10T12:40:00Z'),
+        { ...post('c3', 'did_it', 'I did an ugh quest!', '2026-11-10T10:00:00Z'), my_reaction: 'celebrate' },
+      ]
+    }, ready: async (p) => { await p.getByTestId('cheer-post').first().waitFor() }, ring: (p) => p.getByTestId('cheer-post').first().getByRole('group') },
   { name: 'help-dashboard', path: '/', ready: async (p) => { await p.getByTestId('postit').first().waitFor() }, ring: (p) => p.getByTestId('dash-postits') },
   { name: 'help-trophies', path: '/', ready: async (p) => { await p.getByTestId('dash-trophies').waitFor() }, ring: (p) => p.getByTestId('dash-trophies') },
   { name: 'help-alerts', path: '/tasks', ready: async (p) => { await waitFor('Pay rent')(p); await p.getByTestId('alerts-count').waitFor(); await p.getByTestId('alerts-bell').click(); await p.getByTestId('alert').first().waitFor() }, ring: (p) => p.getByTestId('alerts-list') },

@@ -37,7 +37,7 @@ export function trophyActions({ ready, badgesReady }: ActionContext) {
   }
 
   /** Everything on this device that trophies are worked out from. */
-  async function trophyHistory(extra: Pick<TrophyHistory, 'accountCreated' | 'connections' | 'blocks'>): Promise<TrophyHistory> {
+  async function trophyHistory(extra: Pick<TrophyHistory, 'accountCreated' | 'connections' | 'blocks' | 'cheers'>): Promise<TrophyHistory> {
     const { uid, local } = ready()
     const history = await readTables(local, {
       tasks: 'tasks',

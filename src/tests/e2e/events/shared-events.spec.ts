@@ -280,7 +280,7 @@ test.describe('Spec §8: before anyone else uses the app', () => {
     await expect(page.getByRole('status').filter({ hasText: msg.deleteData.done })).toBeVisible()
     expect(rpc('delete_my_data')).toHaveLength(1)
     expect(rpc('delete_my_data')[0]!.args).toEqual({
-      parts: ['tasks', 'inbox', 'quests', 'vault', 'journal', 'habits', 'routines', 'priority_tasks', 'tags', 'events', 'post_its', 'people', 'connections'],
+      parts: ['tasks', 'inbox', 'quests', 'vault', 'journal', 'habits', 'routines', 'priority_tasks', 'tags', 'events', 'post_its', 'people', 'connections', 'cheers'],
     })
     await expect(page).toHaveURL(/\/account$/)
     await page.goto('/tasks')
@@ -292,7 +292,7 @@ test.describe('Spec §8: before anyone else uses the app', () => {
     await open(page, '/account')
     await page.getByRole('button', { name: msg.deleteData.button }).click()
     const dialog = page.getByRole('dialog', { name: msg.deleteData.heading })
-    await expect(dialog.getByRole('checkbox')).toHaveCount(13)
+    await expect(dialog.getByRole('checkbox')).toHaveCount(14)
     await expect(dialog.getByRole('checkbox', { name: msg.postIts.heading })).toBeChecked()
     await dialog.getByRole('button', { name: msg.deleteData.selectNone, exact: true }).click()
     await expect(dialog.getByRole('alert')).toHaveText(msg.deleteData.noneTicked)
@@ -305,7 +305,7 @@ test.describe('Spec §8: before anyone else uses the app', () => {
     await expect(dialog.getByTestId('wipe-keeps')).toContainText(msg.deleteData.parts.journal)
     await dialog.getByRole('button', { name: msg.deleteData.button }).click()
     await expect.poll(() => rpc('delete_my_data')[0]?.args).toEqual({
-      parts: ['tasks', 'inbox', 'quests', 'vault', 'habits', 'routines', 'priority_tasks', 'events', 'post_its', 'people', 'connections'],
+      parts: ['tasks', 'inbox', 'quests', 'vault', 'habits', 'routines', 'priority_tasks', 'events', 'post_its', 'people', 'connections', 'cheers'],
     })
   })
 

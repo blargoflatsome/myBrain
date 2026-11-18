@@ -8,7 +8,7 @@ const NOW = new Date('2026-11-10T14:00:00Z')
 
 let server: FakeSupabase
 /** Server functions that only read. */
-const READS = ['people_with_accounts', 'trophy_counts']
+const READS = ['people_with_accounts', 'trophy_counts', 'cheer_am_stuck']
 
 async function open(page: Page, path = '/habits', time = NOW) {
   await page.clock.install({ time })

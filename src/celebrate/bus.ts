@@ -8,12 +8,17 @@ export type Achievement =
   | { kind: 'step'; finished: boolean }
   | { kind: 'capture'; table: string }
   | { kind: 'journal' }
-  | { kind: 'quest' }
+  | { kind: 'quest'; energy?: string | null }
   | { kind: 'vault' }
   | { kind: 'postit' }
   | { kind: 'orphan' }
   | { kind: 'shared_event' }
   | { kind: 'focus'; sessions: number }
+  | { kind: 'breathe' }
+  | { kind: 'cheer_post' }
+  | { kind: 'cheer' }
+  /** A trophy reached a new level (said by the celebration layer, for Cheers' offer; not itself celebrated). */
+  | { kind: 'trophy'; id: string; level: number }
 
 type Listener = (a: Achievement) => void
 const listeners = new Set<Listener>()

@@ -10,6 +10,8 @@ export interface UndoOffer {
   id: number
   message: string
   undo: () => Promise<unknown> | unknown
+  /** The button's word: Undo, or another action the bar offers (Cheers' Share, SPEC §5 Cheers). */
+  label?: string
 }
 
 export const useUndoStore = defineStore('undo', () => {
@@ -21,9 +23,9 @@ export const useUndoStore = defineStore('undo', () => {
     clearTimeout(timer)
     timer = setTimeout(() => (current.value = null), UNDO_MS)
   }
-  /** Show "message · Undo"; tapping Undo runs `undo`. */
-  function offer(message: string, undo: UndoOffer['undo']) {
-    current.value = { id: ++next, message, undo }
+  /** Show "message · Undo" (or another label); tapping the button runs `undo`. */
+  function offer(message: string, undo: UndoOffer['undo'], label?: string) {
+    current.value = { id: ++next, message, undo, label }
     start()
   }
   function pause() {

@@ -38,6 +38,8 @@
   X-Robots-Tag: noindex, nofollow
 /connections
   X-Robots-Tag: noindex, nofollow
+/cheers
+  X-Robots-Tag: noindex, nofollow
 /people/*
   X-Robots-Tag: noindex, nofollow
 /connect/*

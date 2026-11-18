@@ -62,6 +62,10 @@
   to = "/index.html"
   status = 200
 [[redirects]]
+  from = "/cheers"
+  to = "/index.html"
+  status = 200
+[[redirects]]
   from = "/people/:id"
   to = "/index.html"
   status = 200

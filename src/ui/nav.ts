@@ -15,6 +15,7 @@ export const MORE_NAV: { to: string; label: string; icon: IconName }[] = [
   { to: '/routines', label: messages.nav.routines, icon: 'repeat' },
   { to: '/journal', label: messages.nav.journal, icon: 'book' },
   { to: '/quests', label: messages.nav.quests, icon: 'shuffle' },
+  { to: '/cheers', label: messages.nav.cheers, icon: 'megaphone' },
   { to: '/orphans', label: messages.nav.inbox, icon: 'inbox' },
   { to: '/connections', label: messages.nav.connections, icon: 'users' },
   // SPEC §5 Help: last, after the pages it explains.
