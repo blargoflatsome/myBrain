@@ -51,6 +51,7 @@ ${LONG_WORD}`, due_date: day, priority: 2, status: 'open', source: 'manual', cre
     { id: 'c2', kind: 'did_it', body: LONG_LINE, created_at: '2026-11-10T12:00:00Z', mine: true, my_reaction: null, got_this: 3, proud: 1, strength: 0, celebrate: 2 },
     { id: 'c3', kind: 'stuck', body: '', created_at: '2026-11-10T11:00:00Z', mine: false, my_reaction: 'proud', got_this: null, proud: null, strength: null, celebrate: null },
   ]
+  server.rpcResults.cheer_hidden = [{ id: 'h1', post_kind: 'did_it', post_body: LONG_WORD, created_at: '2026-11-09T13:00:00Z' }]
   server.seed('item_tags', [{ id: 'it-long', item_type: 'journal_entry', item_id: 'j8', tag_id: 'tag-long' }])
   // A connection's profile (SPEC §5 Profiles) with a name pasted as one unbroken string, and trophies at several levels.
   server.rpcResults.connection_profile = [{

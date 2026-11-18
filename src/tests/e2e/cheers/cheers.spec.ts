@@ -38,8 +38,8 @@ test.describe('Spec §5 Cheers', () => {
     const mine = postCard(page, 2)
     await expect(mine.getByLabel(m.countLabel(m.reactions.got_this!, 2))).toBeVisible()
     // Not on my own post: no reacting, no hiding.
-    await expect(mine.getByRole('button', { name: m.reactWith(m.reactions.proud!) })).toHaveCount(0)
-    await expect(mine.getByTestId('cheer-more')).toHaveCount(0)
+    await expect(mine.getByRole('group', { name: m.reactionsLabel })).toHaveCount(0)
+    await expect(mine.getByTestId('cheer-hide')).toHaveCount(0)
   })
 
   test('Refresh loads the feed again and says it is up to date (SPEC §2 Buttons answer every press)', async ({ page }) => {
@@ -51,21 +51,31 @@ test.describe('Spec §5 Cheers', () => {
     await expect(page.getByTestId('celebration-message')).toHaveText(m.refreshed)
   })
 
-  test('a reaction is one of four, and only I see which one I sent; tapping it again takes it back to pick again', async ({ page }) => {
+  test('a reaction is one of four and stays in one row: mine is pressed; tapping it takes it back, tapping another switches', async ({ page }) => {
     await page.goto('/cheers')
     const card = postCard(page, 0)
-    await card.getByRole('button', { name: m.reactWith(m.reactions.strength!) }).click()
-    const sent = card.getByTestId('cheer-sent')
-    await expect(sent).toHaveText(m.youSent(m.reactions.strength!))
-    await expect(card.getByRole('button', { name: m.reactWith(m.reactions.proud!) })).toHaveCount(0)
+    const icon = (r: string) => card.getByTestId(`react-${r}`)
+    await icon('strength').click()
+    await expect(icon('strength')).toHaveAttribute('aria-pressed', 'true')
+    // The others stay, unpressed, so one tap can switch.
+    await expect(icon('proud')).toHaveAttribute('aria-pressed', 'false')
     expect(server.rpcArgs.find((c) => c.name === 'react_cheer')?.args).toEqual({ post: 'p1', p_reaction: 'strength' })
-    // With the keyboard, so focus is checked too: it stays in the post when the button I pressed goes away.
-    await sent.focus()
+    // With the keyboard, so focus is checked too: it stays on the icon I pressed.
+    await icon('strength').focus()
     await page.keyboard.press('Enter')
-    await expect(card.getByRole('button', { name: m.reactWith(m.reactions.got_this!) })).toBeFocused()
+    await expect(icon('strength')).toHaveAttribute('aria-pressed', 'false')
+    await expect(icon('strength')).toBeFocused()
     expect(server.rpcArgs.find((c) => c.name === 'unreact_cheer')?.args).toEqual({ post: 'p1' })
-    await card.getByRole('button', { name: m.reactWith(m.reactions.proud!) }).click()
-    await expect(sent).toHaveText(m.youSent(m.reactions.proud!))
+    await icon('proud').click()
+    await expect(icon('proud')).toHaveAttribute('aria-pressed', 'true')
+    server.rpcArgs.length = 0
+    await icon('celebrate').click()
+    await expect(icon('celebrate')).toHaveAttribute('aria-pressed', 'true')
+    await expect(icon('proud')).toHaveAttribute('aria-pressed', 'false')
+    expect(server.rpcArgs.filter((c) => c.name.endsWith('react_cheer'))).toEqual([
+      { name: 'unreact_cheer', args: { post: 'p1' } },
+      { name: 'react_cheer', args: { post: 'p1', p_reaction: 'celebrate' } },
+    ])
   })
 
   test("while I'm stuck, I got unstuck! takes I'm stuck's place, so I can post it without being offered", async ({ page }) => {
@@ -124,12 +134,36 @@ test.describe('Spec §5 Cheers', () => {
     await expect(page.getByTestId('stuck-others')).toHaveCount(0)
   })
 
-  test('Hide posts from this person works from the post, after a confirmation', async ({ page }) => {
+  test('Hide posts from this person works from the post, straight away, with Undo', async ({ page }) => {
+    server.rpcResults.block_cheer_author = 'h1'
     await page.goto('/cheers')
-    await postCard(page, 0).getByTestId('cheer-more').click()
+    await expect(feed(page).getByTestId('cheer-post')).toHaveCount(3)
+    server.rpcResults.cheer_feed = (server.rpcResults.cheer_feed as { id: string }[]).filter((p) => p.id !== 'p1')
     await postCard(page, 0).getByTestId('cheer-hide').click()
-    await page.getByRole('alertdialog').getByRole('button', { name: m.hideYes }).click()
-    await expect.poll(() => server.rpcArgs.find((c) => c.name === 'block_cheer_author')?.args).toEqual({ post: 'p1' })
+    await expect(feed(page).getByTestId('cheer-post')).toHaveCount(2)
+    expect(server.rpcArgs.find((c) => c.name === 'block_cheer_author')?.args).toEqual({ post: 'p1' })
+    await expect(page.getByTestId('undo-message')).toHaveText(m.hidden)
+    await page.getByTestId('undo-button').click()
+    await expect.poll(() => server.rpcArgs.find((c) => c.name === 'cheer_unhide')?.args).toEqual({ hide: 'h1' })
+  })
+
+  test('Hidden people lists each by the post I hid them from, and Show again brings them back', { tag: '@phone' }, async ({ page }) => {
+    server.rpcResults.cheer_hidden = [
+      { id: 'h1', post_kind: 'did_it', post_body: PASTED, created_at: '2026-11-16T15:00:00Z' },
+      { id: 'h2', post_kind: 'stuck', post_body: '', created_at: '2026-11-15T15:00:00Z' },
+      { id: 'h3', post_kind: null, post_body: null, created_at: '2026-11-14T15:00:00Z' },
+    ]
+    await page.setViewportSize({ width: 320, height: 640 })
+    await page.goto('/cheers')
+    const fold = page.getByTestId('cheers-hidden')
+    await fold.getByTestId('fold-header').click()
+    await expect(fold.getByTestId('hidden-post')).toHaveText([PASTED, m.stuck, m.hiddenUnknown])
+    // A pasted link still fits a phone (SPEC §2 Long text).
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+    await fold.getByTestId('show-again').first().click()
+    await expect.poll(() => server.rpcArgs.find((c) => c.name === 'cheer_unhide')?.args).toEqual({ hide: 'h1' })
+    await expect(fold.getByTestId('hidden-person')).toHaveCount(2)
+    await expect(fold.getByTestId('show-again').first()).toBeFocused()
   })
 
   test('finishing an old task offers "Share it in Cheers?", and Share fills I did it! with its age, not its title', async ({ page }) => {

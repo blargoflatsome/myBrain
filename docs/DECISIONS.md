@@ -302,3 +302,9 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 
 ## 2026-11-18 Vault: the add-bucket box comes back
 - User: "I only asked you to remove the button." The Vault page again has a box to type a bucket name and Add bucket, now always shown at the top (no + New bucket button to open it).
+
+## 2026-11-18 Cheers: compact reactions, block icon, Hidden people
+- User: earned Cheering while stuck after posting I got unstuck!. Bug: the server only checked for a stuck post today. Now it counts only while still stuck (`20261118020000_cheers_hidden_list.sql`). A trophy already earned stays.
+- User: reactions slimmer: the picked icon coloured and bolder, the others looking disabled, no message. Claude's call: tapping a faded one switches to it (never a dead button); the smug line after reacting stays (spec'd, user-written).
+- User: the ⋯ menu becomes a 🚫 icon that hides straight away with Undo (no confirmation).
+- User chose, of Claude's two ways to unhide without learning who: a list by the post I hid them from (over one "Show everyone again"). The hide keeps a copy of that post's kind and words.

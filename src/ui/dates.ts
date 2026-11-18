@@ -36,5 +36,8 @@ export function momentLabel(iso: string, now: Date = new Date()): string {
   return day === localDay(now) ? time : `${dayLabel(day, localDay(now))} · ${time}`
 }
 
+/** The day something happened: "Tue, Nov 10" (Cheers' Hidden people). */
+export const dayOfLabel = (iso: string, now: Date = new Date()) => dayLabel(localDay(new Date(iso)), localDay(now))
+
 const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const localToday = () => localDay(new Date())

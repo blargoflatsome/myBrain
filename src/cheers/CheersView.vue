@@ -53,11 +53,22 @@
       <p v-if="loadFailed" class="text-sm text-danger" role="alert">{{ m.loadFailed }}</p>
       <p v-else-if="loaded && !posts.length" class="text-muted" data-testid="cheers-empty">{{ m.empty }}</p>
       <ul class="flex flex-col gap-3" data-testid="cheers-feed">
-        <CheerPostCard v-for="p in posts" :key="p.id" :post="p" :now="now" :busy="reacting === p.id" @react="react" @unreact="unreact" @hide="askHide" />
+        <CheerPostCard v-for="p in posts" :key="p.id" :post="p" :now="now" :busy="reacting === p.id" @react="react" @unreact="unreact" @hide="hide" />
       </ul>
     </section>
 
-    <ConfirmDialog ref="hideDialog" :heading="m.hide" :body="m.hideConfirm" :confirm-label="m.hideYes" :keep-label="m.cancel" @confirm="hide" />
+    <!-- Hidden people: known only by the post I hid them from (SPEC §5 Cheers). -->
+    <MoreOptions v-if="hidden.length" :title="m.hiddenHeading" :summary="m.hiddenCount(hidden.length)" test-id="cheers-hidden">
+      <ul ref="hiddenList" class="flex flex-col gap-3">
+        <li v-for="h in hidden" :key="h.id" class="flex items-center gap-3" data-testid="hidden-person">
+          <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <p class="[overflow-wrap:anywhere]" data-testid="hidden-post">{{ hiddenText(h) }}</p>
+            <p class="text-xs text-muted">{{ m.hiddenOn(dayOfLabel(h.created_at, now)) }}</p>
+          </div>
+          <button type="button" :class="rowAction" :aria-label="m.showAgainLabel(hiddenText(h))" data-testid="show-again" @click="unhide(h)">{{ m.showAgain }}</button>
+        </li>
+      </ul>
+    </MoreOptions>
   </main>
 </template>
 
@@ -66,18 +77,20 @@
 // person. Everything comes from the server; nothing here is kept on the device.
 import { computed, nextTick, onMounted, ref, useId, watch } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import MoreOptions from '@/components/MoreOptions.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import CheerPostCard from '@/cheers/components/CheerPostCard.vue'
-import { cheerFeed, hideAuthor, postCheer, reactCheer, reasonOf, stuckCount, unreactCheer, type CheerPost } from '@/cheers/cheers'
-import { MAX_CHARS, pickOne, type Reaction } from '@/cheers/rules'
+import { cheerFeed, hiddenPeople, hideAuthor, postCheer, reactCheer, reasonOf, showAgain, stuckCount, unreactCheer, type CheerPost, type HiddenPerson } from '@/cheers/cheers'
+import { MAX_CHARS, pickOne, postText, type Reaction } from '@/cheers/rules'
 import { useNow } from '@/composables/useNow'
 import { useBrainStore } from '@/stores/brain'
 import { useBreatheStore } from '@/stores/breathe'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { useCheersStore } from '@/stores/cheers'
+import { useUndoStore } from '@/stores/undo'
+import { dayOfLabel } from '@/ui/dates'
 import { achieved } from '@/celebrate/bus'
-import { card, field, fieldLabel, primaryButton, primaryButtonSmall, secondaryButton, smallButton } from '@/ui/styles'
+import { card, field, fieldLabel, primaryButton, primaryButtonSmall, rowAction, secondaryButton, smallButton } from '@/ui/styles'
 import { messages } from '@/messages'
 
 const m = messages.cheers
@@ -85,6 +98,7 @@ const brain = useBrainStore()
 const breathe = useBreatheStore()
 const celebrate = useCelebrateStore()
 const cheers = useCheersStore()
+const undo = useUndoStore()
 const now = useNow(60_000)
 const hintId = useId()
 const countId = useId()
@@ -107,13 +121,20 @@ async function load() {
     loading.value = false
   }
 }
-onMounted(load)
+onMounted(() => {
+  void load()
+  void loadHidden()
+})
 // SPEC §2 Buttons answer every press: Refresh says it's working, then that the feed is up to date.
 async function refresh() {
   await load()
   if (!loadFailed.value) celebrate.say(m.refreshed)
 }
-watch(() => brain.online, (on) => on && void load())
+watch(() => brain.online, (on) => {
+  if (!on) return
+  void load()
+  void loadHidden()
+})
 
 // ---------- Posting ----------
 const box = ref<HTMLTextAreaElement | null>(null)
@@ -200,6 +221,11 @@ const reacting = ref<string | null>(null)
 async function react(post: CheerPost, reaction: Reaction) {
   reacting.value = post.id
   try {
+    // Tapping another icon switches: take the one I sent back first (SPEC §5 Cheers, Compact).
+    if (post.my_reaction) {
+      await unreactCheer(post.id)
+      post.my_reaction = null
+    }
     await reactCheer(post.id, reaction)
     post.my_reaction = reaction
     // The smug line is only ever for the one cheering (SPEC §5 Cheers).
@@ -225,22 +251,47 @@ async function unreact(post: CheerPost) {
   }
 }
 
-const hideDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
-const hiding = ref<CheerPost | null>(null)
-function askHide(post: CheerPost) {
-  hiding.value = post
-  hideDialog.value?.open()
-}
-async function hide() {
-  const post = hiding.value
-  hideDialog.value?.close()
-  if (!post) return
+// Hiding happens straight away, with Undo (SPEC §5 Cheers, Block).
+async function hide(post: CheerPost) {
   try {
-    await hideAuthor(post.id)
-    celebrate.say(m.hidden)
+    const id = await hideAuthor(post.id)
+    posts.value = posts.value.filter((p) => p.id !== post.id)
+    undo.offer(m.hidden, async () => {
+      if (id) await showAgain(id)
+      await Promise.all([load(), loadHidden()])
+    })
+    await Promise.all([load(), loadHidden()])
+  } catch {
+    celebrate.say(m.hideFailed)
+  }
+}
+
+// ---------- Hidden people ----------
+const hidden = ref<HiddenPerson[]>([])
+const hiddenList = ref<HTMLElement | null>(null)
+const hiddenText = (h: HiddenPerson) => (h.post_kind ? postText(h.post_kind, h.post_body ?? '') : m.hiddenUnknown)
+async function loadHidden() {
+  if (!brain.online) return
+  try {
+    hidden.value = await hiddenPeople()
+  } catch {
+    // The list just doesn't show; the feed says if Cheers can't load.
+  }
+}
+async function unhide(h: HiddenPerson) {
+  const at = hidden.value.indexOf(h)
+  try {
+    await showAgain(h.id)
+    hidden.value = hidden.value.filter((x) => x.id !== h.id)
+    celebrate.say(m.shownAgain)
+    // The button I pressed is gone: keep focus nearby, on the next Show again or else Refresh (WCAG 2.4.3).
+    await nextTick()
+    const buttons = hiddenList.value?.querySelectorAll<HTMLElement>('[data-testid="show-again"]')
+    const next = buttons?.[Math.min(at, buttons.length - 1)] ?? document.querySelector<HTMLElement>('[data-testid="cheers-refresh"]')
+    next?.focus()
     await load()
   } catch {
-    celebrate.say(m.postFailed)
+    celebrate.say(m.hideFailed)
   }
 }
 </script>
