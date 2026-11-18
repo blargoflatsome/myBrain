@@ -9,6 +9,9 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## Buttons answer every press (merged via PR, branch `button-feedback`)
+- User 2026-11-18: couldn't tell whether Cheers Refresh did anything. Every button, role=button and summary now dips (scale 0.96) while pressed, or fades with reduce motion (`style.css`); Refresh reads "Refreshing…" then shows "Up to date.". SPEC §2; DECISIONS 2026-11-18. New Cheers e2e case; `npm run test:all` passed (Vitest 445, Playwright 816).
+
 ## Priority tasks merged into High tasks (merged via PR, branch `high-priority-tasks`)
 - User 2026-11-18: a High task is a priority task (⚠ Priority label, like priority habits); no date or reminder needed; an optional Reminder time (High with a date only) gives the full-screen reminder on its day and while it carries over. Priority tasks, the Priority tab and their tables are removed (no users). SPEC §5 High-priority tasks and priority habits; DECISIONS 2026-11-18.
 - Migration `20261118010000_high_priority_tasks.sql` on dev and prod; `npm run test:db` passes (35 files; `rls_focus_room.sql` now clears the room first, since real check-ins on dev broke it). Prod at merge.

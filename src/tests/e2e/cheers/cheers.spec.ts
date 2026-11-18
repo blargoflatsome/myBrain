@@ -42,6 +42,15 @@ test.describe('Spec §5 Cheers', () => {
     await expect(mine.getByTestId('cheer-more')).toHaveCount(0)
   })
 
+  test('Refresh loads the feed again and says it is up to date (SPEC §2 Buttons answer every press)', async ({ page }) => {
+    await page.goto('/cheers')
+    await expect(feed(page).getByTestId('cheer-post')).toHaveCount(3)
+    server.rpcResults.cheer_feed = [post('p4', { body: 'Fresh one' })]
+    await page.getByTestId('cheers-refresh').click()
+    await expect(postCard(page, 0).getByTestId('cheer-text')).toHaveText('Fresh one')
+    await expect(page.getByTestId('celebration-message')).toHaveText(m.refreshed)
+  })
+
   test('a reaction is one of four, and only I see which one I sent; tapping it again takes it back to pick again', async ({ page }) => {
     await page.goto('/cheers')
     const card = postCard(page, 0)
