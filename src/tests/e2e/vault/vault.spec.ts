@@ -71,9 +71,11 @@ test.describe('Spec §5 The Vault', () => {
     )
   })
 
-  test('buckets take their place A to Z, and can be renamed and made into a checklist', async ({ page }) => {
-    server.seed('vault_buckets', [{ id: 'b-books', name: 'Books', position: 9, checkable: false, starred: false }])
+  test('buckets can be added from the page (taking their place A to Z), renamed and made into a checklist', async ({ page }) => {
     await open(page, '/vault')
+    await page.getByRole('textbox', { name: msg.vault.newBucketName }).fill('Books')
+    await page.getByRole('button', { name: msg.vault.createBucket }).click()
+    await expect(page.getByRole('textbox', { name: msg.vault.newBucketName })).toHaveValue('')
     await expect(page.getByTestId('vault-bucket')).toHaveText([/Books/, /Places to go/, /Restaurant reviews/, /Shopping list/])
 
     await page.getByRole('button', { name: /^Books/ }).click()
