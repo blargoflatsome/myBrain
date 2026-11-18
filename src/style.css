@@ -21,6 +21,27 @@
   input:is([type='checkbox'], [type='radio']):not(:disabled) {
     cursor: pointer;
   }
+
+  /* SPEC §2 Buttons answer every press: anything I can press dips slightly while pressed, so a tap always shows it
+     landed (a fade instead with reduce motion). */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary {
+    transition: scale 80ms ease-out, opacity 80ms ease-out;
+  }
+  button:not(:disabled):active,
+  [role='button']:not([aria-disabled='true']):active,
+  summary:active {
+    scale: 0.96;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button:not(:disabled):active,
+    [role='button']:not([aria-disabled='true']):active,
+    summary:active {
+      scale: none;
+      opacity: 0.7;
+    }
+  }
 }
 
 /* SPEC §2 Calm by design, §3 visual style: warm neutrals, one soft blue accent, muted status colours, light or dark

@@ -912,6 +912,8 @@ export const messages = {
     loadFailed: 'Cheers didn’t load. Try again in a moment.',
     retry: 'Try again',
     refresh: 'Refresh',
+    refreshing: 'Refreshing…',
+    refreshed: 'Up to date.',
     limit: 'That’s 10 posts in a day. You can post again tomorrow.',
     postFailed: 'That didn’t post. Try again when you’re online.',
     reactFailed: 'That cheer didn’t go through. Try again.',

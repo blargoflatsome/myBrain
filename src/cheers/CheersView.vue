@@ -48,7 +48,7 @@
     <section class="flex flex-col gap-3" aria-labelledby="feed-heading">
       <div class="flex items-center justify-between gap-2">
         <h2 id="feed-heading" class="sr-only">{{ m.heading }}</h2>
-        <button type="button" :class="[smallButton, 'ml-auto']" :disabled="!brain.online || loading" data-testid="cheers-refresh" @click="load">{{ m.refresh }}</button>
+        <button type="button" :class="[smallButton, 'ml-auto']" :disabled="!brain.online || loading" data-testid="cheers-refresh" @click="refresh">{{ loading ? m.refreshing : m.refresh }}</button>
       </div>
       <p v-if="loadFailed" class="text-sm text-danger" role="alert">{{ m.loadFailed }}</p>
       <p v-else-if="loaded && !posts.length" class="text-muted" data-testid="cheers-empty">{{ m.empty }}</p>
@@ -108,6 +108,11 @@ async function load() {
   }
 }
 onMounted(load)
+// SPEC §2 Buttons answer every press: Refresh says it's working, then that the feed is up to date.
+async function refresh() {
+  await load()
+  if (!loadFailed.value) celebrate.say(m.refreshed)
+}
 watch(() => brain.online, (on) => on && void load())
 
 // ---------- Posting ----------
