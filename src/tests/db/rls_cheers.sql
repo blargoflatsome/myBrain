@@ -9,6 +9,7 @@ declare
   bob_stuck uuid;
   alice_post uuid;
   n int;
+  i int;
   ok boolean;
   f record;
   t record;
@@ -96,13 +97,11 @@ begin
   perform public.react_cheer(alice_post, 'proud');
   select * into t from public.trophy_counts();
   if not t.cheer_while_stuck then raise exception 'FAIL: Spec §5 Trophies: cheering on a day I posted I''m stuck counts'; end if;
-  perform public.post_cheer('did_it', 'two');
-  perform public.post_cheer('did_it', 'three');
-  perform public.post_cheer('did_it', 'four');
-  perform public.post_cheer('did_it', 'five');
+  -- Carol's stuck post was her first; nine more make ten.
+  for i in 2..10 loop perform public.post_cheer('did_it', 'post ' || i); end loop;
   begin
-    perform public.post_cheer('did_it', 'six');
-    raise exception 'FAIL: Spec §5 Cheers: a few posts a day at most (5 in 24 hours)';
+    perform public.post_cheer('did_it', 'eleven');
+    raise exception 'FAIL: Spec §5 Cheers: a few posts a day at most (10 in 24 hours)';
   exception when sqlstate 'P0429' then null;
   end;
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);

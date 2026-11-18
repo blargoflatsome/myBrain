@@ -932,7 +932,7 @@ export const messages = {
     loadFailed: 'Cheers didn’t load. Try again in a moment.',
     retry: 'Try again',
     refresh: 'Refresh',
-    limit: 'That’s 5 posts in a day. You can post again tomorrow.',
+    limit: 'That’s 10 posts in a day. You can post again tomorrow.',
     postFailed: 'That didn’t post. Try again when you’re online.',
     reactFailed: 'That cheer didn’t go through. Try again.',
     tooLong: 'Keep it to 140 characters.',

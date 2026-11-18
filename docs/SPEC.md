@@ -353,7 +353,7 @@ It combines a daily checklist (routines, habits, tasks, priority tasks), a journ
 - **Reactions are the only thing anyone can do**: four encouraging icons (you've got this, proud of you, sending strength, celebrate). One per person per post, final once picked, not on my own posts. **Only the poster sees the counts**; everyone else sees only the one they picked. No comments.
 - One quiet **"People cheered you on"** alert per post, once it has 4 or more reactions (quiet hours apply).
 - **Block:** a ⋯ menu on each post has **Hide posts from this person**. It works from the post, so I never learn who it is, and they're never told. It asks first, since it can't be undone (2026-11-17).
-- A few posts a day per person at most, so the feed can't be flooded: **5 in any 24 hours** (2026-11-17, Claude's call), and the app says so when I reach it.
+- A few posts a day per person at most, so the feed can't be flooded: **10 in any 24 hours** (2026-11-17: Claude suggested 5, the user raised it to 10), and the app says so when I reach it.
 - **Smug, for the one cheering (2026-11-15, user):** Cheers is themed around the smug satisfaction of encouraging someone selflessly, where nobody will ever know it was me. The smugness is only ever shown to **the person giving the cheer**; the poster only ever sees sincere encouragement (the reactions, "People cheered you on"), and **I'm stuck** never jokes. It shows up in: a short smug line once after I react (picked at random from a list); the "Someone you cheered on got unstuck!" alert; the feed's one-line subtitle; and the **Cheering others on** trophies (§5 Trophies), which are my smug tally. The user writes all of this wording.
 
 ### Random Quest (boredom buster)
