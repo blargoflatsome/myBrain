@@ -9,6 +9,9 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## Vault add-bucket box back (merged via PR, branch `vault-add-bucket`)
+- User 2026-11-18: only the + New bucket button was to go. The Vault page has an always-shown name box + Add bucket again; Help Vault step and picture updated. SPEC §5 Vault; DECISIONS 2026-11-18. `npm run test:all` passed (Playwright 816).
+
 ## Buttons answer every press (merged via PR, branch `button-feedback`)
 - User 2026-11-18: couldn't tell whether Cheers Refresh did anything. Every button, role=button and summary now dips (scale 0.96) while pressed, or fades with reduce motion (`style.css`); Refresh reads "Refreshing…" then shows "Up to date.". SPEC §2; DECISIONS 2026-11-18. New Cheers e2e case; `npm run test:all` passed (Vitest 445, Playwright 816).
 

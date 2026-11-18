@@ -2,6 +2,10 @@
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <template v-if="!bucket">
       <PageHeading :heading="m.heading" :intro="m.intro" />
+      <form class="flex gap-2" @submit.prevent="createBucket">
+        <input v-model="newBucketName" maxlength="200" :class="fieldOnPage" :aria-label="m.newBucketName" :placeholder="m.newBucketName">
+        <button type="submit" class="shrink-0" :class="primaryButton">{{ m.createBucket }}</button>
+      </form>
       <p v-if="!buckets.length" class="text-muted">{{ m.noBuckets }}</p>
       <ul class="flex flex-col gap-2" :aria-label="m.bucketsHeading">
         <li v-for="b in buckets" :key="b.id" class="flex items-center rounded-2xl border border-line bg-surface" data-testid="vault-bucket">
@@ -129,6 +133,13 @@ function openBucket(b: VaultBucketRow) {
 }
 
 // ---------- Buckets ----------
+const newBucketName = ref('')
+async function createBucket() {
+  const name = newBucketName.value.trim()
+  if (!name) return
+  await brain.createBucket(name)
+  newBucketName.value = ''
+}
 const editingBucket = ref<VaultBucketRow | null>(null)
 async function saveBucket(b: VaultBucketRow) {
   await brain.save('vault_buckets', b)

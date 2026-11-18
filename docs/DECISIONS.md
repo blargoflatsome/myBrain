@@ -299,3 +299,6 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 
 ## 2026-11-18 Buttons answer every press
 - User: couldn't tell whether Cheers Refresh did anything; "Buttons should always give some kind of feedback when you click them to show they were clicked." Claude's calls: one global pressed style in `style.css` (scale 0.96 while pressed, opacity instead with reduce motion) for every button, role=button and summary; Refresh shows "Refreshing…" while loading and then the fading "Up to date." message (`celebrate.say`, already announced politely). Other buttons already change something visible (a window opens, a row changes, the Undo bar appears).
+
+## 2026-11-18 Vault: the add-bucket box comes back
+- User: "I only asked you to remove the button." The Vault page again has a box to type a bucket name and Add bucket, now always shown at the top (no + New bucket button to open it).
