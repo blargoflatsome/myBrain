@@ -44,6 +44,7 @@ test.describe('Spec §5 Breathe', { tag: '@phone' }, () => {
     await page.goto('/')
     await page.getByTestId('focus-open').locator('visible=true').click()
     const timer = page.getByRole('dialog', { name: msg.focus.menu })
+    await timer.getByTestId('focus-start').click()
     await timer.getByRole('button', { name: msg.breathe.open }).click()
     await expect(breatheWindow(page)).toBeVisible()
     await page.keyboard.press('Escape')

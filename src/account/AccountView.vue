@@ -76,6 +76,19 @@
         </div>
       </section>
 
+      <!-- SPEC §5 Focus timer, the quiet room: on by default; saved on change. -->
+      <section class="rounded-xl border border-line px-4 py-3" :aria-label="fr.label" data-testid="focus-room-settings">
+        <div v-if="loaded" class="flex flex-col gap-3">
+          <label class="flex min-h-11 items-center gap-3">
+            <input v-model="focusRoom" type="checkbox" :class="checkbox" data-testid="focus-room-setting" @change="saveFocusRoom">
+            <span>{{ fr.label }}</span>
+          </label>
+          <span class="text-xs text-muted">{{ fr.hint }}</span>
+          <p class="min-h-5 text-sm text-muted" role="status">{{ focusRoomNotice }}</p>
+        </div>
+        <p v-else class="text-muted">{{ m.offline }}</p>
+      </section>
+
       <!-- SPEC §5 Locking my journal. -->
       <JournalLockCard />
 
@@ -272,6 +285,7 @@ onMounted(async () => {
     displayName.value = data.display_name ?? ''
     avatarUrl.value = data.avatar_url
     celebrations.value = parseSetting(data.celebrations)
+    focusRoom.value = data.focus_room !== false
     loaded.value = true
   }
 })
@@ -304,6 +318,16 @@ async function savePause(on: boolean) {
   pauseNotice.value = ''
   await brain.setStreaksPaused(on)
   pauseNotice.value = m.saved
+}
+
+// SPEC §5 Focus timer: Show me in the focus room.
+const fr = messages.focus.room
+const focusRoom = ref(true)
+const focusRoomNotice = ref('')
+async function saveFocusRoom() {
+  focusRoomNotice.value = ''
+  const ok = await profile.update({ focus_room: focusRoom.value })
+  focusRoomNotice.value = ok ? m.saved : m.offline
 }
 
 // Celebrations has its own Save in Account Settings.

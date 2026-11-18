@@ -8,23 +8,58 @@
     data-testid="focus-timer"
     @close="onClose"
   >
-    <template v-if="showing && focus.state">
+    <!-- SPEC §5 Focus timer, the quiet room: a faint dot for each other person focusing now; no count, no names.
+         Screen readers hear one line instead. -->
+    <div v-if="showing" class="pointer-events-none absolute inset-0" aria-hidden="true" data-testid="focus-room">
+      <span
+        v-for="dot in focus.room.dots"
+        :key="dot.id"
+        class="absolute size-2 -translate-1/2 rounded-full bg-white transition-[opacity,box-shadow] duration-1000 motion-reduce:transition-none"
+        :class="glowing(dot, now) ? 'opacity-70 shadow-[0_0_12px_4px_rgb(255_255_255/0.35)]' : 'opacity-20'"
+        :style="{ left: `${dotPlace(dot.id).x}%`, top: `${dotPlace(dot.id).y}%` }"
+        data-testid="focus-dot"
+      />
+    </div>
+    <p v-if="showing && focus.room.dots.length" class="sr-only">{{ m.othersHere }}</p>
+
+    <!-- The start screen: Start now is always the main button; joining the next wave is the smaller offer. -->
+    <template v-if="showing && !focus.state">
       <button type="button" :class="[round, 'absolute top-4 right-4']" :aria-label="m.close" data-testid="focus-close" @click="focus.stop()">
         <AppIcon name="close" size="size-7" />
       </button>
-      <p class="text-2xl font-semibold" data-testid="focus-phase">{{ m.phase[focus.state.phase] }}</p>
-      <p class="text-[min(28vw,10rem)] leading-none font-bold tabular-nums" data-testid="focus-time" role="timer" :aria-label="m.timeLeft(time)">{{ time }}</p>
-      <p class="text-base text-white/70" data-testid="focus-round">{{ m.round(focus.state.round) }}</p>
+      <p class="relative text-2xl font-semibold">{{ m.ready }}</p>
+      <p class="relative text-[min(28vw,10rem)] leading-none font-bold tabular-nums" aria-hidden="true">{{ clock(WORK_MS) }}</p>
+      <div class="relative mt-4 flex flex-wrap items-center justify-center gap-3">
+        <button type="button" class="min-h-12 rounded-full bg-white px-6 text-lg font-semibold text-black hover:bg-white/90" data-testid="focus-start" autofocus @click="focus.startNow()">{{ m.startNow }}</button>
+        <button type="button" :class="[pill, 'flex flex-col items-center py-1.5']" data-testid="focus-join-wave" @click="focus.joinWave()">
+          <span>{{ m.joinWave(waveLabel) }}</span>
+          <span class="text-sm font-normal text-white/70" data-testid="focus-wave-when">{{ m.waveWhen(minutesUntil(wave, now), focus.room.joining) }}</span>
+        </button>
+      </div>
+    </template>
+
+    <template v-else-if="showing && focus.state">
+      <button type="button" :class="[round, 'absolute top-4 right-4']" :aria-label="m.close" data-testid="focus-close" @click="focus.stop()">
+        <AppIcon name="close" size="size-7" />
+      </button>
+      <p class="relative text-2xl font-semibold" data-testid="focus-phase">{{ waiting ? m.waitingFor(waveLabelOf(focus.state.endsAt ?? 0)) : m.phase[focus.state.phase] }}</p>
+      <p class="relative text-[min(28vw,10rem)] leading-none font-bold tabular-nums" data-testid="focus-time" role="timer" :aria-label="m.timeLeft(time)">{{ time }}</p>
+      <p v-if="!waiting" class="relative text-base text-white/70" data-testid="focus-round">{{ m.round(focus.state.round) }}</p>
       <!-- SPEC §5 Celebrations: after a work part, a soft ripple and how much I've focused today. -->
       <span v-if="rippling" :key="rippleKey" class="celebrate-ripple pointer-events-none absolute top-1/2 left-1/2 -mt-32 -ml-32 size-64 rounded-full border-4 border-done" aria-hidden="true" />
-      <p v-if="focusedToday" class="text-base font-semibold text-done" data-testid="focus-today">{{ messages.celebrations.focusToday(focusedToday) }}</p>
-      <div class="mt-4 flex flex-wrap justify-center gap-3">
-        <button type="button" :class="pill" data-testid="focus-pause" autofocus @click="focus.togglePause()">{{ paused ? m.resume : m.pause }}</button>
-        <button type="button" :class="pill" @click="focus.skipPart()">{{ m.skip }}</button>
+      <p v-if="focusedToday" class="relative text-base font-semibold text-done" data-testid="focus-today">{{ messages.celebrations.focusToday(focusedToday) }}</p>
+      <div class="relative mt-4 flex flex-wrap justify-center gap-3">
+        <button v-if="waiting" type="button" :class="pill" data-testid="focus-start-early" autofocus @click="focus.skipPart()">{{ m.startEarly }}</button>
+        <template v-else>
+          <button type="button" :class="pill" data-testid="focus-pause" autofocus @click="focus.togglePause()">{{ paused ? m.resume : m.pause }}</button>
+          <button type="button" :class="pill" @click="focus.skipPart()">{{ m.skip }}</button>
+        </template>
         <button type="button" :class="pill" data-testid="focus-minimize" @click="focus.minimized = true">{{ m.minimize }}</button>
         <!-- SPEC §5 Breathe: opens over the timer, which keeps going. -->
         <button type="button" :class="pill" data-testid="focus-breathe" @click="breathe.open()">{{ messages.breathe.open }}</button>
       </div>
+      <!-- SPEC §5 Focus timer, Waves: offered while the next work part is off the wave. -->
+      <button v-if="offWave(focus.state)" type="button" :class="[pill, 'relative']" data-testid="focus-sync" @click="focus.sync()">{{ m.syncWave }}</button>
     </template>
   </dialog>
 
@@ -49,7 +84,9 @@
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useFocusStore } from '@/stores/focus'
-import { clock, remainingMs } from '@/focus/timer'
+import { WORK_MS, clock, remainingMs } from '@/focus/timer'
+import { minutesUntil, nextWave, offWave } from '@/focus/waves'
+import { dotPlace, glowing } from '@/focus/room'
 import { messages } from '@/messages'
 import { achieved } from '@/celebrate/bus'
 import { useWakeLock } from '@/composables/useWakeLock'
@@ -65,7 +102,14 @@ const paused = computed(() => focus.state?.pausedMs !== null && focus.state?.pau
 const announcement = ref('')
 
 const dialog = ref<HTMLDialogElement | null>(null)
-const showing = computed(() => !!focus.state && !focus.minimized)
+const showing = computed(() => (!!focus.state && !focus.minimized) || (!focus.state && focus.ready))
+const waiting = computed(() => focus.state?.phase === 'wait')
+const wave = computed(() => nextWave(now.value))
+/** ":30" for a wave on the half hour, ":00" on the hour, in my own time zone's minutes. */
+function waveLabelOf(at: number): string {
+  return `:${String(new Date(at).getMinutes()).padStart(2, '0')}`
+}
+const waveLabel = computed(() => waveLabelOf(wave.value))
 // Open and close the window with the timer; Escape (or the browser closing it) minimizes the timer, never stops it.
 watch(
   [showing, dialog],
@@ -77,7 +121,9 @@ watch(
   { immediate: true, flush: 'post' },
 )
 function onClose() {
-  if (showing.value) focus.minimized = true
+  if (!showing.value) return
+  if (focus.state) focus.minimized = true
+  else focus.stop()
 }
 
 function check() {
@@ -109,7 +155,7 @@ function partEnded() {
     rippling.value = true
     rippleKey.value++
     setTimeout(() => (rippling.value = false), 1500)
-    achieved({ kind: 'focus', sessions: focus.workEnded })
+    achieved({ kind: 'focus', sessions: focus.workEnded, together: focus.workTogether })
   }
   chime()
   navigator.vibrate?.([200, 100, 200])

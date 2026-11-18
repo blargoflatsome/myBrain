@@ -130,6 +130,7 @@ test.describe('Spec §5 Celebrations: finishing a set', () => {
     await open(page, '/')
     await page.getByRole('button', { name: msg.focus.menu }).first().click()
     const timer = page.getByTestId('focus-timer')
+    await timer.getByTestId('focus-start').click()
     await page.clock.runFor(25 * 60_000 + 1000)
     await expect(timer.getByTestId('focus-phase')).toHaveText(msg.focus.phase.short)
     await expect(timer.getByTestId('focus-today')).toHaveText(msg.celebrations.focusToday(25))

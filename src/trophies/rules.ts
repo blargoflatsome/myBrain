@@ -189,6 +189,7 @@ export function trophyValues(h: TrophyHistory, now: Date, timeZone: string): Rec
   v.full_cycle = mostOnOneKey(focusDays)
   v.focus_days = new Set(focusDays).size
   v.focus_hours = Math.floor(focus.reduce((sum, a) => sum + (a.detail?.minutes ?? 0), 0) / 60)
+  v.focused_together = new Set(focus.filter((a) => a.detail?.together).map((a) => localMoment(a.at, timeZone).date)).size
 
   // Perfect days, weeks, months and years
   v.perfect_days = perfectDays(habits, live(h.habitLogs), today)

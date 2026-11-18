@@ -26,6 +26,8 @@ export interface Profile {
   quiet_hours_end: string | null
   quiet_hours_silence_priority: boolean | null
   evening_reminder_time: string | null
+  /** SPEC §5 Focus timer: Show me in the focus room (on by default). */
+  focus_room: boolean | null
   data_reset_at: string | null
 }
 

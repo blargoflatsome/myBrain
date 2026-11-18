@@ -243,7 +243,7 @@ export const useCelebrateStore = defineStore('celebrate', () => {
       case 'shared_event':
         return earn('first_shared_event')
       case 'focus':
-        for (let i = 0; i < a.sessions; i++) await brain.logActivity('focus', { minutes: WORK_MS / 60_000 }, now)
+        for (let i = 0; i < a.sessions; i++) await brain.logActivity('focus', { minutes: WORK_MS / 60_000, ...(a.together ? { together: true } : {}) }, now)
         return earn('first_focus')
       case 'breathe':
         await brain.logActivity('breathe', {}, now)

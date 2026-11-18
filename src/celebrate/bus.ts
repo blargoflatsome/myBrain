@@ -13,7 +13,7 @@ export type Achievement =
   | { kind: 'postit' }
   | { kind: 'orphan' }
   | { kind: 'shared_event' }
-  | { kind: 'focus'; sessions: number }
+  | { kind: 'focus'; sessions: number; together?: boolean }
   | { kind: 'breathe' }
   | { kind: 'cheer_post' }
   | { kind: 'cheer' }

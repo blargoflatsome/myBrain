@@ -216,7 +216,8 @@ export type ActivityKind = 'focus' | 'capture' | 'orphans_cleared' | 'breathe'
 export interface ActivityLogRow extends BaseRow {
   kind: ActivityKind
   at: string
-  detail: { minutes?: number; type?: string }
+  /** together: someone else was in the focus room during that Focus session (SPEC §5 Trophies Focused together). */
+  detail: { minutes?: number; type?: string; together?: boolean }
 }
 
 export interface InboxRow extends BaseRow {

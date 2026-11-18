@@ -202,7 +202,7 @@ const showChrome = computed(() => route.matched.length > 0 && !route.meta.public
 // SPEC §5 Focus timer: starts (or reopens) the full-screen timer.
 const focus = useFocusStore()
 function openFocus() {
-  focus.start()
+  focus.open()
 }
 
 // Wide screens: More opens or closes the rest of the menu; remembered on this device, and open on its own pages.
