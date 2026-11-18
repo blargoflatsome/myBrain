@@ -4,7 +4,7 @@ import { readTables } from '@/sync/db'
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
-import { onAchievement, type Achievement } from '@/celebrate/bus'
+import { achieved, onAchievement, type Achievement } from '@/celebrate/bus'
 import {
   effectiveLevel,
   earnedFromHistory,
@@ -23,7 +23,7 @@ import { messages } from '@/messages'
 import { useAuthStore } from '@/stores/auth'
 import { TIERS } from '@/trophies/definitions'
 import { AWAY_DAYS, journalComeback, newLevels, taskComeback, trophyStates, trophyValues } from '@/trophies/rules'
-import { trophyCounts } from '@/trophies/server'
+import { trophyCounts, type ServerCounts } from '@/trophies/server'
 import { WORK_MS } from '@/focus/timer'
 import { readKey, writeKey } from '@/ui/storage'
 
@@ -139,8 +139,8 @@ export const useCelebrateStore = defineStore('celebrate', () => {
 
   // ---------- Trophies (SPEC §5 Trophies) ----------
   const auth = useAuthStore()
-  /** Connections ever made and people blocked, asked of the server when online; null until then. */
-  const counts = ref<{ connections: number | null; blocks: number | null }>({ connections: null, blocks: null })
+  /** Connections ever made, people blocked and my Cheers tally, asked of the server when online; null until then. */
+  const counts = ref<ServerCounts>({ connections: null, blocks: null, cheers: null })
   async function refreshCounts() {
     if (!brain.online) return
     const fresh = await trophyCounts()
@@ -175,6 +175,7 @@ export const useCelebrateStore = defineStore('celebrate', () => {
           continue
         }
         for (const s of ups) {
+          achieved({ kind: 'trophy', id: s.trophy.id, level: s.level })
           burst('small')
           say(t.earned(t.names[s.trophy.id] ?? s.trophy.id, s.trophy.levels.length > 1 ? (t.tiers[TIERS[s.level - 1]!] ?? null) : null))
         }
@@ -191,7 +192,7 @@ export const useCelebrateStore = defineStore('celebrate', () => {
 
   async function handle(a: Achievement) {
     const local = brain.db
-    if (!local) return
+    if (!local || a.kind === 'trophy') return
     const at = Date.now()
     const earn = (kind: BadgeKind) => earnBadge(kind, at)
     soonCheckTrophies()
@@ -244,6 +245,13 @@ export const useCelebrateStore = defineStore('celebrate', () => {
       case 'focus':
         for (let i = 0; i < a.sessions; i++) await brain.logActivity('focus', { minutes: WORK_MS / 60_000 }, now)
         return earn('first_focus')
+      case 'breathe':
+        await brain.logActivity('breathe', {}, now)
+        return earn('first_breathe')
+      case 'cheer_post':
+        return earn('first_cheer_post')
+      case 'cheer':
+        return earn('first_cheer')
     }
   }
 
@@ -312,5 +320,5 @@ export const useCelebrateStore = defineStore('celebrate', () => {
     setInterval(check, 60_000)
   }
 
-  return { setting, level, setSetting, bursts, burst, burstDone, message, say, dismiss, captureSaved, journalSaved, catchUp, start, checkTrophies, counts }
+  return { setting, level, setSetting, bursts, burst, burstDone, message, say, dismiss, captureSaved, journalSaved, catchUp, start, checkTrophies, refreshCounts, counts }
 })

@@ -45,6 +45,12 @@ ${LONG_WORD}`, due_date: day, priority: 2, status: 'open', source: 'manual', cre
     { id: 'nt1', kind: 'habit', item_id: null, title: 'Take meds', body: 'Reminder: Past you asked that you take your meds.', url: '/habits', local_date: day, sent_at: '2026-11-10T13:00:00Z' },
     { id: 'nt2', kind: 'event_message', item_id: null, title: LONG_LINE, body: `${PARAGRAPH} ${LONG_WORD}`, url: '/calendar', local_date: day, sent_at: '2026-11-10T14:00:00Z' },
   ])
+  // Cheers (SPEC §5 Cheers): a pasted link and a long line as posts, and my own post with its counts.
+  server.rpcResults.cheer_feed = [
+    { id: 'c1', kind: 'did_it', body: LONG_WORD, created_at: '2026-11-10T13:00:00Z', mine: false, my_reaction: null, got_this: null, proud: null, strength: null, celebrate: null },
+    { id: 'c2', kind: 'did_it', body: LONG_LINE, created_at: '2026-11-10T12:00:00Z', mine: true, my_reaction: null, got_this: 3, proud: 1, strength: 0, celebrate: 2 },
+    { id: 'c3', kind: 'stuck', body: '', created_at: '2026-11-10T11:00:00Z', mine: false, my_reaction: 'proud', got_this: null, proud: null, strength: null, celebrate: null },
+  ]
   server.seed('item_tags', [{ id: 'it-long', item_type: 'journal_entry', item_id: 'j8', tag_id: 'tag-long' }])
   // A connection's profile (SPEC §5 Profiles) with a name pasted as one unbroken string, and trophies at several levels.
   server.rpcResults.connection_profile = [{
@@ -123,6 +129,7 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Calendar', '/calendar', (p) => expect(p.locator('.cal-wrap').getByText('pay rent').first()).toBeVisible()],
   ['Account', '/account', (p) => expect(p.getByRole('heading', { name: msg.profile.settingsHeading, level: 2 })).toBeVisible()],
   ['Connections', '/connections', (p) => expect(p.getByRole('heading', { name: msg.nav.connections, level: 1 })).toBeVisible()],
+  ['Cheers', '/cheers', (p) => expect(p.getByTestId('cheer-post').first()).toBeVisible()],
   ['Profile', `/people/${FRIEND}`, (p) => expect(p.getByTestId('profile-trophies')).toBeVisible()],
   ['Tags', '/tags', (p) => expect(p.getByTestId('tag-row').first()).toBeVisible()],
   ['Help', '/help', (p) => expect(p.getByTestId('help-topic').first()).toBeVisible()],

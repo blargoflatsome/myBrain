@@ -50,6 +50,16 @@ export interface TrophyHistory {
   /** From the server; null when it couldn't be asked (offline): those trophies just wait. */
   connections: number | null
   blocks: number | null
+  /** My Cheers tally from the server (SPEC §5 Trophies, Cheering others on); null offline. */
+  cheers: CheerTally | null
+}
+
+export interface CheerTally {
+  given: number
+  days: number
+  firsts: number
+  unstuck: number
+  whileStuck: boolean
 }
 
 /** The local day and time of a moment, in my time zone. */
@@ -287,6 +297,16 @@ export function trophyValues(h: TrophyHistory, now: Date, timeZone: string): Rec
     : 0
   v.boundaries = (h.blocks ?? 0) > 0 ? 1 : 0
   v.healthy_brain = ['habit_streak', 'journal_streak', 'routine_streak', 'perfect_streak', 'good_days'].every((id) => v[id]! >= 7) ? 1 : 0
+
+  // Breathing days: a finished 5-minute Breathe (stopping early isn't logged)
+  v.breathing_days = new Set(activity.filter((a) => a.kind === 'breathe').map((a) => localMoment(a.at, timeZone).date)).size
+
+  // Cheering others on (from the server): only what I give counts
+  v.cheers_given = h.cheers?.given ?? 0
+  v.cheer_days = h.cheers?.days ?? 0
+  v.cheer_firsts = h.cheers?.firsts ?? 0
+  v.cheer_unstuck = h.cheers?.unstuck ?? 0
+  v.cheering_while_stuck = h.cheers?.whileStuck ? 1 : 0
 
   // Anniversaries
   v.anniversary = h.accountCreated ? Math.max(0, daysBetween(localMoment(h.accountCreated, timeZone).date, today)) : 0

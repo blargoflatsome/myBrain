@@ -22,6 +22,9 @@ export const BADGES = [
   'first_postit',
   'first_orphan',
   'first_shared_event',
+  'first_breathe',
+  'first_cheer_post',
+  'first_cheer',
 ] as const
 export type BadgeKind = (typeof BADGES)[number]
 

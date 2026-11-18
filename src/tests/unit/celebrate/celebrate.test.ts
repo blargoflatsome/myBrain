@@ -45,10 +45,10 @@ describe('Spec §5 Celebrations: the setting', () => {
 })
 
 describe('Spec §5 Celebrations: badges for first times', () => {
-  it('there are ten, each with the same id on every device, so it is earned once', () => {
-    expect(BADGES).toHaveLength(10)
+  it('there are thirteen, each with the same id on every device, so it is earned once', () => {
+    expect(BADGES).toHaveLength(13)
     const ids = BADGES.map((k) => badgeId(UID, k))
-    expect(new Set(ids).size).toBe(10)
+    expect(new Set(ids).size).toBe(13)
     for (const id of ids) expect(id).toMatch(/^[0-9a-f-]{36}$/)
     expect(badgeId(UID, 'first_task')).toBe(badgeId(UID, 'first_task'))
   })

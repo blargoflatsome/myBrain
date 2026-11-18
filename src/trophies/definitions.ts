@@ -17,6 +17,7 @@ export const CATEGORIES = [
   'people',
   'surprises',
   'anniversaries',
+  'cheering',
 ] as const
 export type TrophyCategory = (typeof CATEGORIES)[number]
 
@@ -83,6 +84,12 @@ export const TROPHIES: readonly Trophy[] = [
   t('boundaries', 'surprises', [1], 'count', true),
   t('healthy_brain', 'surprises', [1], 'count', true),
   t('anniversary', 'anniversaries', [7, 30, 182, 365], 'days'),
+  t('breathing_days', 'care', [5, 20, 50], 'days'),
+  t('cheers_given', 'cheering', TOTAL_LEVELS),
+  t('cheer_days', 'cheering', [5, 20, 50, 100], 'days'),
+  t('cheer_firsts', 'cheering', [5, 25, 100], 'times'),
+  t('cheer_unstuck', 'cheering', [1, 5, 25, 100], 'times'),
+  t('cheering_while_stuck', 'surprises', [1], 'count', true),
 ]
 
 export type TrophyId = string

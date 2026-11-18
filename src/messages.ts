@@ -520,6 +520,7 @@ export const messages = {
       post_its: 'Post Its',
       people: 'Your people (everyone saved for invitations)',
       connections: 'Connections (people you’re connected with, and requests)',
+      cheers: 'Cheers (your posts and the cheers you gave)',
     },
     selectAll: 'Tick all',
     selectNone: 'Untick all',
@@ -898,6 +899,79 @@ export const messages = {
     done: "That's 5 minutes. Take that calm with you.",
     finish: 'Done',
   },
+  /**
+   * SPEC §5 Cheers: an anonymous feed. The smug lines (afterReact, subtitle, and the unstuck alert, which the server
+   * sends from 20261117010000_cheers.sql) and the Cheering others on trophy names are plain placeholders: the user
+   * writes them. The poster's side and I'm stuck stay sincere.
+   */
+  cheers: {
+    heading: 'Cheers',
+    subtitle: 'Anonymous cheers from everyone using My Brain. Posts disappear after 48 hours.',
+    didIt: 'I did it!',
+    stuck: "I'm stuck",
+    unstuck: 'I got unstuck!',
+    didItLabel: 'What did you do?',
+    didItHint: 'No names, nothing private. Everyone sees it, nobody sees who wrote it.',
+    left: (n: number) => (n === 1 ? '1 character left' : `${n} characters left`),
+    post: 'Post',
+    cancel: 'Cancel',
+    notAlone: 'You’re not the only one stuck today',
+    othersStuck: (n: number) => (n === 1 ? '1 other person is stuck today too.' : `${n} other people are stuck today too.`),
+    stuckLines: [
+      'Pick the smallest next step and do only that.',
+      'Set a timer for 5 minutes and start badly. Badly still counts.',
+      'Drink some water, stand up, and come back in a minute.',
+      'Being stuck isn’t failing. It’s a sign the next step is too big.',
+      'You only have to start. Finishing can wait.',
+      'Say out loud what you’re trying to do. It often shrinks.',
+    ],
+    breathe: 'Breathe for 5 minutes',
+    posted: 'Posted.',
+    empty: 'Nothing here yet. Be the first to cheer someone on.',
+    offline: 'Cheers needs the internet. You’re offline right now.',
+    loadFailed: 'Cheers didn’t load. Try again in a moment.',
+    retry: 'Try again',
+    refresh: 'Refresh',
+    limit: 'That’s 5 posts in a day. You can post again tomorrow.',
+    postFailed: 'That didn’t post. Try again when you’re online.',
+    reactFailed: 'That cheer didn’t go through. Try again.',
+    tooLong: 'Keep it to 140 characters.',
+    needText: 'Write what you did first.',
+    ago: {
+      now: 'Just now',
+      minutes: (n: number) => `${n} min ago`,
+      hours: (n: number) => `${n} h ago`,
+    },
+    /** The four reactions (SPEC §5 Cheers). */
+    reactions: { got_this: 'You’ve got this', proud: 'Proud of you', strength: 'Sending strength', celebrate: 'Celebrate' } as Record<string, string>,
+    reactionsLabel: 'Cheer them on',
+    reactWith: (name: string) => `Send ${name}`,
+    youSent: (name: string) => `You sent ${name}`,
+    countLabel: (name: string, n: number) => `${name}: ${n}`,
+    yourPost: 'Your post',
+    nobodyYet: 'No cheers yet. They’ll come.',
+    /** Placeholder smug lines after reacting; the user writes the real ones. */
+    afterReact: ['Cheer sent. Nobody knows it was you.'],
+    more: 'More for this post',
+    hide: 'Hide posts from this person',
+    hideConfirm: 'Hide posts from this person? You won’t see their posts again, and they’re never told.',
+    hideYes: 'Hide their posts',
+    hidden: 'Hidden. You won’t see their posts again.',
+    /** The bar offered at natural moments (SPEC §5 Cheers). */
+    offer: {
+      share: 'Share',
+      didIt: 'Share it in Cheers?',
+      unstuck: 'You got unstuck! Share it in Cheers?',
+    },
+    /** Suggested I did it! lines: from what I did, never using private titles. */
+    suggest: {
+      oldTask: (days: number) => `I completed a ${days}-day-old task`,
+      routine: 'I finished a routine!',
+      quest: 'I did a quest!',
+      ughQuest: 'I did an ugh quest!',
+      trophy: (name: string) => `I earned a trophy: ${name}!`,
+    },
+  },
   /** SPEC §5 Celebrations: messages after finishing something, badges, Trophies and the setting. Plain for now; the user writes the playful lines. */
   celebrations: {
     allHabits: 'Every habit done today. Past you would be proud.',
@@ -922,6 +996,9 @@ export const messages = {
       first_postit: 'You made your first Post It.',
       first_orphan: 'You sorted your first orphan.',
       first_shared_event: 'You made your first shared event.',
+      first_breathe: 'You finished your first Breathe.',
+      first_cheer_post: 'You posted to Cheers for the first time.',
+      first_cheer: 'You cheered someone on for the first time.',
     } as Record<string, string>,
     badges: {
       first_task: 'First task crossed off',
@@ -934,6 +1011,9 @@ export const messages = {
       first_postit: 'First Post It',
       first_orphan: 'First orphan sorted',
       first_shared_event: 'First shared event',
+      first_breathe: 'First Breathe',
+      first_cheer_post: 'First Cheers post',
+      first_cheer: 'First cheer',
     },
     trophies: {
       heading: 'Trophies',
@@ -973,6 +1053,7 @@ export const messages = {
         people: 'People',
         surprises: 'Surprises',
         anniversaries: 'Anniversaries',
+        cheering: 'Cheering others on',
       } as Record<string, string>,
       names: {
         habit_streak: 'Habit streak',
@@ -1015,6 +1096,12 @@ export const messages = {
         boundaries: 'Protecting your boundaries',
         healthy_brain: 'A healthy brain',
         anniversary: 'Anniversary',
+        breathing_days: 'Breathing days',
+        cheers_given: 'Cheers given',
+        cheer_days: 'Cheer days',
+        cheer_firsts: 'First to cheer',
+        cheer_unstuck: 'Got someone unstuck',
+        cheering_while_stuck: 'Cheering while stuck',
       } as Record<string, string>,
       about: {
         habit_streak: 'Keep one habit going on its days in a row.',
@@ -1053,6 +1140,11 @@ export const messages = {
         making_friends: 'Make 5 connections.',
         social_butterfly: 'Make 10 connections.',
         anniversary: 'Keep using My Brain.',
+        breathing_days: 'Finish a 5-minute Breathe on different days.',
+        cheers_given: 'Cheer people on in Cheers.',
+        cheer_days: 'Cheer someone on, on different days.',
+        cheer_firsts: 'Be the first to cheer on a post.',
+        cheer_unstuck: 'Cheer on someone who’s stuck, and they get unstuck.',
       } as Record<string, string>,
       levelsHeading: 'Levels',
       reached: (target: number, unit: 'days' | 'count' | 'hours' | 'words' | 'times') =>
@@ -1099,6 +1191,12 @@ export const messages = {
         boundaries: 'You blocked someone. Protecting your peace counts.',
         healthy_brain: 'You reached a week on every streak trophy.',
         anniversary: 'You kept using My Brain.',
+        breathing_days: 'You finished a 5-minute Breathe on different days.',
+        cheers_given: 'You cheered people on.',
+        cheer_days: 'You cheered someone on, on different days.',
+        cheer_firsts: 'You were the first to cheer on a post.',
+        cheer_unstuck: 'Someone you cheered on got unstuck.',
+        cheering_while_stuck: 'You cheered someone on, on a day you were stuck yourself.',
       } as Record<string, string>,
       /** SPEC §5 Dashboard: the trophy nearest its next level. */
       closeTo: (left: number, unit: 'days' | 'count' | 'hours' | 'words' | 'times', name: string) =>
@@ -1455,6 +1553,7 @@ export const messages = {
     quests: 'Quests',
     inbox: 'Orphans',
     connections: 'Connections',
+    cheers: 'Cheers',
     help: 'Help',
     more: 'More',
     closeMore: 'Close',

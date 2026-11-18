@@ -275,7 +275,7 @@ export const useBrainStore = defineStore('brain', () => {
     const logId = crypto.randomUUID()
     await e.save('quest_logs', { id: logId, user_id: uid, quest_id: quest.id, date: todayIn(timeZone, now), completed_at: now.toISOString(), deleted_at: null })
     await e.save('quests', done)
-    achieved({ kind: 'quest' })
+    achieved({ kind: 'quest', energy: quest.energy_level ?? null })
     return logId
   }
 
