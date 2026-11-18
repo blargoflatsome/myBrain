@@ -5,7 +5,8 @@
 
     <div v-if="cheers.draft === null" class="flex flex-wrap gap-2">
       <button type="button" :class="primaryButton" :disabled="!brain.online" data-testid="cheers-did-it" @click="startDidIt">{{ m.didIt }}</button>
-      <button type="button" :class="secondaryButton" :disabled="!brain.online || posting" data-testid="cheers-stuck" @click="postStuck">{{ m.stuck }}</button>
+      <button v-if="cheers.stuckToday()" type="button" :class="secondaryButton" :disabled="!brain.online || posting" data-testid="cheers-unstuck" @click="postUnstuck">{{ m.unstuck }}</button>
+      <button v-else type="button" :class="secondaryButton" :disabled="!brain.online || posting" data-testid="cheers-stuck" @click="postStuck">{{ m.stuck }}</button>
     </div>
 
     <form v-else :class="card" novalidate data-testid="did-it-form" @submit.prevent="postDidIt">
@@ -52,7 +53,7 @@
       <p v-if="loadFailed" class="text-sm text-danger" role="alert">{{ m.loadFailed }}</p>
       <p v-else-if="loaded && !posts.length" class="text-muted" data-testid="cheers-empty">{{ m.empty }}</p>
       <ul class="flex flex-col gap-3" data-testid="cheers-feed">
-        <CheerPostCard v-for="p in posts" :key="p.id" :post="p" :now="now" :busy="reacting === p.id" @react="react" @hide="askHide" />
+        <CheerPostCard v-for="p in posts" :key="p.id" :post="p" :now="now" :busy="reacting === p.id" @react="react" @unreact="unreact" @hide="askHide" />
       </ul>
     </section>
 
@@ -68,7 +69,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import CheerPostCard from '@/cheers/components/CheerPostCard.vue'
-import { cheerFeed, hideAuthor, postCheer, reactCheer, reasonOf, stuckCount, type CheerPost } from '@/cheers/cheers'
+import { cheerFeed, hideAuthor, postCheer, reactCheer, reasonOf, stuckCount, unreactCheer, type CheerPost } from '@/cheers/cheers'
 import { MAX_CHARS, pickOne, type Reaction } from '@/cheers/rules'
 import { useNow } from '@/composables/useNow'
 import { useBrainStore } from '@/stores/brain'
@@ -172,6 +173,23 @@ async function postStuck() {
   }
 }
 
+// While I'm stuck, I got unstuck! takes I'm stuck's place, so I can post it without waiting to be offered.
+async function postUnstuck() {
+  posting.value = true
+  postError.value = ''
+  try {
+    await postCheer('unstuck')
+    cheers.setStuck(false)
+    stuckPanel.value = null
+    celebrate.say(m.posted)
+    await load()
+  } catch (err) {
+    postError.value = failure(err)
+  } finally {
+    posting.value = false
+  }
+}
+
 // ---------- Reacting and hiding ----------
 const reacting = ref<string | null>(null)
 async function react(post: CheerPost, reaction: Reaction) {
@@ -183,6 +201,18 @@ async function react(post: CheerPost, reaction: Reaction) {
     celebrate.say(pickOne(m.afterReact))
     achieved({ kind: 'cheer' })
     void celebrate.refreshCounts().then(() => celebrate.checkTrophies())
+  } catch {
+    celebrate.say(m.reactFailed)
+  } finally {
+    reacting.value = null
+  }
+}
+
+async function unreact(post: CheerPost) {
+  reacting.value = post.id
+  try {
+    await unreactCheer(post.id)
+    post.my_reaction = null
   } catch {
     celebrate.say(m.reactFailed)
   } finally {

@@ -48,6 +48,14 @@ begin
   if ok then raise exception 'FAIL: Spec §5 Cheers: one reaction per person per post, final once picked'; end if;
   select my_reaction into f from public.cheer_feed() where id = bob_stuck;
   if f.my_reaction <> 'strength' then raise exception 'FAIL: Spec §5 Cheers: I see the one I picked'; end if;
+  -- Taking it back and picking again changes my pick but never counts twice.
+  perform public.unreact_cheer(bob_stuck);
+  select my_reaction into f from public.cheer_feed() where id = bob_stuck;
+  if f.my_reaction is not null then raise exception 'FAIL: Spec §5 Cheers: tapping my reaction again takes it back'; end if;
+  ok := public.react_cheer(bob_stuck, 'strength');
+  if not ok then raise exception 'FAIL: Spec §5 Cheers: after taking it back I can pick again'; end if;
+  select * into t from public.trophy_counts();
+  if t.cheers_given <> 1 or t.cheer_firsts <> 1 then raise exception 'FAIL: Spec §5 Trophies: picking again doesn''t count twice (got %)', row_to_json(t); end if;
   alice_post := public.post_cheer('did_it', 'Alice did a thing');
   begin
     perform public.react_cheer(alice_post, 'proud');

@@ -27,8 +27,10 @@ async function call<T>(fn: string, args: Record<string, unknown> = {}): Promise<
 
 export const cheerFeed = async () => (await call<CheerPost[] | null>('cheer_feed')) ?? []
 export const postCheer = (kind: CheerKind, body = '') => call<string>('post_cheer', { p_kind: kind, p_body: body })
-/** True if it was saved; false if I'd already reacted (reactions are final). */
+/** True if it was saved; false if I already have one (take it back first). */
 export const reactCheer = (post: string, reaction: Reaction) => call<boolean>('react_cheer', { post, p_reaction: reaction })
+/** Take my reaction back, so I can pick again (SPEC §5 Cheers). */
+export const unreactCheer = (post: string) => call<void>('unreact_cheer', { post })
 export const hideAuthor = (post: string) => call<void>('block_cheer_author', { post })
 export const stuckCount = async () => (await call<number | null>('cheer_stuck_count')) ?? 0
 export const amStuck = async () => !!(await call<boolean | null>('cheer_am_stuck'))

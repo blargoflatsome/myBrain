@@ -947,6 +947,7 @@ export const messages = {
     reactionsLabel: 'Cheer them on',
     reactWith: (name: string) => `Send ${name}`,
     youSent: (name: string) => `You sent ${name}`,
+    takeBack: (name: string) => `You sent ${name}. Tap to take it back`,
     countLabel: (name: string, n: number) => `${name}: ${n}`,
     yourPost: 'Your post',
     nobodyYet: 'No cheers yet. They’ll come.',

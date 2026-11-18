@@ -42,13 +42,30 @@ test.describe('Spec §5 Cheers', () => {
     await expect(mine.getByTestId('cheer-more')).toHaveCount(0)
   })
 
-  test('a reaction is one of four, final once picked, and only I see which one I sent', async ({ page }) => {
+  test('a reaction is one of four, and only I see which one I sent; tapping it again takes it back to pick again', async ({ page }) => {
     await page.goto('/cheers')
     const card = postCard(page, 0)
     await card.getByRole('button', { name: m.reactWith(m.reactions.strength!) }).click()
-    await expect(card.getByTestId('cheer-sent')).toHaveText(m.youSent(m.reactions.strength!))
+    const sent = card.getByTestId('cheer-sent')
+    await expect(sent).toHaveText(m.youSent(m.reactions.strength!))
     await expect(card.getByRole('button', { name: m.reactWith(m.reactions.proud!) })).toHaveCount(0)
     expect(server.rpcArgs.find((c) => c.name === 'react_cheer')?.args).toEqual({ post: 'p1', p_reaction: 'strength' })
+    // With the keyboard, so focus is checked too: it stays in the post when the button I pressed goes away.
+    await sent.focus()
+    await page.keyboard.press('Enter')
+    await expect(card.getByRole('button', { name: m.reactWith(m.reactions.got_this!) })).toBeFocused()
+    expect(server.rpcArgs.find((c) => c.name === 'unreact_cheer')?.args).toEqual({ post: 'p1' })
+    await card.getByRole('button', { name: m.reactWith(m.reactions.proud!) }).click()
+    await expect(sent).toHaveText(m.youSent(m.reactions.proud!))
+  })
+
+  test("while I'm stuck, I got unstuck! takes I'm stuck's place, so I can post it without being offered", async ({ page }) => {
+    server.rpcResults.cheer_am_stuck = true
+    server.rpcResults.post_cheer = 'new-post'
+    await page.goto('/cheers')
+    await page.getByTestId('cheers-unstuck').click()
+    await expect(page.getByTestId('cheers-stuck')).toBeVisible()
+    expect(server.rpcArgs.find((c) => c.name === 'post_cheer')?.args).toEqual({ p_kind: 'unstuck', p_body: '' })
   })
 
   test('I did it! posts my own words, up to 140 characters', async ({ page }) => {
