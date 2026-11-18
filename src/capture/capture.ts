@@ -1,5 +1,6 @@
 // Quick capture (SPEC §5): one thought, filed as a task, vault item, quest, habit, or saved to Orphans to decide later.
 import type { EnergyLevel, HabitRow, InboxRow, QuestRow, TaskRow, TimeBucket, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import { taskReminder } from '@/reminders/priority'
 import { newHabit } from '@/habits/rules'
 import { clampRating } from '@/vault/rules'
 import { deviceTimeZone } from '@/tasks/days'
@@ -23,6 +24,8 @@ export interface CaptureInput {
   dueDate?: string | null
   /** Task only. 1 Low (default), 2 Medium, 3 High. */
   priority?: number
+  /** Task only: 'HH:MM', kept only for a High task with a date (SPEC §5 High-priority tasks). */
+  reminderTime?: string | null
   /** Vault only. */
   bucketId?: string
   /** Vault only, optional (SPEC §5 Forms: the same form as the item editor). */
@@ -94,6 +97,7 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
           notes,
           due_date: input.dueDate || null,
           priority: input.priority ?? DEFAULT_TASK_PRIORITY,
+          reminder_time: taskReminder(input.priority ?? DEFAULT_TASK_PRIORITY, input.dueDate || null, input.reminderTime),
           status: 'open',
           source: 'capture',
         },

@@ -61,6 +61,7 @@ describe('Spec §5 Quick capture: choose the destination each time', () => {
         notes: null,
         due_date: null,
         priority: 1,
+        reminder_time: null,
         status: 'open',
         source: 'capture',
       },

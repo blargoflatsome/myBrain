@@ -9,7 +9,7 @@ declare
   t text;
   owned constant text[] := array[
     'profiles', 'tasks', 'vault_buckets', 'vault_items', 'quests', 'inbox', 'habits', 'habit_logs', 'routines',
-    'routine_steps', 'routine_runs', 'priority_tasks', 'reminder_state', 'push_subscriptions', 'journal_entries'
+    'routine_steps', 'routine_runs', 'reminder_state', 'push_subscriptions', 'journal_entries'
   ];
 begin
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
@@ -28,7 +28,6 @@ begin
     insert into public.routines (user_id, title) values (t::uuid, 'routine') returning id into r;
     insert into public.routine_steps (user_id, routine_id, position, title) values (t::uuid, r, 0, 'step');
     insert into public.routine_runs (user_id, routine_id, date, started_at) values (t::uuid, r, '2026-11-10', now());
-    insert into public.priority_tasks (user_id, title, reminder_time, due_date) values (t::uuid, 'meds', '08:00', '2026-11-10');
     insert into public.reminder_state (user_id, kind, item_id, date) values (t::uuid, 'habit', h, '2026-11-10');
     insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values (t::uuid, 'https://push.invalid/' || t, 'k', 'a');
     insert into public.journal_entries (user_id, date, body) values (t::uuid, '2026-11-10', 'diary');

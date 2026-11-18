@@ -24,13 +24,12 @@ test.beforeEach(async ({ page }) => {
 test.describe('Spec §5 Calendar', { tag: '@phone' }, () => {
   function seedCalendar() {
     server.seed('tasks', [{ id: 't1', title: 'Pay rent', due_date: '2026-11-10', priority: 3, status: 'open', source: 'manual' }])
-    server.seed('priority_tasks', [{ id: 'p1', title: 'Insulin', reminder_time: '12:00:00', due_date: null, weekdays: [1, 2, 3, 4, 5], start_date: '2026-11-01' }])
     server.seed('events', [
       { id: 'e1', title: 'Dentist', notes: null, start_date: '2026-11-10', start_time: '15:00:00', end_date: '2026-11-10', end_time: '16:00:00', repeat: 'never', reminder_minutes: 30 },
     ])
   }
 
-  test('the calendar shows dated tasks, priority tasks and my events, in month, week and day views', async ({ page }) => {
+  test('the calendar shows dated tasks and my events, in month, week and day views', async ({ page }) => {
     seedCalendar()
     await open(page, '/')
     await goTo(page, 'Calendar')
@@ -38,7 +37,6 @@ test.describe('Spec §5 Calendar', { tag: '@phone' }, () => {
       await page.getByRole('button', { name: view, exact: true }).click()
       const cal = page.locator('.cal-wrap')
       await expect(cal.getByText('Pay rent')).toBeVisible()
-      await expect(cal.getByText('Insulin').first()).toBeVisible()
       await expect(cal.getByText('Dentist')).toBeVisible()
     }
     await expect(page.getByTestId('calendar-title')).toHaveText('November 10, 2026')

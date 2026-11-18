@@ -38,7 +38,7 @@ describe('Spec §5 Calendar: events repeat', () => {
     expect(eventProblem({ ...newEvent(UID, '2026-11-10', '15:00', 'x'), title: 'a' })).toBeNull()
   })
 
-  it('the calendar shows dated tasks (priority colour), priority tasks at their time, and events', () => {
+  it('the calendar shows dated tasks (priority colour) and events', () => {
     const items = calendarItems(
       {
         tasks: [
@@ -46,7 +46,6 @@ describe('Spec §5 Calendar: events repeat', () => {
           { id: 't2', title: 'Undated', due_date: null, status: 'open', source: 'manual', deleted_at: null },
           { id: 't3', title: 'Cancelled', due_date: '2026-11-10', status: 'cancelled', source: 'manual', deleted_at: null },
         ],
-        priorityTasks: [{ id: 'p1', title: 'Insulin', reminder_time: '12:00:00', due_date: null, weekdays: [2], start_date: '2026-11-01', deleted_at: null }],
         events: [{ ...e('weekly'), title: 'Standup' }],
       },
       '2026-11-09',
@@ -54,7 +53,6 @@ describe('Spec §5 Calendar: events repeat', () => {
     )
     expect(items.map((i) => [i.title, i.start, i.allDay])).toEqual([
       ['‼ Pay rent', '2026-11-10', true],
-      ['Priority: Insulin', '2026-11-10T12:00', false],
       ['Standup', '2026-11-10T15:00', false],
     ])
     expect(items[0]!.className).toContain('cal-high')

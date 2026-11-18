@@ -50,8 +50,6 @@ export function trophyActions({ ready, badgesReady }: ActionContext) {
       questLogs: 'quest_logs',
       vaultItems: 'vault_items',
       vaultBuckets: 'vault_buckets',
-      priorityTasks: 'priority_tasks',
-      priorityLogs: 'priority_task_logs',
       events: 'events',
       invites: 'event_invites',
       activity: 'activity_log',

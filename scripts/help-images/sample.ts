@@ -15,7 +15,7 @@ export function seedSample(server: FakeSupabase) {
   // Celebrations off, so no pop-up covers the picture.
   server.setProfile({ display_name: 'Sam Rivera', timezone: 'America/New_York', celebrations: 'off' })
   server.seed('tasks', [
-    { id: 't1', title: 'Pay rent', notes: 'Before 5 pm', due_date: DAY, priority: 3, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:01Z' },
+    { id: 't1', title: 'Pay rent', notes: 'Before 5 pm', due_date: DAY, priority: 3, reminder_time: '18:30', status: 'open', source: 'manual', created_at: '2026-11-01T00:00:01Z' },
     { id: 't2', title: 'Email Jo about Saturday', notes: null, due_date: DAY, priority: 2, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:02Z' },
     { id: 't3', title: 'Pick up the prescription', notes: null, due_date: DAY, priority: 2, status: 'done', completed_at: '2026-11-10T13:20:00Z', source: 'manual', created_at: '2026-11-01T00:00:03Z' },
     { id: 't4', title: 'Return the library books', notes: null, due_date: '2026-11-08', priority: 1, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:04Z' },
@@ -33,9 +33,6 @@ export function seedSample(server: FakeSupabase) {
     { id: '00000002-0000-4000-8000-000000000002', routine_id: ROUTINE, position: 1, title: 'Shower', start_date: '2026-10-01' },
     { id: '00000003-0000-4000-8000-000000000003', routine_id: ROUTINE, position: 2, title: 'Pack lunch', start_date: '2026-10-01' },
     { id: '00000004-0000-4000-8000-000000000004', routine_id: ROUTINE, position: 3, title: 'Keys, wallet, phone', start_date: '2026-10-01' },
-  ])
-  server.seed('priority_tasks', [
-    { id: 'pt1', title: 'Insulin', description: 'With dinner', reminder_time: '18:30', due_date: DAY, weekdays: null, start_date: DAY },
   ])
   server.seed('quests', [
     { id: 'q1', title: 'Repot the basil', details: 'The pot is under the sink', energy_level: 'ugh', time_bucket: '30m', status: 'open' },

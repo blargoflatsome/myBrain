@@ -52,20 +52,11 @@ test.describe('SPEC §2 Rows look alike: the title edits, the trash can deletes'
       label: msg.routines.deleteLabel('Morning'),
       heading: msg.routines.confirmDelete.heading,
     },
-    {
-      what: 'a priority task',
-      path: '/tasks',
-      table: 'priority_tasks',
-      seed: { id: 'p1', title: 'Take meds', reminder_time: '20:00', due_date: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-10' },
-      label: msg.priority.deleteLabel('Take meds'),
-      heading: msg.priority.confirmDelete.heading,
-    },
   ]
   for (const c of askFirst) {
     test(`${c.what} row: the trash can asks first, then deletes it`, async ({ page }) => {
       server.seed(c.table, [c.seed])
       await open(page, c.path)
-      if (c.table === 'priority_tasks') await page.getByRole('tab', { name: msg.priority.tabHeading }).click()
       await page.getByRole('button', { name: c.label }).click()
       const confirm = page.getByRole('alertdialog', { name: c.heading })
       await confirm.getByRole('button', { name: msg.habits.confirmDelete.keep }).click()

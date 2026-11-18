@@ -16,8 +16,6 @@ export const SYNC_TABLES = [
   'routine_steps',
   'routine_runs',
   'routine_step_logs',
-  'priority_tasks',
-  'priority_task_logs',
   'reminder_state',
   'journal_entries',
   'events',
@@ -58,6 +56,8 @@ export interface TaskRow extends BaseRow {
   /** Cleared from the list after being crossed off (SPEC §5 Tasks); still counted in stats. */
   cleared_at?: string | null
   source: 'manual' | 'capture' | 'journal'
+  /** 'HH:MM' local time: the full-screen reminder, for High tasks with a date only (SPEC §5 High-priority tasks). */
+  reminder_time?: string | null
 }
 
 /** A notification sent today, for the Dashboard's list (SPEC §5 Dashboard). Written by the server; I can clear it. */
@@ -294,27 +294,8 @@ export interface RoutineStepLogRow extends BaseRow {
   logged_at: string
 }
 
-export interface PriorityTaskRow extends BaseRow {
-  /** 1 = every week, 2 = every 2 weeks (counted from the week it started). */
-  week_interval?: number
-  title: string
-  description?: string | null
-  /** 'HH:MM' local time. */
-  reminder_time: string
-  /** One-off: the date. Repeating: null, and weekdays set. */
-  due_date: string | null
-  weekdays: number[] | null
-  start_date: string
-}
-
-export interface PriorityTaskLogRow extends BaseRow {
-  task_id: string
-  date: string
-  completed_at: string
-}
-
 export interface ReminderStateRow extends BaseRow {
-  kind: 'habit' | 'routine' | 'priority_task' | 'evening' | 'event'
+  kind: 'habit' | 'routine' | 'task' | 'evening' | 'event'
   item_id: string
   date: string
   snoozed_until?: string | null
@@ -389,8 +370,6 @@ export interface RowTypes {
   routine_steps: RoutineStepRow
   routine_runs: RoutineRunRow
   routine_step_logs: RoutineStepLogRow
-  priority_tasks: PriorityTaskRow
-  priority_task_logs: PriorityTaskLogRow
   reminder_state: ReminderStateRow
   journal_entries: JournalEntryRow
   journal_keys: JournalKeyRow

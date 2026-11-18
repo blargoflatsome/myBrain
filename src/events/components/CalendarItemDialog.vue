@@ -37,20 +37,19 @@
 </template>
 
 <script setup lang="ts">
-// SPEC §5 Calendar: tapping a task, priority task or event of mine opens it here, read-only, over the calendar;
+// SPEC §5 Calendar: tapping a task or event of mine opens it here, read-only, over the calendar;
 // Edit opens its editor, still on the calendar.
 import { computed, ref, watch } from 'vue'
 import CloseX from '@/components/CloseX.vue'
 import RichNotes from '@/components/RichNotes.vue'
 import { messages } from '@/messages'
-import type { EventRow, PriorityTaskRow, TaskRow } from '@/sync/types'
+import type { EventRow, TaskRow } from '@/sync/types'
 import { DEFAULT_PRIORITY, PRIORITIES } from '@/tasks/rules'
 import { dayLabel, dayTimeLabel, timeLabel } from '@/ui/dates'
 import { dialogBox, primaryButton, priorityDot, secondaryButton } from '@/ui/styles'
 
 export type CalendarView =
   | { kind: 'task'; title: string; date: string; row: TaskRow }
-  | { kind: 'priority_task'; title: string; date: string; row: PriorityTaskRow }
   | { kind: 'event'; title: string; date: string; row: EventRow }
 
 const props = defineProps<{ item: CalendarView | null }>()
@@ -58,7 +57,6 @@ const emit = defineEmits<{ edit: [CalendarView]; close: [] }>()
 const m = messages.calendar.view
 const cal = messages.calendar
 const t = messages.tasks
-const dayNames = messages.habits.weekdayNames
 const dot = priorityDot
 
 const dialog = ref<HTMLDialogElement | null>(null)
@@ -78,13 +76,13 @@ const struck = computed(() => (props.item?.kind === 'task' && props.item.row.sta
 const notes = computed(() => {
   const i = props.item
   if (!i) return null
-  return i.kind === 'task' ? i.row.notes : i.kind === 'event' ? i.row.notes : i.row.description
+  return i.row.notes
 })
 const when = computed(() => {
   const i = props.item
   if (!i) return ''
-  if (i.kind === 'task') return dayLabel(i.date)
-  if (i.kind === 'priority_task') return dayTimeLabel(i.date, i.row.reminder_time)
+  // A High task's reminder time shows with its day (SPEC §5 High-priority tasks).
+  if (i.kind === 'task') return i.row.reminder_time ? dayTimeLabel(i.date, i.row.reminder_time) : dayLabel(i.date)
   const e = i.row
   // A repeating event shows the day that was tapped.
   const end = e.end_date === e.start_date ? e.end_time && timeLabel(e.end_time) : dayTimeLabel(e.end_date, e.end_time)
@@ -95,10 +93,6 @@ const when = computed(() => {
 const repeatText = computed(() => {
   const i = props.item
   if (i?.kind === 'event') return i.row.repeat === 'never' ? '' : cal.repeat[i.row.repeat]
-  if (i?.kind === 'priority_task' && !i.row.due_date) {
-    const days = (i.row.weekdays ?? []).map((d) => dayNames[d]).join(' ')
-    return i.row.week_interval === 2 ? `${days}, ${messages.howOften.biweekly.toLowerCase()}` : days
-  }
   return ''
 })
 </script>

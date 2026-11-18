@@ -196,7 +196,7 @@ export const useBrainStore = defineStore('brain', () => {
   const tags = tagActions(ctx)
   const trophies = trophyActions(ctx)
   const vault = vaultActions(ctx)
-  const priority = priorityActions(ctx, habits.toggleHabit)
+  const priority = priorityActions(ctx, habits.toggleHabit, saveTask)
 
   // ---------- Capture, tasks and quests (SPEC §5 Quick capture, Tasks, Random Quest) ----------
   /** Save a captured thought. Resolves once it is stored on this device, online or not. */

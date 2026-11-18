@@ -26,7 +26,7 @@ const KEEP_DELETED_MS = 30 * 86_400_000
  * Tables whose deleted rows nothing reads. Others stay: trophies and Dashboard stats count deleted tasks, habits,
  * events, Vault items and quests ("events I deleted", "tasks created").
  */
-const PURGEABLE = ['notifications', 'habit_logs', 'item_tags', 'post_its', 'inbox', 'people', 'priority_task_logs', 'quest_logs'] as const satisfies readonly SyncTable[]
+const PURGEABLE = ['notifications', 'habit_logs', 'item_tags', 'post_its', 'inbox', 'people', 'quest_logs'] as const satisfies readonly SyncTable[]
 
 export class SyncEngine {
   private flushing: Promise<void> | null = null

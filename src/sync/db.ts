@@ -37,8 +37,6 @@ export class LocalDb extends Dexie {
   routine_steps!: Table<RowTypes['routine_steps'], string>
   routine_runs!: Table<RowTypes['routine_runs'], string>
   routine_step_logs!: Table<RowTypes['routine_step_logs'], string>
-  priority_tasks!: Table<RowTypes['priority_tasks'], string>
-  priority_task_logs!: Table<RowTypes['priority_task_logs'], string>
   quest_logs!: Table<RowTypes['quest_logs'], string>
   badges!: Table<RowTypes['badges'], string>
   habit_pauses!: Table<RowTypes['habit_pauses'], string>
@@ -145,6 +143,15 @@ export class LocalDb extends Dexie {
       journal_passkeys: 'id, updated_at',
       secrets: 'key',
     })
+    // Priority tasks were merged into High tasks and their tables dropped on the server (SPEC §5, 2026-11-18): remove
+    // them here, with their waiting uploads and reminder states, so nothing tries to upload to a table that's gone.
+    this.version(17)
+      .stores({ priority_tasks: null, priority_task_logs: null })
+      .upgrade(async (tx) => {
+        await tx.table('outbox').where('table').anyOf('priority_tasks', 'priority_task_logs').delete()
+        await tx.table('reminder_state').filter((row: { kind: string }) => row.kind === 'priority_task').delete()
+        await tx.table('outbox').where('table').equals('reminder_state').filter((entry: { row: { kind: string } }) => entry.row.kind === 'priority_task').delete()
+      })
   }
 
   rows<T extends SyncTable>(table: T): Table<RowTypes[T], string> {

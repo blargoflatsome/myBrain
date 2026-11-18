@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { HabitLogRow, HabitRow, PriorityTaskRow, ReminderStateRow } from '@/sync/types'
+import type { HabitLogRow, HabitRow, ReminderStateRow, TaskRow } from '@/sync/types'
 import { cancelState, duePriorities, reminderStateId, snoozeState } from '@/reminders/priority'
 
 const NY = 'America/New_York'
@@ -13,19 +13,20 @@ const meds: HabitRow = {
   is_priority: true,
   deleted_at: null,
 }
-const task: PriorityTaskRow = {
+const task: TaskRow = {
   id: 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',
   title: 'Insulin before lunch',
-  description: 'Fridge, top shelf',
+  notes: 'Fridge, top shelf',
+  priority: 3,
   reminder_time: '12:00',
-  due_date: null,
-  weekdays: [1, 2, 3, 4, 5],
-  start_date: '2026-11-01',
+  due_date: '2026-11-10',
+  status: 'open',
+  source: 'manual',
   deleted_at: null,
 }
 const at = (iso: string) => new Date(iso)
-const due = (now: Date, extra: { logs?: HabitLogRow[]; states?: ReminderStateRow[]; habits?: HabitRow[]; tasks?: PriorityTaskRow[] } = {}) =>
-  duePriorities(extra.habits ?? [meds], extra.logs ?? [], extra.tasks ?? [task], [], extra.states ?? [], now, NY)
+const due = (now: Date, extra: { logs?: HabitLogRow[]; states?: ReminderStateRow[]; habits?: HabitRow[]; tasks?: TaskRow[] } = {}) =>
+  duePriorities(extra.habits ?? [meds], extra.logs ?? [], extra.tasks ?? [task], extra.states ?? [], now, NY)
 
 describe('Spec §5: priority habits get the full-screen reminder at their reminder time', () => {
   it('is not due before 8:00 am and is due after', () => {
@@ -43,16 +44,20 @@ describe('Spec §5: priority habits get the full-screen reminder at their remind
   })
 })
 
-describe('Spec §5: priority tasks, one-off or on chosen weekdays', () => {
-  it('a weekday task is due on Tuesday at noon but not on Saturday', () => {
-    expect(due(at('2026-11-10T17:01:00Z'), { habits: [] }).map((d) => d.title)).toEqual(['Insulin before lunch'])
-    expect(due(at('2026-11-14T17:01:00Z'), { habits: [] })).toEqual([])
+describe('Spec §5 High-priority tasks: a High task with a reminder gets the full-screen reminder', () => {
+  const titles = (now: Date, tasks: TaskRow[]) => due(now, { habits: [], tasks }).map((d) => d.title)
+
+  it('at its time on its day, and each later day while it carries over, until it is crossed off', () => {
+    expect(titles(at('2026-11-10T16:59:00Z'), [task])).toEqual([]) // 11:59 am
+    expect(titles(at('2026-11-10T17:01:00Z'), [task])).toEqual(['Insulin before lunch'])
+    expect(titles(at('2026-11-09T17:01:00Z'), [task])).toEqual([]) // the day before
+    expect(titles(at('2026-11-12T17:01:00Z'), [task])).toEqual(['Insulin before lunch']) // carried over
+    expect(titles(at('2026-11-10T17:01:00Z'), [{ ...task, status: 'done' }])).toEqual([])
   })
 
-  it('a one-off task is due only on its date', () => {
-    const once = { ...task, due_date: '2026-11-12', weekdays: null }
-    expect(due(at('2026-11-12T17:01:00Z'), { habits: [], tasks: [once] })).toHaveLength(1)
-    expect(due(at('2026-11-13T17:01:00Z'), { habits: [], tasks: [once] })).toHaveLength(0)
+  it('only High tasks with a reminder time', () => {
+    expect(titles(at('2026-11-10T17:01:00Z'), [{ ...task, priority: 2 }])).toEqual([])
+    expect(titles(at('2026-11-10T17:01:00Z'), [{ ...task, reminder_time: null }])).toEqual([])
   })
 })
 

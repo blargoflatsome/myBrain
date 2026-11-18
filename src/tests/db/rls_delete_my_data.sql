@@ -11,7 +11,7 @@ declare
   n int;
   t text;
   wiped constant text[] := array['tasks', 'inbox', 'quests', 'vault_items', 'journal_entries', 'habits', 'habit_logs',
-    'routines', 'routine_steps', 'routine_runs', 'priority_tasks', 'reminder_state', 'tags', 'item_tags'];
+    'routines', 'routine_steps', 'routine_runs', 'reminder_state', 'tags', 'item_tags'];
 begin
   insert into auth.users (id, email, raw_user_meta_data, aud, role) values
     (alice, 'alice@test.invalid', '{}', 'authenticated', 'authenticated'),
@@ -29,7 +29,6 @@ begin
     insert into public.routines (user_id, title) values (t::uuid, 'routine') returning id into r;
     insert into public.routine_steps (user_id, routine_id, position, title) values (t::uuid, r, 0, 'step');
     insert into public.routine_runs (user_id, routine_id, date, started_at) values (t::uuid, r, '2026-11-10', now());
-    insert into public.priority_tasks (user_id, title, reminder_time, due_date) values (t::uuid, 'meds', '08:00', '2026-11-10');
     insert into public.reminder_state (user_id, kind, item_id, date) values (t::uuid, 'habit', h, '2026-11-10');
     insert into public.tags (user_id, name) values (t::uuid, 'work');
     insert into public.item_tags (user_id, tag_id, item_type, item_id) select t::uuid, g.id, 'task', h from public.tags g where g.user_id = t::uuid;
@@ -104,7 +103,7 @@ begin
   if n <> 0 then raise exception 'FAIL: Spec §8 Delete my data: ticked parts are deleted (habits)'; end if;
   select count(*) into n from public.reminder_state where user_id = bob and kind = 'habit';
   if n <> 0 then raise exception 'FAIL: Spec §8 Delete my data: a deleted habit''s reminder state goes too'; end if;
-  foreach t in array array['tags', 'journal_entries', 'quests', 'inbox', 'routines', 'priority_tasks'] loop
+  foreach t in array array['tags', 'journal_entries', 'quests', 'inbox', 'routines'] loop
     execute format('select count(*) from public.%I where user_id = $1', t) into n using bob;
     if n = 0 then raise exception 'FAIL: Spec §8 Delete my data: unticked parts are kept (% emptied)', t; end if;
   end loop;

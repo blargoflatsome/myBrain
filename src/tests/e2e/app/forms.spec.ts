@@ -77,12 +77,6 @@ test.describe('Spec §5 Forms: optional details in More details, formatted notes
     await expect(routine.getByRole('combobox', { name: msg.tags.add })).toBeVisible()
     await expect(routine.getByText(msg.forms.moreOptions)).toHaveCount(0)
 
-    await open(page, '/tasks')
-    await page.getByRole('tab', { name: msg.journal.priority }).click()
-    await page.getByRole('button', { name: msg.priority.add }).click()
-    const priority = page.getByRole('dialog', { name: msg.priority.editor.newHeading })
-    await expect(priority.getByRole('textbox', { name: msg.capture.detailsLabel })).toBeVisible()
-    await expect(priority.getByText(msg.forms.moreOptions)).toHaveCount(0)
   })
 
   test('Capture: a quest shows energy, time and details in view (no More details)', async ({ page }) => {
@@ -112,18 +106,6 @@ test.describe('Spec §5 Forms: an open fold-out stands out', () => {
     await page.getByTestId('account-group-reminders').evaluate((el) => ((el as HTMLDetailsElement).open = false))
     expect(await inner.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(outer)
     await expect.poll(() => inner.locator('svg').evaluate((el) => getComputedStyle(el).rotate)).not.toBe('180deg')
-  })
-})
-
-test.describe('Spec §5 Forms: + New is in the page heading', () => {
-  test('the Tasks page Priority tab puts New priority task in the heading, where New task is', async ({ page }) => {
-    await open(page, '/tasks')
-    const heading = page.getByRole('heading', { name: msg.tasks.heading, level: 1 }).locator('..')
-    await expect(heading.getByTestId('new-task')).toBeVisible()
-    await page.getByRole('tab', { name: msg.journal.priority }).click()
-    await expect(heading.getByTestId('new-priority')).toBeVisible()
-    await heading.getByTestId('new-priority').click()
-    await expect(page.getByRole('dialog', { name: msg.priority.editor.newHeading })).toBeVisible()
   })
 })
 

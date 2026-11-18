@@ -116,43 +116,14 @@ test.describe('UI consistency (feedback, 2026-11-10)', () => {
     await expect(dialog.getByRole('group', { name: msg.forms.reminders })).toHaveCount(0)
   })
 
-  test('every task row ends in the same trash can, and its title opens the editor: today, Undated and Priority', async ({ page }) => {
+  test('every task row ends in the same trash can, and its title opens the editor: today and Undated', async ({ page }) => {
     server.seed('tasks', [task('t1', 'pay rent'), task('t2', 'someday', { due_date: null })])
-    server.seed('priority_tasks', [{ id: 'p1', title: 'Insulin', description: null, reminder_time: '20:00', due_date: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01' }])
     await open(page, '/tasks')
     await expect(page.getByRole('button', { name: msg.tasks.deleteLabel('pay rent') })).toBeVisible()
     await page.getByRole('tab', { name: msg.tasks.undatedHeading }).click()
     await expect(page.getByRole('button', { name: msg.tasks.deleteLabel('someday') })).toBeVisible()
-    await page.getByRole('tab', { name: msg.journal.priority }).click()
-    await expect(page.getByRole('button', { name: msg.priority.deleteLabel('Insulin') })).toBeVisible()
-    await page.getByText('Insulin').click()
-    await expect(page.getByRole('dialog', { name: msg.priority.editor.heading })).toBeVisible()
-  })
-
-  test('a new priority task with every default does not go off straight away', async ({ page }) => {
-    await open(page, '/tasks')
-    await page.getByRole('tab', { name: msg.journal.priority }).click()
-    await page.getByRole('button', { name: msg.priority.add }).click()
-    const dialog = page.getByRole('dialog', { name: msg.priority.editor.newHeading })
-    await dialog.getByLabel(msg.capture.titleLabel).fill('Check the oven')
-    await dialog.getByRole('button', { name: msg.priority.editor.save }).click()
-    await expect(dialog).toBeHidden()
-    await expect.poll(() => server.written('priority_tasks').at(-1)).toMatchObject({ title: 'Check the oven', reminder_time: '10:00', start_date: DAY })
-    await expect(page.getByRole('alertdialog', { name: msg.priority.overlayLabel })).toHaveCount(0)
-  })
-
-  test('a one-off priority task in the past is refused', async ({ page }) => {
-    await open(page, '/tasks')
-    await page.getByRole('tab', { name: msg.journal.priority }).click()
-    await page.getByRole('button', { name: msg.priority.add }).click()
-    const dialog = page.getByRole('dialog', { name: msg.priority.editor.newHeading })
-    await dialog.getByLabel(msg.capture.titleLabel).fill('Too late')
-    await dialog.getByLabel(msg.priority.editor.time).fill('08:00')
-    await dialog.getByRole('group', { name: msg.calendar.view.when }).getByRole('button', { name: msg.priority.editor.once }).click()
-    await dialog.getByLabel(msg.priority.editor.date).fill(DAY)
-    await dialog.getByRole('button', { name: msg.priority.editor.save }).click()
-    await expect(dialog.getByRole('alert')).toHaveText(msg.priority.editor.pastError)
-    expect(server.written('priority_tasks')).toHaveLength(0)
+    await page.getByText('someday').click()
+    await expect(page.getByRole('dialog', { name: msg.tasks.editor.heading })).toBeVisible()
   })
 
   test('Vault item editor: bucket and notes in view, rating and link in More details, as in Capture', async ({ page }) => {

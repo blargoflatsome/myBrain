@@ -9,6 +9,8 @@ export const PRIORITIES = [
 ] as const
 export type PriorityKey = (typeof PRIORITIES)[number]['key']
 export const DEFAULT_PRIORITY = 1
+/** A High task is a priority task (SPEC §5 High-priority tasks, 2026-11-18). */
+export const HIGH = 3
 
 export function priorityKey(level: number | undefined): PriorityKey {
   return PRIORITIES.find((p) => p.level === level)?.key ?? 'low'
@@ -79,9 +81,12 @@ export function cancelTask(task: TaskRow): TaskRow {
   return { ...task, status: 'cancelled' }
 }
 
-/** The task moved to another day, or to Undated with null; its carry-over starts again from the new day. */
+/**
+ * The task moved to another day, or to Undated with null; its carry-over starts again from the new day. A reminder
+ * needs a date, so moving to Undated clears it (SPEC §5 High-priority tasks).
+ */
 export function moveTask(task: TaskRow, dueDate: string | null): TaskRow {
-  return { ...task, due_date: dueDate }
+  return { ...task, due_date: dueDate, ...(dueDate ? {} : { reminder_time: null }) }
 }
 
 /** Pick 3 (SPEC §5 Tasks): the first 3 open tasks of a list in its order, and everything else. */

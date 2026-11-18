@@ -14,6 +14,8 @@ begin
     (carol, 'carol@test.invalid', '{}', 'authenticated', 'authenticated');
   select count(*) into n from public.profiles where user_id = alice and focus_room;
   if n <> 1 then raise exception 'FAIL: Spec §4: Show me in the focus room is on by default'; end if;
+  -- Start from an empty room: real people may be focusing on this database (rolled back like everything here).
+  delete from public.focus_presence;
   execute 'set local role authenticated';
 
   -- Alice is alone: the room is empty, never faked, and it doesn't count as together.

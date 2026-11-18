@@ -34,7 +34,7 @@ export const SHOTS: Shot[] = [
   { name: 'help-capture', path: '/tasks', ready: waitFor('Pay rent'), ring: (p) => p.getByTestId('capture-button') },
   { name: 'help-orphans', path: '/orphans', ready: waitFor('Call the dentist'), ring: (p) => p.getByRole('button', { name: 'Task', exact: true }).locator('..') },
   { name: 'help-tasks', path: '/tasks', ready: waitFor('Pay rent'), ring: (p) => p.getByPlaceholder(msg.tasks.addPlaceholder('today')) },
-  { name: 'help-priority', path: '/tasks', ready: async (p) => { await p.getByRole('tab', { name: msg.priority.tabHeading }).click(); await p.getByText('Insulin').first().waitFor() }, ring: (p) => p.getByRole('tab', { name: msg.priority.tabHeading }) },
+  { name: 'help-priority', path: '/tasks', ready: waitFor('Pay rent'), ring: (p) => p.getByTestId('task-t1').getByTestId('task-priority') },
   { name: 'help-habits', path: '/habits', ready: waitFor('Take meds'), ring: (p) => p.getByRole('button', { name: 'Mark Take meds done' }) },
   { name: 'help-routines', path: '/routines', ready: waitFor('Morning'), ring: (p) => p.getByRole('button', { name: msg.routines.start }).first() },
   { name: 'help-calendar', path: '/calendar', ready: waitFor('November 2026'), ring: (p) => p.getByRole('button', { name: msg.calendar.newEvent }) },

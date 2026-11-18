@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { EventRow, HabitLogRow, HabitRow, PriorityTaskRow, RoutineRow, TaskRow } from '@/sync/types'
+import type { EventRow, HabitLogRow, HabitRow, RoutineRow, TaskRow } from '@/sync/types'
 import { skippedToday, upNext, type UpNextData } from '@/dashboard/upNext'
 import { closestTrophy, type BoardItem } from '@/trophies/board'
 import { yesterdayLeftovers } from '@/dashboard/stats'
@@ -11,7 +11,7 @@ const at = (hhmm: string) => new Date(`${TODAY}T${hhmm}:00-05:00`)
 
 const empty = (): UpNextData => ({
   tasks: [], habits: [], habitLogs: [], habitPauses: [], routines: [], routineSteps: [], routineRuns: [], routineStepLogs: [],
-  priorityTasks: [], priorityTaskLogs: [], quests: [], questLogs: [], events: [], invites: [], inbox: [], journal: [], me: 'me',
+  quests: [], questLogs: [], events: [], invites: [], inbox: [], journal: [], me: 'me',
 })
 const habit = (id: string, extra: Partial<HabitRow> = {}): HabitRow => ({
   id, title: id, notify_time: null, timer_minutes: null, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', current_streak: 0, best_streak: 0, deleted_at: null, ...extra,
@@ -22,19 +22,17 @@ const routine = (id: string, extra: Partial<RoutineRow> = {}): RoutineRow => ({ 
 const event = (id: string, start: string, extra: Partial<EventRow> = {}): EventRow => ({
   id, title: id, start_date: TODAY, start_time: start, end_date: TODAY, end_time: '23:00', repeat: 'never', reminder_minutes: null, user_id: 'me', deleted_at: null, ...extra,
 })
-const priorityTask = (id: string, time: string): PriorityTaskRow => ({ id, title: id, reminder_time: time, due_date: TODAY, weekdays: null, start_date: TODAY, deleted_at: null })
 const keys = (data: UpNextData, now: Date, journalTime: string | null = null) => upNext(data, now, TZ, journalTime).map((s) => s.key)
 
 describe('SPEC §5 Dashboard Up next: what comes first', () => {
   it('priority items, then habits due soon, routines, events soon, stuck tasks, tasks, Orphans, then the journal', () => {
     const d = empty()
     d.habits = [habit('meds', { is_priority: true, notify_time: '21:00' }), habit('stretch', { notify_time: '20:00', timer_minutes: 60 }), habit('later')]
-    d.priorityTasks = [priorityTask('pills', '20:00')]
     d.routines = [routine('night', { notify_time: '20:00' })]
     d.events = [event('call', '21:30')]
-    d.tasks = [task('rent', { priority: 3 }), task('old', { due_date: '2026-11-07' })]
+    d.tasks = [task('pills', { priority: 3, reminder_time: '20:00' }), task('rent', { priority: 3 }), task('old', { due_date: '2026-11-07' })]
     d.inbox = [{ id: 'o1', body: 'idea', deleted_at: null }]
-    expect(keys(d, at('20:30'))).toEqual(['priority:pills', 'habit:meds', 'habit:stretch', 'routine:night', 'event:call', 'task:old', 'task:rent', 'orphans', 'journal'])
+    expect(keys(d, at('20:30'))).toEqual(['task:pills', 'habit:meds', 'habit:stretch', 'routine:night', 'event:call', 'task:old', 'task:rent', 'orphans', 'journal'])
   })
 
   it('nothing to do gives an empty list (Past you cleared the decks)', () => {
