@@ -23,7 +23,9 @@ test.beforeEach(async ({ page }) => {
 test.describe('Spec §5 Focus timer', { tag: '@phone' }, () => {
   async function openTimer(page: Page) {
     await page.getByTestId('focus-open').locator('visible=true').click()
-    return page.getByRole('dialog', { name: msg.focus.menu })
+    const timer = page.getByRole('dialog', { name: msg.focus.menu })
+    await timer.getByTestId('focus-start').click()
+    return timer
   }
 
   test('full screen: the time counting down and what to do; it moves on to a short break', async ({ page }) => {
@@ -75,3 +77,64 @@ test.describe('Spec §5 Focus timer', { tag: '@phone' }, () => {
   })
 })
 
+
+test.describe('Spec §5 Focus timer: waves and the quiet room', () => {
+  const dot = (id: string, secondsLeft: number) => ({ id, s: secondsLeft })
+
+  test('Start now is the main button; Join the :30 wave says when and how many join, then starts work on the wave', async ({ page }) => {
+    server.rpcResults.focus_room = { dots: [], joining: 9, together: false }
+    await open(page, '/')
+    await page.getByTestId('focus-open').locator('visible=true').click()
+    const timer = page.getByRole('dialog', { name: msg.focus.menu })
+    await expect(timer.getByTestId('focus-start')).toBeFocused()
+    // 14:20 UTC: the next wave is :30, in 10 minutes.
+    await expect(timer.getByTestId('focus-wave-when')).toHaveText(msg.focus.waveWhen(10, 9))
+    await timer.getByTestId('focus-join-wave').click()
+    await expect(timer.getByTestId('focus-phase')).toHaveText(msg.focus.waitingFor(':30'))
+    await page.clock.runFor(10 * 60_000 + 1000)
+    await expect(timer.getByTestId('focus-phase')).toHaveText(msg.focus.phase.work)
+    await expect(timer.getByTestId('focus-time')).toHaveText(/^2[45]:\d\d$/)
+    await expect(timer.getByTestId('focus-sync')).toHaveCount(0)
+  })
+
+  test('off the wave, Sync with the next wave lines it up', async ({ page }) => {
+    await open(page, '/')
+    await page.getByTestId('focus-open').locator('visible=true').click()
+    const timer = page.getByRole('dialog', { name: msg.focus.menu })
+    await timer.getByTestId('focus-start').click()
+    await timer.getByTestId('focus-sync').click()
+    await expect(timer.getByTestId('focus-sync')).toHaveCount(0)
+    // Started at 14:20: work now ends at 14:55, so the next work part starts on the :00 wave.
+    await expect(timer.getByTestId('focus-time')).toHaveText(/^3[45]:\d\d$/)
+  })
+
+  test('a dot for each other person, checked in with my part; the room is empty when no one is there; stopping leaves it', async ({ page }) => {
+    server.rpcResults.focus_room = (args: Record<string, unknown>) => ({
+      dots: args.p_phase ? [dot('a', 600), dot('b', 1200)] : [],
+      joining: 0,
+      together: !!args.p_phase,
+    })
+    await open(page, '/')
+    await page.getByTestId('focus-open').locator('visible=true').click()
+    const timer = page.getByRole('dialog', { name: msg.focus.menu })
+    await expect(timer.getByTestId('focus-dot')).toHaveCount(0)
+    await timer.getByTestId('focus-start').click()
+    await expect(timer.getByTestId('focus-dot')).toHaveCount(2)
+    const checkIn = server.rpcArgs.findLast((c) => c.name === 'focus_room')?.args
+    expect(checkIn?.p_phase).toBe('work')
+    expect(String(checkIn?.p_ends_at)).toMatch(/^2026-11-10T14:45:0/)
+    await timer.getByRole('button', { name: msg.focus.close }).click()
+    await expect.poll(() => server.rpcCalls).toContain('focus_leave')
+  })
+
+  test('a work part finished while others were in the room counts for Focused together', async ({ page }) => {
+    test.skip(isSafari(test.info()), 'fast-forwarding many minutes takes over a minute on WebKit; the same logic runs on Chrome')
+    server.rpcResults.focus_room = { dots: [dot('a', 600)], joining: 0, together: true }
+    await open(page, '/')
+    await page.getByTestId('focus-open').locator('visible=true').click()
+    await page.getByTestId('focus-start').click()
+    await expect(page.getByTestId('focus-dot')).toHaveCount(1)
+    await page.clock.runFor(25 * 60_000 + 1000)
+    await expect.poll(() => server.written('activity_log').find((r) => r.kind === 'focus')?.detail).toMatchObject({ minutes: 25, together: true })
+  })
+})

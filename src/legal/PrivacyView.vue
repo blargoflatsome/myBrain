@@ -17,6 +17,7 @@
       <li><strong>Your people:</strong> the name, email address or phone number of guests you've invited by email or phone, saved so you can invite them again. Only you can see them; you can edit or remove them on the Account page, and Delete my data removes them.</li>
       <li><strong>Connections:</strong> who you're connected with, connection requests you sent (the email or phone you typed) and received, and anyone you blocked. A request never tells you whether an address belongs to an account.</li>
       <li><strong>Cheers:</strong> what you post and when (deleted 3 days later), the reactions you gave, anyone whose posts you hid, and a running count of the cheers you've given, for trophies. Finished Breathe sessions are noted for trophies too; nothing else about Breathe is kept.</li>
+      <li><strong>Focus room:</strong> while your Focus timer runs (unless you turn off Show me in the focus room), the part you're in and when it ends, checked in once a minute and deleted when you stop. Finished Focus sessions are noted for trophies, including whether anyone else was in the room.</li>
       <li><strong>Availability:</strong> your weekly and one-off unavailable times. Only your connections can see when you're free or busy, never what your plans are, and you can turn this off.</li>
     </ul>
 
@@ -26,6 +27,7 @@
       <li>If you lock your journal, your writing is encrypted on your device before it's uploaded, so nobody else can read it, including whoever runs My Brain. Only the word count and whether you wrote anything stay readable, for streaks, trophies and reminders. If you lose your passphrase and your recovery key, your writing can't be recovered. The lock can't protect against a harmful update to the app itself, someone using your device while it's unlocked, or the word count and yes/no answer, which stay readable.</li>
       <li>Your connections can see your profile: your name, your Google picture and the trophies you have earned. Trophies never name a habit.</li>
       <li>Everyone using My Brain can see your Cheers posts for 48 hours, without your name or picture, even your connections. Nobody can see who reacted to a post or whose posts were hidden, and only you can see how many reactions your posts got.</li>
+      <li>While your Focus timer runs, others using the Focus timer may see a faint dot for you, with no name or picture, and you're counted in "joining" while you wait for a wave. Nobody can tell which dot is you. Turn off Show me in the focus room on the Account page to stay out of it.</li>
       <li>People you invite to an event see its title, date, time and notes, and who invited them. The host sees each person's answer.</li>
       <li>No one can search for you by name. Typing your email or phone number never tells anyone whether you have an account.</li>
     </ul>

@@ -91,6 +91,16 @@ describe('SPEC §5 Trophies: brain dumps and focus (from the activity log)', () 
     const v = values({ activity: [0, 1, 2, 3].map((i) => act('focus', `2026-11-09T1${i}:00:00Z`, { minutes: 25 })) })
     expect(v).toMatchObject({ full_cycle: 4, focus_days: 1, focus_hours: 1 })
   })
+  it('Focused together counts different days with a session someone else was in the focus room for', () => {
+    const v = values({
+      activity: [
+        act('focus', '2026-11-08T15:00:00Z', { minutes: 25, together: true }),
+        act('focus', '2026-11-08T18:00:00Z', { minutes: 25, together: true }),
+        act('focus', '2026-11-09T15:00:00Z', { minutes: 25 }),
+      ],
+    })
+    expect(v.focused_together).toBe(1)
+  })
   it('Breathing days count different days with a finished Breathe', () => {
     const v = values({ activity: ['2026-11-08T15:00:00Z', '2026-11-08T18:00:00Z', '2026-11-09T15:00:00Z'].map((at) => act('breathe', at)) })
     expect(v.breathing_days).toBe(2)

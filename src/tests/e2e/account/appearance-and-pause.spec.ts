@@ -48,3 +48,13 @@ test.describe('Spec §5 Habits: Pause all streaks', () => {
     await expect(page.getByTestId('habits-paused')).toHaveText(msg.habits.pausedLine)
   })
 })
+
+test.describe('Spec §5 Focus timer: Show me in the focus room', () => {
+  test('on by default; turning it off is saved to my profile', async ({ page }) => {
+    await page.goto('/account')
+    const box = page.getByTestId('focus-room-setting')
+    await expect(box).toBeChecked()
+    await box.uncheck()
+    await expect.poll(() => server.profile.focus_room).toBe(false)
+  })
+})

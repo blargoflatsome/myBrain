@@ -90,6 +90,7 @@ export const TROPHIES: readonly Trophy[] = [
   t('cheer_firsts', 'cheering', [5, 25, 100], 'times'),
   t('cheer_unstuck', 'cheering', [1, 5, 25, 100], 'times'),
   t('cheering_while_stuck', 'surprises', [1], 'count', true),
+  t('focused_together', 'focus', [5, 20, 50], 'days'),
 ]
 
 export type TrophyId = string
