@@ -9,6 +9,10 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## Capture keeps the chosen type (merged via PR, branch `capture-keep-type`)
+- User 2026-11-18: after a save, Capture keeps the chosen type (and bucket) with an empty, focused box, instead of going back to Decide later. A Post It gets a fresh focused editor. SPEC §5 Quick capture; DECISIONS 2026-11-18. Tests: the Capture window case in `capture.spec.ts` and the first Post It case. `npm run test:quick` passed (Vitest 448, Playwright 437).
+- Help Capture step says the type stays picked (picture unchanged). `npm run test:all` passed (Vitest 448, Playwright 824). Ideas for later in SPEC §10: mystery drops, combo meter, monthly challenge.
+
 ## Cheers: counts show zeros (merged via PR, branch `cheers-zero-counts`)
 - My own post always shows the four icons with their numbers, zeros included; the "No cheers yet" line is gone.
 

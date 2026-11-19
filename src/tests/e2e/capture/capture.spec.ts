@@ -34,7 +34,7 @@ test.describe('Spec §5 Quick capture: the text box first', () => {
     await expect(typeGroup(page).getByRole('button', { name: msg.capture.destinations.later })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  test('the Capture window saves without leaving the page, and closing it returns to the page', async ({ page }) => {
+  test('the Capture window saves without leaving the page, keeps the chosen type, and closing it returns to the page', async ({ page }) => {
     await page.goto('/habits')
     await page.getByRole('button', { name: '+ Capture' }).click()
     const dialog = page.getByRole('dialog', { name: msg.capture.windowLabel })
@@ -42,6 +42,10 @@ test.describe('Spec §5 Quick capture: the text box first', () => {
     await dialog.getByLabel(msg.capture.titleLabel, { exact: true }).fill('buy stamps')
     await dialog.getByTestId('capture-save').click()
     await expect(dialog.getByTestId('capture-notice')).toHaveText(msg.capture.saved.taskUndated)
+    // Task stays chosen, ready for the next one.
+    await expect(typeGroup(page).getByRole('button', { name: msg.capture.destinations.task, exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(dialog.getByLabel(msg.capture.titleLabel, { exact: true })).toHaveValue('')
+    await expect(dialog.getByLabel(msg.capture.titleLabel, { exact: true })).toBeFocused()
     await expect(page).toHaveURL(/\/habits$/)
     await dialog.getByRole('button', { name: msg.capture.close }).click()
     await expect(dialog).toBeHidden()

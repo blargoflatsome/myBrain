@@ -317,3 +317,9 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 
 ## 2026-11-18 Cheers: counts show zeros
 My own post always shows the four icons with their numbers, zeros included; the "No cheers yet. They’ll come." line is gone (user).
+
+## 2026-11-18 Capture keeps the chosen type
+User: after capturing, keep the same selection. Saving empties the form but the chosen type (and Vault bucket) stays, with the text box focused; it no longer goes back to Decide later. Claude's call: only the type and bucket stay; dates, priority, colour and the rest go back to their defaults.
+
+## 2026-11-18 Gamifying ideas for later
+Claude suggested 10 ways to gamify the app further; the user marked mystery drops, a combo meter and monthly challenges as worth more thought later (SPEC §10). Not built.

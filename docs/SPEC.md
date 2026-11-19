@@ -145,6 +145,7 @@ It combines a daily checklist (routines, habits, tasks), a journal, "The Vault" 
    - **Post It:** a small formatted text box (the journal's editor, smaller, in place of the text box) and a color (yellow by default, or blue or green; pink was removed, and older pink notes still show pink). No title; the note itself is required. It goes to the top of the Dashboard.
    - **Decide later:** just the text, saved to **Orphans**.
 - **The Save button** looks like every editor's (normal size and shape) and says what it saves: "Save task", "Save to the Vault", "Save quest", "Save habit", "Save Post It", "Save to Orphans" (2026-11-12).
+- **After saving (2026-11-18, user):** the form empties, but the type I chose stays chosen (and the Vault bucket stays picked), with the text box focused, so I can add several of the same kind in a row.
 - Text shared from another app fills the text box; choosing a type splits it as above (first line the title, the rest notes or details).
 - Works offline; items are queued and synced later.
 
@@ -656,6 +657,10 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 
 - **Achievements:** objectives that reward me for using the app and keeping up my routines and streaks. Earned achievements appear as Trophies on the Dashboard and, for my connections, on my profile (§5 Profiles) and are celebrated when earned with a small in-app moment and an optional notification. Examples: journal 5 days in a row; reach a 7-day or 30-day habit streak; complete a routine 10 times; finish every task in a day; beat my best streak; capture 25 thoughts; try a Random Quest. Claude Code and I will brainstorm the full list together before building this.
 - Design for achievements now: define them as data (id, title, description, rule type, threshold) and calculate them from existing history, so new ones can be added without restructuring the app. Phase 1 must keep full completion histories (habit logs, routine step logs, journal dates, task completions) so achievements can be calculated retroactively. Store earned achievements per user with the date earned.
+- **More gamifying, worth more thought later (2026-11-18, user; don't build yet):**
+  - **Mystery drops:** now and then, finishing something drops a surprise unlock (a Post It colour, an app theme, a header icon).
+  - **Combo meter:** finishing 3 or more things within an hour builds a combo ("3× combo") that fades quietly; it rewards momentum and never punishes.
+  - **Monthly challenge:** one optional goal a month (for example, journal 10 days in November) with a trophy only that month can earn.
 
 ### Phase 3: iPhone support (started 2026-11-08: the installed web app; a native app only if this falls short)
 - **The app stays a web app on iPhone** (installed with Share → Add to Home Screen; iPhones never offer an install prompt). A Capacitor App Store app (Apple Developer Program, $99 a year, and a Mac for builds) is only considered if the web app falls short in real use.

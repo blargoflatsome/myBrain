@@ -6,7 +6,7 @@
     <!-- Post It: a small formatted note in place of the box (SPEC §5 Quick capture) -->
     <div v-if="type === 'postit'" class="flex flex-col gap-1" data-testid="capture-postit">
       <span class="pb-2 text-sm text-muted">{{ pm.label }}</span>
-      <RichTextEditor v-model="postBody" :label="pm.label" :placeholder="pm.placeholder" min-height="8rem" autofocus @update:model-value="error = ''" />
+      <RichTextEditor :key="saves" v-model="postBody" :label="pm.label" :placeholder="pm.placeholder" min-height="8rem" autofocus @update:model-value="error = ''" />
     </div>
 
     <div v-if="type !== 'postit'" class="flex flex-col gap-1">
@@ -162,6 +162,8 @@ const link = ref('')
 const notice = ref('')
 const error = ref('')
 const saving = ref(false)
+// Counts saves: a new Post It editor after each one, empty and focused, ready for the next note.
+const saves = ref(0)
 const titleBox = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
 const buckets = useLiveQuery<VaultBucketRow[]>(
@@ -223,6 +225,7 @@ const habitTime = ref('')
 const habitTimer = ref<number | null>(null)
 const habitPriority = ref(false)
 function reset() {
+  saves.value++
   postBody.value = ''
   postColor.value = DEFAULT_POST_IT_COLOR
   habitDays.value = [0, 1, 2, 3, 4, 5, 6]
@@ -232,7 +235,7 @@ function reset() {
   habitTime.value = ''
   habitTimer.value = null
   habitPriority.value = false
-  type.value = 'later'
+  // The type stays chosen after a save, so I can add several of the same kind in a row (SPEC §5 Quick capture).
   title.value = ''
   notes.value = ''
   dueDate.value = ''
