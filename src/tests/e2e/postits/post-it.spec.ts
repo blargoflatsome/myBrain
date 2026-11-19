@@ -34,6 +34,9 @@ test.describe('Spec §5 Post It', () => {
     await page.getByTestId('capture-save').click()
     await expect(page.getByTestId('capture-notice')).toHaveText(msg.capture.saved.postit)
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ body: '<p><strong>Call the vet</strong></p>', color: 'blue' })
+    // Post It stays chosen: an empty note, focused for the next one.
+    await expect(editor).toBeFocused()
+    await expect(editor).toHaveText('')
 
     await goTo(page, 'Dashboard')
     await expect(board(page)).toHaveCount(1)
