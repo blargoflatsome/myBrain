@@ -21,24 +21,6 @@
       </div>
 
       <template v-if="loaded">
-        <div class="flex flex-col gap-3 py-4">
-          <label class="flex items-center justify-between gap-4">
-            <span>
-              <span class="font-medium">{{ m.ntfy }}</span>
-              <span class="block text-xs text-muted">{{ m.ntfyHint }}</span>
-            </span>
-            <input v-model="notifyNtfy" type="checkbox" :class="checkbox">
-          </label>
-          <div v-if="notifyNtfy" class="flex flex-col gap-1">
-            <label :class="fieldLabel">
-              {{ m.ntfyTopic }}
-              <input v-model="topic" :class="field" autocomplete="off" spellcheck="false">
-            </label>
-            <span class="text-xs text-muted">{{ m.ntfyTopicHint }}</span>
-            <button type="button" class="mt-1 min-h-11 self-start rounded-xl border border-line px-3 text-sm" @click="makeTopic">{{ m.ntfyMake }}</button>
-          </div>
-        </div>
-
         <fieldset class="flex flex-col gap-3 py-4">
           <legend class="contents">
             <span class="font-medium">{{ m.quietHours }}</span>
@@ -80,12 +62,12 @@
 import { useProfileStore } from '@/stores/profile'
 import { isPushEndpoint } from '@/notifications/pushEndpoints'
 import { isInstalled, isIOS } from '@/ui/device'
-// SPEC §6: Web Push and/or ntfy, quiet hours, and whether priority reminders ring during them.
+// SPEC §6: Web Push, quiet hours, and whether priority reminders ring during them.
 import TimeInput from '@/components/TimeInput.vue'
 import { onMounted, ref } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { messages } from '@/messages'
-import { checkbox, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
+import { checkbox, field, primaryButtonSmall, smallButton } from '@/ui/styles'
 
 const m = messages.notifications
 const VAPID = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
@@ -93,8 +75,6 @@ const VAPID = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
 const supported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 const pushOn = ref(false)
 const pushError = ref('')
-const notifyNtfy = ref(false)
-const topic = ref('')
 const quietStart = ref('')
 const quietEnd = ref('')
 const priorityRings = ref(true)
@@ -113,8 +93,6 @@ function base64UrlToBytes(b64: string) {
 onMounted(async () => {
   const data = await useProfileStore().load()
   if (data) {
-    notifyNtfy.value = !!data.notify_ntfy
-    topic.value = data.ntfy_topic ?? ''
     quietStart.value = data.quiet_hours_start?.slice(0, 5) ?? ''
     quietEnd.value = data.quiet_hours_end?.slice(0, 5) ?? ''
     priorityRings.value = !data.quiet_hours_silence_priority
@@ -162,17 +140,9 @@ async function togglePush() {
   pushOn.value = true
 }
 
-/** A long random topic name: anyone who knows it can read it (SPEC §13). */
-function makeTopic() {
-  const bytes = crypto.getRandomValues(new Uint8Array(18))
-  topic.value = `mybrain-${Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')}`
-}
-
 async function save() {
   notice.value = ''
   const ok = await useProfileStore().update({
-    notify_ntfy: notifyNtfy.value && topic.value.length >= 16,
-    ntfy_topic: topic.value || null,
     quiet_hours_start: quietStart.value || null,
     quiet_hours_end: quietEnd.value || null,
     quiet_hours_silence_priority: !priorityRings.value,
@@ -186,9 +156,6 @@ async function test() {
   if (pushOn.value) {
     const reg = await navigator.serviceWorker.ready
     await reg.showNotification(m.testTitle, { body: m.testBody, icon: '/pwa-192x192.png', data: { url: '/' } })
-  }
-  if (notifyNtfy.value && topic.value.length >= 16) {
-    await fetch('https://ntfy.sh', { method: 'POST', body: JSON.stringify({ topic: topic.value, title: m.testTitle, message: m.testBody }) })
   }
   notice.value = m.testSent
 }

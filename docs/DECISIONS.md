@@ -323,3 +323,7 @@ User: after capturing, keep the same selection. Saving empties the form but the 
 
 ## 2026-11-18 Gamifying ideas for later
 Claude suggested 10 ways to gamify the app further; the user marked mystery drops, a combo meter and monthly challenges as worth more thought later (SPEC §10). Not built.
+
+## 2026-11-19 ntfy and phone verification removed
+User: remove ntfy reminder delivery, and remove everything built around verifying phone numbers, since phones will never be verified. Reminders, event news and connection pushes now go by Web Push only (plus the in-app bell). The Account › Reminders ntfy switch, topic and test are gone, and so is the "Not verified yet" note by the phone number. Migration `20261119010000_remove_ntfy_phone_verify.sql` drops `profiles.notify_ntfy`, `ntfy_topic` and `phone_verified` and the ntfy rows of `notification_log`. Matching people by phone is removed outright (email only, as before). Phone stays as plain contact info for event news and inviting guests. Claude's call: no Dexie version, because profiles and the notification log are never kept on devices, so no device copy or waiting upload names a dropped column.
+

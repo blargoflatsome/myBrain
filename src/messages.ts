@@ -466,7 +466,6 @@ export const messages = {
   eventSettings: {
     heading: 'Events and invitations',
     phone: 'Phone number',
-    unverified: 'Not verified yet',
     notify: 'Event news reaches me by',
     shareAvailability: 'Share when I’m free or busy',
     shareAvailabilityHint: 'Only free or busy is shared, never what your plans are.',
@@ -672,7 +671,7 @@ export const messages = {
   /** SPEC §5 Account page: the groups and their one-line summaries. */
   accountGroups: {
     profile: 'Your name',
-    reminders: 'Notifications, ntfy, quiet hours and snooze',
+    reminders: 'Notifications, quiet hours and snooze',
     eventsTitle: 'Events',
     events: 'Phone, event news, cancellation messages, availability',
     peopleTitle: 'People',
@@ -1521,11 +1520,6 @@ export const messages = {
     webPushBlocked: 'Notifications are blocked for this site. Allow them in your browser settings, then try again.',
     webPushUnsupported: "This browser can't receive push notifications. Try Chrome, or install My Brain to your home screen.",
     webPushIphone: 'On an iPhone, add My Brain to your Home Screen first (Share, then Add to Home Screen), open it from there, and turn this on.',
-    ntfy: 'Also send to the ntfy app',
-    ntfyHint: 'A louder backup for priority reminders. Subscribe to your topic in the ntfy app.',
-    ntfyTopic: 'Your private ntfy topic',
-    ntfyTopicHint: 'Treat it like a password: anyone who knows it can see your reminders.',
-    ntfyMake: 'Make a private topic',
     test: 'Send a test',
     testTitle: 'My Brain test',
     testBody: 'Past you set this up. Reminders work.',

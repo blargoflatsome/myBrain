@@ -158,24 +158,19 @@ test.describe('Spec §5 High-priority tasks: a High task is a priority task', ()
 })
 
 test.describe('Spec §6: reminder settings', { tag: '@phone' }, () => {
-  test('ntfy topic, quiet hours and the priority-in-quiet-hours choice are saved to my profile', async ({ page }) => {
+  test('quiet hours and the priority-in-quiet-hours choice are saved to my profile', async ({ page }) => {
     await open(page, '/account', '2026-11-10T12:00:00Z')
     const settings = page.getByTestId('notification-settings')
     await expect(page.getByTestId('account-group-reminders').getByRole('heading', { name: msg.notifications.heading, level: 2 })).toBeVisible()
-    await settings.getByRole('checkbox', { name: /Also send to the ntfy app/ }).check()
-    await settings.getByRole('button', { name: msg.notifications.ntfyMake }).click()
-    await expect(settings.getByLabel(msg.notifications.ntfyTopic)).toHaveValue(/^mybrain-[0-9a-f]{36}$/)
     await settings.getByLabel(msg.notifications.quietStart, { exact: true }).fill('22:00')
     await settings.getByLabel(msg.notifications.quietEnd, { exact: true }).fill('07:00')
     await expect(settings.getByRole('checkbox', { name: /Priority reminders still ring/ })).toBeChecked()
     await settings.getByRole('button', { name: msg.notifications.save }).click()
     await expect(settings.getByText(msg.notifications.saved)).toBeVisible()
     expect(server.written('profiles').at(-1)).toMatchObject({
-      notify_ntfy: true,
       quiet_hours_start: '22:00',
       quiet_hours_end: '07:00',
       quiet_hours_silence_priority: false,
     })
-    expect(String(server.written('profiles').at(-1)?.ntfy_topic)).toMatch(/^mybrain-[0-9a-f]{36}$/)
   })
 })
