@@ -159,6 +159,16 @@ export class LocalDb extends Dexie {
       vault_shares: 'id, updated_at, bucket_id',
       vault_stars: 'id, updated_at, bucket_id',
     })
+    // Tags went to tasks, habits and routines only (2026-11-07), and the server deleted the other links outright, so
+    // devices never heard. Remove them here, with their waiting uploads: renaming or merging a tag moved them to the
+    // other tag, and the server refused that upload on every retry ("1 waiting to sync" for good).
+    this.version(19)
+      .stores({})
+      .upgrade(async (tx) => {
+        const tagged = ['task', 'habit', 'routine']
+        await tx.table('item_tags').filter((row: { item_type: string }) => !tagged.includes(row.item_type)).delete()
+        await tx.table('outbox').where('table').equals('item_tags').filter((entry: { row: { item_type: string } }) => !tagged.includes(entry.row.item_type)).delete()
+      })
   }
 
   rows<T extends SyncTable>(table: T): Table<RowTypes[T], string> {

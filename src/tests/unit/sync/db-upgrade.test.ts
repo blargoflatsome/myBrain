@@ -21,3 +21,27 @@ describe('SPEC §4: habits.is_private is gone from this device too', () => {
     db.close()
   })
 })
+
+// SPEC §5 Global search and tags: tags are on tasks, habits and routines only. The server deleted the other links
+// outright, so a device still had them, and renaming or merging a tag queued an upload the server always refused.
+describe('SPEC §5 Tags: only tasks, habits and routines carry tags on this device too', () => {
+  it('upgrading the device database removes other tag links and their waiting uploads', async () => {
+    const name = 'upgrade-tags-test'
+    const old = new Dexie(name)
+    old.version(18).stores({ item_tags: 'id, updated_at, item_id, tag_id', outbox: '++seq, table, rowId' })
+    const journalLink = { id: 'l1', tag_id: 't1', item_type: 'journal_entry', item_id: 'j1', deleted_at: null }
+    const taskLink = { id: 'l2', tag_id: 't1', item_type: 'task', item_id: 'k1', deleted_at: null }
+    await old.table('item_tags').bulkPut([journalLink, taskLink])
+    await old.table('outbox').bulkAdd([
+      { table: 'item_tags', rowId: 'l3', row: { ...journalLink, id: 'l3', tag_id: 't2' } },
+      { table: 'item_tags', rowId: 'l4', row: { ...taskLink, id: 'l4', tag_id: 't2' } },
+    ])
+    old.close()
+
+    const db = new LocalDb(name)
+    await db.open()
+    expect((await db.item_tags.toArray()).map((l) => l.id)).toEqual(['l2'])
+    expect((await db.outbox.toArray()).map((e) => e.rowId)).toEqual(['l4'])
+    db.close()
+  })
+})
