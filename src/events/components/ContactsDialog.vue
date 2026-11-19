@@ -19,6 +19,7 @@
         </ul>
       </section>
       <template v-if="people.length">
+        <h4 class="text-sm font-medium">{{ m.offsite }}</h4>
         <label :class="fieldLabel">
           {{ m.search }}
           <input v-model="search" type="search" :class="fieldCompact" autocomplete="off">

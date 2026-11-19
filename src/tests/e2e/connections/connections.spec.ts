@@ -45,6 +45,15 @@ test.describe('Spec §10 Connections: ask, answer, remove', () => {
     await expect.poll(() => rpc('answer_connection_request')[0]?.args).toMatchObject({ req: 'req-1', answer: 'accept' })
   })
 
+  test('Spec §5 Account page, People group: Connections are right there, so a request is answered without leaving Account', async ({ page }) => {
+    server.rpcResults.incoming_connection_requests = [{ id: 'req-1', display_name: 'Bob Baker', avatar_url: null, created_at: '2026-11-09T12:00:00Z' }]
+    await open(page, '/account')
+    const connections = page.getByTestId('account-group-people').getByTestId('account-connections')
+    await connections.getByTestId('incoming-request').getByRole('button', { name: msg.connections.accept }).click()
+    await expect.poll(() => rpc('answer_connection_request')[0]?.args).toMatchObject({ req: 'req-1', answer: 'accept' })
+    await expect(page).toHaveURL(/\/account$/)
+  })
+
   test('my connections and sent requests are listed; removing or blocking asks first and isn’t announced', async ({ page }) => {
     server.rpcResults.my_connections = [{ friend_id: BOB, display_name: 'Bob Baker', avatar_url: null, since: '2026-11-01T00:00:00Z' }]
     server.rpcResults.sent_connection_requests = [{ id: 'req-2', contact: 'carol@example.com', created_at: '2026-11-09T12:00:00Z' }]

@@ -330,3 +330,6 @@ User: remove ntfy reminder delivery, and remove everything built around verifyin
 
 ## 2026-11-19 "Event news reaches me by" removed
 User: remove the Email / Text / Both choice, since email isn't set up and texting isn't possible; event news is in-app notifications only, and the choice comes back if email is added. Removed from Account › Events and from the welcome step after first sign-in. Claude's call: the `profiles.event_notify_method` column and enum stay (no migration), so the choice can return without one; the server's `queue_message` still reads it to queue waiting emails, which are never sent until Phase 2.
+
+## 2026-11-19 Connections shown in Account › People; "Your people" renamed Offsite connections
+User: put Connections on the Account page instead of a button away, make the difference from "Your people" clearer, and rename "Your people" to Offsite connections. Accepted Claude's proposal: one shared Connections part shown in full in the People group and on the Connections page (kept for the More menu, notification taps and the Contacts window); order is requests waiting for me, my connections, requests I sent, then the ways to connect. Each section has a one-line hint saying what it is. The Contacts window is headed Contacts, with Connections and Offsite connections sections. Spec still calls the list "my people" internally.

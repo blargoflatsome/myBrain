@@ -8,7 +8,7 @@ const NOW = new Date('2026-11-10T14:00:00Z')
 
 let server: FakeSupabase
 /** Server functions that only read. */
-const READS = ['people_with_accounts', 'trophy_counts', 'cheer_am_stuck']
+const READS = ['people_with_accounts', 'trophy_counts', 'cheer_am_stuck', 'incoming_connection_requests', 'sent_connection_requests', 'my_connections', 'my_connect_links']
 
 async function open(page: Page, path = '/habits', time = NOW) {
   await page.clock.install({ time })
@@ -45,7 +45,7 @@ test.describe('Spec §5 Account page', () => {
     await confirm.click()
     await expect(page).toHaveURL(/\/\?deleted=1$/)
     await expect(page.getByRole('status')).toHaveText(msg.signIn.deleted)
-    // Nothing else is changed: the only other calls are reads (which saved people use My Brain, trophy counts).
+    // Nothing else is changed: the only other calls are reads (which saved people use My Brain, trophy counts, my connections).
     expect(server.rpcCalls.filter((c) => !READS.includes(c))).toEqual(['delete_my_account'])
     // This device's copy is gone too.
     const names = await page.evaluate(async () => (await indexedDB.databases()).map((d) => d.name))

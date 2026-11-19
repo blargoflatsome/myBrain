@@ -114,12 +114,13 @@
     </AccountGroup>
 
     <AccountGroup id="people" :title="g.peopleTitle" :summary="g.people">
-      <section class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-4" aria-labelledby="account-connections">
-        <span class="min-w-0">
+      <!-- SPEC §5 Account page, People group: Connections in full, then Offsite connections. -->
+      <section class="flex flex-col gap-4 rounded-xl border border-line p-4" aria-labelledby="account-connections" data-testid="account-connections">
+        <div>
           <h3 id="account-connections" class="font-semibold">{{ messages.connections.heading }}</h3>
-          <span class="block text-sm text-muted">{{ g.connectionsHint }}</span>
-        </span>
-        <RouterLink to="/connections" class="min-h-11 shrink-0 rounded-xl border border-line px-4 py-2.5 text-sm font-medium">{{ g.openConnections }}</RouterLink>
+          <p class="text-sm text-muted">{{ g.connectionsHint }}</p>
+        </div>
+        <ConnectionsPanel nested />
       </section>
       <MyPeople />
     </AccountGroup>
@@ -251,6 +252,7 @@ import { messages } from '@/messages'
 import NotificationSettings from '@/notifications/components/NotificationSettings.vue'
 import EventSettings from '@/events/components/EventSettings.vue'
 import MyPeople from '@/events/components/MyPeople.vue'
+import ConnectionsPanel from '@/connections/components/ConnectionsPanel.vue'
 import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
 import { clearAppKeys } from '@/ui/storage'
