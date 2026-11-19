@@ -9,6 +9,9 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## "Event news reaches me by" removed (merged via PR, branch `remove-notify-choice`)
+- User 2026-11-19: no email or texting yet, so the Email / Text / Both choice is gone from Account › Events and the welcome step; event news is in-app only. `profiles.event_notify_method` stays (no migration) so the choice can return with email. SPEC §4, §5; DECISIONS 2026-11-19. `npm run test:all` passed (Vitest 449, Playwright 823; the a11y full-screen writing test flaked once on iPhone, 3/3 on rerun).
+
 ## ntfy and phone verification removed (merged via PR, branch `remove-ntfy-phone-verify`)
 - ntfy is gone (Account › Reminders, senders, Privacy, spec), and so is the "Not verified yet" phone note and `profiles.phone_verified`; phones are plain contact info and never match accounts. Migration `20261119010000_remove_ntfy_phone_verify.sql` applied to dev and prod. No Dexie version needed (profiles aren't on devices). SQL checks updated (`rls_identity`, `rls_connections`, `rls_delete_my_data`); `npm run test:db` passes (36 files). `npm run test:all` passed (Vitest 449, Playwright 824).
 
