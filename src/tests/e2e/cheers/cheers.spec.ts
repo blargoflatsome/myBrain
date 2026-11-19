@@ -30,6 +30,7 @@ const postCard = (page: Page, i: number) => feed(page).getByTestId('cheer-post')
 
 test.describe('Spec §5 Cheers', () => {
   test('the feed is anonymous: posts show what was said and when; only my own shows its counts', async ({ page }) => {
+    ;(server.rpcResults.cheer_feed as unknown[]).push(post('p4', { mine: true, created_at: '2026-11-17T10:00:00Z' }))
     await page.goto('/cheers')
     await expect(postCard(page, 0).getByTestId('cheer-text')).toHaveText('I finished a 4-day-old task')
     await expect(postCard(page, 0)).toContainText(m.ago.hours(2))
@@ -40,6 +41,8 @@ test.describe('Spec §5 Cheers', () => {
     // Not on my own post: no reacting, no hiding.
     await expect(mine.getByRole('group', { name: m.reactionsLabel })).toHaveCount(0)
     await expect(mine.getByTestId('cheer-hide')).toHaveCount(0)
+    // No cheers yet: still the four icons, each with 0.
+    for (const r of Object.keys(m.reactions)) await expect(postCard(page, 3).getByLabel(m.countLabel(m.reactions[r]!, 0))).toBeVisible()
   })
 
   test('Refresh loads the feed again and says it is up to date (SPEC §2 Buttons answer every press)', async ({ page }) => {

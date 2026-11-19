@@ -932,7 +932,6 @@ export const messages = {
     reactionsLabel: 'Cheer them on',
     countLabel: (name: string, n: number) => `${name}: ${n}`,
     yourPost: 'Your post',
-    nobodyYet: 'No cheers yet. They’ll come.',
     /** Placeholder smug lines after reacting; the user writes the real ones. */
     afterReact: ['Cheer sent. Nobody knows it was you.'],
     hide: 'Hide posts from this person',

@@ -314,3 +314,6 @@ Significant decisions and changes of mind, with the reason, newest at the bottom
 - Claude proposed, user accepted ("as suggested"): two separate choices per bucket (Show on my profile, read-only; Share with people, edit); shared buckets appear straight away (connections already agreed), with Leave; only the owner renames, changes checking, shares or deletes; stars per person; "Added by Bob"; 25 people per bucket; the Vault items saved trophy counts only my own adds; losing access removes the device copy.
 - Claude's call on deleting: Delete my data / Delete My Account give items I added to others' buckets to the bucket's owner, so they stay in the list without my name (the suggestion said "Added by someone"; giving them to the owner avoids keeping rows tied to a deleted account).
 - Built in two steps: Show on my profile, then Share with people.
+
+## 2026-11-18 Cheers: counts show zeros
+My own post always shows the four icons with their numbers, zeros included; the "No cheers yet. They’ll come." line is gone (user).
