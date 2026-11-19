@@ -22,13 +22,10 @@
 
       <!-- My own post: only I see the counts (SPEC §5 Cheers). -->
       <ul v-if="post.mine" class="flex flex-wrap gap-3 text-sm" :aria-label="m.reactionsLabel" data-testid="cheer-counts">
-        <li v-if="!total" class="text-muted">{{ m.nobodyYet }}</li>
-        <template v-else>
-          <li v-for="r in REACTIONS" :key="r" class="flex items-center gap-1" :aria-label="m.countLabel(m.reactions[r]!, post[r] ?? 0)">
-            <AppIcon :name="REACTION_ICONS[r]" size="size-5" />
-            <span aria-hidden="true" class="tabular-nums">{{ post[r] ?? 0 }}</span>
-          </li>
-        </template>
+        <li v-for="r in REACTIONS" :key="r" class="flex items-center gap-1" :aria-label="m.countLabel(m.reactions[r]!, post[r] ?? 0)">
+          <AppIcon :name="REACTION_ICONS[r]" size="size-5" />
+          <span aria-hidden="true" class="tabular-nums">{{ post[r] ?? 0 }}</span>
+        </li>
       </ul>
       <!-- Someone else's: one compact row. The one I sent is coloured and bolder, the rest fade; tapping mine takes it
            back, tapping another switches to it (SPEC §5 Cheers, Compact). -->
@@ -56,7 +53,6 @@
 <script setup lang="ts">
 // SPEC §5 Cheers: one anonymous post. Reactions are the only thing anyone can do; the block icon hides posts from
 // this person (with Undo, in the page).
-import { computed } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import type { CheerPost } from '@/cheers/cheers'
 import { agoLabel, postText, REACTION_ICONS, REACTIONS, type Reaction } from '@/cheers/rules'
@@ -72,5 +68,4 @@ function tap(r: Reaction) {
   if (props.post.my_reaction === r) emit('unreact', props.post)
   else emit('react', props.post, r)
 }
-const total = computed(() => REACTIONS.reduce((sum, r) => sum + (props.post[r] ?? 0), 0))
 </script>

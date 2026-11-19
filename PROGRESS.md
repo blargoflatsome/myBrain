@@ -9,6 +9,9 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## Cheers: counts show zeros (merged via PR, branch `cheers-zero-counts`)
+- My own post always shows the four icons with their numbers, zeros included; the "No cheers yet" line is gone.
+
 ## Shared Vaults: Show on my profile, Share with people (merged via PR, branch `shared-vaults`)
 - User 2026-11-18 asked for Shared Vaults; Claude's proposal accepted "as suggested" (SPEC §5 The Vault, Shared Vaults; DECISIONS 2026-11-18). Step 1: Bucket settings › Sharing › **Show on my profile**; connections see shown buckets read-only on my profile (`connection_vault`, `ProfileVault.vue`); my own profile draws them from the device. Privacy page updated.
 - All three migrations (`20261118030000`–`050000`) on dev and prod. Help (Vault, Connections), home page Vault line and the Vault pictures updated. `npm run test:all` passed (Vitest 448, Playwright 824).
