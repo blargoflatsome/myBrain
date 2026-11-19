@@ -38,7 +38,7 @@ begin
   insert into public.events (user_id, title, start_date, end_date) values (alice, 'Solo', '2026-11-20', '2026-11-20') returning id into solo_event;
   insert into public.events (user_id, title, start_date, end_date) values (alice, 'Party', '2026-11-21', '2026-11-21') returning id into shared_event;
   insert into public.events (user_id, title, start_date, end_date) values (bob, 'Bob''s BBQ', '2026-11-22', '2026-11-22') returning id into bobs_event;
-  update public.profiles set notify_ntfy = true, ntfy_topic = 'mybrain-0123456789abcdef', cancel_event_message = 'Custom {{name}}' where user_id = alice;
+  update public.profiles set quiet_hours_start = '22:00', cancel_event_message = 'Custom {{name}}' where user_id = alice;
 
   -- Alice and Bob are connected, so they can invite each other in the app (SPEC §10 Connections).
   insert into public.connections (user_id, friend_id) values (alice, bob), (bob, alice);
@@ -70,7 +70,7 @@ begin
   if n <> 1 then raise exception 'FAIL: Spec §8 Delete my data: invitations I received are kept'; end if;
   select count(*) into n from public.availability_rules where user_id = alice;
   if n <> 1 then raise exception 'FAIL: Spec §8 Delete my data: availability times are kept'; end if;
-  select count(*) into n from public.profiles where user_id = alice and notify_ntfy and cancel_event_message = 'Custom {{name}}' and data_reset_at is not null;
+  select count(*) into n from public.profiles where user_id = alice and quiet_hours_start = '22:00' and cancel_event_message = 'Custom {{name}}' and data_reset_at is not null;
   if n <> 1 then raise exception 'FAIL: Spec §8 Delete my data: settings are kept, and my devices are told to refresh'; end if;
   select count(*) into n from auth.users where id = alice;
   if n <> 1 then raise exception 'FAIL: Spec §8 Delete my data: my account is kept'; end if;

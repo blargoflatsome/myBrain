@@ -3,7 +3,7 @@
     <h3 class="font-semibold">{{ m.heading }}</h3>
     <template v-if="loaded">
       <label :class="fieldLabel">
-        <span class="flex items-center justify-between">{{ m.phone }}<span v-if="phone && !phoneVerified" class="text-xs">{{ m.unverified }}</span></span>
+        {{ m.phone }}
         <input v-model="phone" type="tel" autocomplete="tel" :class="field">
       </label>
       <fieldset class="flex flex-col gap-2">
@@ -57,7 +57,6 @@ const w = messages.welcome
 type Notify = 'email' | 'text' | 'both'
 const loaded = ref(false)
 const phone = ref('')
-const phoneVerified = ref(false)
 const notify = ref<Notify>('email')
 const shareAvailability = ref(true)
 const dropoutMessage = ref('')
@@ -69,7 +68,6 @@ onMounted(async () => {
   const data = await useProfileStore().load()
   if (!data) return
   phone.value = data.phone ?? ''
-  phoneVerified.value = !!data.phone_verified
   notify.value = (data.event_notify_method as Notify) ?? 'email'
   shareAvailability.value = data.share_availability ?? true
   dropoutMessage.value = data.cancel_dropout_message ?? ''

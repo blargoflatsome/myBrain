@@ -2,7 +2,7 @@
   <main class="legal mx-auto flex w-full max-w-2xl flex-col gap-8 px-5 pt-8 md:px-8 pb-16">
     <RouterLink to="/" class="text-sm text-muted underline">← {{ messages.legal.back }}</RouterLink>
     <h1 class="text-2xl font-bold">Privacy policy</h1>
-    <p class="text-sm text-muted">Draft · last updated November 17, 2026</p>
+    <p class="text-sm text-muted">Draft · last updated November 19, 2026</p>
 
     <p>My Brain is a small personal productivity app. This page explains, in plain words, what it keeps about you and who can see it.</p>
 
@@ -11,7 +11,7 @@
       <li><strong>From Google sign-in:</strong> your email address, name and profile picture.</li>
       <li><strong>What you give us:</strong> your phone number (used only for events) and your settings.</li>
       <li><strong>What you put in the app:</strong> tasks, habits, routines, journal entries, The Vault, quests, events, tags, reminders and your people.</li>
-      <li><strong>For notifications:</strong> a notification address for each device you turn them on for, and your ntfy topic if you use ntfy.</li>
+      <li><strong>For notifications:</strong> a notification address for each device you turn them on for.</li>
       <li><strong>Messages about events:</strong> a log of invitations, answers, messages and cancellations sent to people (who, how, when, and whether it worked).</li>
       <li><strong>About guests you invite:</strong> the name, email address or phone number you typed, and their answer.</li>
       <li><strong>Your people:</strong> the name, email address or phone number of guests you've invited by email or phone, saved so you can invite them again. Only you can see them; you can edit or remove them on the Account page, and Delete my data removes them.</li>
@@ -36,7 +36,7 @@
     <ul>
       <li><strong>Supabase</strong> stores the data and signs you in. <strong>Netlify</strong> hosts the website and sends phone notifications.</li>
       <li><strong>Google</strong> handles sign-in. If you use voice input, your browser (Chrome) sends the audio to Google to turn it into text.</li>
-      <li><strong>Web Push</strong> services (from your browser's maker) deliver notifications. <strong>ntfy.sh</strong> delivers ntfy alerts if you turn them on; anyone who knows your topic can read those alerts.</li>
+      <li><strong>Web Push</strong> services (from your browser's maker) deliver notifications.</li>
       <li>We don't sell your data, show ads, or use trackers.</li>
     </ul>
 

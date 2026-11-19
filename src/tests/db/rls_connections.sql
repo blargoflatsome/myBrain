@@ -13,9 +13,8 @@ begin
     (bob,   'bob@test.invalid',   '{}', 'authenticated', 'authenticated'),
     (carol, 'carol@test.invalid', '{}', 'authenticated', 'authenticated');
   update public.profiles set email = 'alice@test.invalid', display_name = 'Alice' where user_id = alice;
-  update public.profiles set email = 'bob@test.invalid', phone = '(555) 010-2000', display_name = 'Bob' where user_id = bob;
+  update public.profiles set email = 'bob@test.invalid', display_name = 'Bob' where user_id = bob;
   update public.profiles set email = 'carol@test.invalid', display_name = 'Carol' where user_id = carol;
-  update public.profiles set phone_verified = true where user_id = bob;
 
   execute 'set local role authenticated';
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
@@ -81,7 +80,7 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
   select count(*) into n from public.my_connections();
   if n <> 0 then raise exception 'FAIL: Spec §10: removing ends the connection for both people'; end if;
-  perform public.request_connection('(555) 010-2000');
+  perform public.request_connection('bob@test.invalid');
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
   select count(*) into n from public.incoming_connection_requests();
   if n <> 0 then raise exception 'FAIL: Spec §10: someone I blocked can''t send me requests'; end if;

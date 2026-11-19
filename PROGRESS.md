@@ -9,6 +9,9 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## ntfy and phone verification removed (branch `remove-ntfy-phone-verify`, not merged)
+- ntfy is gone (Account › Reminders, senders, Privacy, spec), and so is the "Not verified yet" phone note and `profiles.phone_verified`; phones are plain contact info and never match accounts. Migration `20261119010000_remove_ntfy_phone_verify.sql` applied to dev; **prod right before merge** (live clients still send the ntfy fields until the new build deploys). No Dexie version needed (profiles aren't on devices). SQL checks updated (`rls_identity`, `rls_connections`, `rls_delete_my_data`); `npm run test:db` not run yet.
+
 ## Stale tag links stuck in sync (merged via PR, branch `stale-tag-links`)
 - Prod desktop showed "1 waiting to sync" forever: round 3 deleted non-task tag links on the server outright, so devices kept them; renaming or merging a tag moved a journal-entry link to the new tag and the server's `item_tags_item_type_check` refused it every retry. Dexie v19 removes tag links (and their waiting uploads) on anything but tasks, habits and routines. Test in `db-upgrade.test.ts`. `npm run test:all` passed (Vitest 449, Playwright 824). No spec or Help change (behaviour already matches SPEC §5).
 
@@ -254,7 +257,7 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 
 ## Rules without a test yet
 - Profile timezone kept in step with the device (fire-and-forget update on sign-in): no automated test yet.
-- Web Push delivery end to end and ntfy delivery: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).
+- Web Push delivery end to end: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).
 - None else. Own-rows-only and profile auto-creation are covered by `npm run test:db` (passed on dev 2026-11-06); real Google sign-in verified on Deploy Preview 1.
 
 ## Decisions

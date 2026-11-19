@@ -15,13 +15,10 @@ export interface Profile {
   appearance: string | null
   timezone: string
   phone: string | null
-  phone_verified: boolean
   event_notify_method: string | null
   share_availability: boolean | null
   cancel_event_message: string | null
   cancel_dropout_message: string | null
-  notify_ntfy: boolean | null
-  ntfy_topic: string | null
   quiet_hours_start: string | null
   quiet_hours_end: string | null
   quiet_hours_silence_priority: boolean | null
@@ -38,8 +35,8 @@ const CACHE_KEY = 'my-brain:profile'
 
 /**
  * My profile (SPEC §5 Account page, §2 Header), read from the server once per session and shared by every screen.
- * Only my name and picture are kept on this device (so the header has them offline); settings such as the ntfy
- * topic are not, and are cleared with everything else on sign-out.
+ * Only my name and picture are kept on this device (so the header has them offline); other settings are
+ * not, and are cleared with everything else on sign-out.
  */
 export const useProfileStore = defineStore('profile', () => {
   const auth = useAuthStore()
