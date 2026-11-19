@@ -13,6 +13,7 @@
       </div>
       <button v-if="!isMe" type="button" :class="[primaryButton, 'self-start']" @click="inviteDialog?.open()">{{ m.invite }}</button>
       <ProfileTrophies :badges="person.badges" :theirs="!isMe" />
+      <ProfileVault :buckets="buckets" />
       <InviteToEventDialog
         v-if="!isMe"
         ref="inviteDialog"
@@ -33,12 +34,15 @@ import { RouterLink, useRoute } from 'vue-router'
 import UserAvatar from '@/components/UserAvatar.vue'
 import ProfileTrophies from '@/profiles/components/ProfileTrophies.vue'
 import InviteToEventDialog from '@/profiles/components/InviteToEventDialog.vue'
-import { connectionProfile, type PersonProfile } from '@/profiles/profiles'
+import ProfileVault from '@/profiles/components/ProfileVault.vue'
+import { connectionProfile, connectionVault, type PersonProfile, type ProfileBucket } from '@/profiles/profiles'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { useProfileStore } from '@/stores/profile'
 import { live } from '@/sync/live'
-import type { BadgeRow } from '@/sync/types'
+import type { BadgeRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import { activeBuckets, itemsInBucket } from '@/vault/rules'
+import { ownsBucket } from '@/vault/sharing'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { primaryButton } from '@/ui/styles'
 
@@ -61,13 +65,32 @@ const person = computed<PersonProfile | null>(() =>
 )
 const state = computed(() => (isMe.value ? 'ready' : fetchState.value))
 
+// The Vault buckets shown on the profile (SPEC §5 The Vault, Shared Vaults): theirs from the server, mine from this device.
+const theirBuckets = ref<ProfileBucket[]>([])
+const myBuckets = useLiveQuery<ProfileBucket[]>(async () => {
+  if (!brain.db || !isMe.value) return []
+  const items = live(await brain.db.vault_items.toArray()) as VaultItemRow[]
+  return activeBuckets(await brain.db.vault_buckets.toArray() as VaultBucketRow[])
+    .filter((b) => b.on_profile && ownsBucket(b, brain.userId ?? ''))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+    .map((b) => ({
+      id: b.id,
+      name: b.name,
+      checkable: !!b.checkable,
+      items: itemsInBucket(items, b).map((i) => ({ id: i.id, title: i.title, notes: i.notes ?? null, rating: i.rating ?? null, link: i.link ?? null, checked: !!i.checked })),
+    }))
+}, [], [() => brain.db, isMe])
+const buckets = computed(() => (isMe.value ? myBuckets.value : theirBuckets.value))
+
 watch(
   friendId,
   async (id) => {
     if (isMe.value) return
     fetchState.value = 'loading'
+    theirBuckets.value = []
     fetched.value = await connectionProfile(id).catch(() => null)
     fetchState.value = fetched.value ? 'ready' : 'unavailable'
+    if (fetched.value) theirBuckets.value = await connectionVault(id).catch(() => [])
   },
   { immediate: true },
 )

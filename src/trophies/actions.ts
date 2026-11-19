@@ -54,7 +54,10 @@ export function trophyActions({ ready, badgesReady }: ActionContext) {
       invites: 'event_invites',
       activity: 'activity_log',
     })
-    return { ...history, userId: uid, ...extra }
+    // Shared Vaults (SPEC §5): only items I added and buckets I own count toward my trophies.
+    const vaultItems = history.vaultItems.filter((i) => (i.added_by ?? i.user_id ?? uid) === uid)
+    const vaultBuckets = history.vaultBuckets.filter((b) => !b.user_id || b.user_id === uid)
+    return { ...history, vaultItems, vaultBuckets, userId: uid, ...extra }
   }
 
   /** An alert the app gives me itself (the next-day congratulations). Same id on every device, so it comes once. */

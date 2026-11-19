@@ -53,7 +53,7 @@ export const SHOTS: Shot[] = [
       await d.getByTestId('suggested-time').first().waitFor()
     }, ring: (p) => p.getByTestId('find-a-time') },
   { name: 'help-connections', path: '/connections', ring: (p) => p.getByLabel(msg.connections.askLabel) },
-  { name: 'help-vault', path: '/vault', ready: waitFor('Books to read'), ring: (p) => p.getByText('Books to read').first() },
+  { name: 'help-vault', path: '/vault', ready: waitFor('Books to read'), ring: (p) => p.getByRole('button', { name: /^Books to read/ }) },
   { name: 'help-journal', path: '/journal', ready: async (p) => { await p.getByTestId('journal-writing').waitFor() }, ring: (p) => p.getByTestId('journal-writing') },
   { name: 'help-journal-lock', path: '/account', accountOpen: true, ready: async (p) => { await p.getByTestId('journal-lock').waitFor() }, ring: (p) => p.getByTestId('journal-lock') },
   { name: 'help-quests', path: '/quests', ready: waitFor('Repot the basil'), ring: (p) => p.getByRole('button', { name: msg.quests.pick }) },

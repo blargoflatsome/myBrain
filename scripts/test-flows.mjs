@@ -1,4 +1,4 @@
-// Walks the Connections and sharing flows against the real DEV backend as the test accounts from
+// Walks the Connections, event sharing and Shared Vaults flows against the real DEV backend as the test accounts from
 // `npm run dev:accounts`, through the same server calls the app makes. Prints ✔/✘ per step and tidies up after.
 // Never runs against production. Run: npm run test:flows
 import { createClient } from '@supabase/supabase-js'
@@ -38,6 +38,7 @@ const alice = await signIn(A)
 const bob = await signIn(B)
 const carol = await signIn(C)
 let eventId = null
+let bucketId = null
 
 try {
   // Start clean: no connections between the test accounts.
@@ -81,6 +82,26 @@ try {
   const strangers = await rpc(carol, 'free_busy', { people: [alice.id] })
   check(strangers.length === 0, "Someone not connected can't read free/busy")
 
+  // Shared Vaults (SPEC §5 The Vault): Alice shares a bucket with Bob, who uploads items the way the app does.
+  bucketId = crypto.randomUUID()
+  const { error: bErr } = await alice.c.from('vault_buckets').upsert({ id: bucketId, user_id: alice.id, name: 'Flow test groceries', position: 99, deleted_at: null }).select().single()
+  if (bErr) throw new Error(`create bucket: ${bErr.message}`)
+  const milk = crypto.randomUUID()
+  await alice.c.from('vault_items').upsert({ id: milk, user_id: alice.id, bucket_id: bucketId, title: 'Milk', deleted_at: null }).select().single()
+  await rpc(alice, 'share_vault_bucket', { bucket: bucketId, friend: bob.id })
+  const { data: bobBuckets } = await bob.c.from('vault_buckets').select('id').eq('id', bucketId)
+  check((bobBuckets ?? []).length === 1, 'A shared bucket shows up for the connection')
+  const eggs = crypto.randomUUID()
+  const { data: added, error: addErr } = await bob.c.from('vault_items').upsert({ id: eggs, user_id: bob.id, bucket_id: bucketId, title: 'Eggs', notes: null, rating: null, link: null, checked: false, deleted_at: null }).select().single()
+  check(!addErr && added?.user_id === alice.id && added?.added_by === bob.id, 'A member adds an item: it is the owner’s, added by the member', addErr?.message)
+  const { data: edited, error: editErr } = await bob.c.from('vault_items').upsert({ id: milk, user_id: bob.id, bucket_id: bucketId, title: 'Oat milk', checked: true, deleted_at: null }).select().single()
+  check(!editErr && edited?.title === 'Oat milk' && edited?.added_by === alice.id, 'A member edits and checks off an item; who added it stays', editErr?.message)
+  const people = await rpc(bob, 'vault_people')
+  check(people.some((x) => x.bucket_id === bucketId && x.is_owner && x.display_name === A.name), 'The member sees who shared it')
+  await rpc(bob, 'leave_vault_bucket', { bucket: bucketId })
+  const { data: gone } = await bob.c.from('vault_buckets').select('id').eq('id', bucketId)
+  check((gone ?? []).length === 0, 'Leaving takes the bucket away')
+
   // Part 2: a connect link.
   const [link] = await rpc(alice, 'create_connect_link')
   const preview = await rpc(carol, 'preview_connect_link', { token: link.token, code: null })
@@ -93,6 +114,10 @@ try {
 } finally {
   // Tidy up: the event and the connections go.
   if (eventId) await alice.c.from('events').update({ deleted_at: new Date().toISOString() }).eq('id', eventId)
+  if (bucketId) {
+    await alice.c.from('vault_items').update({ deleted_at: new Date().toISOString() }).eq('bucket_id', bucketId)
+    await alice.c.from('vault_buckets').update({ deleted_at: new Date().toISOString() }).eq('id', bucketId)
+  }
   await alice.c.rpc('remove_connection', { friend: bob.id })
   await alice.c.rpc('remove_connection', { friend: carol.id })
 }

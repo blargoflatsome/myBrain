@@ -10,6 +10,21 @@ export interface PersonProfile {
   invited_events: string[]
 }
 
+/** A Vault bucket shown on a profile, read-only (SPEC §5 The Vault, Shared Vaults). */
+export interface ProfileBucket {
+  id: string
+  name: string
+  checkable: boolean
+  items: { id: string; title: string; notes: string | null; rating: number | null; link: string | null; checked: boolean }[]
+}
+
+/** The buckets they chose to show, A to Z; empty when we aren't connected. */
+export async function connectionVault(friend: string): Promise<ProfileBucket[]> {
+  const { data, error } = await supabase.rpc('connection_vault', { friend })
+  if (error) throw new Error(error.message)
+  return ((data as ProfileBucket[] | null) ?? []).map((b) => ({ ...b, items: b.items ?? [] }))
+}
+
 /** Their profile, or null when we aren't connected (or either blocked the other). */
 export async function connectionProfile(friend: string): Promise<PersonProfile | null> {
   const { data, error } = await supabase.rpc('connection_profile', { friend })

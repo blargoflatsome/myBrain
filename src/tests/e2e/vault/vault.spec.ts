@@ -83,9 +83,10 @@ test.describe('Spec §5 The Vault', () => {
     const dialog = page.getByRole('dialog', { name: msg.vault.settings })
     await dialog.getByLabel(msg.tagsPage.editor.name).fill('Books to read')
     await dialog.getByRole('checkbox', { name: /Items can be checked off/ }).check()
+    await dialog.getByTestId('bucket-on-profile').check()
     await dialog.getByRole('button', { name: msg.capture.save }).click()
     await expect(page.getByRole('heading', { name: 'Books to read', level: 1 })).toBeVisible()
-    await expect.poll(() => lastWrite('vault_buckets')).toMatchObject({ name: 'Books to read', checkable: true })
+    await expect.poll(() => lastWrite('vault_buckets')).toMatchObject({ name: 'Books to read', checkable: true, on_profile: true })
   })
 
   test('buckets are always favorites first, then A to Z, with nothing to drag', async ({ page }) => {
@@ -119,3 +120,70 @@ test.describe('Spec §5 The Vault', () => {
   })
 })
 
+
+test.describe('Spec §5 The Vault, Shared Vaults', () => {
+  const ALICE = '22222222-2222-4222-8222-222222222222'
+  const BOB = '33333333-3333-4333-8333-333333333333'
+  const rpc = (name: string) => server.rpcArgs.filter((c) => c.name === name)
+
+  test('I share a bucket with a connection, or stop, from Bucket settings; deleting it warns it goes for everyone', async ({ page }) => {
+    server.rpcResults.my_connections = [
+      { friend_id: ALICE, display_name: 'Alice Able', avatar_url: null, since: '2026-11-01T00:00:00Z' },
+      { friend_id: BOB, display_name: 'Bob Baker', avatar_url: null, since: '2026-11-01T00:00:00Z' },
+    ]
+    server.seed('vault_shares', [{ id: 's-bob', bucket_id: 'bucket-0', member: BOB }])
+    await open(page, '/vault')
+    await expect(page.getByRole('button', { name: /^Shopping list/ }).getByTestId('bucket-sharing-line')).toHaveText(msg.vault.sharedWithCount(1))
+    await page.getByRole('button', { name: /^Shopping list/ }).click()
+    await page.getByTestId('bucket-settings').click()
+    const sharing = page.getByRole('dialog', { name: msg.vault.settings }).getByTestId('bucket-sharing')
+    await expect(sharing.getByTestId('bucket-member')).toHaveText([/Bob Baker/])
+    // Only connections not already on it are offered.
+    await expect(sharing.getByTestId('bucket-share-option')).toHaveText([/Alice Able/])
+    await sharing.getByRole('button', { name: msg.vault.bucketEditor.shareWith('Alice Able') }).click()
+    await expect.poll(() => rpc('share_vault_bucket')[0]?.args).toEqual({ bucket: 'bucket-0', friend: ALICE })
+    await expect(sharing).toBeFocused()
+    await sharing.getByRole('button', { name: msg.vault.bucketEditor.stopSharingWith('Bob Baker') }).click()
+    await expect.poll(() => rpc('unshare_vault_bucket')[0]?.args).toEqual({ bucket: 'bucket-0', friend: BOB })
+    await page.getByRole('dialog', { name: msg.vault.settings }).getByRole('button', { name: msg.vault.bucketEditor.delete }).click()
+    await expect(page.getByRole('alertdialog')).toContainText(msg.vault.confirmBucketDelete.bodyShared('Shopping list', 1))
+  })
+
+  test('a bucket shared with me shows who shared it and who added what; my star is mine; I can leave it', async ({ page }) => {
+    server.seed('vault_buckets', [
+      { id: 'b-shared', user_id: ALICE, name: 'Groceries', position: 0, checkable: true, starred: true },
+      { id: 'b-not-mine', user_id: ALICE, name: 'Gift ideas', position: 1, checkable: false, starred: false },
+    ])
+    server.seed('vault_shares', [{ id: 's-me', user_id: ALICE, bucket_id: 'b-shared', member: '11111111-1111-4111-8111-111111111111' }])
+    server.seed('vault_items', [
+      { id: 'v-1', user_id: ALICE, bucket_id: 'b-shared', title: 'Milk', added_by: BOB, checked: false },
+      { id: 'v-2', user_id: ALICE, bucket_id: 'b-shared', title: 'Eggs', added_by: ALICE, checked: false },
+    ])
+    server.rpcResults.vault_people = [
+      { bucket_id: 'b-shared', person: ALICE, display_name: 'Alice Able', is_owner: true },
+      { bucket_id: 'b-shared', person: BOB, display_name: null, is_owner: false },
+    ]
+    await open(page, '/vault')
+    // A bucket of Alice's that isn't shared with me never shows.
+    await expect(page.getByTestId('vault-bucket')).toHaveCount(4)
+    const row = page.getByRole('button', { name: /^Groceries/ })
+    await expect(row.getByTestId('bucket-sharing-line')).toHaveText(msg.vault.sharedBy('Alice Able'))
+    await row.click()
+    // Bob isn't my connection, so he's "someone".
+    await expect(page.getByTestId('vault-item').filter({ hasText: 'Milk' }).getByTestId('vault-added-by')).toHaveText(msg.vault.addedBy(msg.vault.someone))
+    await expect(page.getByTestId('vault-item').filter({ hasText: 'Eggs' }).getByTestId('vault-added-by')).toHaveText(msg.vault.addedBy('Alice Able'))
+    // Alice starred it, but that's her star: mine starts off, and starring saves my own.
+    const starBtn = page.getByRole('button', { name: msg.vault.star('Groceries') })
+    await expect(starBtn).toHaveAttribute('aria-pressed', 'false')
+    await starBtn.click()
+    await expect.poll(() => lastWrite('vault_stars')).toMatchObject({ bucket_id: 'b-shared', deleted_at: null })
+    expect(server.written('vault_buckets')).toEqual([])
+    // Settings for someone else's list: only Leave.
+    await page.getByTestId('bucket-settings').click()
+    const leave = page.getByRole('alertdialog', { name: msg.vault.memberSettings.heading })
+    await expect(leave).toContainText(msg.vault.memberSettings.about('Alice Able'))
+    await leave.getByRole('button', { name: msg.vault.memberSettings.leave }).click()
+    await expect.poll(() => rpc('leave_vault_bucket')[0]?.args).toEqual({ bucket: 'b-shared' })
+    await expect(page).toHaveURL(/\/vault$/)
+  })
+})

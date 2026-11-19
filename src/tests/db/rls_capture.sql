@@ -55,7 +55,7 @@ begin
   begin
     insert into public.vault_items (bucket_id, title) values (bob_bucket, 'sneaky');
     raise exception 'FAIL: Spec §8: a user cannot put items in someone else''s bucket';
-  exception when foreign_key_violation then null;
+  exception when foreign_key_violation or insufficient_privilege then null;
   end;
 
   begin

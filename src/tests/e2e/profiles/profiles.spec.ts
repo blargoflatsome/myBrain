@@ -56,12 +56,37 @@ test.describe('Spec §5 Profiles', () => {
 
   test('View my profile on the Account page shows mine as connections see it, from this device, without Invite', async ({ page }) => {
     server.seed('badges', [{ id: 'b-1', kind: 'habit_streak', earned_at: '2026-11-01T00:00:00Z', levels: ['2026-10-01T00:00:00Z'] }])
+    server.seed('vault_buckets', [{ id: 'vb-mine', name: 'Books to lend', position: 9, checkable: false, starred: false, on_profile: true }])
     await open(page, '/account')
     await page.getByTestId('profile-settings').getByRole('link', { name: m.viewMine }).click()
     await expect(page.getByTestId('profile-name')).toHaveText('Test Person')
     await expect(page.getByTestId('profile-trophies').getByTestId('trophy-habit_streak')).toBeVisible()
+    // Only the Vault buckets I chose to show (SPEC §5 The Vault, Shared Vaults).
+    await expect(page.getByTestId('profile-bucket')).toHaveCount(1)
+    await expect(page.getByTestId('profile-bucket')).toContainText('Books to lend')
     await expect(page.getByRole('button', { name: m.invite })).toHaveCount(0)
     expect(rpc('connection_profile')).toEqual([])
+  })
+
+  test('Shared Vaults: buckets they show on their profile are listed read-only, each opening to its items', { tag: '@phone' }, async ({ page }) => {
+    const pasted = 'https://example.com/a/really/long/link/that/someone/pasted/without/any/spaces/in/it/at/all?with=query'
+    server.rpcResults.connection_profile = bob()
+    server.rpcResults.connection_vault = [{
+      id: 'vb-1', name: 'Books to lend', checkable: true,
+      items: [{ id: 'vi-1', title: pasted, notes: '<p>Signed copy</p>', rating: 4, link: pasted, checked: false }, { id: 'vi-2', title: 'Read already', notes: null, rating: null, link: null, checked: true }],
+    }]
+    await page.setViewportSize({ width: 320, height: 640 })
+    await open(page, `/people/${BOB}`)
+    const bucket = page.getByTestId('profile-bucket')
+    await bucket.getByTestId('fold-header').click()
+    await expect(bucket.getByTestId('profile-item')).toHaveCount(2)
+    await expect(bucket.getByRole('link')).toHaveCount(1)
+    expect(rpc('connection_vault')[0]?.args).toEqual({ friend: BOB })
+    // Read-only: nothing to tick, edit or delete.
+    await expect(bucket.getByRole('button')).toHaveCount(0)
+    await expect(bucket.getByRole('checkbox')).toHaveCount(0)
+    // A pasted link still fits a phone (SPEC §2 Long text).
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
   })
 
   test('someone I’m not connected with shows nothing but a way back', async ({ page }) => {

@@ -9,6 +9,8 @@ export const SYNC_TABLES = [
   'tasks',
   'vault_buckets',
   'vault_items',
+  'vault_shares',
+  'vault_stars',
   'quests',
   'inbox',
   'habits',
@@ -34,7 +36,7 @@ export const SYNC_TABLES = [
 ] as const
 
 /** Tables the app only reads: changes go through server functions (SPEC §5 Shared events). */
-export const READ_ONLY_TABLES: readonly SyncTable[] = ['event_invites']
+export const READ_ONLY_TABLES: readonly SyncTable[] = ['event_invites', 'vault_shares']
 export type SyncTable = (typeof SYNC_TABLES)[number]
 
 /** Columns every synced row has (SPEC §4). Timestamps are set by the server. */
@@ -99,6 +101,8 @@ export interface VaultBucketRow extends BaseRow {
   checkable?: boolean
   /** Starred: shown as a card on the Dashboard with its newest items. */
   starred?: boolean
+  /** Shown read-only to my connections on my profile (SPEC §5 The Vault, Shared Vaults). */
+  on_profile?: boolean
 }
 
 export interface VaultItemRow extends BaseRow {
@@ -111,6 +115,19 @@ export interface VaultItemRow extends BaseRow {
   link?: string | null
   /** Checked off, in a checklist bucket. */
   checked?: boolean
+  /** Who added it (SPEC §5 Shared Vaults); user_id is always the bucket's owner. Set by the server. */
+  added_by?: string | null
+}
+
+/** A bucket shared with a connection (SPEC §5 Shared Vaults). user_id is the owner; changed only by server functions. */
+export interface VaultShareRow extends BaseRow {
+  bucket_id: string
+  member: string
+}
+
+/** My star on a bucket someone shared with me (my own buckets keep theirs on the bucket). */
+export interface VaultStarRow extends BaseRow {
+  bucket_id: string
 }
 
 export type EventRepeat = 'never' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'
@@ -361,6 +378,8 @@ export interface RowTypes {
   tasks: TaskRow
   vault_buckets: VaultBucketRow
   vault_items: VaultItemRow
+  vault_shares: VaultShareRow
+  vault_stars: VaultStarRow
   quests: QuestRow
   inbox: InboxRow
   habits: HabitRow
