@@ -673,7 +673,7 @@ export const messages = {
     events: 'Phone, cancellation messages, availability',
     peopleTitle: 'People',
     people: 'Connections and offsite connections',
-    connectionsHint: 'People on My Brain you’re connected with. You can invite each other in the app, see when each other is free or busy, and share Vaults.',
+    connectionsHint: 'Other brains you’re connected with. You can invite each other to events in the app, see when each other is free or busy, and share Vaults.',
     settingsTitle: 'Account Settings',
     settings: 'Customize your experience',
     tagsTitle: 'Tags',
@@ -690,7 +690,7 @@ export const messages = {
   myPeople: {
     heading: 'Offsite connections',
     hint: 'People you invite by email or phone. They get a message with a link to answer, no account needed.',
-    empty: 'No one yet. Add someone, or people you invite by email or phone will show up here.',
+    empty: 'No one yet.',
     add: 'Add a person',
     addHeading: 'Add a person',
     addedNotice: (name: string) => `Added ${name} to your offsite connections.`,
