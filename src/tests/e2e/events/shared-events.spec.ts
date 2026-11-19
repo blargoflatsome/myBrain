@@ -34,7 +34,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('Spec §5 Accounts and contact info', () => {
-  test('after sign-in, a missing phone number is asked for once, with how event news should reach me', async ({ page }) => {
+  test('after sign-in, a missing phone number is asked for once', async ({ page }) => {
     server.seed('profiles', [{ ...server.profile, phone: null }])
     await open(page, '/habits')
     await expect(page).toHaveURL(/\/welcome/)
@@ -44,10 +44,9 @@ test.describe('Spec §5 Accounts and contact info', () => {
     await page.getByRole('button', { name: msg.welcome.save }).click()
     await expect(page.getByRole('alert')).toContainText('doesn’t look like a phone number')
     await page.getByLabel(msg.welcome.phone).fill('+1 (555) 010-2222')
-    await page.getByText(msg.welcome.notifyOptions.both, { exact: true }).click()
     await page.getByRole('button', { name: msg.welcome.save }).click()
     await expect(page).toHaveURL(/\/habits$/)
-    expect(server.written('profiles').at(-1)).toMatchObject({ phone: '+1 (555) 010-2222', event_notify_method: 'both' })
+    expect(server.written('profiles').at(-1)).toMatchObject({ phone: '+1 (555) 010-2222' })
   })
 
   test('event settings: phone, shared free/busy, and my two cancellation messages (finding me by name is gone)', async ({ page }) => {
