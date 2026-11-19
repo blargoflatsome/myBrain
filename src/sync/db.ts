@@ -29,6 +29,8 @@ export class LocalDb extends Dexie {
   tasks!: Table<RowTypes['tasks'], string>
   vault_buckets!: Table<RowTypes['vault_buckets'], string>
   vault_items!: Table<RowTypes['vault_items'], string>
+  vault_shares!: Table<RowTypes['vault_shares'], string>
+  vault_stars!: Table<RowTypes['vault_stars'], string>
   quests!: Table<RowTypes['quests'], string>
   inbox!: Table<RowTypes['inbox'], string>
   habits!: Table<RowTypes['habits'], string>
@@ -152,6 +154,11 @@ export class LocalDb extends Dexie {
         await tx.table('reminder_state').filter((row: { kind: string }) => row.kind === 'priority_task').delete()
         await tx.table('outbox').where('table').equals('reminder_state').filter((entry: { row: { kind: string } }) => entry.row.kind === 'priority_task').delete()
       })
+    // Shared Vaults (SPEC §5 The Vault): who a bucket is shared with, and my stars on buckets shared with me.
+    this.version(18).stores({
+      vault_shares: 'id, updated_at, bucket_id',
+      vault_stars: 'id, updated_at, bucket_id',
+    })
   }
 
   rows<T extends SyncTable>(table: T): Table<RowTypes[T], string> {

@@ -14,6 +14,8 @@ export class FakeRemote implements Remote {
     people: new Map(),
     notifications: new Map(),
     vault_buckets: new Map(),
+    vault_shares: new Map(),
+    vault_stars: new Map(),
     vault_items: new Map(),
     quests: new Map(),
     quest_logs: new Map(),

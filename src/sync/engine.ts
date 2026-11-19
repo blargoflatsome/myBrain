@@ -40,6 +40,8 @@ export class SyncEngine {
     private readonly isOnline: () => boolean = () => true,
     /** Called once a table's first download is stored on this device, without waiting for the other tables. */
     private readonly onDownloaded: (table: SyncTable) => void = () => {},
+    /** Called after every pull that reached the server (SPEC §5 Shared Vaults: clearing buckets I lost access to). */
+    private readonly afterPull: () => Promise<void> = async () => {},
   ) {}
 
   /** Save a row on the device and queue it for upload. Resolves once it is safely stored locally. */
@@ -235,6 +237,7 @@ export class SyncEngine {
         for (let table = queue.shift(); table; table = queue.shift()) await this.pullTable(table)
       }
       await Promise.all(Array.from({ length: Math.min(PULL_AT_ONCE, queue.length) }, worker))
+      await this.afterPull()
     } catch (err) {
       if (err instanceof NetworkError) {
         await this.setState('offline')

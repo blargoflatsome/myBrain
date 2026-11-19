@@ -24,6 +24,8 @@ export class FakeSupabase {
     notifications: new Map(),
     vault_buckets: new Map(),
     vault_items: new Map(),
+    vault_shares: new Map(),
+    vault_stars: new Map(),
     quests: new Map(),
     quest_logs: new Map(),
     badges: new Map(),

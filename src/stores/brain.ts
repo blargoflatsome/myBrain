@@ -17,6 +17,7 @@ import { lockingRemote } from '@/journal/lockingRemote'
 import { tagActions } from '@/tags/actions'
 import { trophyActions } from '@/trophies/actions'
 import { vaultActions } from '@/vault/actions'
+import { dropLostBuckets } from '@/vault/sharing'
 import { priorityActions } from '@/reminders/actions'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
@@ -78,7 +79,7 @@ export const useBrainStore = defineStore('brain', () => {
     const READY_TABLES: SyncTable[] = ['badges', 'habit_logs', 'habit_pauses', 'journal_entries']
     engine.value = new SyncEngine(local, remote, (s) => (status.value = s), () => online.value, (table) => {
       if (READY_TABLES.includes(table)) background(markReady())
-    })
+    }, () => dropLostBuckets(local, uid))
     const markReady = async () => {
       if (await local.meta.get('downloaded:badges')) badgesReady.value = true
       // Misses are only worked out once logs and pauses are both here, so a paused day is never logged as missed.

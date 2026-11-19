@@ -10,8 +10,11 @@
       <ul class="flex flex-col gap-2" :aria-label="m.bucketsHeading">
         <li v-for="b in buckets" :key="b.id" class="flex items-center rounded-2xl border border-line bg-surface" data-testid="vault-bucket">
           <button type="button" class="flex min-h-14 flex-1 items-center justify-between gap-3 px-4 text-left" @click="openBucket(b)">
-            <span class="font-medium"><AppIcon v-if="b.starred" name="star" filled class="mr-1 text-star" />{{ b.name }}</span>
-            <span class="text-sm text-muted">{{ m.itemCount(countIn(b)) }}</span>
+            <span class="flex min-w-0 flex-col">
+              <span class="font-medium [overflow-wrap:anywhere]"><AppIcon v-if="b.starred" name="star" filled class="mr-1 text-star" />{{ b.name }}</span>
+              <span v-if="sharingLine(b)" class="text-xs text-muted" data-testid="bucket-sharing-line">{{ sharingLine(b) }}</span>
+            </span>
+            <span class="shrink-0 text-sm text-muted">{{ m.itemCount(countIn(b)) }}</span>
           </button>
         </li>
       </ul>
@@ -21,7 +24,10 @@
       <div class="flex flex-col gap-2">
         <button type="button" class="self-start text-sm text-muted underline" @click="router.push({ query: {} })">← {{ m.back }}</button>
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <h1 class="min-w-0 text-2xl font-bold break-words">{{ bucket.name }}</h1>
+          <div class="min-w-0">
+            <h1 class="text-2xl font-bold break-words">{{ bucket.name }}</h1>
+            <p v-if="sharingLine(bucket)" class="text-sm text-muted" data-testid="bucket-sharing-line">{{ sharingLine(bucket) }}</p>
+          </div>
           <div class="flex shrink-0 gap-2">
             <button
               type="button"
@@ -30,11 +36,11 @@
               :aria-pressed="!!bucket.starred"
               :aria-label="bucket.starred ? m.unstar(bucket.name) : m.star(bucket.name)"
               :title="m.starHint"
-              @click="brain.save('vault_buckets', { ...bucket, starred: !bucket.starred })"
+              @click="toggleStar(bucket)"
             >
               <AppIcon name="star" :filled="bucket.starred" size="size-5" />
             </button>
-            <button type="button" :class="smallButton" @click="editingBucket = bucket">{{ m.settings }}</button>
+            <button type="button" :class="smallButton" data-testid="bucket-settings" @click="openSettings(bucket)">{{ m.settings }}</button>
           </div>
         </div>
       </div>
@@ -66,6 +72,7 @@
             </button>
             <span v-if="i.rating" class="text-sm text-star" :aria-label="m.stars(i.rating)" role="img"><AppIcon v-for="n in 5" :key="n" name="star" :filled="n <= i.rating" :class="n <= i.rating ? '' : 'text-muted'" /></span>
             <p v-if="i.notes" class="line-clamp-2 text-sm text-muted">{{ plainText(i.notes) }}</p>
+            <p v-if="addedBySomeoneElse(i, me)" class="text-xs text-muted" data-testid="vault-added-by">{{ m.addedBy(people.nameOf(i.added_by)) }}</p>
             <a
               v-if="i.link"
               :href="linkTarget(i.link).href"
@@ -87,9 +94,19 @@
     <BucketEditor
       :bucket="editingBucket"
       :item-count="editingBucket ? countIn(editingBucket) : 0"
+      :members="editingBucket ? membersOf(shares, editingBucket.id) : []"
       @save="saveBucket"
       @delete="deleteBucket"
       @close="editingBucket = null"
+    />
+    <!-- Someone else's bucket: only Leave (SPEC §5 Shared Vaults). -->
+    <ConfirmDialog
+      ref="memberDialog"
+      :heading="m.memberSettings.heading"
+      :body="bucket ? m.memberSettings.about(people.ownerName(bucket.id)) : ''"
+      :confirm-label="m.memberSettings.leave"
+      :keep-label="m.memberSettings.close"
+      @confirm="leave"
     />
   </main>
 </template>
@@ -97,19 +114,23 @@
 <script setup lang="ts">
 // SPEC §5 The Vault: my buckets; inside one, its items with a quick add box, check-off, ratings and links.
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import VaultItemEditor from '@/vault/components/VaultItemEditor.vue'
 import BucketEditor from '@/vault/components/BucketEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
-import { activeBuckets, checkedItems, itemsInBucket, linkLabel, linkTarget } from '@/vault/rules'
+import { checkedItems, itemsInBucket, linkLabel, linkTarget } from '@/vault/rules'
 import { messages } from '@/messages'
-import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
+import type { VaultBucketRow, VaultItemRow, VaultShareRow, VaultStarRow } from '@/sync/types'
 import { fieldOnPage, primaryButton, smallButton } from '@/ui/styles'
 import PageHeading from '@/components/PageHeading.vue'
 import RowDelete from '@/components/RowDelete.vue'
 import CheckCircle from '@/components/CheckCircle.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { addedBySomeoneElse, leaveBucket, membersOf, ownsBucket, sharedWithMe, visibleBuckets } from '@/vault/sharing'
+import { useVaultPeople } from '@/vault/useVaultPeople'
+import { useCelebrateStore } from '@/stores/celebrate'
 import { live } from '@/sync/live'
 import { useUndoStore } from '@/stores/undo'
 import { plainText } from '@/journal/body'
@@ -119,7 +140,12 @@ const route = useRoute()
 const router = useRouter()
 const m = messages.vault
 
-const buckets = useLiveQuery<VaultBucketRow[]>(async () => (brain.db ? activeBuckets(await brain.db.vault_buckets.toArray()) : []), [], [() => brain.db])
+const me = computed(() => brain.userId ?? '')
+const shares = useLiveQuery<VaultShareRow[]>(async () => (brain.db ? await brain.db.vault_shares.toArray() : []), [], [() => brain.db])
+const stars = useLiveQuery<VaultStarRow[]>(async () => (brain.db ? await brain.db.vault_stars.toArray() : []), [], [() => brain.db])
+const rawBuckets = useLiveQuery<VaultBucketRow[]>(async () => (brain.db ? await brain.db.vault_buckets.toArray() : []), [], [() => brain.db])
+// Mine and ones shared with me, each shared one with my own star (SPEC §5 Shared Vaults).
+const buckets = computed(() => visibleBuckets(rawBuckets.value, shares.value, stars.value, me.value))
 const items = useLiveQuery<VaultItemRow[]>(async () => (brain.db ? live(await brain.db.vault_items.toArray()) : []), [], [() => brain.db])
 
 const bucketId = computed(() => (typeof route.query.bucket === 'string' ? route.query.bucket : null))
@@ -133,6 +159,42 @@ function openBucket(b: VaultBucketRow) {
 }
 
 // ---------- Buckets ----------
+const celebrate = useCelebrateStore()
+const people = useVaultPeople()
+onMounted(() => void people.load())
+watch(() => brain.online, (on) => on && void people.load())
+watch(() => shares.value.length, () => void people.load())
+/** "Shared by Alice" on a bucket shared with me; "Shared with 2 people" on mine. */
+function sharingLine(b: VaultBucketRow) {
+  if (!ownsBucket(b, me.value)) return sharedWithMe(shares.value, me.value).has(b.id) ? m.sharedBy(people.ownerName(b.id)) : ''
+  const n = membersOf(shares.value, b.id).length
+  return n ? m.sharedWithCount(n) : ''
+}
+// My star: on my own bucket it's the bucket's; on a shared one it's mine alone.
+async function toggleStar(b: VaultBucketRow) {
+  if (ownsBucket(b, me.value)) return brain.save('vault_buckets', { ...b, starred: !b.starred })
+  const mine = stars.value.find((s) => s.bucket_id === b.id)
+  if (mine) return brain.save('vault_stars', { ...mine, deleted_at: mine.deleted_at ? null : new Date().toISOString() })
+  return brain.save('vault_stars', { id: crypto.randomUUID(), user_id: me.value, bucket_id: b.id, deleted_at: null })
+}
+const memberDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
+function openSettings(b: VaultBucketRow) {
+  if (ownsBucket(b, me.value)) editingBucket.value = b
+  else memberDialog.value?.open()
+}
+async function leave() {
+  const b = bucket.value
+  memberDialog.value?.close()
+  if (!b) return
+  try {
+    await leaveBucket(b.id)
+    await router.push({ query: {} })
+    await brain.refresh(['vault_shares', 'vault_stars'])
+    celebrate.say(m.left(b.name))
+  } catch {
+    celebrate.say(m.leaveFailed)
+  }
+}
 const newBucketName = ref('')
 async function createBucket() {
   const name = newBucketName.value.trim()

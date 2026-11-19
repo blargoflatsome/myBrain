@@ -127,7 +127,7 @@ import {
 import { messages } from '@/messages'
 import type { EnergyLevel, PostItColor, TimeBucket, VaultBucketRow } from '@/sync/types'
 import { fieldOnPage, primaryButton } from '@/ui/styles'
-import { activeBuckets } from '@/vault/rules'
+import { loadVisibleBuckets } from '@/vault/sharing'
 
 // The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
 const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
@@ -165,7 +165,7 @@ const saving = ref(false)
 const titleBox = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
 const buckets = useLiveQuery<VaultBucketRow[]>(
-  async () => (brain.db ? activeBuckets(await brain.db.vault_buckets.toArray()) : []),
+  async () => (brain.db ? loadVisibleBuckets(brain.db, brain.userId ?? '') : []),
   [],
   [() => brain.db],
 )

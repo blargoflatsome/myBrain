@@ -51,11 +51,25 @@ export function seedSample(server: FakeSupabase) {
     { id: 'p1', body: '<p><strong>Call the vet</strong></p><ul><li><p>Shots for Biscuit</p></li></ul>', color: 'yellow', position: 0 },
     { id: 'p2', body: '<p>Wifi password is on the router</p>', color: 'blue', position: 1 },
   ])
-  server.seed('vault_buckets', [{ id: 'b1', name: 'Books to read', position: 5, checkable: true, starred: true }])
+  // Shared Vaults (SPEC §5 The Vault): one list Sam shares with me, and an item Sam added to mine.
+  const SAM = '99999999-9999-4999-8999-999999999999'
+  server.seed('vault_buckets', [
+    { id: 'b1', name: 'Books to read', position: 5, checkable: true, starred: true },
+    { id: 'b2', user_id: SAM, name: 'Game night snacks', position: 6, checkable: true, starred: false },
+  ])
+  server.seed('vault_shares', [
+    { id: 'vs1', user_id: SAM, bucket_id: 'b2', member: '11111111-1111-4111-8111-111111111111' },
+    { id: 'vs2', bucket_id: 'b1', member: SAM },
+  ])
+  server.rpcResults.vault_people = [
+    { bucket_id: 'b2', person: SAM, display_name: 'Sam Rivera', is_owner: true },
+    { bucket_id: 'b1', person: SAM, display_name: 'Sam Rivera', is_owner: false },
+  ]
   server.seed('vault_items', [
     { id: 'v1', bucket_id: 'b1', title: 'Dune', notes: 'Jo recommended it', rating: 4, link: null, checked: false },
     { id: 'v2', bucket_id: 'b1', title: 'The Hobbit', notes: null, rating: 5, link: null, checked: true },
-    { id: 'v3', bucket_id: 'b1', title: 'Atomic Habits', notes: null, rating: null, link: null, checked: false },
+    { id: 'v3', bucket_id: 'b1', title: 'Atomic Habits', notes: null, rating: null, link: null, checked: false, added_by: SAM },
+    { id: 'v6', user_id: SAM, bucket_id: 'b2', title: 'Pretzels', notes: null, rating: null, link: null, checked: false },
     { id: 'v4', bucket_id: 'bucket-0', title: 'Oat milk', notes: null, rating: null, link: null, checked: false },
     { id: 'v5', bucket_id: 'bucket-0', title: 'Bananas', notes: null, rating: null, link: null, checked: false },
   ])

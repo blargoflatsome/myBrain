@@ -100,6 +100,7 @@
 <script setup lang="ts">
 // SPEC §5 Dashboard: yesterday, days since your worst day, favorite buckets and Trophies. Updates live.
 import { readTables } from '@/sync/db'
+import { loadVisibleBuckets } from '@/vault/sharing'
 import { DAY_TABLES, dayStats } from '@/journal/stats'
 import { useNow } from '@/composables/useNow'
 import AppIcon from '@/components/AppIcon.vue'
@@ -141,11 +142,12 @@ const stats = useLiveQuery(
     const db = brain.db
     if (!db) return null
     const day = await readTables(db, DAY_TABLES)
-    const { journal, buckets, vaultItems } = await readTables(db, {
+    const { journal, vaultItems } = await readTables(db, {
       journal: 'journal_entries',
-      buckets: 'vault_buckets',
       vaultItems: 'vault_items',
     })
+    // Shared buckets carry my own star (SPEC §5 Shared Vaults).
+    const buckets = await loadVisibleBuckets(db, brain.userId ?? '')
     return {
       yesterday: yesterdaySummary(dayStats(day, addDays(today.value, -1), now.value, timeZone.value)),
       leftovers: yesterdayLeftovers(day.tasks, today.value),
