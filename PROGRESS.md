@@ -9,6 +9,9 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## Voice capture (branch `voice-capture`, not merged)
+- Agreed with the user 2026-11-20: SPEC §5 Quick capture (Speak it fills the form), §5 The Vault (default bucket), §4, §11; DECISIONS 2026-11-20. Pi and Home Assistant voice dropped. Spec written; build next: `src/voice/parse.ts` with a phrase table test, Speak it filling the form with Undo, the default bucket (migration, Dexie, Bucket settings, list order).
+
 ## Connections in Account › People; Offsite connections (merged via PR, branch `people-connections-inline`)
 - User 2026-11-19: Account › People shows Connections in full (shared `ConnectionsPanel.vue`, also the Connections page; order: requests, connections, sent, ways to connect), then "Your people" renamed **Offsite connections**, each with a hint saying what it is. Contacts window headed Contacts, with Connections and Offsite connections sections. SPEC §5, §10; DECISIONS 2026-11-19. Help Connections step and picture updated. `npm run test:all` passed (Vitest 449, Playwright 825).
 
