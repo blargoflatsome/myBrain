@@ -14,3 +14,16 @@ export function parseDate(text: string, today: string): string | null {
   if (!found || !(found.start.isCertain('day') || found.start.isCertain('weekday'))) return null
   return iso(found.start.date())
 }
+
+/**
+ * A day named somewhere inside a sentence ("call mom tomorrow"), with the sentence minus those words, or null if no
+ * certain day is named. Same rules as parseDate (a day with no year means the next one coming). SPEC §5 Quick capture.
+ */
+export function findDate(text: string, today: string): { date: string; rest: string } | null {
+  const found = casual
+    .parse(text, new Date(`${today}T12:00:00`), { forwardDate: true })
+    .find((r) => r.start.isCertain('day') || r.start.isCertain('weekday'))
+  if (!found) return null
+  const rest = `${text.slice(0, found.index)} ${text.slice(found.index + found.text.length)}`
+  return { date: iso(found.start.date()), rest: rest.replace(/\s+/g, ' ').trim() }
+}

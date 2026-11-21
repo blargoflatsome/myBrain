@@ -21,6 +21,7 @@
       </span>
       <input v-model="checkable" type="checkbox" :class="checkbox">
     </label>
+    <DefaultBucketCheck v-model="isDefault" />
     <fieldset class="flex flex-col gap-3">
       <legend class="pb-2 font-medium">{{ m.bucketEditor.sharing }}</legend>
       <label class="flex items-center justify-between gap-4">
@@ -45,14 +46,15 @@
 </template>
 
 <script setup lang="ts">
-// SPEC §5 The Vault: rename a bucket, choose whether its items can be checked off, show it on my profile (Shared
-// Vaults), or delete it (with its items).
+// SPEC §5 The Vault: rename a bucket, choose whether its items can be checked off, make it my default bucket, show it
+// on my profile (Shared Vaults), or delete it (with its items).
 import EditorDialog from '@/components/EditorDialog.vue'
 import { ref, watch } from 'vue'
 import { messages } from '@/messages'
 import type { VaultBucketRow, VaultShareRow } from '@/sync/types'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import BucketSharing from '@/vault/components/BucketSharing.vue'
+import DefaultBucketCheck from '@/vault/components/DefaultBucketCheck.vue'
 import { checkbox, field, fieldLabel } from '@/ui/styles'
 
 const props = withDefaults(defineProps<{ bucket: VaultBucketRow | null; itemCount: number; members?: VaultShareRow[] }>(), { members: () => [] })
@@ -63,6 +65,7 @@ const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const name = ref('')
 const checkable = ref(false)
 const onProfile = ref(false)
+const isDefault = ref(false)
 
 watch(
   () => props.bucket,
@@ -71,12 +74,13 @@ watch(
     name.value = b.name
     checkable.value = !!b.checkable
     onProfile.value = !!b.on_profile
+    isDefault.value = !!b.is_default
   },
 )
 
 function save() {
   if (!props.bucket || !name.value.trim()) return
-  emit('save', { ...props.bucket, name: name.value.trim(), checkable: checkable.value, on_profile: onProfile.value })
+  emit('save', { ...props.bucket, name: name.value.trim(), checkable: checkable.value, on_profile: onProfile.value, is_default: isDefault.value })
 }
 function confirmDelete() {
   if (props.bucket) emit('delete', props.bucket)

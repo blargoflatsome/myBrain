@@ -10,7 +10,11 @@ Older steps (1–11, feedback rounds 1–3, connections, navigation, Account tid
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
 ## Voice capture (branch `voice-capture`, not merged)
-- Agreed with the user 2026-11-20: SPEC §5 Quick capture (Speak it fills the form), §5 The Vault (default bucket), §4, §11; DECISIONS 2026-11-20. Pi and Home Assistant voice dropped. Spec written; build next: `src/voice/parse.ts` with a phrase table test, Speak it filling the form with Undo, the default bucket (migration, Dexie, Bucket settings, list order).
+- Agreed with the user 2026-11-20: SPEC §5 Quick capture (Speak it fills the form), §5 The Vault (default bucket), §4, §11; DECISIONS 2026-11-20. Pi and Home Assistant voice dropped.
+- Built: the voice parser `src/voice/parse.ts` (loaded only once something is heard) and `findDate` in `time/parseDate.ts`; Speak it fills the Capture form, says what it filled in a status line, and has its own Undo in the form (the Undo bar sits behind the Capture window). Default bucket: Make this my default bucket in Bucket settings and in a shared bucket's window (`DefaultBucketCheck.vue`, `brain.setDefaultBucket`), listed first everywhere, preselected in Capture and Orphans.
+- Migration `20261120010000_default_bucket.sql` (vault_buckets.is_default; vault_stars.starred and is_default) on dev; prod at merge. No Dexie version (no new indexes).
+- Tests: `unit/voice/parse.test.ts`, default cases in `unit/vault/bucket-order`, `unit/vault/sharing`, `unit/sync/brain`; `e2e/capture/speak-it.spec.ts`; a default-bucket case in `e2e/vault/vault.spec.ts`. `npm run test:quick` passed (Vitest 489, Playwright 442).
+- At merge: Help Capture and Vault steps (and pictures), home page Capture line, prod migration, `npm run test:db`, full review. Not tried with real speech on a phone yet.
 
 ## Connections in Account › People; Offsite connections (merged via PR, branch `people-connections-inline`)
 - User 2026-11-19: Account › People shows Connections in full (shared `ConnectionsPanel.vue`, also the Connections page; order: requests, connections, sent, ways to connect), then "Your people" renamed **Offsite connections**, each with a hint saying what it is. Contacts window headed Contacts, with Connections and Offsite connections sections. SPEC §5, §10; DECISIONS 2026-11-19. Help Connections step and picture updated. `npm run test:all` passed (Vitest 449, Playwright 825).

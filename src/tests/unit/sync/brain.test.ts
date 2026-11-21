@@ -111,6 +111,33 @@ describe('Spec §5 Journal: one entry per day, even when saves happen at once', 
   })
 })
 
+describe('SPEC §5 The Vault, Default bucket: I have at most one', () => {
+  it('making another bucket my default moves it there, between my own and shared buckets, keeping my star', async () => {
+    const brain = useBrainStore()
+    const me = `u-${crypto.randomUUID()}`
+    brain.start(me, remote)
+    const mine = await brain.createBucket('Groceries')
+    const other = await brain.createBucket('Books')
+    await brain.db!.vault_buckets.put({ id: 'shared', user_id: 'alice', name: 'Hardware', position: 0, deleted_at: null })
+    await brain.db!.vault_stars.put({ id: 'my-star', user_id: me, bucket_id: 'shared', deleted_at: null })
+    const defaults = async () => [
+      ...(await brain.db!.vault_buckets.toArray()).filter((b) => b.is_default).map((b) => b.id),
+      ...(await brain.db!.vault_stars.toArray()).filter((s) => s.is_default).map((s) => s.bucket_id),
+    ]
+
+    await brain.setDefaultBucket(mine.id)
+    await brain.setDefaultBucket(other.id)
+    expect(await defaults()).toEqual([other.id])
+    await brain.setDefaultBucket('shared')
+    expect(await defaults()).toEqual(['shared'])
+    expect(await brain.db!.vault_stars.get('my-star')).toMatchObject({ starred: true, is_default: true })
+    await brain.setDefaultBucket(mine.id)
+    expect(await defaults()).toEqual([mine.id])
+    await brain.setDefaultBucket(null)
+    expect(await defaults()).toEqual([])
+  })
+})
+
 describe('Spec §5 The Vault: bucket picker can create a new bucket', () => {
   it('a new bucket goes after the existing ones', async () => {
     const brain = useBrainStore()

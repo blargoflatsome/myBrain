@@ -67,6 +67,9 @@ export const messages = {
     micStart: 'Speak it',
     micListening: 'Listening…',
     micError: "I didn't catch that. Want me to try again, or you could type it?",
+    /** Speak it filled the form (SPEC §5 Quick capture): what was understood, read out to screen readers too. */
+    heard: (type: string, title: string, day: string | null) =>
+      `${type}${title ? `: ${title}` : ''}${day ? `, ${day}` : ''}. Check it, then save.`,
     whereHeading: 'Where should this go?',
     typeHeading: 'What are you capturing?',
     titleLabel: 'Title',
@@ -1316,11 +1319,14 @@ export const messages = {
     star: (name: string) => `Star ${name}`,
     unstar: (name: string) => `Unstar ${name}`,
     starHint: 'Starred buckets show on the Dashboard.',
+    defaultBucket: 'Default bucket',
     bucketEditor: {
       heading: 'Bucket settings',
       name: 'Name',
       checkable: 'Items can be checked off',
       checkableHint: 'Good for lists like shopping. Checked items move to the bottom.',
+      isDefault: 'Make this my default bucket',
+      isDefaultHint: 'Listed first, and picked for you when you capture to the Vault.',
       sharing: 'Sharing',
       onProfile: 'Show on my profile',
       onProfileHint: 'Your connections can see this list on your profile. They can’t change it.',

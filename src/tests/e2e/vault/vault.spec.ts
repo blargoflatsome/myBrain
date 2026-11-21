@@ -89,6 +89,23 @@ test.describe('Spec §5 The Vault', () => {
     await expect.poll(() => lastWrite('vault_buckets')).toMatchObject({ name: 'Books to read', checkable: true, on_profile: true })
   })
 
+  test('my default bucket is listed first, above favorites, and is the one Capture picks (SPEC §5 Default bucket)', async ({ page }) => {
+    server.seed('vault_buckets', [{ id: 'b-z', name: 'Zoo trips', position: 9, checkable: false, starred: true }])
+    await open(page, '/vault')
+    await page.getByRole('button', { name: /^Restaurant reviews/ }).click()
+    await page.getByRole('button', { name: msg.vault.settings }).click()
+    const dialog = page.getByRole('dialog', { name: msg.vault.settings })
+    await dialog.getByTestId('bucket-default-check').check()
+    await dialog.getByRole('button', { name: msg.capture.save }).click()
+    await expect.poll(() => lastWrite('vault_buckets')).toMatchObject({ name: 'Restaurant reviews', is_default: true })
+
+    await page.getByRole('button', { name: msg.vault.back }).click()
+    await expect(page.getByTestId('vault-bucket')).toHaveText([/Restaurant reviews/, /Zoo trips/, /Places to go/, /Shopping list/])
+    await page.goto('/capture')
+    await page.getByRole('group', { name: msg.capture.whereHeading }).getByRole('button', { name: msg.capture.destinations.vault, exact: true }).click()
+    await expect(page.getByTestId('bucket-choice').getByRole('button', { name: 'Restaurant reviews' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
   test('buckets are always favorites first, then A to Z, with nothing to drag', async ({ page }) => {
     server.seed('vault_buckets', [{ id: 'b-z', name: 'Zoo trips', position: 9, checkable: false, starred: true }])
     await open(page, '/vault')

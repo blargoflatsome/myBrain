@@ -8,5 +8,11 @@ describe('Spec §5 The Vault: buckets are always favorites first, then A to Z', 
     const out = activeBuckets([b('1', 'shopping', false), b('2', 'Zoo trips', true), b('3', 'Books', false), b('4', 'art', true), b('5', 'Gone', true, { deleted_at: 'x' })])
     expect(out.map((x) => x.name)).toEqual(['art', 'Zoo trips', 'Books', 'shopping'])
   })
+
+  it('my default bucket comes first, above starred ones (SPEC §5 Default bucket)', () => {
+    const b = (name: string, extra: Partial<VaultBucketRow>): VaultBucketRow => ({ id: name, name, position: 0, deleted_at: null, ...extra })
+    const out = activeBuckets([b('Art', { starred: true }), b('Zoo', { is_default: true })])
+    expect(out.map((x) => x.name)).toEqual(['Zoo', 'Art'])
+  })
 })
 
