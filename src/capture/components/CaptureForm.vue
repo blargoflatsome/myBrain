@@ -1,7 +1,11 @@
 <template>
   <form class="flex flex-col gap-8" @submit.prevent="save">
     <h1 class="text-2xl font-bold">{{ m.typeHeading }}</h1>
-    <p v-if="notice" class="rounded-xl bg-surface p-3 text-ink" role="status" data-testid="capture-notice">{{ notice }}</p>
+    <div v-if="notice" class="flex items-center gap-2 rounded-xl bg-surface p-3 text-ink">
+      <p class="min-w-0 flex-1 [overflow-wrap:anywhere]" role="status" data-testid="capture-notice">{{ notice }}</p>
+      <!-- Speaking again replaced what was here: put it back (SPEC §5 Speak it fills the form). -->
+      <button v-if="beforeHeard" type="button" :class="smallButton" data-testid="capture-heard-undo" @click="undoHeard">{{ messages.undo.undo }}</button>
+    </div>
 
     <!-- Post It: a small formatted note in place of the box (SPEC §5 Quick capture) -->
     <div v-if="type === 'postit'" class="flex flex-col gap-1" data-testid="capture-postit">
@@ -102,7 +106,7 @@
 // shows its fields and keeps what I typed. Only the title is required. Works offline.
 // Shown in the Capture window over any page (CaptureDialog), and on the /capture page used for sharing from other apps.
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, ref, toRaw, watch, type Ref } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HabitFields from '@/habits/components/HabitFields.vue'
 import ChoiceChips from '@/components/ChoiceChips.vue'
@@ -126,8 +130,10 @@ import {
 } from '@/capture/capture'
 import { messages } from '@/messages'
 import type { EnergyLevel, PostItColor, TimeBucket, VaultBucketRow } from '@/sync/types'
-import { fieldOnPage, primaryButton } from '@/ui/styles'
-import { loadVisibleBuckets } from '@/vault/sharing'
+import { fieldOnPage, primaryButton, smallButton } from '@/ui/styles'
+import { loadVisibleBuckets, ownsBucket } from '@/vault/sharing'
+import { dayLabel } from '@/ui/dates'
+import type { VoiceCommand } from '@/voice/parse'
 
 // The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
 const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
@@ -176,9 +182,7 @@ watch(buckets, (list) => {
   if (!bucketId.value || !list.some((b) => b.id === bucketId.value)) bucketId.value = list[0]?.id ?? null
 })
 
-const speech = useSpeech((heard) => {
-  title.value = title.value ? `${title.value} ${heard}` : heard
-})
+const speech = useSpeech((heard) => void hear(heard))
 
 onMounted(async () => {
   if (props.sharedInput) title.value = props.sharedInput
@@ -212,6 +216,7 @@ function choose(d: Destination) {
   }
   type.value = d
   notice.value = ''
+  beforeHeard.value = null
   error.value = ''
 }
 
@@ -250,6 +255,63 @@ function reset() {
   error.value = ''
 }
 
+// ---------- Speak it fills the form (SPEC §5 Quick capture) ----------
+// Every part of the form, so speaking again can put back what was there.
+const formState = {
+  type, title, notes, dueDate, priority, reminderTime, energy, time, bucketId, newBucketName, rating, link, postBody, postColor,
+  habitDays, habitInterval, habitMonthly, habitStart, habitTime, habitTimer, habitPriority,
+}
+type FormState = { [K in keyof typeof formState]: (typeof formState)[K]['value'] }
+const snapshot = () => Object.fromEntries(Object.entries(formState).map(([k, r]) => [k, structuredClone(toRaw(r.value))])) as FormState
+const beforeHeard = ref<FormState | null>(null)
+
+/** The parser understands English only; other languages just fill the text box. */
+const speaksEnglish = () => (navigator.language || 'en').toLowerCase().startsWith('en')
+
+async function hear(heard: string) {
+  // The parser brings the date library, so it loads only once something has been heard (CODING_STANDARDS §10).
+  const command = speaksEnglish()
+    ? (await import('@/voice/parse')).parseVoice(heard, {
+        today: todayIn(deviceTimeZone()),
+        buckets: buckets.value.map((b) => ({ id: b.id, name: b.name, mine: ownsBucket(b, brain.userId ?? '') })),
+      })
+    : null
+  if (!command) {
+    title.value = title.value ? `${title.value} ${heard}` : heard
+    return
+  }
+  const had = !!(title.value.trim() || plainText(notes.value) || plainText(postBody.value))
+  const before = had ? snapshot() : null
+  fill(command)
+  beforeHeard.value = before
+  notice.value = m.heard(m.destinations[command.destination], command.title, command.dueDate ? dayLabel(command.dueDate) : null)
+  await nextTick()
+  titleBox.value?.focus()
+}
+
+/** Replace the form with what was heard; anything not said keeps its usual default. */
+function fill(c: VoiceCommand) {
+  reset()
+  type.value = c.destination
+  if (c.destination === 'postit') postBody.value = toEditorHtml(c.title)
+  else title.value = c.title
+  dueDate.value = c.dueDate ?? ''
+  if (c.priority) priority.value = c.priority
+  reminderTime.value = c.reminderTime ?? ''
+  if (c.notifyTime) habitTime.value = c.notifyTime
+  if (c.bucketId) bucketId.value = c.bucketId
+}
+
+function undoHeard() {
+  const before = beforeHeard.value
+  if (!before) return
+  for (const k of Object.keys(before) as (keyof FormState)[]) (formState[k] as Ref<unknown>).value = before[k]
+  saves.value++
+  beforeHeard.value = null
+  notice.value = ''
+  titleBox.value?.focus()
+}
+
 const bucketName = computed(() => buckets.value.find((b) => b.id === bucketId.value)?.name ?? m.destinations.vault)
 
 function savedMessage(input: CaptureInput) {
@@ -281,6 +343,7 @@ async function savePostIt() {
     await brain.logActivity('capture', { type: 'postit' })
     const message = brain.online ? m.saved.postit : m.savedOffline
     reset()
+    beforeHeard.value = null
     notice.value = message
     await nextTick()
     titleBox.value?.focus()
@@ -334,6 +397,7 @@ async function save() {
     await brain.capture(input)
     const message = savedMessage(input)
     reset()
+    beforeHeard.value = null
     notice.value = message
     await nextTick()
     titleBox.value?.focus()

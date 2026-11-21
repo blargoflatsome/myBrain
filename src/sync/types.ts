@@ -103,6 +103,8 @@ export interface VaultBucketRow extends BaseRow {
   starred?: boolean
   /** Shown read-only to my connections on my profile (SPEC §5 The Vault, Shared Vaults). */
   on_profile?: boolean
+  /** My default bucket: listed first, preselected in Capture, where spoken Vault adds go (SPEC §5 The Vault). */
+  is_default?: boolean
 }
 
 export interface VaultItemRow extends BaseRow {
@@ -126,8 +128,12 @@ export interface VaultShareRow extends BaseRow {
 }
 
 /** My star on a bucket someone shared with me (my own buckets keep theirs on the bucket). */
+/** My own choices on a bucket shared with me (SPEC §5 Shared Vaults, Default bucket). */
 export interface VaultStarRow extends BaseRow {
   bucket_id: string
+  /** Older rows have no value: a row used to mean a star. */
+  starred?: boolean
+  is_default?: boolean
 }
 
 export type EventRepeat = 'never' | 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'

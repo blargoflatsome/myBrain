@@ -24,6 +24,13 @@ describe('SPEC §5 Shared Vaults: the buckets I see', () => {
     const shown = visibleBuckets(buckets, shares, [star('b-books')], ME)
     expect(shown.map((b) => [b.id, !!b.starred])).toEqual([['b-books', true], ['a-groceries', false], ['c-mine', false]])
   })
+
+  it('my default on a shared bucket is mine, not its owner’s, and a default-only row is no star (SPEC §5 Default bucket)', () => {
+    const buckets = [bucket('a-owners-default', 'alice', { is_default: true }), bucket('b-my-default', 'alice'), bucket('c-mine', ME)]
+    const shares = [share('a-owners-default', ME), share('b-my-default', ME)]
+    const shown = visibleBuckets(buckets, shares, [{ ...star('b-my-default'), starred: false, is_default: true }], ME)
+    expect(shown.map((b) => [b.id, !!b.is_default, !!b.starred])).toEqual([['b-my-default', true, false], ['a-owners-default', false, false], ['c-mine', false, false]])
+  })
 })
 
 describe('SPEC §5 Shared Vaults: losing access removes this device’s copy', () => {

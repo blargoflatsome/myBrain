@@ -16,17 +16,22 @@ export function sharedWithMe(shares: VaultShareRow[], me: string): Set<string> {
   return new Set(shares.filter((s) => !s.deleted_at && s.member === me).map((s) => s.bucket_id))
 }
 
+/** A row on a shared bucket counts as a star unless it says otherwise (older rows were stars only). */
+export const isStar = (s: VaultStarRow) => !s.deleted_at && s.starred !== false
+
 /**
- * The buckets I see, as they're always listed (starred first, then A to Z): mine, and ones shared with me with my own
- * star (stars are per person, so a shared bucket's own `starred` is its owner's and is ignored).
+ * The buckets I see, as they're always listed (default, starred, then A to Z): mine, and ones shared with me with my
+ * own star and default (both are per person, so a shared bucket's own `starred` and `is_default` are its owner's and
+ * are ignored).
  */
 export function visibleBuckets(buckets: VaultBucketRow[], shares: VaultShareRow[], stars: VaultStarRow[], me: string): VaultBucketRow[] {
   const shared = sharedWithMe(shares, me)
-  const starred = new Set(stars.filter((s) => !s.deleted_at).map((s) => s.bucket_id))
+  const starred = new Set(stars.filter(isStar).map((s) => s.bucket_id))
+  const defaults = new Set(stars.filter((s) => !s.deleted_at && s.is_default).map((s) => s.bucket_id))
   return activeBuckets(
     buckets
       .filter((b) => ownsBucket(b, me) || shared.has(b.id))
-      .map((b) => (ownsBucket(b, me) ? b : { ...b, starred: starred.has(b.id) })),
+      .map((b) => (ownsBucket(b, me) ? b : { ...b, starred: starred.has(b.id), is_default: defaults.has(b.id) })),
   )
 }
 

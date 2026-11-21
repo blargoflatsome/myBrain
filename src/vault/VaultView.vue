@@ -12,6 +12,7 @@
           <button type="button" class="flex min-h-14 flex-1 items-center justify-between gap-3 px-4 text-left" @click="openBucket(b)">
             <span class="flex min-w-0 flex-col">
               <span class="font-medium [overflow-wrap:anywhere]"><AppIcon v-if="b.starred" name="star" filled class="mr-1 text-star" />{{ b.name }}</span>
+              <span v-if="b.is_default" class="text-xs text-muted" data-testid="bucket-default">{{ m.defaultBucket }}</span>
               <span v-if="sharingLine(b)" class="text-xs text-muted" data-testid="bucket-sharing-line">{{ sharingLine(b) }}</span>
             </span>
             <span class="shrink-0 text-sm text-muted">{{ m.itemCount(countIn(b)) }}</span>
@@ -107,7 +108,9 @@
       :confirm-label="m.memberSettings.leave"
       :keep-label="m.memberSettings.close"
       @confirm="leave"
-    />
+    >
+      <DefaultBucketCheck v-if="bucket" class="mt-4" :model-value="!!bucket.is_default" @update:model-value="(on) => brain.setDefaultBucket(on ? bucket!.id : null)" />
+    </ConfirmDialog>
   </main>
 </template>
 
@@ -118,6 +121,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import VaultItemEditor from '@/vault/components/VaultItemEditor.vue'
 import BucketEditor from '@/vault/components/BucketEditor.vue'
+import DefaultBucketCheck from '@/vault/components/DefaultBucketCheck.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { checkedItems, itemsInBucket, linkLabel, linkTarget } from '@/vault/rules'
@@ -128,7 +132,7 @@ import PageHeading from '@/components/PageHeading.vue'
 import RowDelete from '@/components/RowDelete.vue'
 import CheckCircle from '@/components/CheckCircle.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { addedBySomeoneElse, leaveBucket, membersOf, ownsBucket, sharedWithMe, visibleBuckets } from '@/vault/sharing'
+import { addedBySomeoneElse, isStar, leaveBucket, membersOf, ownsBucket, sharedWithMe, visibleBuckets } from '@/vault/sharing'
 import { useVaultPeople } from '@/vault/useVaultPeople'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { live } from '@/sync/live'
@@ -170,12 +174,12 @@ function sharingLine(b: VaultBucketRow) {
   const n = membersOf(shares.value, b.id).length
   return n ? m.sharedWithCount(n) : ''
 }
-// My star: on my own bucket it's the bucket's; on a shared one it's mine alone.
+// My star: on my own bucket it's the bucket's; on a shared one it's mine alone, on the row that also keeps my default.
 async function toggleStar(b: VaultBucketRow) {
   if (ownsBucket(b, me.value)) return brain.save('vault_buckets', { ...b, starred: !b.starred })
   const mine = stars.value.find((s) => s.bucket_id === b.id)
-  if (mine) return brain.save('vault_stars', { ...mine, deleted_at: mine.deleted_at ? null : new Date().toISOString() })
-  return brain.save('vault_stars', { id: crypto.randomUUID(), user_id: me.value, bucket_id: b.id, deleted_at: null })
+  if (mine) return brain.save('vault_stars', { ...mine, starred: !isStar(mine), is_default: !mine.deleted_at && !!mine.is_default, deleted_at: null })
+  return brain.save('vault_stars', { id: crypto.randomUUID(), user_id: me.value, bucket_id: b.id, starred: true, is_default: false, deleted_at: null })
 }
 const memberDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 function openSettings(b: VaultBucketRow) {
@@ -204,7 +208,10 @@ async function createBucket() {
 }
 const editingBucket = ref<VaultBucketRow | null>(null)
 async function saveBucket(b: VaultBucketRow) {
-  await brain.save('vault_buckets', b)
+  const was = !!editingBucket.value?.is_default
+  await brain.save('vault_buckets', { ...b, is_default: was })
+  // Only one default: ticking it here moves it from wherever it was, without asking (SPEC §5 Default bucket).
+  if (!!b.is_default !== was) await brain.setDefaultBucket(b.is_default ? b.id : null)
   editingBucket.value = null
 }
 async function deleteBucket(b: VaultBucketRow) {
