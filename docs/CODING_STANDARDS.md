@@ -29,7 +29,6 @@ file says *how* the code is written.
 - "Past you" is only for what the user set up or did earlier; something they're doing now is plain "you" (SPEC §2 Voice).
 - Messages to other people (guests, invitees) are written plainly from the user, not in the "past you" voice.
 - Long-form pages (Privacy, Terms) keep their text in their own page file, written plainly for anyone, since it is a document rather than interface wording.
-- **Features and Docs:** dropped (2026-11-11); there are none.
 
 ## 3. Where code goes
 
@@ -117,7 +116,6 @@ it's missing, make it shared first, then use it in every place.
   `scroll-padding` the height of the bars (2026-11-15).
 - When a save is refused, the field with the problem gets `aria-invalid="true"` and its message
   (`aria-describedby`), and focus moves to the first such field (2026-11-15).
-- New pages and windows get an axe check in `src/tests/e2e/accessibility/a11y.spec.ts`.
 
 ## 8. Security
 
@@ -126,12 +124,10 @@ it's missing, make it shared first, then use it in every place.
 - New text columns get a size limit in the database and a matching `maxlength` on the input.
 - No SQL built from typed text; server functions use `security definer set search_path = ''` and check permissions,
   sizes and rate limits.
-- Secrets only in `.env.local` and Netlify/Supabase settings; only the Supabase anon key reaches the browser.
 - Full rules: SPEC §8.
 
 ## 9. Data and the database
 
-- Every table: `id, user_id, created_at, updated_at` (set by the server), `deleted_at` (soft delete), with RLS.
 - Ids are made on the device so offline saves never duplicate.
 - Schema changes are migrations in `supabase/migrations/`, applied to dev, checked with `npm run test:db`, then prod
   before merging. Constraints added to existing tables use `NOT VALID` so old rows can't block the change.
@@ -168,13 +164,10 @@ it's missing, make it shared first, then use it in every place.
   (Playwright, screens; helpers in `e2e/support/`), `db/` (SQL checks for database rules). Test-only helpers go in
   `src/tests/support/` (or `e2e/support/`), never in app code. A test file covers one feature; split it when it grows to
   cover several.
-- **The `writing-tests` skill** (`.claude/skills/writing-tests/SKILL.md`) is the rulebook: every test must name the bug it
-  catches, wording comes from `messages.ts` (never typed out), styling is only checked when it's the rule, and logic is
-  tested in unit tests rather than the browser.
+- The `writing-tests` skill is the rulebook; `CLAUDE.md` Tests has the long-text, clock and quick/full review rules.
 - Use real input where it matters (a real touch swipe, real typing), not faked events.
-- Test typed text long: a long sentence, a paragraph and an unbroken link (samples in `src/tests/e2e/accessibility/a11y.spec.ts`).
-- Mock the clock for anything time-dependent; wait for data to load before measuring layout.
-- **Two levels of testing.** While coding, run the quick checks after each change: `npm run test:quick` (types, Vitest, desktop browser tests), or just the files you touched (`npm run test:e2e:quick -- quests`). When the user says to merge, run the full review once, and merge only if it passes: `npm run test:all` (lint, types, Vitest, desktop, Android and iPhone), and `npm run test:db` when there are new migrations. CI runs the full review on every pull request too.
+- Wait for data to load before measuring layout.
+- CI runs the full review on every pull request too.
 
 ## 12. Git
 
