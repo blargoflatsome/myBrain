@@ -72,6 +72,7 @@ import PersonStatus from '@/events/components/PersonStatus.vue'
 import { eventPeople, inviteLink, shareHref, type EventPerson, type PersonToInvite } from '@/events/sharing'
 import type { Status } from '@/events/availability'
 import { useBrainStore } from '@/stores/brain'
+import { sayWhy } from '@/server/server'
 import { messages } from '@/messages'
 import type { PersonRow } from '@/sync/types'
 import { fieldCompact, fieldLabel, smallButton } from '@/ui/styles'
@@ -105,14 +106,25 @@ function setPendingOptional(i: number, value: boolean) {
 }
 watch(() => props.eventId, loadInvited, { immediate: true })
 async function remove(p: EventPerson) {
-  await brain.uninvite(p.invite_id)
+  contactError.value = ''
+  try {
+    await brain.uninvite(p.invite_id)
+  } catch (err) {
+    return (contactError.value = sayWhy(err, { offline: m.answerOffline, limit: m.answerFailed, failed: m.answerFailed }))
+  }
   await loadInvited()
 }
 
 // A guest whose link was forwarded or lost gets a new one; the old one stops working (SPEC §10 Connections).
 const fresh = ref<{ name: string; link: string; href: string | null } | null>(null)
 async function newLink(p: EventPerson) {
-  const token = await brain.newInviteLink(p.invite_id)
+  contactError.value = ''
+  let token: string
+  try {
+    token = await brain.newInviteLink(p.invite_id)
+  } catch (err) {
+    return (contactError.value = sayWhy(err, { offline: m.answerOffline, limit: m.answerFailed, failed: m.answerFailed }))
+  }
   const link = inviteLink(p.invite_id, token)
   const body = c.newLinkBody(link)
   fresh.value = { name: p.name || p.email || p.phone || '', link, href: shareHref({ email: p.email, phone: p.phone, subject: body, body }) }

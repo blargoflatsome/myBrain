@@ -39,7 +39,13 @@ onMounted(async () => {
   state.value = who.value ? 'ready' : 'gone'
 })
 async function connect() {
-  const result = await useLink({ token }).catch(() => null)
+  let result: string | null = null
+  try {
+    result = await useLink({ token })
+  } catch (e) {
+    // A link that stopped working answers nothing; only a limit or no connection is worth saying.
+    problem.value = sayWhy(e, { offline: m.offline, limit: m.triesLimit, failed: '' })
+  }
   if (!result) return (state.value = 'gone')
   name.value = result
   state.value = 'done'

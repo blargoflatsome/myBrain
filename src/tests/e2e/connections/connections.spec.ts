@@ -36,6 +36,14 @@ test.describe('Spec §10 Connections: ask, answer, remove', () => {
     await expect(box).toHaveValue('')
   })
 
+  test('SPEC §7: a limit the server keeps is named, not shown as the server’s own text', async ({ page }) => {
+    await page.route('**/rest/v1/rpc/request_connection', (route) => route.fulfill({ status: 400, json: { code: 'P0429', message: 'At most 20 connection requests a day' } }))
+    await open(page, '/connections')
+    await page.getByLabel(msg.connections.askLabel).fill('bob@example.com')
+    await page.getByRole('button', { name: msg.connections.send }).click()
+    await expect(page.getByTestId('ask-error')).toHaveText(msg.connections.askLimit)
+  })
+
   test('a request waiting for me can be accepted, declined or blocked', async ({ page }) => {
     server.rpcResults.incoming_connection_requests = [{ id: 'req-1', display_name: 'Bob Baker', avatar_url: null, created_at: '2026-11-09T12:00:00Z' }]
     await open(page, '/connections')

@@ -33,7 +33,7 @@ const supabaseAdapter: ServerAdapter = {
     const { supabase } = await import('@/lib/supabase')
     const { data, error } = await supabase.rpc(fn, args)
     if (!error) return data
-    const reason: ServerReason = error.code === LIMIT_CODE ? 'limit' : !navigator.onLine ? 'offline' : 'failed'
+    const reason: ServerReason = error.code === LIMIT_CODE ? 'limit' : !supabaseAdapter.online() ? 'offline' : 'failed'
     throw new ServerError(reason, `${fn}: ${error.message}`)
   },
 }

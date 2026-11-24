@@ -120,7 +120,13 @@ async function loadAttendees() {
 }
 async function connectTo(a: Attendee) {
   if (!props.event || !a.user_id) return
-  await brain.connectViaEvent(props.event.id, a.user_id)
+  error.value = ''
+  try {
+    await brain.connectViaEvent(props.event.id, a.user_id)
+  } catch (err) {
+    error.value = sayWhy(err, { offline: c.offline, limit: c.askLimit, failed: c.failed })
+    return
+  }
   attendeeStatus.value = c.requestSent(a.display_name)
   await loadAttendees()
 }
