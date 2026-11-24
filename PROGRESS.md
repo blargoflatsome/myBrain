@@ -2,10 +2,6 @@
 
 Current state only. Update at the end of every session; when work merges, move its section to [docs/PROGRESS_ARCHIVE.md](docs/PROGRESS_ARCHIVE.md) (search it for a past step's history). Build order: [SPEC §11](docs/SPEC.md#11-suggested-build-order). Decisions: [docs/DECISIONS.md](docs/DECISIONS.md).
 
-## Branch `test-reliability` (not merged)
-- Retro changes (DECISIONS 2026-11-24 "Flaky tests fail CI"): CI fails on a test that passes only on a retry; local runs keep a failed test's trace; `PW_LOG=1` prints page logs (`e2e/support/debug.ts`); lint blocks fixed waits in `src/tests/`; the CI-failing 50 ms sleep in `celebrate.test.ts` now waits for its result; `writing-tests/failing-tests.md` guide; merge steps in CLAUDE.md add `/code-review` and `gh pr merge --auto`.
-- Done outside the repo: main requires the four CI checks (admins too), and the repo allows auto-merge.
-
 ## Next step
 - Voice capture is merged. Pick the next step with the user (idea waiting: the guest poll).
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
