@@ -147,12 +147,6 @@ export const messages = {
       close: 'Close',
       delete: 'Delete task',
     },
-    confirmDelete: {
-      heading: 'Delete this task?',
-      body: (title: string) => `"${title}" will be removed from all your devices.`,
-      confirm: 'Delete',
-      keep: 'Keep it',
-    },
   },
   quests: {
     heading: 'Random Quest',
@@ -193,12 +187,6 @@ export const messages = {
       save: 'Save quest',
       close: 'Close',
       delete: 'Delete quest',
-    },
-    confirmDelete: {
-      heading: 'Delete this quest?',
-      body: (title: string) => `"${title}" will be removed from all your devices.`,
-      confirm: 'Delete',
-      keep: 'Keep it',
     },
   },
   habits: {
@@ -711,12 +699,6 @@ export const messages = {
     badEmail: 'That email address doesn’t look right.',
     badPhone: 'That phone number doesn’t look right.',
     needOne: 'Keep an email address or a phone number, so you can invite them.',
-    confirmRemove: {
-      heading: 'Remove from your offsite connections?',
-      body: (name: string) => `${name} won’t be listed for invitations any more. Invitations you already sent stay as they are.`,
-      confirm: 'Remove',
-      keep: 'Keep',
-    },
   },
   invites: {
     // Messages to other people are written from me to them, not in the "past you" voice.
@@ -969,7 +951,7 @@ export const messages = {
       title: 'Yesterday was a perfect day',
       body: 'You did every habit yesterday. Past you is very proud of you.',
     },
-    badgeEarned: (name: string) => `New badge: ${name}`,
+    badgeEarned: (name: string) => `New trophy: ${name}`,
     /** What I did, for the window a first-time badge opens. */
     badgesAbout: {
       first_task: 'You crossed off a task for the first time.',

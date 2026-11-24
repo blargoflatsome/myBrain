@@ -86,11 +86,13 @@ begin
   if n <> 0 then raise exception 'FAIL: Spec §5 Availability: free/busy is only for people allowed to be checked'; end if;
   execute 'reset role';
 
-  -- What got queued: a push (and a waiting email, his preference) for Bob; waiting email/text for guests.
+  -- What got queued: a push only for Bob (app users never get email, 2026-11-24); waiting email/text rows log the guests' one-at-a-time messages.
   select count(*) into n from public.outbound_messages where invite_id = bob_invite and channel = 'push' and status = 'queued' and recipient_user_id = bob;
   if n <> 1 then raise exception 'FAIL: Spec §5: an invited app user gets a push notification'; end if;
+  select count(*) into n from public.outbound_messages where invite_id = bob_invite and channel <> 'push';
+  if n <> 0 then raise exception 'FAIL: Spec §5 Accounts and contact info: event news reaches an app user by push only, never a queued email'; end if;
   select count(*) into n from public.outbound_messages where invite_id = carol_invite and channel = 'email' and status = 'waiting';
-  if n <> 1 then raise exception 'FAIL: Spec §5: guest emails are queued and logged until email sending is set up'; end if;
+  if n <> 1 then raise exception 'FAIL: Spec §5: a guest invitation is logged for the one-at-a-time sharing flow'; end if;
   select count(*) into n from public.outbound_messages where event_id = party and channel = 'text' and status = 'waiting' and recipient_name = 'Dan';
   if n <> 1 then raise exception 'FAIL: Spec §5: phone-only guests wait for my one-at-a-time sharing'; end if;
 
