@@ -1,6 +1,6 @@
 ---
 name: writing-tests
-description: Use before adding, changing or reviewing any test in My Brain (Vitest unit/integration, Playwright e2e, SQL rule checks), including adding one assertion to an existing test. Keeps tests few, meaningful and hard to break by unrelated changes.
+description: Use before adding, changing or reviewing any test in My Brain (Vitest unit/integration, Playwright e2e, SQL rule checks), including adding one assertion to an existing test, and when a test fails or flakes. Keeps tests few, meaningful and hard to break by unrelated changes.
 ---
 
 # Writing tests in My Brain
@@ -8,6 +8,8 @@ description: Use before adding, changing or reviewing any test in My Brain (Vite
 Tests prove the spec's rules (docs/SPEC.md) and catch real regressions. They should survive wording changes, spacing
 tweaks and refactors that don't change behaviour. A test that breaks when nothing a person would notice changed is a
 bad test.
+
+**A test fails or flakes?** Read [failing-tests.md](failing-tests.md) before changing code or rerunning the full suite.
 
 ## The gate: answer all three before writing a test
 
@@ -70,8 +72,10 @@ with `fake-indexeddb` and `FakeRemote` → a Playwright test. Many unit tests, f
 
 - **Mock the clock** for anything time-dependent (`page.clock.install` in Playwright, `vi.useFakeTimers` in Vitest,
   always restored in `finally`/`afterEach`). Fixtures use dates relative to the pinned `NOW`, never "today".
-- **No fixed waits** (`waitForTimeout`, `setTimeout` sleeps). Wait for the result: `expect(...).toBeVisible()`,
-  `expect.poll(...)`, `vi.waitFor(...)`. Advance a mocked clock by exactly the time the rule needs.
+- **No fixed waits** (`waitForTimeout`, `setTimeout` sleeps; lint blocks them). Wait for the result:
+  `expect(...).toBeVisible()`, `expect.poll(...)`, `vi.waitFor(...)`. Advance a mocked clock by exactly the time the
+  rule needs. Only a check that something did NOT happen may pause, with
+  `// eslint-disable-next-line no-restricted-syntax -- waiting for something that must not happen`.
 - No real network: browser tests use `FakeSupabase` (`e2e/support/fakeSupabase.ts`), unit tests `FakeRemote`.
 - Every test sets up the data it reads and passes alone and in any order.
 - Never commit `test.only`. A `test.skip` gives a one-line reason (for example "phones use their own date picker").

@@ -31,8 +31,7 @@ describe('Spec §5 Quick capture: works offline; items are queued and synced lat
 
     remote.online = true
     window.dispatchEvent(new Event('online'))
-    await new Promise((r) => setTimeout(r, 50))
-    expect(remote.tables.inbox.get(rec.row.id)).toMatchObject({ body: 'idea for a song' })
+    await vi.waitFor(() => expect(remote.tables.inbox.get(rec.row.id)).toMatchObject({ body: 'idea for a song' }))
   })
 })
 

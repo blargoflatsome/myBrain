@@ -11,11 +11,15 @@ export default defineConfig({
   testDir: './src/tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
+  // CI retries to record a trace, but a test that passes only on a retry still fails the run: every "flake" looked into
+  // so far was a real bug (DECISIONS 2026-11-24 "Flaky tests fail CI").
   retries: process.env.CI ? 2 : 0,
+  failOnFlakyTests: !!process.env.CI,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: `http://localhost:${PORT}`,
-    trace: 'on-first-retry',
+    // Locally there are no retries, so a failing test keeps its trace instead (`npx playwright show-trace`).
+    trace: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
   },
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
