@@ -12,7 +12,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 
 | # | Candidate | Strength | Status |
 |---|---|---|---|
-| 1 | One module for "I finished it" | Strong | Built on `finish-module` |
+| 1 | One module for "I finished it" | Strong | Merged (branch `finish-module`) |
 | 2 | Deletes that return their own Undo | Strong, real bug | Merged (branch `undo-from-deletes`) |
 | 3 | Server calls behind a seam that keeps my copy up to date | Strong | To do |
 | 4 | One module for the signed-in session's lifecycle | Worth exploring | To do |
