@@ -4,8 +4,8 @@ Current state only. Update at the end of every session; when work merges, move i
 
 ## In progress: docs review (branch `grill-with-docs-skill`)
 - Added the grill-with-docs skill (with grilling and domain-modeling). Reviewed the spec against the code with the user (DECISIONS 2026-11-24): new GLOSSARY.md; SPEC §4 matches the migrations; Connections moved into §5; email sending and Home Assistant dropped; README and .env.example updated.
-- Code: Firsts say "New trophy: …"; unused confirmation messages removed; migration `20261124010000_no_email_for_app_users.sql` (app users get push only, `event_notify_method` dropped) applied to **dev**, `test:db` passes. Not on prod yet.
-- **At merge:** Help and home page say "bucket" not "list" and "connections" not "friends" (`messages.ts` Help/home text, `invites.peopleHint`); add Cheers to Help's Getting around; push the migration to prod.
+- Code: Firsts say "New trophy: …"; unused confirmation messages removed; migration `20261124010000_no_email_for_app_users.sql` (app users get push only, `event_notify_method` dropped) applied to dev and prod, `test:db` passes.
+- Help, home page and Bucket settings say "bucket" not "list", and "people" not "friends"; Cheers added to Help's Getting around; `help-inviting` picture retaken. Full review passed.
 
 ## Next step
 - Voice capture is merged. Pick the next step with the user (idea waiting: the guest poll).
