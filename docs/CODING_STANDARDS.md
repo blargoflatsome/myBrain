@@ -37,7 +37,8 @@ file says *how* the code is written.
 | A feature's page, rules and components | `src/<feature>/` (`XView.vue`, `rules.ts`, `components/`) |
 | Rules and calculations for a feature | `src/<feature>/rules.ts` (pure functions, no Vue, no database) |
 | Data on the device and syncing | `src/sync/` (`live()` for "not deleted", the sync engine, row types in `types.ts`) |
-| Reading and writing data from screens | `src/stores/brain.ts`, which hands out each feature's actions from `src/<feature>/actions.ts` (so screens import one store and every write goes through the sync queue) |
+| Reading rows on screens | `useRows('tasks')`, or `useRows((db) => db.x.where(...))` for index lookups, from `src/sync/useRows.ts`: empty when signed out, follows sign-in and data resets, deleted rows hidden. Pages never read `brain.db` themselves **(lint)** |
+| Writing data from screens | `src/stores/brain.ts`, which hands out each feature's actions from `src/<feature>/actions.ts` (so screens import one store and every write goes through the sync queue) |
 | My profile (name, picture, settings) | `src/stores/profile.ts` (`load()` once per visit, `update(fields)`); screens use it rather than reading `profiles` themselves (the Delete-my-data check in `App.vue` reads fresh on purpose) |
 | Ids that must match on every device (a day's log, a fixed alert) | `src/sync/ids.ts` (`logIdFor`, `fixedId`) |
 | A clock that ticks (timers running out) | `src/composables/useNow.ts` (`useNow(everyMs)`), next to `useToday` |
@@ -129,6 +130,12 @@ it's missing, make it shared first, then use it in every place.
 ## 9. Data and the database
 
 - Ids are made on the device so offline saves never duplicate.
+- **Deleted rows are hidden unless asked for (2026-11-24).** Rows are soft-deleted, so every read hides them by
+  default: `useRows`, `readTables` and `getRow` (one row by id; a deleted one reads as not found). A reader that needs
+  deleted rows says so with `{ includeDeleted: true }`: trophy and First history (they count deleted tasks, cancelled
+  events and so on) and day stats' quest titles. Actions that look at a row's deleted copy before writing over it
+  (keeping its id, not celebrating twice, a cleared alert staying cleared) and the sync engine read the table directly.
+  Rule functions keep their own `deleted_at` checks.
 - Schema changes are migrations in `supabase/migrations/`, applied to dev, checked with `npm run test:db`, then prod
   before merging. Constraints added to existing tables use `NOT VALID` so old rows can't block the change.
 - **Database safety (2026-11-15, from Supabase's agent skills; details in the `supabase-postgres-best-practices`
@@ -150,7 +157,7 @@ it's missing, make it shared first, then use it in every place.
 
 - Pages load per route (`() => import(...)`). Large libraries used by only some screens load when first shown
   (`defineAsyncComponent`), as the formatting editor does.
-- Read from the device's copy of the data (`useLiveQuery`), never wait on the network to show a screen.
+- Read from the device's copy of the data (`useRows`), never wait on the network to show a screen.
 - Windows build their contents only while open (`EditorDialog.vue`, `v-if` on the form), so a closed editor never
   loads the formatting editor. Something always on screen (the priority reminder, search) reads only what it needs:
   today's rows by index, or nothing until it opens.
