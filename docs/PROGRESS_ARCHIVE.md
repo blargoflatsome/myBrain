@@ -4,6 +4,10 @@ Older history moved out of `PROGRESS.md` on 2026-11-10 to keep session start-up 
 
 Newest first from here on, up to the next "Step 1" heading; below that, oldest first.
 
+## Escape leaves full screen writing (merged via PR, branch `fix-fullscreen-escape-flake`)
+- **Bug:** Escape pressed while the writing had focus never closed full screen (or the Capture window): the editor (ProseMirror) cancels every Escape keydown, so the window never heard it. Every browser. The iPhone a11y test flaked (about 1 in 20) because Tab only sometimes left focus on the writing there.
+- **Fix:** `RichTextEditor.vue` tells the editor to leave Escape alone. The a11y test now presses Escape straight after typing (it failed on desktop and iPhone before the fix). 40 iPhone repeats and the full review pass. Help unchanged.
+
 ## One way to read rows (merged via PR, branch `live-rows`, with PR #101's skills)
 - Architecture review, grilled with the user (DECISIONS 2026-11-24 "One way to read rows"). `src/sync/useRows.ts` (`useRows`, `useRow`, `useDeviceQuery`, `readRows`, `findRow`); every read hides deleted rows unless asked, and so do `readTables` and `getRow`. All 27 pages switched; lint stops pages reading `brain.db` or using `useLiveQuery`. Bundles: `journal/dayData.ts`, `vault/useVisibleBuckets.ts`. Also merged the /retro and /improve-codebase-architecture skills (PR #101).
 - Fixes: the routine run page says it can't find a deleted routine; Up next, the priority reminder, routine steps and the default bucket ignore a row deleted a moment earlier. Behaviour change (SPEC §5 Firsts): an undone quest no longer counts toward the quest First.
