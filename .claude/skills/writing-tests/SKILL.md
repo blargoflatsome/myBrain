@@ -35,7 +35,7 @@ Name every test after the spec rule it proves: `describe('SPEC §5 Trophies: str
 ## Test as low as you can
 
 Cheapest first: a pure function in `src/<feature>/rules.ts` → a store (`stores/brain.ts`, `stores/celebrate.ts`)
-with `fake-indexeddb` and `FakeRemote` → a Playwright test. Many unit tests, few browser tests.
+with `fake-indexeddb`, `FakeRemote` and `FakeServer` (server functions: canned answers, rows seeded into `FakeRemote`) → a Playwright test. Many unit tests, few browser tests.
 
 - If logic is hard to reach from a unit test, move it into a pure function and test that; keep one browser test that
   the screen is wired to it. Put case matrices (every input, every edge) on the pure function, never in Playwright.
