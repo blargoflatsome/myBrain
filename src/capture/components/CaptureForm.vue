@@ -125,6 +125,7 @@ import {
   DEFAULT_QUEST_TIME,
   DEFAULT_TASK_PRIORITY,
   splitTitle,
+  CaptureError,
   type CaptureInput,
   type Destination,
 } from '@/capture/capture'
@@ -335,7 +336,14 @@ async function savePostIt() {
   }
   saving.value = true
   try {
-    await brain.capture({ destination: 'postit', text: postBody.value, color: postColor.value })
+    try {
+      await brain.capture({ destination: 'postit', text: postBody.value, color: postColor.value })
+    } catch (err) {
+      // Formatting with no words in it is still an empty note.
+      if (!(err instanceof CaptureError)) throw err
+      error.value = pm.emptyError
+      return
+    }
     const message = brain.online ? m.saved.postit : m.savedOffline
     reset()
     beforeHeard.value = null

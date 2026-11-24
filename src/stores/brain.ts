@@ -1,7 +1,7 @@
 // The signed-in user's data (SPEC §5, §7): opens the on-device store and starts and stops syncing, then hands out
 // every feature's actions (src/<feature>/actions.ts) so screens import one store and every write goes through the
 // sync queue.
-import { defineStore } from 'pinia'
+import { defineStore, getActivePinia } from 'pinia'
 import Dexie from 'dexie'
 import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
@@ -200,8 +200,9 @@ export const useBrainStore = defineStore('brain', () => {
   const journalLock = journalLockActions(ctx)
   const tags = tagActions(ctx)
   const trophies = trophyActions(ctx)
-  // Badges are saved through the store itself, so a test can hold one save to check the catch-up race.
-  const keeper = trophyKeeper({ db, userId, online, habitsReady, badgesReady, syncedCount, trophies: { ...trophies, saveBadge: (kind, now) => useBrainStore().saveBadge(kind, now) } })
+  // Badges are saved through this store itself, so a test can hold one save to check the catch-up race.
+  const pinia = getActivePinia()
+  const keeper = trophyKeeper({ db, userId, online, habitsReady, badgesReady, syncedCount, trophies: { ...trophies, saveBadge: (kind, now) => useBrainStore(pinia).saveBadge(kind, now) } })
   const vault = vaultActions(ctx)
   const priority = priorityActions(ctx, habits.toggleHabit, saveTask)
 
@@ -326,11 +327,14 @@ export const useBrainStore = defineStore('brain', () => {
   // ---------- Focus and Breathe (SPEC §5 Focus timer, Breathe) ----------
   /** Finished Focus work sessions (and whether anyone else was in the focus room), counted toward trophies. */
   async function finishFocus(sessions: number, together = false) {
+    // A timer can still run out after signing out: nothing to keep then.
+    if (!engine.value) return
     for (let i = 0; i < sessions; i++) await trophies.logActivity('focus', { minutes: WORK_MS / 60_000, ...(together ? { together: true } : {}) })
     achieved({ kind: 'focus', sessions, together })
   }
   /** A finished Breathe, counted toward trophies. */
   async function finishBreathe() {
+    if (!engine.value) return
     await trophies.logActivity('breathe')
     achieved({ kind: 'breathe' })
   }
