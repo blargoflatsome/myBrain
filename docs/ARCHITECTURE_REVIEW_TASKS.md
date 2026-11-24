@@ -14,7 +14,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 |---|---|---|---|
 | 1 | One module for "I finished it" | Strong | Merged (branch `finish-module`) |
 | 2 | Deletes that return their own Undo | Strong, real bug | Merged (branch `undo-from-deletes`) |
-| 3 | Server calls behind a seam that keeps my copy up to date | Strong | Building (branch `server-seam`) |
+| 3 | Server calls behind a seam that keeps my copy up to date | Strong | Merged (branch `server-seam`) |
 | 4 | One module for the signed-in session's lifecycle | Worth exploring | To do |
 | 5 | Close brain's raw `save`; tasks, quests and Post Its get their own actions | Worth exploring | To do |
 | 6 | One capture path, Post Its included | Speculative | Done with 1 |
