@@ -7,6 +7,10 @@ Current state only. Update at the end of every session; when work merges, move i
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## Branch `fix-fullscreen-escape-flake` (not merged)
+- **Bug:** Escape pressed while the writing had focus never closed full screen (or the Capture window): the editor (ProseMirror) cancels every Escape keydown, so the window never heard it. Every browser. The iPhone a11y test flaked 1 in ~7 because Tab sometimes left focus on the writing there.
+- **Fix:** `RichTextEditor.vue` tells the editor to leave Escape alone. The a11y test now presses Escape straight after typing (it failed on desktop and iPhone before the fix); 40 iPhone repeats pass.
+
 ## Still to try on a real phone (user)
 - Voice capture: real speech (Android and iPhone).
 - iPhone: Google sign-in returning to the installed app; push reminders arriving.

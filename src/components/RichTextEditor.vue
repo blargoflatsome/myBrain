@@ -158,6 +158,9 @@ const editor = useEditor({
   ],
   editorProps: {
     attributes: { 'aria-label': props.label, 'aria-multiline': 'true', role: 'textbox', class: 'rich outline-none' },
+    // The editor cancels every Escape it sees, so the window around it (full screen, Capture) would never hear it.
+    // Returning true makes it leave Escape alone, uncancelled, and the window closes as usual (SPEC §2 Windows).
+    handleDOMEvents: { keydown: (_view, event) => event.key === 'Escape' },
   },
   onUpdate: ({ editor: e }) => emit('update:modelValue', e.getHTML()),
   onBlur: () => emit('blur'),
