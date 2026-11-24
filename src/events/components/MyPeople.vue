@@ -118,7 +118,6 @@ async function connect(p: PersonRow) {
 // Removing someone happens straight away, with Undo (SPEC §2).
 const undo = useUndoStore()
 async function askRemove(p: PersonRow) {
-  await brain.remove('people', p.id)
-  undo.offer(messages.undo.removed(personLabel(p)), () => brain.restore('people', p.id))
+  undo.offer(messages.undo.removed(personLabel(p)), await brain.remove('people', p.id))
 }
 </script>

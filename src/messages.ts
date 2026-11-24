@@ -1226,7 +1226,6 @@ export const messages = {
     save: 'Save',
     cancel: 'Cancel',
     removed: 'Post It deleted.',
-    undo: 'Undo',
     position: (n: number, total: number) => `${n} of ${total}`,
     previous: 'Previous',
     next: 'Next',
@@ -1623,7 +1622,7 @@ export const messages = {
     topicsLabel: 'Topics',
     backToTopics: 'Back to topics',
     topics: [
-      { id: 'getting-around', title: 'Getting around', what: 'Four main pages sit along the bottom. Everything else is under More. On a computer, the same list is on the left.', steps: ['Tap Tasks, Habits, Calendar or The Vault at the bottom.', 'Tap More for Routines, Journal, Quests, Cheers, Orphans, Connections and Help.', 'Tap the house at the top for your Dashboard.'], alt: 'The More panel open at the bottom of the screen, highlighted, listing Routines, Journal, Quests, Orphans, Connections and Help.' },
+      { id: 'getting-around', title: 'Getting around', what: 'Four main pages sit along the bottom. Everything else is under More. On a computer, the same list is on the left.', steps: ['Tap Tasks, Habits, Calendar or The Vault at the bottom.', 'Tap More for Routines, Journal, Quests, Cheers, Orphans, Connections and Help.', 'Tap the house at the top for your Dashboard.', 'Deleted something by mistake? Tap Undo at the bottom of the screen. With a keyboard you land on it, and Escape closes it.'], alt: 'The More panel open at the bottom of the screen, highlighted, listing Routines, Journal, Quests, Orphans, Connections and Help.' },
       { id: 'capture', title: 'Capture', what: 'Get a thought out of your head in seconds, from any page.', steps: ['Tap Capture at the bottom right.', 'Type it, or tap Speak it and say it.', 'Say the whole thing, like “add call mom tomorrow to my tasks”, and the form fills in for you. Check it before you save.', 'Pick where it goes, or leave Decide later. Then tap Save.', 'What you picked stays picked, so the next one goes to the same place.'], alt: 'The Tasks page with the Capture button at the bottom right highlighted.' },
       { id: 'orphans', title: 'Orphans', what: 'Things you saved with Decide later wait here.', steps: ['Open More, then Orphans.', 'Tap where each one goes: Task, The Vault, Quest, Habit or Post It.', 'Not sure yet? Tap Skip.'], alt: 'The Orphans page with one saved note and the buttons for where it should go highlighted.' },
       { id: 'tasks', title: 'Tasks', what: 'Your to-do list for each day. Undated holds tasks with no day yet.', steps: ['Type in the Add a task box and tap Add.', 'Tap the circle to cross it off.', "Not done today? It moves to tomorrow, so it's never lost."], alt: 'The Tasks page with the Add a task for today box highlighted.' },

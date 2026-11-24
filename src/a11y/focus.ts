@@ -67,11 +67,28 @@ export function restoreFocus(opener: Element | null) {
     opener.focus()
     return
   }
+  focusPageHeading()
+}
+
+/** Focus the page's heading (or the page itself), where keyboard users land when what they were on is gone. */
+export function focusPageHeading() {
   const fallback = document.querySelector<HTMLElement>('#content h1') ?? document.getElementById('content')
-  if (fallback) {
-    if (!fallback.hasAttribute('tabindex')) fallback.setAttribute('tabindex', '-1')
-    fallback.focus()
-  }
+  if (fallback) focusHere(fallback)
+}
+
+/** Focus an element that may not take focus by itself (a heading, a card). */
+export function focusHere(el: HTMLElement) {
+  if (!el.matches(FOCUSABLE) && !el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1')
+  el.focus()
+}
+
+/**
+ * Wait until something shows on screen (a row brought back by Undo reaches the page a moment after it is saved), for
+ * up to about a second. Returns whether it did.
+ */
+export async function untilShown(shown: () => boolean, frames = 60) {
+  for (let i = 0; i < frames && !shown(); i++) await new Promise((r) => requestAnimationFrame(r))
+  return shown()
 }
 
 const outsideWatched = new WeakSet<HTMLDialogElement>()

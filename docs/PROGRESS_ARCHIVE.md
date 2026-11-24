@@ -4,6 +4,10 @@ Older history moved out of `PROGRESS.md` on 2026-11-10 to keep session start-up 
 
 Newest first from here on, up to the next "Step 1" heading; below that, oldest first.
 
+## Deletes return their own Undo (merged via PR, branch `undo-from-deletes`)
+- Architecture review 2, candidate 2 (`docs/ARCHITECTURE_REVIEW_TASKS.md`; DECISIONS 2026-11-24 "Deletes return their own Undo"). `brain.remove` / `removeMany` return their Undo (`removeWithUndo` in `src/sync/actions.ts`); `brain.restore` is gone, so the type checker stops screens using it. `removeOrphan`'s Undo takes back the emptied-Orphans count (fixes Orphan wrangler inflating on delete → Undo → delete). Post Its use the shared Undo bar. A delete done from the keyboard moves focus to Undo, Escape closes it, focus then lands on the page heading or the Post It / Orphan card shown (`focusAfter`); Cheers' Share offer too.
+- Tests: Orphan Undo case in `unit/sync/brain.test.ts` (fails without the fix); keyboard focus and Escape in `e2e/app/calm-ux.spec.ts`; Post It and Orphans keyboard Undo. Full review passed (Vitest 496, Playwright 832). Help: an Undo step in Getting around; pictures unchanged.
+
 ## Flaky tests fail CI, no fixed waits (merged via PR, branch `test-reliability`)
 - Retro changes (DECISIONS 2026-11-24 "Flaky tests fail CI"): CI fails on a test that passes only on a retry; local runs keep a failed test's trace; `PW_LOG=1` prints page logs (`e2e/support/debug.ts`); lint blocks fixed waits in `src/tests/`; the CI-failing 50 ms sleep in `celebrate.test.ts` now waits for its result; `writing-tests/failing-tests.md` guide; merge steps in CLAUDE.md add `/code-review` and `gh pr merge --auto`.
 - Done outside the repo: main requires the four CI checks (admins too), and the repo allows auto-merge.

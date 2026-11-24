@@ -86,7 +86,7 @@ export const useCheersStore = defineStore('cheers', () => {
       // One finished thing often brings a trophy a moment later: offer once, not twice in a row.
       if (now.getTime() - lastUnstuckOffer < OFFER_GAP_MS / 12) return
       lastUnstuckOffer = now.getTime()
-      undo.offer(m.offer.unstuck, postUnstuck, m.offer.share)
+      undo.offer(m.offer.unstuck, postUnstuck, { label: m.offer.share })
       return
     }
     writeKey(LAST_OFFER_KEY, String(now.getTime()))
@@ -94,7 +94,7 @@ export const useCheersStore = defineStore('cheers', () => {
     undo.offer(m.offer.didIt, () => {
       draft.value = line
       return router.push('/cheers')
-    }, m.offer.share)
+    }, { label: m.offer.share })
   }
 
   let started = false

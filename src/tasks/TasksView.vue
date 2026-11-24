@@ -261,9 +261,9 @@ async function move(t: TaskRow, dueDate: string | null) {
 }
 
 async function remove(t: TaskRow) {
-  await brain.remove('tasks', t.id)
+  const putBack = await brain.remove('tasks', t.id)
   if (editing.value?.id === t.id) editing.value = null
-  undo.offer(messages.undo.deleted(t.title), () => brain.restore('tasks', t.id))
+  undo.offer(messages.undo.deleted(t.title), putBack)
 }
 
 const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'

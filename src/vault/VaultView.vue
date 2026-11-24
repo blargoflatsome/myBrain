@@ -248,20 +248,17 @@ async function saveItem(i: VaultItemRow) {
 // One item, or the checked ones, go straight away with Undo (SPEC §2).
 const undo = useUndoStore()
 async function deleteItem(i: VaultItemRow) {
-  await brain.remove('vault_items', i.id)
+  const putBack = await brain.remove('vault_items', i.id)
   await closeEditor()
-  undo.offer(messages.undo.deleted(i.title), () => brain.restore('vault_items', i.id))
+  undo.offer(messages.undo.deleted(i.title), putBack)
 }
 async function askDelete(i: VaultItemRow) {
-  await brain.remove('vault_items', i.id)
-  undo.offer(messages.undo.deleted(i.title), () => brain.restore('vault_items', i.id))
+  undo.offer(messages.undo.deleted(i.title), await brain.remove('vault_items', i.id))
 }
 async function clearChecked() {
   if (!bucket.value) return
-  const ids = await brain.clearChecked(bucket.value.id)
-  undo.offer(messages.undo.clearedChecked(ids.length), async () => {
-    for (const id of ids) await brain.restore('vault_items', id)
-  })
+  const cleared = await brain.clearChecked(bucket.value.id)
+  undo.offer(messages.undo.clearedChecked(cleared.count), cleared.undo)
 }
 
 </script>

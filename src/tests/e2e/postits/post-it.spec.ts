@@ -182,15 +182,17 @@ test.describe('Spec §5 Post It', () => {
     await expect(board(page).getByRole('button', { name: msg.postIts.edit })).toBeFocused()
   })
 
-  test('the X in the top right corner deletes it straight away, and Undo puts it back', async ({ page }) => {
+  test('the X in the top right corner deletes it straight away, with the Undo bar; from the keyboard, Undo lands back on the note (SPEC §2)', async ({ page }) => {
     server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
-    await board(page).getByRole('button', { name: msg.postIts.delete }).click()
+    await board(page).getByRole('button', { name: msg.postIts.delete }).focus()
+    await page.keyboard.press('Enter')
     await expect(board(page)).toHaveCount(0)
-    await expect(page.getByTestId('postit-notice')).toContainText(msg.postIts.removed)
+    await expect(page.getByTestId('undo-message')).toHaveText(msg.postIts.removed)
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: expect.any(String) })
-    await page.getByRole('button', { name: msg.undo.undo }).click()
-    await expect(board(page)).toHaveCount(1)
+    await expect(page.getByTestId('undo-button')).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(board(page).getByRole('button', { name: msg.postIts.delete })).toBeFocused()
     await expect.poll(() => lastWrite('post_its')).toMatchObject({ id: 'p1', deleted_at: null })
   })
 

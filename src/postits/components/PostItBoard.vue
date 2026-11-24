@@ -1,6 +1,6 @@
 <template>
   <section
-    v-if="notes.length || notice"
+    v-if="notes.length"
     class="flex flex-col items-center gap-3"
     data-testid="dash-postits"
     aria-roledescription="carousel"
@@ -104,11 +104,6 @@
       </button>
     </div>
     <p class="sr-only" aria-live="polite" data-testid="postit-announcement">{{ announcement }}</p>
-
-    <div v-if="notice" class="flex w-full max-w-sm items-center justify-between gap-3 rounded-xl border border-line bg-surface p-3" role="status" data-testid="postit-notice">
-      <span>{{ notice }}</span>
-      <button v-if="undoId" type="button" class="min-h-11 rounded-xl border border-line px-4 font-semibold" data-testid="postit-undo" @click="undo">{{ m.undo }}</button>
-    </div>
   </section>
 </template>
 
@@ -118,7 +113,9 @@
 // On the note shown: an edit icon (bottom left) to edit in place, and an X (top right) that deletes it, with Undo.
 import { useRows } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, defineAsyncComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, ref, watch } from 'vue'
+import { useUndoStore } from '@/stores/undo'
+import { untilShown } from '@/a11y/focus'
 import { useBrainStore } from '@/stores/brain'
 import { boardOrder } from '@/postits/rules'
 import PostItColors from '@/postits/components/PostItColors.vue'
@@ -232,34 +229,21 @@ async function focusAction(action: string) {
   document.querySelector<HTMLElement>(`[data-testid="dash-postits"] [data-action="${action}"]`)?.focus()
 }
 
-// ---------- Delete (with Undo) ----------
-const notice = ref('')
-const undoId = ref<string | null>(null)
-let noticeTimer: ReturnType<typeof setTimeout> | undefined
-function show(text: string, undo: string | null) {
-  notice.value = text
-  undoId.value = undo
-  clearTimeout(noticeTimer)
-  noticeTimer = setTimeout(() => {
-    notice.value = ''
-    undoId.value = null
-  }, 10_000)
-}
-onScopeDispose(() => clearTimeout(noticeTimer))
+// ---------- Delete (with Undo, SPEC §2) ----------
+const undoBar = useUndoStore()
 async function deleteNote(n: PostItRow) {
   followId.value = null
-  await brain.remove('post_its', n.id)
-  show(m.removed, n.id)
-  await nextTick()
-  document.querySelector<HTMLElement>('[data-testid="postit-undo"]')?.focus()
+  const putBack = await brain.remove('post_its', n.id)
+  undoBar.offer(m.removed, async () => {
+    followId.value = n.id
+    await putBack()
+  }, { focusAfter: noteShown })
 }
-async function undo() {
-  if (!undoId.value) return
-  followId.value = undoId.value
-  await brain.restore('post_its', undoId.value)
-  notice.value = ''
-  undoId.value = null
-  await focusAction('delete')
+/** Where keyboard focus lands once the Undo bar closes: the note now shown (the one brought back, after Undo). */
+async function noteShown() {
+  await untilShown(() => !followId.value || current.value?.id === followId.value)
+  await nextTick()
+  return document.querySelector<HTMLElement>('[data-testid="dash-postits"] [data-action="delete"]')
 }
 
 const btn = 'min-h-11 rounded-xl border border-current/30 px-3 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-40'

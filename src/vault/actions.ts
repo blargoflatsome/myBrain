@@ -1,6 +1,6 @@
 // Reading and writing Vault buckets and items (SPEC §5 The Vault).
 import type { VaultItemRow } from '@/sync/types'
-import type { ActionContext } from '@/sync/actions'
+import { removeWithUndo, type ActionContext } from '@/sync/actions'
 import { getRow } from '@/sync/db'
 import { buildBucket } from '@/capture/capture'
 import { live } from '@/sync/live'
@@ -45,12 +45,11 @@ export function vaultActions({ ready }: ActionContext) {
     await ready().engine.patch('vault_items', id, (fresh) => ({ checked: !fresh.checked }))
   }
 
-  /** "Clear checked": delete the checked items in a checklist bucket (the caller has already confirmed). */
+  /** "Clear checked": delete the checked items in a checklist bucket, straight away; returns how many, and their Undo (SPEC §2). */
   async function clearChecked(bucketId: string) {
-    const { engine: e, local } = ready()
+    const { local } = ready()
     const cleared = (await local.vault_items.where('bucket_id').equals(bucketId).toArray()).filter((i) => !i.deleted_at && i.checked)
-    await e.removeMany('vault_items', cleared.map((i) => i.id))
-    return cleared.map((i) => i.id)
+    return { count: cleared.length, undo: await removeWithUndo(ready, 'vault_items', cleared.map((i) => i.id)) }
   }
 
   /**

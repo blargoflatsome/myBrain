@@ -7,7 +7,7 @@ import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
 import type { EventRow, PostItColor, PostItRow, QuestRow, Remote, RowTypes, SyncStatus, SyncTable, TaskRow } from '@/sync/types'
-import type { ActionContext } from '@/sync/actions'
+import { removeWithUndo, type ActionContext, type Undo } from '@/sync/actions'
 import { habitActions } from '@/habits/actions'
 import { routineActions } from '@/routines/actions'
 import { journalActions } from '@/journal/actions'
@@ -231,15 +231,20 @@ export const useBrainStore = defineStore('brain', () => {
     return created
   }
 
-  /** Delete an orphan without filing it (SPEC §5 Orphans); Undo puts it back with restore. */
-  async function removeOrphan(id: string) {
-    await ready().engine.remove('inbox', id)
-    await afterOrphanGone()
+  /** Delete an orphan without filing it (SPEC §5 Orphans). Its Undo also takes back an emptied-Orphans count it caused. */
+  async function removeOrphan(id: string): Promise<Undo> {
+    const putBack = await remove('inbox', id)
+    const logged = await afterOrphanGone()
+    return async () => {
+      await putBack()
+      if (logged) await remove('activity_log', logged)
+    }
   }
 
-  // Emptying the Orphans list counts toward a trophy (SPEC §5 Trophies).
+  // Emptying the Orphans list counts toward a trophy (SPEC §5 Trophies). Returns the count's row, if it made one.
   async function afterOrphanGone() {
-    if (!live(await ready().local.inbox.toArray()).length) await trophies.logActivity('orphans_cleared')
+    if (live(await ready().local.inbox.toArray()).length) return null
+    return trophies.logActivity('orphans_cleared')
   }
 
   /** Add a task typed on the Tasks screen (source "manual", default priority Low). */
@@ -322,14 +327,14 @@ export const useBrainStore = defineStore('brain', () => {
     const { engine: e, uid } = ready()
     return e.save(table, { ...row, user_id: uid })
   }
-  /** Delete a row (soft, so the deletion syncs; Undo can put it back with restore). */
-  async function remove(table: SyncTable, id: string) {
-    await ready().engine.remove(table, id)
+  /** Delete a row (soft, so the deletion syncs). Returns its Undo (SPEC §2): deletes are soft, so it comes back with everything it had. */
+  async function remove(table: SyncTable, id: string): Promise<Undo> {
+    return removeMany(table, [id])
   }
 
-  /** Put back something just removed (SPEC §2 Undo): deletes are soft, so it comes back with everything it had. */
-  async function restore(table: SyncTable, id: string) {
-    await ready().engine.patch(table, id, () => ({ deleted_at: null }))
+  /** Delete several rows at once (clearing a list), with one Undo for them all. */
+  async function removeMany(table: SyncTable, ids: readonly string[]): Promise<Undo> {
+    return removeWithUndo(ready, table, ids)
   }
 
   // ---------- My people (SPEC §5 Calendar) ----------
@@ -372,7 +377,7 @@ export const useBrainStore = defineStore('brain', () => {
     // Any row with no rules of its own
     save,
     remove,
-    restore,
+    removeMany,
     // Capture, tasks and quests
     capture,
     convert,

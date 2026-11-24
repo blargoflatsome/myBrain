@@ -238,10 +238,10 @@ async function saveEdit(q: QuestRow) {
   editing.value = null
 }
 async function remove(q: QuestRow) {
-  await brain.remove('quests', q.id)
+  const putBack = await brain.remove('quests', q.id)
   if (currentId.value === q.id) currentId.value = null
   if (editing.value?.id === q.id) editing.value = null
-  undo.offer(messages.undo.deleted(q.title), () => brain.restore('quests', q.id))
+  undo.offer(messages.undo.deleted(q.title), putBack)
 }
 
 // How many times each quest has been done (they can be done again).
