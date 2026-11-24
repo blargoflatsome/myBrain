@@ -24,6 +24,8 @@ import { achieved } from '@/celebrate/bus'
 
 const UID = '11111111-1111-4111-8111-111111111111'
 const TZ = 'UTC'
+// brain.start's first sync has finished, so nothing it does later can undo a test's own setup.
+const firstSync = (brain: ReturnType<typeof useBrainStore>) => vi.waitFor(() => expect(brain.syncedCount).toBeGreaterThan(0))
 const start = new Date('2026-11-01T12:00:00Z')
 const habit = (title = 'Walk') => newHabit(title, UID, TZ, start)
 const done = (habitId: string, date: string): HabitLogRow => ({ id: `${habitId}-${date}`, habit_id: habitId, date, status: 'completed', deleted_at: null })
@@ -145,8 +147,6 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
   // Only for checking that something did NOT happen: there is no result to wait for, so give it a moment.
   // eslint-disable-next-line no-restricted-syntax -- waiting for something that must not happen
   const nothingMore = () => new Promise((r) => setTimeout(r, 50))
-  // brain.start's first sync has finished, so nothing it does later can undo a test's own setup.
-  const firstSync = (brain: ReturnType<typeof useBrainStore>) => vi.waitFor(() => expect(brain.syncedCount).toBeGreaterThan(0))
 
   it('crossing off my first task earns its badge, with a message; the second time earns nothing new', async () => {
     const brain = useBrainStore()
@@ -269,6 +269,7 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
       const celebrate = useCelebrateStore()
       celebrate.start()
       brain.habitsReady = true
+      // The first check finds no log. Nothing shows when it has run, so this pause only guards the "none yet" step.
       await nothingMore()
       const perfect = async () => (await brain.db!.notifications.toArray()).filter((n) => n.kind === 'perfect_day')
       expect(await perfect()).toHaveLength(0)
@@ -303,7 +304,7 @@ describe('SPEC §5 Trophies: earning levels', () => {
   async function ready() {
     const brain = useBrainStore()
     brain.start(UID, remote)
-    await vi.waitFor(() => expect(brain.syncedCount).toBeGreaterThan(0))
+    await firstSync(brain)
     brain.habitsReady = true
     brain.badgesReady = true
     return brain

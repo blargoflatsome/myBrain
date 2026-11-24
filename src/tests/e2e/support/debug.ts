@@ -6,8 +6,11 @@ import type { Page } from '@playwright/test'
  * `console.log` in app code shows what happened and when (writing-tests skill, failing-tests.md).
  * FakeSupabase.install calls this, so nearly every browser test has it.
  */
+const logged = new WeakSet<Page>()
+
 export function logPage(page: Page) {
-  if (!process.env.PW_LOG) return
+  if (!process.env.PW_LOG || logged.has(page)) return
+  logged.add(page)
   const start = Date.now()
   const stamp = () => `[page +${Date.now() - start}ms]`
   page.on('console', (m) => console.log(`${stamp()} ${m.type()}: ${m.text()}`))
