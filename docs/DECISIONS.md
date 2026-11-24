@@ -384,3 +384,10 @@ Candidate 3 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Seven files wrapped `supabas
 - **The fake gives canned answers plus seeded rows**, rather than re-implementing server functions in TypeScript, which would drift from the migrations.
 - **No raw server text on screen.** Each screen says what failed in its own words. Because the server's daily and size limits used the general error code, a migration moves them to the limit code (P0429) so screens can name the limit.
 - Kept: the sync `Remote` seam is unchanged; this sits beside it.
+
+## 2026-11-24 One owner for the signed-in session (architecture review 2)
+Candidate 4 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Sign-in setup lived in App.vue, sign-out and Delete My Account in AccountView (with `brain.start` wired in both), and the "my data was deleted on another device" check was written three ways. User's choices:
+- **A session store** (`src/stores/session.ts`) owns the lifecycle: begin (follow sign-in), the data-reset check, sign out, Delete My Account (with its rollback) and Delete my data. Folding it into the auth store or brain was turned down: auth would depend on brain, profile and celebrations, and brain is already the biggest store.
+- **A small session adapter** for Supabase sign-in, my profile row, the sync Remote and push, with a fake for unit tests; the two deletes use the server seam (candidate 3). Mocking Supabase in tests was turned down: tests would know its API shape.
+- **Routing stays in screens:** the session says `needsPhone`; App.vue redirects.
+- **Bug:** Delete My Account cleared the device's data but not what the app remembered on it (appearance, open groups, timers), which Sign out clears. Now it clears both.
