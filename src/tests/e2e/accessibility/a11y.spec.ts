@@ -329,6 +329,8 @@ test.describe('Spec §2 WCAG 2.2 AA: by hand checks made automatic', () => {
       await ready(page)
       // Wait for every list to fill in from the device's data before measuring.
       await page.waitForLoadState('networkidle')
+      // No single signal says every list has drawn; too short a wait can only miss an overflow, never invent one.
+      // eslint-disable-next-line no-restricted-syntax -- no result to wait for
       await page.waitForTimeout(300)
       const { overflow, culprits } = await page.evaluate(() => {
         const vw = document.documentElement.clientWidth

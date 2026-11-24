@@ -355,6 +355,14 @@ The architecture review (`/improve-codebase-architecture`) found pages reading t
 - **Behaviour change:** a quest marked done and then undone no longer counts toward the quest First, matching the Quests trophy (before, the First's history counted the removed completion). A First already earned stays earned.
 - Looked at and left alone: the sync engine (already deep), the Remote seam (two real adapters), a central table registry (mapped types already keep the lists complete).
 
+## 2026-11-24 Flaky tests fail CI; merges wait for CI (retro)
+A retro of the live-rows merge (user: "we keep hitting bad tests or tests that fail"). User accepted all six suggestions:
+- **Merges wait for CI.** PRs #102 and #103 were merged seconds after pushing, and #103's CI then failed on a unit test. Main now requires the `check` and three `e2e` jobs, and merges use `gh pr merge --auto --merge`, which waits for them.
+- **Flaky tests fail CI** (`failOnFlakyTests` in CI; retries stay, to record a trace). Both "flakes" looked into were real bugs: a Calendar tap read a list that hadn't arrived, and the editor swallowed Escape.
+- **No fixed waits in tests, by lint.** The CI failure was a 50 ms sleep. `waitForTimeout` and `setTimeout` sleeps in `src/tests/` are lint errors; a check that something does NOT happen may pause, with a disable comment giving that reason.
+- **A guide for failing and flaky tests** (`.claude/skills/writing-tests/failing-tests.md`): reproduce in a tight loop, compare with main, log before changing code. With `PW_LOG=1`, page logs print in the test output, and local runs keep the trace of a failed test.
+- **Code review before the full review** at merge time (`/code-review`): the Calendar bug broke an existing standard (read the row with `findRow` on a button press) that nothing checked. It also replaces reading the whole diff by hand.
+
 ## 2026-11-24 Deletes return their own Undo (architecture review 2)
 The second architecture review (`docs/ARCHITECTURE_REVIEW_TASKS.md`, candidate 2) found screens pairing `brain.remove` with `brain.restore` by hand, so Undo only put the row back. Real bug: deleting the last Orphan logged `orphans_cleared`, and Undo left the log, so delete → Undo → delete inflated Orphan wrangler. User's choices:
 - **`brain.remove` / `removeMany` return their Undo**; a delete with side effects gets its own action with a full Undo (today only `removeOrphan`, which also takes back the emptied-Orphans count). `clearChecked` and `removeJournalPasskey` return theirs too. `brain.restore` is gone, so the type checker stops screens using it (stronger than the lint rule first planned). Moves, cancels and Clear crossed-off were left alone: their Undo already saves the whole row back. `deleteHabit` (confirmed, no Undo) left alone.

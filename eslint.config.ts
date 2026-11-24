@@ -35,6 +35,19 @@ export default defineConfigWithVueTs(
     },
   },
   {
+    // writing-tests skill "Make them deterministic": a fixed wait passes on a fast machine and fails on a busy one (a
+    // 50 ms sleep failed CI on 2026-11-24). A wait for something that must NOT happen has no result to wait for, so it
+    // may stay, with an eslint-disable-next-line comment giving that reason.
+    files: ['src/tests/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        { selector: "CallExpression[callee.property.name='waitForTimeout']", message: 'Wait for the result instead: expect(...).toBeVisible(), expect.poll(...).' },
+        { selector: "NewExpression[callee.name='Promise'] CallExpression[callee.name='setTimeout']", message: 'Wait for the result instead: vi.waitFor(() => expect(...)).' },
+      ],
+    },
+  },
+  {
     // The chip style itself, and the toggles and radios that aren't a choice of one value.
     files: ['src/components/ChoiceChips.vue', 'src/components/HowOften.vue', 'src/tasks/TasksView.vue'],
     rules: { 'no-restricted-imports': 'off' },

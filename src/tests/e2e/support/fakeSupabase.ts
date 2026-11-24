@@ -1,6 +1,7 @@
 // Stands in for Supabase in browser tests: a signed-in session plus an in-memory REST API with server timestamps.
 import type { Page, Request } from '@playwright/test'
 import { loadEnv } from 'vite'
+import { logPage } from './debug'
 
 const env = loadEnv('production', process.cwd(), 'VITE_')
 const supabaseUrl = env.VITE_SUPABASE_URL || 'http://localhost:54321'
@@ -98,6 +99,7 @@ export class FakeSupabase {
 
   /** Sign the browser in as the test user and route all Supabase traffic here. */
   async install(page: Page) {
+    logPage(page)
     const session = {
       access_token: fakeJwt(),
       refresh_token: 'fake-refresh',
