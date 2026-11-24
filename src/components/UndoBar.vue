@@ -42,13 +42,16 @@ const undo = useUndoStore()
 const m = messages.undo
 const bar = ref<HTMLElement | null>(null)
 
+// A new offer takes focus when it was made from the keyboard, or when focus was already on the bar it replaces.
 watch(
   () => undo.current?.id,
   async () => {
-    if (!undo.current?.byKeyboard) return
+    const hadFocus = !!bar.value?.contains(document.activeElement)
+    if (!undo.current || !(undo.current.byKeyboard || hadFocus)) return
     await nextTick()
     bar.value?.querySelector<HTMLElement>('[data-testid="undo-button"]')?.focus()
   },
+  { flush: 'pre' },
 )
 
 async function close(how: 'undo' | 'dismiss') {

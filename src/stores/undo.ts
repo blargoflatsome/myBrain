@@ -22,11 +22,21 @@ export interface UndoOffer extends UndoOptions {
   byKeyboard: boolean
 }
 
-// Whether the last press was a key (rather than a mouse, pen or finger), the same way browsers decide :focus-visible.
-let keyboardLast = false
+// When a control (not a text field) was last pressed with Enter or Space. An offer that follows such a press within a
+// second was made from the keyboard; one that comes by itself (a trophy's Share offer while I type) never takes focus.
+const PRESS_MS = 1000
+let keyPressAt = -Infinity
 if (typeof document !== 'undefined') {
-  document.addEventListener('keydown', (e) => (keyboardLast = !e.metaKey && !e.ctrlKey && !e.altKey), true)
-  document.addEventListener('pointerdown', () => (keyboardLast = false), true)
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      const target = e.target as HTMLElement | null
+      const typing = !!target?.closest('input, textarea, select, [contenteditable="true"]')
+      keyPressAt = (e.key === 'Enter' || e.key === ' ') && !typing ? Date.now() : -Infinity
+    },
+    true,
+  )
+  document.addEventListener('pointerdown', () => (keyPressAt = -Infinity), true)
 }
 
 export const useUndoStore = defineStore('undo', () => {
@@ -40,7 +50,7 @@ export const useUndoStore = defineStore('undo', () => {
   }
   /** Show "message · Undo" (or another label); tapping the button runs `undo`. */
   function offer(message: string, undo: UndoOffer['undo'], options: UndoOptions = {}) {
-    current.value = { id: ++next, message, undo, byKeyboard: keyboardLast, ...options }
+    current.value = { id: ++next, message, undo, byKeyboard: Date.now() - keyPressAt < PRESS_MS, ...options }
     start()
   }
   function pause() {
