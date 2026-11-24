@@ -1,5 +1,5 @@
 // Quick capture (SPEC §5): one thought, filed as a task, vault item, quest, habit, or saved to Orphans to decide later.
-import type { EnergyLevel, HabitRow, InboxRow, QuestRow, TaskRow, TimeBucket, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import type { EnergyLevel, HabitRow, InboxRow, PostItColor, QuestRow, TaskRow, TimeBucket, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { taskReminder } from '@/reminders/priority'
 import { newHabit } from '@/habits/rules'
 import { clampRating } from '@/vault/rules'
@@ -35,6 +35,8 @@ export interface CaptureInput {
   energy?: EnergyLevel
   /** Quest only. Default 30 min. */
   time?: TimeBucket
+  /** Post It only: its color (yellow when not given). Its text is the formatted note. */
+  color?: PostItColor
   /** Habit only (SPEC §5 Quick capture: the full habit form). */
   habit?: {
     weekdays: number[]
@@ -139,7 +141,7 @@ export function buildCaptureRecord(input: CaptureInput, userId: string, newId: (
     case 'later':
       return { table: 'inbox', row: { ...base, body: text } }
     case 'postit':
-      // Post Its are formatted notes, saved with brain.addPostIt (SPEC §5 Post It).
+      // Post Its are formatted notes with no title row to build here: brain.capture saves them (SPEC §5 Post It).
       throw new CaptureError('post it')
   }
 }

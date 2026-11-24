@@ -64,8 +64,10 @@ import { useFocusStore } from '@/stores/focus'
 import { clock, remainingMs } from '@/focus/timer'
 import { dotPlace, glowing } from '@/focus/room'
 import { messages } from '@/messages'
-import { achieved } from '@/celebrate/bus'
+import { useBrainStore } from '@/stores/brain'
 import { useWakeLock } from '@/composables/useWakeLock'
+
+const brain = useBrainStore()
 
 const focus = useFocusStore()
 const m = messages.focus
@@ -120,7 +122,7 @@ function partEnded() {
     rippling.value = true
     rippleKey.value++
     setTimeout(() => (rippling.value = false), 1500)
-    achieved({ kind: 'focus', sessions: focus.workEnded, together: focus.workTogether })
+    void brain.finishFocus(focus.workEnded, focus.workTogether)
   }
   chime()
   navigator.vibrate?.([200, 100, 200])

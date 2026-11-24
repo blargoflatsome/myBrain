@@ -12,12 +12,12 @@ Words: **module** (anything with an interface and an implementation), **interfac
 
 | # | Candidate | Strength | Status |
 |---|---|---|---|
-| 1 | One module for "I finished it" | Strong | Grilling |
+| 1 | One module for "I finished it" | Strong | Merged (branch `finish-module`) |
 | 2 | Deletes that return their own Undo | Strong, real bug | Merged (branch `undo-from-deletes`) |
 | 3 | Server calls behind a seam that keeps my copy up to date | Strong | To do |
 | 4 | One module for the signed-in session's lifecycle | Worth exploring | To do |
 | 5 | Close brain's raw `save`; tasks, quests and Post Its get their own actions | Worth exploring | To do |
-| 6 | One capture path, Post Its included | Speculative | To do |
+| 6 | One capture path, Post Its included | Speculative | Done with 1 |
 
 ## 1. One module for "I finished it"
 
@@ -35,6 +35,12 @@ Words: **module** (anything with an interface and an implementation), **interfac
 - **Deeper module would hide:** "I finished X" as one write: save the row, record the activity Trophies need,
   announce. The celebration listener only celebrates.
 - **Tests:** "finish a Focus session" → check `activity_log` and the First, no celebration store, Pinia or sleeps.
+
+- **Decided (user, 2026-11-24):** (B) a trophy keeper (`src/trophies/keeper.ts`, started by `brain.start`) saves
+  Firsts, trophy levels and the two alerts and says what it earned; `stores/celebrate.ts` only shows. Finishing waits
+  for the row and its activity; `brain.trophiesIdle()` for tests. `brain.finishFocus` / `finishBreathe`; Post Its from
+  Capture through `brain.capture` (6 folded in); Cheers `shareCheer` / `cheerOn` recheck trophies; lint stops `.vue`
+  files importing `achieved`. DECISIONS 2026-11-24 "One module for I finished it".
 
 ## 2. Deletes that return their own Undo
 

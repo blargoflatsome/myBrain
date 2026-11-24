@@ -1,30 +1,15 @@
-// SPEC §5 Celebrations: turns finished things into a celebration that fits (confetti, a glow, a message, a badge),
-// at the level I chose. Bursts and messages are drawn by CelebrationLayer.vue.
-import { readTables } from '@/sync/db'
+// SPEC §5 Celebrations: turns finished things into a celebration that fits (confetti, a glow, a message), at the
+// level I chose, including the Firsts and trophy levels the trophy keeper (src/trophies/keeper.ts) earned. Only what's
+// shown lives here: nothing in this store is saved. Bursts and messages are drawn by CelebrationLayer.vue.
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
-import { achieved, onAchievement, type Achievement } from '@/celebrate/bus'
-import {
-  effectiveLevel,
-  earnedFromHistory,
-  finishedTodaysList,
-  isComeback,
-  isPerfectDay,
-  missingBadges,
-  parseSetting,
-  firstTrophiesAlertId,
-  perfectDayAlertId,
-  type BadgeKind,
-  type CelebrationSetting,
-} from '@/celebrate/rules'
-import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
+import { onAchievement, type Achievement } from '@/celebrate/bus'
+import { effectiveLevel, finishedTodaysList, isComeback, isPerfectDay, parseSetting, type CelebrationSetting } from '@/celebrate/rules'
+import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { messages } from '@/messages'
-import { useAuthStore } from '@/stores/auth'
-import { TIERS } from '@/trophies/definitions'
-import { AWAY_DAYS, journalComeback, newLevels, taskComeback, trophyStates, trophyValues } from '@/trophies/rules'
-import { trophyCounts, type ServerCounts } from '@/trophies/server'
-import { WORK_MS } from '@/focus/timer'
+import { TIERS, TROPHIES } from '@/trophies/definitions'
+import { AWAY_DAYS, journalComeback, taskComeback } from '@/trophies/rules'
 import { readKey, writeKey } from '@/ui/storage'
 
 export type BurstSize = 'small' | 'big' | 'biggest'
@@ -37,8 +22,6 @@ export interface Burst {
 
 const SETTING_KEY = 'my-brain:celebrations'
 const LAST_OPEN_KEY = 'my-brain:last-open'
-/** Set once a device has worked out my trophies, so later ones are celebrated one by one (SPEC §5 Trophies). */
-const trophiesReadyKey = (uid: string) => `my-brain:trophies-ready:${uid}`
 
 /** How long a message stays up before the next one (or none) shows. */
 export const MESSAGE_MS = 4000
@@ -112,90 +95,10 @@ export const useCelebrateStore = defineStore('celebrate', () => {
   const captureSaved = ref(0)
   const journalSaved = ref(0)
 
-  /** Resolves once my badges have downloaded to this device (false if I sign out first). */
-  function badgesDownloaded(): Promise<boolean> {
-    if (brain.badgesReady) return Promise.resolve(true)
-    return new Promise((resolve) => {
-      const stop = watch([() => brain.badgesReady, () => brain.db], ([ready, db]) => {
-        if (!ready && db) return
-        stop()
-        resolve(!!ready)
-      })
-    })
-  }
-
-  /** When catch-up read the history it saved each badge quietly from, this session (Date.now()). */
-  const quietlySaved = new Map<BadgeKind, number>()
-  async function earnBadge(kind: BadgeKind, achievedAt: number) {
-    if (!brain.db) return
-    // A badge earned before my badges downloaded waits for them, so one I already have is never celebrated again.
-    if (!(await badgesDownloaded())) return
-    const saved = await brain.saveBadge(kind)
-    // Catch-up (below) may have saved this very badge quietly while it waited, from the thing I just did: still say it.
-    if (!saved && (quietlySaved.get(kind) ?? -1) < achievedAt) return
-    burst('small')
-    say(m.badgeEarned(m.badges[kind]))
-  }
-
-  // ---------- Trophies (SPEC §5 Trophies) ----------
-  const auth = useAuthStore()
-  /** Connections ever made, people blocked and my Cheers tally, asked of the server when online; null until then. */
-  const counts = ref<ServerCounts>({ connections: null, blocks: null, cheers: null })
-  async function refreshCounts() {
-    if (!brain.online) return
-    const fresh = await trophyCounts()
-    if (fresh.connections !== null) counts.value = fresh
-  }
-
-  let checking: Promise<void> | null = null
-  let checkAgain = false
-  /** Work out my trophies and save any new level. The first time on a device they go in quietly, with one alert. */
-  async function checkTrophies(now = new Date(), timeZone = deviceTimeZone()) {
-    if (checking) {
-      checkAgain = true
-      return checking
-    }
-    checking = (async () => {
-      do {
-        checkAgain = false
-        const local = brain.db
-        const uid = brain.userId
-        if (!local || !uid || !brain.habitsReady || !(await badgesDownloaded())) return
-        const history = await brain.trophyHistory({ accountCreated: auth.user?.created_at ?? null, ...counts.value })
-        const ups = newLevels(trophyStates(trophyValues(history, now, timeZone), await local.badges.toArray()))
-        const firstTime = !readKey(trophiesReadyKey(uid))
-        let raised = 0
-        for (const s of ups) if (await brain.saveTrophyLevel(s.trophy.id, s.level, now)) raised++
-        writeKey(trophiesReadyKey(uid), '1')
-        if (!raised) continue
-        if (firstTime) {
-          const id = firstTrophiesAlertId(uid)
-          const today = todayIn(timeZone, now)
-          await brain.addAlert({ id, kind: 'trophies', item_id: id, title: t.fromPast.title(raised), body: t.fromPast.body, url: '/#trophies', local_date: today, sent_at: now.toISOString() })
-          continue
-        }
-        for (const s of ups) {
-          achieved({ kind: 'trophy', id: s.trophy.id, level: s.level })
-          burst('small')
-          say(t.earned(t.names[s.trophy.id] ?? s.trophy.id, s.trophy.levels.length > 1 ? (t.tiers[TIERS[s.level - 1]!] ?? null) : null))
-        }
-      } while (checkAgain)
-    })().finally(() => (checking = null))
-    return checking
-  }
-  let trophyTimer: ReturnType<typeof setTimeout> | undefined
-  /** Check trophies shortly after something is finished (a burst of changes is checked once). */
-  function soonCheckTrophies() {
-    clearTimeout(trophyTimer)
-    trophyTimer = setTimeout(() => void checkTrophies().catch((err: unknown) => console.error(err)), 800)
-  }
-
+  /** How finishing something is celebrated. Firsts and trophy levels come from the trophy keeper once it saved them. */
   async function handle(a: Achievement) {
     const local = brain.db
-    if (!local || a.kind === 'trophy') return
-    const at = Date.now()
-    const earn = (kind: BadgeKind) => earnBadge(kind, at)
-    soonCheckTrophies()
+    if (!local) return
     const timeZone = deviceTimeZone()
     const now = new Date()
     const today = todayIn(timeZone, now)
@@ -205,7 +108,7 @@ export const useCelebrateStore = defineStore('celebrate', () => {
         burst(finishedTodaysList(tasks, a.task, today, timeZone) ? 'big' : 'small')
         const comeback = taskComeback(a.task, today, timeZone)
         if (comeback) say(comeback === 'carried' ? cb.carried : cb.oldUndated)
-        return earn('first_task')
+        return
       }
       case 'habit': {
         const logs = await local.habit_logs.toArray()
@@ -216,83 +119,33 @@ export const useCelebrateStore = defineStore('celebrate', () => {
           burst('small')
           if (isComeback(a.habit, logs, today, now, timeZone)) say(m.welcomeBack)
         }
-        return earn('first_habit')
+        return
       }
       case 'step':
-        if (!a.finished) return
-        burst('big')
-        return earn('first_routine')
-      case 'capture':
-        captureSaved.value++
-        if (a.table === 'vault_items') return earn('first_vault')
+        if (a.finished) burst('big')
         return
+      case 'capture':
       case 'postit':
         captureSaved.value++
-        return earn('first_postit')
+        return
       case 'journal':
         journalSaved.value++
         if (journalComeback(await local.journal_entries.toArray(), today)) say(cb.journal)
-        return earn('first_journal')
+        return
       case 'quest':
         burst('small')
-        return earn('first_quest')
-      case 'vault':
-        return earn('first_vault')
-      case 'orphan':
-        return earn('first_orphan')
-      case 'shared_event':
-        return earn('first_shared_event')
-      case 'focus':
-        for (let i = 0; i < a.sessions; i++) await brain.logActivity('focus', { minutes: WORK_MS / 60_000, ...(a.together ? { together: true } : {}) }, now)
-        return earn('first_focus')
-      case 'breathe':
-        await brain.logActivity('breathe', {}, now)
-        return earn('first_breathe')
-      case 'cheer_post':
-        return earn('first_cheer_post')
-      case 'cheer':
-        return earn('first_cheer')
+        return
+      case 'first':
+        burst('small')
+        say(m.badgeEarned(m.badges[a.badge]))
+        return
+      case 'trophy': {
+        const trophy = TROPHIES.find((x) => x.id === a.id)
+        burst('small')
+        say(t.earned(t.names[a.id] ?? a.id, trophy && trophy.levels.length > 1 ? (t.tiers[TIERS[a.level - 1]!] ?? null) : null))
+        return
+      }
     }
-  }
-
-  /**
-   * Badges my history already earned go in quietly, and yesterday's perfect day brings its congratulations the
-   * first time I open the app today. Only once this device holds my history (habitsReady), so nothing is guessed.
-   */
-  async function catchUp(now = new Date(), timeZone = deviceTimeZone()) {
-    const local = brain.db
-    if (!local || !brain.habitsReady || !brain.userId) return
-    const history = await readTables(local, {
-      tasks: 'tasks',
-      habitLogs: 'habit_logs',
-      routineRuns: 'routine_runs',
-      journalEntries: 'journal_entries',
-      vaultItems: 'vault_items',
-      questLogs: 'quest_logs',
-      postIts: 'post_its',
-      inbox: 'inbox',
-      // A task done and later deleted, a Vault item or Post It saved and later removed still happened, so they count;
-      // an undone quest was never finished (SPEC §5 Celebrations: Firsts).
-    }, { includeDeleted: ['tasks', 'vaultItems', 'postIts'] })
-    const readAt = Date.now()
-    const missing = new Set(missingBadges(await local.badges.toArray()))
-    for (const kind of earnedFromHistory(history)) {
-      if (!missing.has(kind)) continue
-      // Noted before saving: a celebration whose own save finds this badge already there must know catch-up just
-      // saved it from history read after the thing I did, even while catch-up's save is still finishing.
-      quietlySaved.set(kind, readAt)
-      if (!(await brain.saveBadge(kind, now))) quietlySaved.delete(kind)
-    }
-    // Trophies are worked out alongside, without holding up the rest (asking the server can be slow).
-    void refreshCounts()
-      .then(() => checkTrophies(now, timeZone))
-      .catch((err: unknown) => console.error(err))
-
-    const today = todayIn(timeZone, now)
-    const yesterday = addDays(today, -1)
-    if (!isPerfectDay(await local.habits.toArray(), history.habitLogs, yesterday, now, timeZone)) return
-    const id = perfectDayAlertId(brain.userId, yesterday)
-    await brain.addAlert({ id, kind: 'perfect_day', item_id: id, title: m.perfectDayAlert.title, body: m.perfectDayAlert.body, url: '/habits', local_date: today, sent_at: now.toISOString() })
   }
 
   let started = false
@@ -309,18 +162,7 @@ export const useCelebrateStore = defineStore('celebrate', () => {
     }
     opened()
     document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && opened())
-    let lastDay = ''
-    const check = () => {
-      const day = todayIn(deviceTimeZone())
-      if (!brain.habitsReady || day === lastDay) return
-      lastDay = day
-      void catchUp().catch((err: unknown) => console.error(err))
-    }
-    // Again once this session's download finishes: habits ticked on another device may only be here now.
-    watch([() => brain.habitsReady, () => brain.userId, () => brain.syncedCount], () => ((lastDay = ''), check()), { immediate: true })
-    document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && check())
-    setInterval(check, 60_000)
   }
 
-  return { setting, level, setSetting, bursts, burst, burstDone, message, say, dismiss, captureSaved, journalSaved, catchUp, start, checkTrophies, refreshCounts, counts }
+  return { setting, level, setSetting, bursts, burst, burstDone, message, say, dismiss, captureSaved, journalSaved, start }
 })

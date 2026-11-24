@@ -80,7 +80,7 @@ import AppIcon from '@/components/AppIcon.vue'
 import MoreOptions from '@/components/MoreOptions.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import CheerPostCard from '@/cheers/components/CheerPostCard.vue'
-import { cheerFeed, hiddenPeople, hideAuthor, postCheer, reactCheer, reasonOf, showAgain, stuckCount, unreactCheer, type CheerPost, type HiddenPerson } from '@/cheers/cheers'
+import { cheerFeed, cheerOn, hiddenPeople, hideAuthor, postCheer, reasonOf, shareCheer, showAgain, stuckCount, unreactCheer, type CheerPost, type HiddenPerson } from '@/cheers/cheers'
 import { MAX_CHARS, pickOne, postText, type Reaction } from '@/cheers/rules'
 import { useNow } from '@/composables/useNow'
 import { useBrainStore } from '@/stores/brain'
@@ -89,7 +89,6 @@ import { useCelebrateStore } from '@/stores/celebrate'
 import { useCheersStore } from '@/stores/cheers'
 import { useUndoStore } from '@/stores/undo'
 import { dayOfLabel } from '@/ui/dates'
-import { achieved } from '@/celebrate/bus'
 import { card, field, fieldLabel, primaryButton, primaryButtonSmall, rowAction, secondaryButton, smallButton } from '@/ui/styles'
 import { messages } from '@/messages'
 
@@ -166,10 +165,9 @@ async function postDidIt() {
   if (formError.value) return box.value?.focus()
   posting.value = true
   try {
-    await postCheer('did_it', text)
+    await shareCheer('did_it', text)
     cheers.draft = null
     celebrate.say(m.posted)
-    achieved({ kind: 'cheer_post' })
     await load()
   } catch (err) {
     formError.value = failure(err)
@@ -184,9 +182,8 @@ async function postStuck() {
   posting.value = true
   postError.value = ''
   try {
-    await postCheer('stuck')
+    await shareCheer('stuck')
     cheers.setStuck(true)
-    achieved({ kind: 'cheer_post' })
     const others = await stuckCount().catch(() => 0)
     stuckPanel.value = { others, line: pickOne(m.stuckLines) }
     await nextTick()
@@ -226,12 +223,10 @@ async function react(post: CheerPost, reaction: Reaction) {
       await unreactCheer(post.id)
       post.my_reaction = null
     }
-    await reactCheer(post.id, reaction)
+    await cheerOn(post.id, reaction)
     post.my_reaction = reaction
     // The smug line is only ever for the one cheering (SPEC §5 Cheers).
     celebrate.say(pickOne(m.afterReact))
-    achieved({ kind: 'cheer' })
-    void celebrate.refreshCounts().then(() => celebrate.checkTrophies())
   } catch {
     celebrate.say(m.reactFailed)
   } finally {

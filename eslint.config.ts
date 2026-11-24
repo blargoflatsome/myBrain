@@ -31,6 +31,8 @@ export default defineConfigWithVueTs(
         'error',
         { selector: "MemberExpression[object.name='brain'][property.name='db']", message: 'Read rows with useRows, useRow, useDeviceQuery, readRows or findRow (src/sync/useRows.ts).' },
         { selector: "ImportDeclaration[source.value='@/composables/useLiveQuery']", message: 'Read rows with useRows, useRow or useDeviceQuery (src/sync/useRows.ts).' },
+        // CODING_STANDARDS §3: only actions say I finished something (after saving it), so nothing kept depends on a screen.
+        { selector: "ImportDeclaration[source.value='@/celebrate/bus'] ImportSpecifier[imported.name='achieved']", message: 'Say it from the action that saves it (src/<feature>/actions.ts or the brain store), not from a screen.' },
       ],
     },
   },

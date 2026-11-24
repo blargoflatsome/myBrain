@@ -6,6 +6,7 @@ import { tasksForDay } from '@/tasks/rules'
 import { addDays } from '@/tasks/days'
 import { live } from '@/sync/live'
 import { wroteIn } from '@/journal/body'
+import type { Achievement } from '@/celebrate/bus'
 
 export type CelebrationSetting = 'full' | 'gentle' | 'off'
 export const CELEBRATION_SETTINGS: readonly CelebrationSetting[] = ['full', 'gentle', 'off']
@@ -55,6 +56,29 @@ export const firstTrophiesAlertId = (userId: string): string => fixedId(userId, 
 export function missingBadges(have: BadgeRow[], kinds: readonly BadgeKind[] = BADGES): BadgeKind[] {
   const got = new Set(live(have).map((b) => b.kind))
   return kinds.filter((k) => !got.has(k))
+}
+
+/** The First that finishing something earns, if any (SPEC §5 Celebrations: Firsts). */
+export function firstFor(a: Achievement): BadgeKind | null {
+  switch (a.kind) {
+    case 'task': return 'first_task'
+    case 'habit': return 'first_habit'
+    case 'step': return a.finished ? 'first_routine' : null
+    case 'capture': return a.table === 'vault_items' ? 'first_vault' : null
+    case 'postit': return 'first_postit'
+    case 'journal': return 'first_journal'
+    case 'quest': return 'first_quest'
+    case 'vault': return 'first_vault'
+    case 'orphan': return 'first_orphan'
+    case 'shared_event': return 'first_shared_event'
+    case 'focus': return 'first_focus'
+    case 'breathe': return 'first_breathe'
+    case 'cheer_post': return 'first_cheer_post'
+    case 'cheer': return 'first_cheer'
+    case 'first':
+    case 'trophy':
+      return null
+  }
 }
 
 export interface History {

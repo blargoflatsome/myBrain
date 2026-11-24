@@ -524,6 +524,7 @@ Finishing something should feel good. Each celebration plays right after my acti
 - **Messages:** every celebration message is in the messages file in the "past you" voice; the user writes the playful lines.
 - **Setting:** **Celebrations** in Account Settings on the Account page, saved with its own Save: **Full** (default), **Gentle** (no confetti or bouncing; a soft glow or fade and the message only) or **Off** (no animation; messages and trophies still happen). If the device's reduce-motion setting is on, Full acts as Gentle. Saved to my profile, so it follows me to my other devices (and kept on this device, so it works offline).
 - **Accessibility:** animations are decorative (hidden from screen readers); each message is announced in a polite live region. Confetti never flashes more than 3 times a second (WCAG 2.3.1).
+- **What's kept never depends on the screen (2026-11-24):** finishing something saves it and what trophies count (a finished Focus session or Breathe, a capture, a Post It made in Capture), and Firsts and trophy levels are saved while I'm signed in, whether or not a celebration can be shown. The celebration is only how it looks.
 - **Not included (for now):** sounds (never), weekly summaries and heat maps. Streak and other milestone trophies are in Trophies below.
 
 ### Trophies (built 2026-11-11)
