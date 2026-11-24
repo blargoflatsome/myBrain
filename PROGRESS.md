@@ -2,6 +2,11 @@
 
 Current state only. Update at the end of every session; when work merges, move its section to [docs/PROGRESS_ARCHIVE.md](docs/PROGRESS_ARCHIVE.md) (search it for a past step's history). Build order: [SPEC §11](docs/SPEC.md#11-suggested-build-order). Decisions: [docs/DECISIONS.md](docs/DECISIONS.md).
 
+## In progress: docs review (branch `grill-with-docs-skill`)
+- Added the grill-with-docs skill (with grilling and domain-modeling). Reviewed the spec against the code with the user (DECISIONS 2026-11-24): new GLOSSARY.md; SPEC §4 matches the migrations; Connections moved into §5; email sending and Home Assistant dropped; README and .env.example updated.
+- Code: Firsts say "New trophy: …"; unused confirmation messages removed; migration `20261124010000_no_email_for_app_users.sql` (app users get push only, `event_notify_method` dropped) applied to dev and prod, `test:db` passes.
+- Help, home page and Bucket settings say "bucket" not "list", and "people" not "friends"; Cheers added to Help's Getting around; `help-inviting` picture retaken. Full review passed.
+
 ## Next step
 - Voice capture is merged. Pick the next step with the user (idea waiting: the guest poll).
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.

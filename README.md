@@ -56,7 +56,18 @@ npm test            # Vitest
 npx playwright install chromium   # first time only
 npm run test:e2e    # Playwright
 npm run test:all    # lint + typecheck + all tests (what CI runs)
+npm run test:db     # SQL rule checks (RLS) against the linked dev project
 ```
+
+**Two Supabase projects:** one for development and one for production, each with the same migrations. Work against dev; push migrations to production only when a change merges.
+
+**Dev-only helpers** (they refuse to run against production):
+```bash
+npm run dev:accounts   # create or reset the test accounts Dev Alice, Bob and Carol (password saved to .env.local)
+npm run test:flows     # walk the connection and sharing flows as those accounts against dev
+npm run docs:images    # retake the Help and home-page screenshots in public/help/
+```
+Set `VITE_DEV_SIGN_IN=true` in `.env.local` to show a password sign-in for the test accounts on `npm run dev` (never in a production build).
 
 ## Environment variables
 See `.env.example`. Only `VITE_`-prefixed values reach the browser; everything else is server-side only (Netlify environment variables). Where each value comes from is documented as each service is set up.

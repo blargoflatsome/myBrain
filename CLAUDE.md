@@ -15,6 +15,7 @@
 - **Reuse, never copy** (CODING_STANDARDS §6 Forms and page parts): before writing a field, choice, button or row, find the shared component; each item type has one `*Fields.vue` used by Capture, its editor and Orphans. Lint enforces it.
 - Accessibility: WCAG 2.2 Level AA everywhere (SPEC §2, CODING_STANDARDS §7). New pages and windows get an axe check in `src/tests/e2e/accessibility/a11y.spec.ts`; review by hand what axe can't check.
 - **Modern web guidance:** for front-end HTML, CSS and browser JS work, use the `modern-web-guidance` skill (`.claude/skills/modern-web-guidance`, from GoogleChrome/modern-web-guidance) before writing ad-hoc solutions. **Browser support:** Baseline Widely available (the app must work on iPhone Safari and Android Chrome); a newer feature only with the guide's fallback. Keep its "Modern Web Guidance" note in replies to a line or two.
+- **Grilling a plan:** `/grill-with-docs` (`.claude/skills/grill-with-docs`, with `grilling` and `domain-modeling`, from mattpocock/skills) interviews the user about a plan in rounds. Only the user starts it. Here, resolved terms go to `GLOSSARY.md` at the root, but decisions go where ours always go, not `docs/adr/`: agreed behaviour into `docs/SPEC.md`, the why at the end of `docs/DECISIONS.md`.
 - Work on a branch per build step; merge to main once per step (Netlify free plan ≈ 20 production deploys/month).
 - Confirm before anything that removes data or affects other users.
 

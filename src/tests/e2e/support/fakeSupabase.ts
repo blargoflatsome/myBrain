@@ -66,7 +66,6 @@ export class FakeSupabase {
       bio: null,
       avatar_url: null,
       phone: '+1 555 010 0100',
-      event_notify_method: 'email',
       findable: true,
       share_availability: true,
       cancel_dropout_message: "Hi {{name}}, I'm sorry, but I can't make it to {{event}} on {{date}} at {{time}}. Sorry for the short notice!",

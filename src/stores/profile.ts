@@ -15,7 +15,6 @@ export interface Profile {
   appearance: string | null
   timezone: string
   phone: string | null
-  event_notify_method: string | null
   share_availability: boolean | null
   cancel_event_message: string | null
   cancel_dropout_message: string | null
