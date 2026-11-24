@@ -92,7 +92,8 @@ import CancelEventDialog from '@/events/components/CancelEventDialog.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { eventChanged } from '@/connections/connections'
 import ShareFlow from '@/events/components/ShareFlow.vue'
-import { invitePeople, inviteLink, inviteMessage, type PersonToInvite, type ShareTarget } from '@/events/sharing'
+import { inviteLink, inviteMessage, type PersonToInvite, type ShareTarget } from '@/events/sharing'
+import { sayWhy } from '@/server/server'
 import { takeStartWith } from '@/events/startWith'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
@@ -266,7 +267,7 @@ async function notifyChange() {
       shareTargets.value = targets
     }
   } catch (err) {
-    inviteError.value = messages.invites.failed(err instanceof Error ? err.message : String(err))
+    inviteError.value = sayWhy(err, { offline: messages.invites.offline, limit: messages.invites.changeFailed, failed: messages.invites.changeFailed })
   }
 }
 
@@ -282,8 +283,7 @@ async function saveEvent(e: EventRow, people: PersonToInvite[] = []) {
   if (!people.length) return
   if (!brain.online) return (inviteError.value = messages.invites.offline)
   try {
-    await brain.refresh(['events'])
-    const created = await invitePeople(e.id, people)
+    const created = await brain.invitePeople(e.id, people)
     const host = await myName()
     shareKind.value = 'invite'
     const targets = created
@@ -292,9 +292,8 @@ async function saveEvent(e: EventRow, people: PersonToInvite[] = []) {
     const inApp = created.length - targets.length
     inviteNotice.value = [targets.length ? messages.invites.ready(targets.length) : '', inApp ? messages.invites.inApp(inApp) : ''].filter(Boolean).join(' ')
     shareTargets.value = targets
-    await brain.refresh(['event_invites'])
   } catch (err) {
-    inviteError.value = messages.invites.failed(err instanceof Error ? err.message : String(err))
+    inviteError.value = sayWhy(err, { offline: messages.invites.offline, limit: messages.invites.overLimit, failed: messages.invites.failed })
   }
 }
 

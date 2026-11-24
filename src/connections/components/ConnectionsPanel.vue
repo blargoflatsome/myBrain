@@ -128,13 +128,13 @@ import {
   type ActiveLink,
   type LinkOwner,
   type NewLink,
-  removeConnection,
   requestConnection,
   sentRequests,
   type Connection,
   type IncomingRequest,
   type SentRequest,
 } from '@/connections/connections'
+import { sayWhy } from '@/server/server'
 import { isEmail, isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
 import { momentLabel } from '@/ui/dates'
@@ -177,7 +177,7 @@ async function makeLink() {
     fresh.value = await createLink()
     await load()
   } catch (e) {
-    linkStatus.value = e instanceof Error ? e.message : String(e)
+    linkStatus.value = sayWhy(e, { offline: m.offline, limit: m.linkLimit, failed: m.failed })
   }
 }
 async function copyLink() {
@@ -202,7 +202,7 @@ async function findCode() {
     codeOwner.value = (await previewLink({ code: code.value }))[0] ?? null
     if (!codeOwner.value) codeError.value = m.codeGone
   } catch (e) {
-    codeError.value = e instanceof Error ? e.message : String(e)
+    codeError.value = sayWhy(e, { offline: m.offline, limit: m.triesLimit, failed: m.failed })
   }
 }
 async function useCode() {
@@ -230,7 +230,7 @@ async function ask() {
     contact.value = ''
     await load()
   } catch (e) {
-    askError.value = e instanceof Error ? e.message : String(e)
+    askError.value = sayWhy(e, { offline: m.offline, limit: m.askLimit, failed: m.failed })
   }
 }
 
@@ -251,7 +251,7 @@ function askEnd(c: Connection, block: boolean) {
   confirmEnd.value?.open()
 }
 async function end() {
-  if (ending.value) await removeConnection(ending.value.c.friend_id, ending.value.block)
+  if (ending.value) await useBrainStore().removeConnection(ending.value.c.friend_id, ending.value.block)
   confirmEnd.value?.close()
   await load()
 }

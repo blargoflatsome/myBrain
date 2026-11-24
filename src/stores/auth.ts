@@ -43,6 +43,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function deleteAccount(): Promise<boolean> {
     const uid = user.value?.id
     if (!uid) return false
+    // Left for architecture review candidate 4 (the signed-in session's lifecycle).
+    // eslint-disable-next-line no-restricted-syntax
     const { error } = await supabase.rpc('delete_my_account')
     if (error) return false
     try {

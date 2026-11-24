@@ -26,7 +26,7 @@ afterEach(async () => {
 
 /** Upload everything waiting, then download everything new. */
 async function settle() {
-  await useBrainStore().refresh(['journal_keys', 'journal_passkeys', 'journal_entries'])
+  await useBrainStore().syncNow()
 }
 const onServer = () => [...remote.tables.journal_entries.values()].find((e) => e.date === DAY)!
 const onDevice = async () => (await useBrainStore().db!.journal_entries.where('date').equals(DAY).toArray())[0]!

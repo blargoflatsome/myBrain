@@ -80,7 +80,8 @@ import AppIcon from '@/components/AppIcon.vue'
 import MoreOptions from '@/components/MoreOptions.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import CheerPostCard from '@/cheers/components/CheerPostCard.vue'
-import { cheerFeed, cheerOn, hiddenPeople, hideAuthor, postCheer, reasonOf, shareCheer, showAgain, stuckCount, unreactCheer, type CheerPost, type HiddenPerson } from '@/cheers/cheers'
+import { cheerFeed, cheerOn, hiddenPeople, hideAuthor, postCheer, shareCheer, showAgain, stuckCount, unreactCheer, type CheerPost, type HiddenPerson } from '@/cheers/cheers'
+import { sayWhy } from '@/server/server'
 import { MAX_CHARS, pickOne, postText, type Reaction } from '@/cheers/rules'
 import { useNow } from '@/composables/useNow'
 import { useBrainStore } from '@/stores/brain'
@@ -141,7 +142,7 @@ const posting = ref(false)
 const formError = ref('')
 const postError = ref('')
 const left = computed(() => MAX_CHARS - (cheers.draft ?? '').length)
-const failure = (err: unknown) => (reasonOf(err) === 'limit' ? m.limit : m.postFailed)
+const failure = (err: unknown) => sayWhy(err, { offline: m.offline, limit: m.limit, failed: m.postFailed })
 
 async function startDidIt() {
   cheers.draft = ''

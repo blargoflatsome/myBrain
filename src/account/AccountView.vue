@@ -409,6 +409,8 @@ function askWipe() {
 async function wipeData() {
   wiping.value = true
   wipeError.value = ''
+  // Left for architecture review candidate 4 (the signed-in session's lifecycle).
+  // eslint-disable-next-line no-restricted-syntax
   const { data, error } = await supabase.rpc('delete_my_data', { parts: wipeChosen.value })
   wiping.value = false
   if (error) {

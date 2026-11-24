@@ -14,7 +14,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 |---|---|---|---|
 | 1 | One module for "I finished it" | Strong | Merged (branch `finish-module`) |
 | 2 | Deletes that return their own Undo | Strong, real bug | Merged (branch `undo-from-deletes`) |
-| 3 | Server calls behind a seam that keeps my copy up to date | Strong | To do |
+| 3 | Server calls behind a seam that keeps my copy up to date | Strong | Building (branch `server-seam`) |
 | 4 | One module for the signed-in session's lifecycle | Worth exploring | To do |
 | 5 | Close brain's raw `save`; tasks, quests and Post Its get their own actions | Worth exploring | To do |
 | 6 | One capture path, Post Its included | Speculative | Done with 1 |
@@ -89,6 +89,17 @@ Words: **module** (anything with an interface and an implementation), **interfac
   offline refusal, error mapping. Two adapters (Supabase, fake that also changes fake tables) justify the seam.
 - **Note:** DECISIONS 2026-11-24 left the Remote seam alone; this adds server calls beside it, not changes to it.
 - **Tests:** unit-test sharing flows (Invitee added → invite visible locally).
+- **Decided (user, 2026-11-24):**
+  - Scope: every feature server call (events, connections, Cheers, Vault sharing, profiles, Focus room, trophy counts)
+    goes through one module, `src/server/server.ts`: one adapter (Supabase, or a fake in tests), offline refused before
+    trying, one `ServerError` with a reason (`offline`, `limit`, `failed`). Account's `delete_my_data` and auth's
+    `delete_my_account` wait for candidate 4.
+  - Calls that change my synced tables are brain actions (`brain.invitePeople`, `cancelEvent`, `leaveBucket`, …): flush
+    first, call, pull the tables that call changes, then `achieved(...)`. `brain.refresh` is gone, so screens can't.
+  - The test fake gives canned answers; a test seeds the rows the server would now hold into `FakeRemote`. No server
+    rules copied into TypeScript (`test:db` proves those).
+  - Screens show `messages.ts` wording per reason, never the server's text. The server's limit errors that used a
+    general code (22023) move to the limit code (P0429) in a migration, so each screen can say which limit.
 
 ## 4. One module for the signed-in session's lifecycle
 

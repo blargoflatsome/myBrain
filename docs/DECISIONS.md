@@ -376,3 +376,11 @@ Candidate 1 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. The activity rows trophies c
 - **Focus and Breathe** are actions (`brain.finishFocus`, `brain.finishBreathe`) that write their activity rows. **Post Its from Capture** go through `brain.capture`, which counts the capture (candidate 6 folded in). Filing an Orphan as a Post It still doesn't count as a capture.
 - **Only actions announce:** Cheers posting and cheering someone on are Cheers actions (`shareCheer`, `cheerOn`); cheering rechecks trophies itself. Lint stops `.vue` files importing `achieved`.
 - While building: the keeper asks the server for its counts only when signed in to it, so unit tests make no network calls.
+
+## 2026-11-24 Server calls behind one seam (architecture review 2)
+Candidate 3 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Seven files wrapped `supabase.rpc` their own way, screens had to know which of my tables a server call changed (8 `brain.refresh([...])` sites, one flushing first and one not), and the sharing flows could only be tested end to end. User's choices:
+- **All feature calls** go through `src/server/server.ts` (offline refused before trying, one `ServerError` with reason `offline`, `limit` or `failed`). Account's data and account deletes are left for candidate 4 (session lifecycle).
+- **Writes that change my synced tables are brain actions**, like candidates 1 and 2: each flushes, calls, pulls the tables it changes, and announces after. `brain.refresh` is removed. Read-only lookups (feeds, profiles, the Focus room) stay plain functions on the seam.
+- **The fake gives canned answers plus seeded rows**, rather than re-implementing server functions in TypeScript, which would drift from the migrations.
+- **No raw server text on screen.** Each screen says what failed in its own words. Because the server's daily and size limits used the general error code, a migration moves them to the limit code (P0429) so screens can name the limit.
+- Kept: the sync `Remote` seam is unchanged; this sits beside it.

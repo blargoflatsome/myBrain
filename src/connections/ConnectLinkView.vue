@@ -19,6 +19,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { previewLink, useLink, type LinkOwner } from '@/connections/connections'
+import { sayWhy } from '@/server/server'
 import { messages } from '@/messages'
 import { primaryButton } from '@/ui/styles'
 
@@ -33,7 +34,7 @@ onMounted(async () => {
   try {
     who.value = (await previewLink({ token }))[0] ?? null
   } catch (e) {
-    problem.value = e instanceof Error ? e.message : String(e)
+    problem.value = sayWhy(e, { offline: m.offline, limit: m.triesLimit, failed: m.failed })
   }
   state.value = who.value ? 'ready' : 'gone'
 })

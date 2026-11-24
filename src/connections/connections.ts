@@ -1,6 +1,6 @@
 // Connections (SPEC §10 Connections): people agree they know each other before they can invite each other in the
 // app. Everything goes through server functions; asking never reveals whether an email or phone has an account.
-import { supabase } from '@/lib/supabase'
+import { serverCall as call, serverList as list } from '@/server/server'
 
 export interface Connection {
   friend_id: string
@@ -20,20 +20,12 @@ export interface SentRequest {
   created_at: string
 }
 
-async function call<T>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
-  const { data, error } = await supabase.rpc(fn, args)
-  if (error) throw new Error(error.message)
-  return data as T
-}
-const list = async <T>(fn: string, args: Record<string, unknown> = {}) => (await call<T[] | null>(fn, args)) ?? []
-
 export const requestConnection = (contact: string) => call<void>('request_connection', { contact })
 export const incomingRequests = () => list<IncomingRequest>('incoming_connection_requests')
 export const sentRequests = () => list<SentRequest>('sent_connection_requests')
 export const answerRequest = (req: string, answer: 'accept' | 'decline' | 'block') => call<void>('answer_connection_request', { req, answer })
 export const cancelRequest = (req: string) => call<void>('cancel_connection_request', { req })
 export const myConnections = () => list<Connection>('my_connections')
-export const removeConnection = (friend: string, alsoBlock = false) => call<void>('remove_connection', { friend, also_block: alsoBlock })
 
 // ---------- Part 2: connect links and codes ----------
 export interface NewLink {
@@ -80,14 +72,12 @@ export interface Attendee {
   can_connect: boolean
 }
 export const eventAttendees = (event: string) => list<Attendee>('event_attendees', { event })
-export const connectViaEvent = (event: string, friend: string) => call<void>('connect_via_event', { event, friend })
 export const setEventVisibility = (invite: string, show: boolean) => call<void>('set_event_visibility', { invite, show })
 
 // ---------- Part 4: guest links ----------
 export type ClaimStatus = 'none' | 'match' | 'ask' | 'claimed'
 export const guestClaimStatus = async (invite: string, token: string) => ((await call<string | null>('guest_claim_status', { invite, token })) ?? 'none') as ClaimStatus
 export const claimGuestInvite = (invite: string, token: string) => call<boolean>('claim_guest_invite', { invite, token })
-export const newInviteLink = (invite: string) => call<string>('new_invite_link', { invite })
 export interface ChangeRecipient {
   invite_id: string
   name: string | null

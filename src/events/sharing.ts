@@ -2,10 +2,9 @@
 // one-at-a-time sharing flow (messaging app or email app) until automatic texts and emails exist.
 import type { FreeBusyRow } from '@/events/availability'
 import { formatTime } from '@/time/parse'
-import { supabase } from '@/lib/supabase'
+import { serverCall as call, serverList as list } from '@/server/server'
 import { isIOS } from '@/ui/device'
 import type { EventRow, InviteResponse } from '@/sync/types'
-import { achieved } from '@/celebrate/bus'
 
 export interface PersonToInvite {
   /** Found by name search. */
@@ -44,25 +43,9 @@ export interface EventPerson {
   optional?: boolean
 }
 
-async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.rpc(fn, args)
-  if (error) throw new Error(error.message)
-  return data as T
-}
-async function list<T>(fn: string, args: Record<string, unknown>): Promise<T[]> {
-  return (await call<T[] | null>(fn, args)) ?? []
-}
-
-export async function invitePeople(event: string, people: PersonToInvite[]) {
-  const invites = await list<NewInvite>('invite_people', { event, people })
-  if (invites.length) achieved({ kind: 'shared_event' })
-  return invites
-}
-export const uninvite = (invite: string) => call<void>('uninvite', { invite })
-export const respondToInvite = (invite: string, answer: 'yes' | 'maybe' | 'no') => call<void>('respond_to_invite', { invite, answer })
+// Calls that change my events or invitations are brain actions (src/events/actions.ts); these only read or message.
 export const eventPeople = (event: string) => list<EventPerson>('event_people', { event })
 /** Connections' free or busy times (SPEC §10 Connections: scheduling). */
-export const setInviteOptional = (invite: string, value: boolean) => call<void>('set_invite_optional', { invite, value })
 export const freeBusy = (people: string[]) => list<FreeBusyRow>('free_busy', { people })
 export interface Recipient {
   invite_id: string
@@ -72,8 +55,6 @@ export interface Recipient {
   body: string
 }
 export const messageEvent = (event: string, audience: 'host' | 'everyone', message: string) => list<Recipient>('message_event', { event, audience, message })
-export const cancelEvent = (event: string) => list<Recipient>('cancel_event', { event })
-export const dropOut = (event: string) => call<void>('drop_out', { event })
 export const markShared = (invites: string[], kind: 'invite' | 'message' | 'cancel' | 'update') => call<void>('mark_shared', { invites, msg_kind: kind })
 
 export interface GuestInvite {

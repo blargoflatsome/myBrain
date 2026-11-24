@@ -76,7 +76,7 @@ begin
   begin
     perform public.invite_people(picnic, (select jsonb_agg(jsonb_build_object('email', 'g' || i || '@test.invalid')) from generate_series(1, 26) i));
     raise exception 'FAIL: Spec §5: at most 25 people per event';
-  exception when invalid_parameter_value then null;
+  exception when sqlstate 'P0429' then null;
   end;
 
   -- Free/busy shows times, never titles; for findable people who share.

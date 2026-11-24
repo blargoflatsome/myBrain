@@ -4,6 +4,7 @@ import type { Ref } from 'vue'
 import type { LocalDb } from './db'
 import type { SyncEngine } from './engine'
 import type { SyncTable } from './types'
+import { ServerError, serverCall, serverOnline } from '@/server/server'
 
 /** Puts back everything a change did (SPEC §2 Undo); each delete returns its own, so the Undo bar never guesses. */
 export type Undo = () => Promise<void>
@@ -21,6 +22,24 @@ export interface ActionContext {
   habitsReady: Readonly<Ref<boolean>>
   /** True once this device holds my badges, so a badge I already have is never earned again. */
   badgesReady: Readonly<Ref<boolean>>
+  /** Run a server function that changes some of my synced tables, then bring my copy of them up to date (SPEC §7). */
+  onServer: OnServer
+}
+
+export type OnServer = <T = void>(fn: string, args: Record<string, unknown>, changes: readonly SyncTable[]) => Promise<T>
+
+/** `onServer` for whoever `ready` says is signed in. */
+export function onServerWith(ready: () => Ready): OnServer {
+  return async <T>(fn: string, args: Record<string, unknown>, changes: readonly SyncTable[]) => {
+    if (!serverOnline()) throw new ServerError('offline', `${fn}: offline`)
+    const { engine } = ready()
+    // My own queued changes go first: an event saved a moment ago must be on the server before people are invited to it.
+    await engine.flush()
+    const answer = await serverCall<T>(fn, args)
+    // It's done on the server either way; if this download fails, the next sync brings it.
+    await engine.pull(changes).catch((err: unknown) => console.error(err))
+    return answer
+  }
 }
 
 /** Soft-delete rows and return the Undo that brings them back (SPEC §2): deletes are soft, so they come back as they were. */
