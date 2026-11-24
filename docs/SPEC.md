@@ -579,7 +579,7 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 
 ## 6. Notifications
 - Web Push, turned on per device in settings (ntfy removed 2026-11-19).
-- A scheduled server-side job finds due reminders and sends them. **Decision: Supabase Cron (pg_cron)** runs a check inside the database every minute, and a Netlify Function is called (through pg_net) only when a Web Push is due, to sign and send it. Limits: one-minute resolution; Supabase pauses free projects after a week without activity (prod is used daily); pg_net calls are asynchronous, so failed pushes are cleaned up on the next run.
+- A scheduled server-side job finds due reminders and sends them. **Decision: Supabase Cron (pg_cron)** runs a check inside the database every minute, and a Netlify Function is called (through pg_net) only when a Web Push is due, to sign and send it. Limits: one-minute resolution; Supabase pauses free projects after a week without activity (prod is used daily); pg_net calls are asynchronous, so failed pushes are cleaned up on the next run. The scheduled jobs' run history is kept for 7 days, then cleared once a day (2026-11-23, user OK'd).
 - Android is my phone, so test on Android Chrome installed as a PWA.
 
 - Quiet hours (notifications are held until they end) and snooze options on reminders and routine prompts. Priority reminders (High tasks and priority habits) are exempt from quiet hours unless I choose otherwise.

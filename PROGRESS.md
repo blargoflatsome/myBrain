@@ -7,6 +7,10 @@ Current state only. Update at the end of every session; when work merges, move i
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).
 
+## Scheduled-job history cleanup (branch `cron-history-cleanup`, not merged)
+- Supabase flagged 41 slow queries; nearly all are migrations, Supabase's own upkeep or the API server's schema reload. App queries average under 25 ms. The real issue: `cron.job_run_details` was never cleared (69k rows, 12 MB on dev).
+- Migration `20261123010000_clean_cron_history.sql`: `clean_cron_history()` runs daily at 03:30 UTC and keeps 7 days. SPEC §6 updated. Applied to dev; check in `rls_notifications.sql`; `npm run test:db` passes (36 files). Prod not migrated yet (do it right before merge).
+
 ## Still to try on a real phone (user)
 - Voice capture: real speech (Android and iPhone).
 - iPhone: Google sign-in returning to the installed app; push reminders arriving.
