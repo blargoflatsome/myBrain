@@ -55,7 +55,7 @@ file says *how* the code is written.
 | Dates typed by people | `DateInput.vue` (type or pick on a computer, the device picker on a phone) |
 | Times typed by people | `TimeInput.vue` (type or pick on a computer, the device picker on a phone) |
 | Reading and writing a row with no rules of its own | `brain.save(table, row)`, `brain.remove(table, id)` / `brain.removeMany(table, ids)`. A delete returns its Undo, passed straight to `undo.offer`; a delete that does more than remove the row (counts, links) is its own action whose Undo takes all of it back (`removeOrphan`, `deleteTag`) |
-| Calling a server function | `src/server/server.ts`: `serverCall` / `serverList` refuse offline before trying and throw a `ServerError` with a reason (`offline`, `limit`, `failed`); screens show `sayWhy(err, { offline, limit, failed })` with `messages.ts` wording, never the server's text. A call that changes my synced tables is a brain action built on `onServer(fn, args, tablesItChanges)` (`src/sync/actions.ts`), which uploads my queued changes first and downloads those tables after, so screens never refresh. No `supabase.rpc` anywhere else **(lint)**. Tests use `src/tests/support/fakeServer.ts`: canned answers, seeding `FakeRemote` with the rows the server would now hold |
+| Calling a server function | `src/server/server.ts`: `serverCall` / `serverList` refuse offline before trying and throw a `ServerError` with a reason (`offline`, `limit`, `failed`); screens show `sayWhy(err, { offline, limit, failed })` with `messages.ts` wording, never the server's text. A call that changes my synced tables is a brain action built on `onServer(fn, args, tablesItChanges)` (`src/sync/actions.ts`), which uploads my queued changes first and downloads those tables after, so screens never refresh. Every screen handler that calls the server catches the failure and shows `sayWhy` wording. No `supabase.rpc` anywhere else **(lint)**. Tests use `src/tests/support/fakeServer.ts`: canned answers, seeding `FakeRemote` with the rows the server would now hold |
 | Saying I finished something | The action that saves it calls `achieved(...)` (`src/celebrate/bus.ts`) after saving the row and any activity row; screens never do **(lint)**. Firsts and trophy levels are saved by the trophy keeper (`src/trophies/keeper.ts`); `stores/celebrate.ts` only shows bursts and messages. Tests wait with `brain.trophiesIdle()` |
 | The Undo bar | `useUndoStore().offer(message, undo, { focusAfter })`: done from the keyboard it takes focus; `focusAfter` says where focus lands when it closes (the page heading if not given) |
 | Security helpers | `src/security/`, `src/notifications/pushEndpoints.ts` |
@@ -139,6 +139,10 @@ it's missing, make it shared first, then use it in every place.
   events and so on) and day stats' quest titles. Actions that look at a row's deleted copy before writing over it
   (keeping its id, not celebrating twice, a cleared alert staying cleared) and the sync engine read the table directly.
   Rule functions keep their own `deleted_at` checks.
+- **Changing a server function:** start from its current version, `npm run db:fn <name>` (no name lists them all).
+  A migration that changes which synced tables a function writes also updates the `changes` list of its brain action
+  (`onServer(fn, args, changes)` in `src/<feature>/actions.ts`), or my copy stops catching up after the call.
+- Every limit a server function keeps raises `errcode = 'P0429'` (SPEC §7) **(lint: `scripts/check-limit-codes.mjs`)**.
 - Schema changes are migrations in `supabase/migrations/`, applied to dev, checked with `npm run test:db`, then prod
   before merging. Constraints added to existing tables use `NOT VALID` so old rows can't block the change.
 - **Database safety (2026-11-15, from Supabase's agent skills; details in the `supabase-postgres-best-practices`
