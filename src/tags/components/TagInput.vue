@@ -29,21 +29,17 @@
 
 <script setup lang="ts">
 // SPEC §5 Global search and tags: add tags by typing a name; my existing tags are suggested.
+import { useRows } from '@/sync/useRows'
 import { computed, ref } from 'vue'
-import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { cleanTagName } from '@/tags/rules'
 import { messages } from '@/messages'
-import type { TagRow } from '@/sync/types'
-import { live } from '@/sync/live'
 
 const props = defineProps<{ modelValue: string[] }>()
 const emit = defineEmits<{ 'update:modelValue': [names: string[]] }>()
 const m = messages.tags
-const brain = useBrainStore()
 const listId = `tag-suggestions-${Math.random().toString(36).slice(2)}`
 
-const all = useLiveQuery<TagRow[]>(async () => (brain.db ? live(await brain.db.tags.toArray()) : []), [], [() => brain.db])
+const all = useRows('tags')
 const suggestions = computed(() => {
   const chosen = new Set(props.modelValue.map((n) => n.toLowerCase()))
   return all.value.map((t) => t.name).filter((n) => !chosen.has(n.toLowerCase())).sort((a, b) => a.localeCompare(b))

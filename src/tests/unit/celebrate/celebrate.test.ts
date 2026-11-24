@@ -68,6 +68,13 @@ describe('Spec §5 Celebrations: badges for first times', () => {
     h.journalEntries = [{ id: 'j', date: '2026-11-02', body: '', stats: {}, stats_final: true, auto: true, deleted_at: null }]
     expect(earnedFromHistory(h)).toEqual([])
   })
+
+  it('SPEC §5 Firsts: a quest marked done and then undone was never finished; a task done and later deleted still was', () => {
+    const h = emptyHistory()
+    h.questLogs = [{ id: 'q', quest_id: 'x', date: '2026-11-02', completed_at: '2026-11-02T10:00:00Z', deleted_at: '2026-11-02T10:00:05Z' }]
+    h.tasks = [task({ status: 'done', deleted_at: '2026-11-03T09:00:00Z' })]
+    expect(earnedFromHistory(h)).toEqual(['first_task'])
+  })
 })
 
 describe('Spec §5 Celebrations: last task of the day', () => {

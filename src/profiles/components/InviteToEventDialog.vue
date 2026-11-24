@@ -28,17 +28,16 @@
 <script setup lang="ts">
 // SPEC §5 Profiles, Invite to event: invite a connection to one of my upcoming events, or start a new event with
 // them already added.
+import { useRows } from '@/sync/useRows'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import CloseX from '@/components/CloseX.vue'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { startEventWith } from '@/events/startWith'
 import { invitePeople } from '@/events/sharing'
 import { inviteChoices, type InviteChoice } from '@/profiles/rules'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
-import type { EventInviteRow, EventRow } from '@/sync/types'
 import { dayTimeLabel } from '@/ui/dates'
 import { dialogBox, field, fieldLabel, primaryButton, secondaryButton } from '@/ui/styles'
 
@@ -49,8 +48,8 @@ const brain = useBrainStore()
 const router = useRouter()
 const { today } = useToday()
 
-const events = useLiveQuery<EventRow[]>(async () => (brain.db ? brain.db.events.toArray() : []), [], [() => brain.db])
-const invites = useLiveQuery<EventInviteRow[]>(async () => (brain.db ? brain.db.event_invites.toArray() : []), [], [() => brain.db])
+const events = useRows('events')
+const invites = useRows('event_invites')
 const choices = computed(() => inviteChoices(events.value, invites.value, new Set(props.invitedEvents), brain.userId ?? '', today.value))
 const picked = ref('')
 // The soonest event they can be invited to is chosen, also when my events arrive after the window opened.

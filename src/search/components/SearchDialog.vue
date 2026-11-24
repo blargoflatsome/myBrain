@@ -67,21 +67,18 @@
 <script setup lang="ts">
 // SPEC §5 Global search and tags: search tasks, journal, The Vault, quests and events on this device; filter by tag;
 // tap a result to open it where it lives.
+import { readTables } from '@/sync/db'
+import { useDeviceQuery, useRows } from '@/sync/useRows'
 import CloseX from '@/components/CloseX.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter, type RouteLocationRaw } from 'vue-router'
-import { useBrainStore } from '@/stores/brain'
 import { useSearchStore } from '@/stores/search'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { RESULT_ORDER, type SearchDoc, type SearchType, search, searchDocs, snippet } from '@/search/search'
 import { messages } from '@/messages'
-import type { TagRow } from '@/sync/types'
 import { dayLabel, shortDayWithYear } from '@/ui/dates'
-import { live } from '@/sync/live'
 import { selected } from '@/ui/styles'
 import { useJournalLock } from '@/journal/useJournalLock'
 
-const brain = useBrainStore()
 const store = useSearchStore()
 const route = useRoute()
 const router = useRouter()
@@ -99,30 +96,28 @@ const chosenTags = ref<string[]>([])
 
 // Built only while the window is open: building it reads every searchable row, so keeping it up to date in the
 // background would redo that work after every save anywhere in the app.
-const docs = useLiveQuery<SearchDoc[]>(
-  async () => {
-    const db = brain.db
-    if (!db || !store.isOpen) return []
-    return searchDocs({
-      tasks: await db.tasks.toArray(),
-      vaultItems: await db.vault_items.toArray(),
-      buckets: await db.vault_buckets.toArray(),
-      journal: await db.journal_entries.toArray(),
-      quests: await db.quests.toArray(),
-      events: await db.events.toArray(),
-      habits: await db.habits.toArray(),
-      routines: await db.routines.toArray(),
-      itemTags: await db.item_tags.toArray(),
-    })
-  },
+const docs = useDeviceQuery<SearchDoc[]>(
+  async (db) =>
+    store.isOpen
+      ? searchDocs(
+          await readTables(db, {
+            tasks: 'tasks',
+            vaultItems: 'vault_items',
+            buckets: 'vault_buckets',
+            journal: 'journal_entries',
+            quests: 'quests',
+            events: 'events',
+            habits: 'habits',
+            routines: 'routines',
+            itemTags: 'item_tags',
+          }),
+        )
+      : [],
   [],
-  [() => brain.db, () => store.isOpen],
+  [() => store.isOpen],
 )
-const tags = useLiveQuery<TagRow[]>(
-  async () => (brain.db && store.isOpen ? live(await brain.db.tags.toArray()).sort((a, b) => a.name.localeCompare(b.name)) : []),
-  [],
-  [() => brain.db, () => store.isOpen],
-)
+const allTags = useRows((db) => (store.isOpen ? db.tags.toArray() : Promise.resolve([])), [() => store.isOpen])
+const tags = computed(() => [...allTags.value].sort((a, b) => a.name.localeCompare(b.name)))
 
 const results = computed(() => search(docs.value, query.value, chosenTags.value))
 const groups = computed(() =>

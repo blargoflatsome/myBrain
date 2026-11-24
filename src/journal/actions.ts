@@ -2,8 +2,8 @@
 import type { JournalEntryRow } from '@/sync/types'
 import type { ActionContext } from '@/sync/actions'
 import type { LocalDb } from '@/sync/db'
-import { readTables } from '@/sync/db'
-import { DAY_TABLES, dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
+import { readDayData } from '@/journal/dayData'
+import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
 import { normalizeBody, writingFacts } from '@/journal/body'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { achieved } from '@/celebrate/bus'
@@ -17,7 +17,7 @@ async function entryFor(local: LocalDb, date: string): Promise<JournalEntryRow |
 
 export function journalActions({ ready, habitsReady }: ActionContext) {
   async function dayData(): Promise<DayData> {
-    return readTables(ready().local, DAY_TABLES)
+    return readDayData(ready().local)
   }
 
   /** The stats for a day, worked out from the on-device history (shown live for today). */

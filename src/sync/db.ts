@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type { RowTypes, SyncTable } from './types'
+import { live } from './live'
 
 export interface OutboxEntry {
   seq?: number
@@ -176,9 +177,27 @@ export class LocalDb extends Dexie {
   }
 }
 
+/**
+ * Deleted rows are hidden unless a reader asks for them by name (CODING_STANDARDS §9): `true` for every table read, or
+ * the keys of the ones that need them (trophy history counts deleted tasks; day stats name deleted quests).
+ */
+export interface ReadOptions<K extends string = string> {
+  includeDeleted?: boolean | readonly K[]
+}
+
 /** Every row of several tables, read at the same time: `{ habitLogs: 'habit_logs' }` gives `{ habitLogs: [...] }`. */
-export async function readTables<M extends Record<string, SyncTable>>(db: LocalDb, tables: M): Promise<{ [K in keyof M]: RowTypes[M[K]][] }> {
+export async function readTables<M extends Record<string, SyncTable>>(
+  db: LocalDb,
+  tables: M,
+  { includeDeleted = false }: ReadOptions<keyof M & string> = {},
+): Promise<{ [K in keyof M]: RowTypes[M[K]][] }> {
   const keys = Object.keys(tables) as (keyof M & string)[]
   const rows = await Promise.all(keys.map((k) => db.rows(tables[k]!).toArray()))
-  return Object.fromEntries(keys.map((k, i) => [k, rows[i]])) as { [K in keyof M]: RowTypes[M[K]][] }
+  const keep = (k: keyof M & string) => includeDeleted === true || (Array.isArray(includeDeleted) && includeDeleted.includes(k))
+  return Object.fromEntries(keys.map((k, i) => [k, keep(k) ? rows[i] : live(rows[i]!)])) as { [K in keyof M]: RowTypes[M[K]][] }
+}
+
+/** One row by id; a deleted row reads as not found unless asked for. */
+export function getRow<T extends SyncTable>(db: LocalDb, table: T, id: string, { includeDeleted = false }: ReadOptions = {}): Promise<RowTypes[T] | null> {
+  return db.rows(table).get(id).then((row) => (row && (includeDeleted || !row.deleted_at) ? row : null))
 }

@@ -1,3 +1,4 @@
+import { readRows } from '@/sync/useRows'
 import { ref, watch, type Ref } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { tagsOf } from '@/tags/rules'
@@ -11,12 +12,12 @@ export function useItemTags(type: TaggedType, itemId: Ref<string | null | undefi
   const brain = useBrainStore()
   const names = ref<string[]>([])
   watch(
-    [itemId, () => brain.db],
+    [itemId, () => brain.userId],
     async ([id]) => {
       names.value = []
-      if (!id || !brain.db) return
-      const links = await brain.db.item_tags.where('item_id').equals(id).toArray()
-      names.value = tagsOf(links, await brain.db.tags.toArray(), type, id).map((t) => t.name)
+      if (!id) return
+      const links = await readRows((db) => db.item_tags.where('item_id').equals(id).toArray())
+      names.value = tagsOf(links, await readRows('tags'), type, id).map((t) => t.name)
     },
     { immediate: true },
   )

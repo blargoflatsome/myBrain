@@ -39,16 +39,14 @@
 
 <script setup lang="ts">
 // SPEC §5 Orphans: where a thought goes: Task (optional date), The Vault (bucket picker), Quest, Habit, Post It, or Decide later.
+import { useVisibleBuckets } from '@/vault/useVisibleBuckets'
 import { ref, watch } from 'vue'
 import BucketChoice from '@/vault/components/BucketChoice.vue'
 import DateInput from '@/components/DateInput.vue'
 import { fieldOnPage, primaryButton, secondaryButton } from '@/ui/styles'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { messages } from '@/messages'
 import type { CaptureInput, Destination } from '@/capture/capture'
-import type { VaultBucketRow } from '@/sync/types'
-import { loadVisibleBuckets } from '@/vault/sharing'
 
 const props = withDefaults(defineProps<{ allowLater?: boolean; disabled?: boolean }>(), { allowLater: true, disabled: false })
 const emit = defineEmits<{ choose: [Omit<CaptureInput, 'text'>] }>()
@@ -60,11 +58,7 @@ const dueDate = ref('')
 const newBucketName = ref<string | null>(null)
 const bucketId = ref<string | null>(null)
 
-const buckets = useLiveQuery<VaultBucketRow[]>(
-  async () => (brain.db ? loadVisibleBuckets(brain.db, brain.userId ?? '') : []),
-  [],
-  [() => brain.db],
-)
+const buckets = useVisibleBuckets()
 // The first bucket is preselected, as in Capture (SPEC §5 Forms).
 watch(buckets, (list) => {
   if (!bucketId.value || !list.some((b) => b.id === bucketId.value)) bucketId.value = list[0]?.id ?? null

@@ -99,16 +99,17 @@
 
 <script setup lang="ts">
 // SPEC §5 Dashboard: yesterday, days since your worst day, favorite buckets and Trophies. Updates live.
+import { readDayData } from '@/journal/dayData'
+import { useDeviceQuery } from '@/sync/useRows'
 import { readTables } from '@/sync/db'
 import { loadVisibleBuckets } from '@/vault/sharing'
-import { DAY_TABLES, dayStats } from '@/journal/stats'
+import { dayStats } from '@/journal/stats'
 import { useNow } from '@/composables/useNow'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import PostItBoard from '@/postits/components/PostItBoard.vue'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { daysSinceWorstDay, favoriteBuckets, yesterdayLeftovers, yesterdaySummary } from '@/dashboard/stats'
 import UpNextCard from '@/dashboard/components/UpNextCard.vue'
@@ -137,17 +138,15 @@ const yesterdayTrophies = computed(() => earnedOn(board.value.items, addDays(tod
 // A clock that ticks each minute, so yesterday's numbers follow the time of day.
 const now = useNow()
 
-const stats = useLiveQuery(
-  async () => {
-    const db = brain.db
-    if (!db) return null
-    const day = await readTables(db, DAY_TABLES)
+const stats = useDeviceQuery(
+  async (db, me) => {
+    const day = await readDayData(db)
     const { journal, vaultItems } = await readTables(db, {
       journal: 'journal_entries',
       vaultItems: 'vault_items',
     })
     // Shared buckets carry my own star (SPEC §5 Shared Vaults).
-    const buckets = await loadVisibleBuckets(db, brain.userId ?? '')
+    const buckets = await loadVisibleBuckets(db, me)
     return {
       yesterday: yesterdaySummary(dayStats(day, addDays(today.value, -1), now.value, timeZone.value)),
       leftovers: yesterdayLeftovers(day.tasks, today.value),
@@ -156,7 +155,7 @@ const stats = useLiveQuery(
     }
   },
   null,
-  [() => brain.db, now, today],
+  [now, today],
 )
 
 

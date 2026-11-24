@@ -32,18 +32,16 @@
 
 <script setup lang="ts">
 // SPEC §5: full-screen reminder for due priority habits and tasks. Stays until slide to complete, Snooze or Cancel.
+import { useRows } from '@/sync/useRows'
 import { useNow } from '@/composables/useNow'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import SlideToComplete from '@/reminders/components/SlideToComplete.vue'
 import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { duePriorities, type DuePriority } from '@/reminders/priority'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { messages } from '@/messages'
-import { live } from '@/sync/live'
-import type { HabitLogRow, HabitPauseRow, HabitRow, ReminderStateRow, TaskRow } from '@/sync/types'
 import { secondaryButton } from '@/ui/styles'
 
 const brain = useBrainStore()
@@ -53,16 +51,12 @@ const m = messages.priority
 const now = useNow(20_000)
 const today = computed(() => todayIn(deviceTimeZone(), now.value))
 
-const all = <T,>(table: 'habits' | 'tasks') =>
-  useLiveQuery<T[]>(async () => (brain.db ? ((await brain.db.table(table).toArray()) as T[]) : []), [], [() => brain.db])
+const habits = useRows('habits')
+const tasks = useRows('tasks')
 // Only today's logs and snoozes matter here, so the whole history isn't kept in memory.
-const todays = <T,>(table: 'habit_logs' | 'reminder_state') =>
-  useLiveQuery<T[]>(async () => (brain.db ? ((await brain.db.table(table).where('date').equals(today.value).toArray()) as T[]) : []), [], [() => brain.db, today])
-const habits = all<HabitRow>('habits')
-const tasks = all<TaskRow>('tasks')
-const habitLogs = todays<HabitLogRow>('habit_logs')
-const states = todays<ReminderStateRow>('reminder_state')
-const pauses = useLiveQuery<HabitPauseRow[]>(async () => (brain.db ? live(await brain.db.habit_pauses.toArray()) : []), [], [() => brain.db])
+const habitLogs = useRows((db) => db.habit_logs.where('date').equals(today.value).toArray(), [today])
+const states = useRows((db) => db.reminder_state.where('date').equals(today.value).toArray(), [today])
+const pauses = useRows('habit_pauses')
 
 const due = computed(() =>
   duePriorities(habits.value, habitLogs.value, tasks.value, states.value, now.value, deviceTimeZone(), pauses.value),

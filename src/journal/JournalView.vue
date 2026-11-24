@@ -93,6 +93,7 @@
 <script setup lang="ts">
 // SPEC §5 Journal: end-of-day check-in with the day's stats, formatted writing (full screen if wanted), and every
 // past entry, always editable. Tasks for tomorrow are added with Capture, like anywhere else.
+import { useRows, useDeviceQuery } from '@/sync/useRows'
 import { useNow } from '@/composables/useNow'
 import { computed, defineAsyncComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -103,7 +104,6 @@ import SaveStatus from '@/journal/components/SaveStatus.vue'
 import { onPageHide } from '@/composables/usePageHide'
 import { useBrainStore } from '@/stores/brain'
 import { useCelebrateStore } from '@/stores/celebrate'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { hadActivity, hasStats } from '@/journal/stats'
 import { cleanHtml } from '@/journal/body'
@@ -113,7 +113,6 @@ import { useJournalLock } from '@/journal/useJournalLock'
 import { messages } from '@/messages'
 import type { JournalEntryRow, JournalStats } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
-import { live } from '@/sync/live'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
 import { primaryButtonSmall, rowAction } from '@/ui/styles'
@@ -145,23 +144,15 @@ const { today, timeZone } = useToday()
 // A clock that ticks each minute, so today's stats follow habit deadlines without a reload.
 const now = useNow()
 
-const entries = useLiveQuery<JournalEntryRow[]>(
-  async () => (brain.db ? live(await brain.db.journal_entries.toArray()) : []),
-  [],
-  [() => brain.db],
-)
+const entries = useRows('journal_entries')
 // Today's stats, live: recalculated whenever any of the day's data changes on this device.
-const todayStats = useLiveQuery<JournalStats | null>(
-  async () => (brain.db ? brain.journalStats(today.value, now.value, timeZone.value) : null),
-  null,
-  [() => brain.db, today, now],
-)
+const todayStats = useDeviceQuery<JournalStats | null>(() => brain.journalStats(today.value, now.value, timeZone.value), null, [today, now])
 
 // Write missed days (if I did something), keep today's stats current, and freeze ended days.
 watch(
-  [today, () => brain.habitsReady, () => brain.db],
+  [today, () => brain.habitsReady, () => brain.userId],
   () => {
-    if (brain.db) void brain.refreshJournal(new Date(), timeZone.value).catch(() => {})
+    if (brain.userId) void brain.refreshJournal(new Date(), timeZone.value).catch(() => {})
   },
   { immediate: true },
 )

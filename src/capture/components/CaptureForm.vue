@@ -105,6 +105,7 @@
 // SPEC §5 Quick capture: the text box first, then the type chips under it (Decide later chosen); choosing a type
 // shows its fields and keeps what I typed. Only the title is required. Works offline.
 // Shown in the Capture window over any page (CaptureDialog), and on the /capture page used for sharing from other apps.
+import { useVisibleBuckets } from '@/vault/useVisibleBuckets'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, defineAsyncComponent, nextTick, onMounted, ref, toRaw, watch, type Ref } from 'vue'
 import { useBrainStore } from '@/stores/brain'
@@ -118,7 +119,6 @@ import VaultItemFields from '@/vault/components/VaultItemFields.vue'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_POST_IT_COLOR } from '@/postits/rules'
 import { plainText, storedNotes, textLines, toEditorHtml } from '@/journal/body'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useSpeech } from '@/composables/useSpeech'
 import {
   DEFAULT_QUEST_ENERGY,
@@ -129,9 +129,9 @@ import {
   type Destination,
 } from '@/capture/capture'
 import { messages } from '@/messages'
-import type { EnergyLevel, PostItColor, TimeBucket, VaultBucketRow } from '@/sync/types'
+import type { EnergyLevel, PostItColor, TimeBucket } from '@/sync/types'
 import { fieldOnPage, primaryButton, smallButton } from '@/ui/styles'
-import { loadVisibleBuckets, ownsBucket } from '@/vault/sharing'
+import { ownsBucket } from '@/vault/sharing'
 import { dayLabel } from '@/ui/dates'
 import type { VoiceCommand } from '@/voice/parse'
 
@@ -172,11 +172,7 @@ const saving = ref(false)
 const saves = ref(0)
 const titleBox = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
-const buckets = useLiveQuery<VaultBucketRow[]>(
-  async () => (brain.db ? loadVisibleBuckets(brain.db, brain.userId ?? '') : []),
-  [],
-  [() => brain.db],
-)
+const buckets = useVisibleBuckets()
 // The first bucket is preselected, so only the title is required.
 watch(buckets, (list) => {
   if (!bucketId.value || !list.some((b) => b.id === bucketId.value)) bucketId.value = list[0]?.id ?? null

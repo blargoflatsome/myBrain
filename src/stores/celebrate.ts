@@ -271,7 +271,9 @@ export const useCelebrateStore = defineStore('celebrate', () => {
       questLogs: 'quest_logs',
       postIts: 'post_its',
       inbox: 'inbox',
-    })
+      // A task done and later deleted, a Vault item or Post It saved and later removed still happened, so they count;
+      // an undone quest was never finished (SPEC §5 Celebrations: Firsts).
+    }, { includeDeleted: ['tasks', 'vaultItems', 'postIts'] })
     const readAt = Date.now()
     const missing = new Set(missingBadges(await local.badges.toArray()))
     for (const kind of earnedFromHistory(history)) {

@@ -56,18 +56,17 @@
 <script setup lang="ts">
 // SPEC §5 Calendar, my people: the Contacts window. My people A to Z with a search box; Add keeps the window open
 // (Added, with Undo); people already invited to the event show as Invited.
+import { useRows } from '@/sync/useRows'
 import CloseX from '@/components/CloseX.vue'
 import { computed, ref, watch } from 'vue'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { contactKey } from '@/events/contacts'
 import { matchesPerson, personLabel, sortPeople, uniquePeople } from '@/events/people'
 import type { PersonToInvite } from '@/events/sharing'
 import { myConnections, peopleWhoAreConnections, peopleWithAccounts, requestConnection, type Connection } from '@/connections/connections'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
-import { live } from '@/sync/live'
 import type { PersonRow } from '@/sync/types'
 import { dialogBox, fieldCompact, fieldLabel, primaryButton, smallButton } from '@/ui/styles'
 
@@ -77,7 +76,7 @@ const m = messages.contacts
 const c = messages.connections
 const brain = useBrainStore()
 
-const rows = useLiveQuery<PersonRow[]>(async () => (brain.db ? live(await brain.db.people.toArray()) : []), [], [() => brain.db])
+const rows = useRows('people')
 // A saved person who is also a connection shows once, under On My Brain (SPEC §5 Calendar, Contacts window).
 const alsoConnections = ref<Set<string>>(new Set())
 const people = computed(() => sortPeople(uniquePeople(rows.value)).filter((p) => !alsoConnections.value.has(p.id)))

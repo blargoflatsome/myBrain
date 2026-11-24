@@ -1,6 +1,7 @@
 // Reading and writing Vault buckets and items (SPEC §5 The Vault).
 import type { VaultItemRow } from '@/sync/types'
 import type { ActionContext } from '@/sync/actions'
+import { getRow } from '@/sync/db'
 import { buildBucket } from '@/capture/capture'
 import { live } from '@/sync/live'
 import { achieved } from '@/celebrate/bus'
@@ -66,7 +67,7 @@ export function vaultActions({ ready }: ActionContext) {
       if (r.is_default && r.bucket_id !== bucketId) await e.save('vault_stars', { ...r, is_default: false })
     }
     if (!bucketId) return
-    const bucket = await local.vault_buckets.get(bucketId)
+    const bucket = await getRow(local, 'vault_buckets', bucketId)
     if (!bucket) return
     if (ownsBucket(bucket, uid)) {
       await e.save('vault_buckets', { ...bucket, is_default: true })

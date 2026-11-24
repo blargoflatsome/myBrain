@@ -40,26 +40,25 @@
 
 <script setup lang="ts">
 // SPEC §5 Calendar, my people: on the Account page I can fix a saved person's name, email or phone, or remove them.
+import { useRows } from '@/sync/useRows'
 import RowDelete from '@/components/RowDelete.vue'
 import CloseX from '@/components/CloseX.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useUndoStore } from '@/stores/undo'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { contactKey, isEmail, isPhone } from '@/events/contacts'
 import { personLabel, shownAs, sortPeople } from '@/events/people'
 import { peopleWithAccounts, requestConnection } from '@/connections/connections'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
-import { live } from '@/sync/live'
 import type { PersonRow } from '@/sync/types'
 import { dialogBox, field, fieldLabel, primaryButton, secondaryButton, smallButton } from '@/ui/styles'
 
 const m = messages.myPeople
 const c = messages.connections
 const brain = useBrainStore()
-const rows = useLiveQuery<PersonRow[]>(async () => (brain.db ? live(await brain.db.people.toArray()) : []), [], [() => brain.db])
+const rows = useRows('people')
 const people = computed(() => sortPeople(rows.value))
 const { page, pageCount, pageItems } = usePagination(people, 10)
 

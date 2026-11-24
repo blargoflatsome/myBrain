@@ -53,7 +53,8 @@ export function trophyActions({ ready, badgesReady }: ActionContext) {
       events: 'events',
       invites: 'event_invites',
       activity: 'activity_log',
-    })
+      // Trophies count deleted tasks, habits, events and so on (SPEC §7); the rules drop deleted rows where they shouldn't count.
+    }, { includeDeleted: true })
     // Shared Vaults (SPEC §5): only items I added and buckets I own count toward my trophies.
     const vaultItems = history.vaultItems.filter((i) => (i.added_by ?? i.user_id ?? uid) === uid)
     const vaultBuckets = history.vaultBuckets.filter((b) => !b.user_id || b.user_id === uid)

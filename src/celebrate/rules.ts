@@ -79,7 +79,7 @@ export function earnedFromHistory(h: History): BadgeKind[] {
   if (live(h.routineRuns).some((r) => r.finished_at)) earned.push('first_routine')
   if (live(h.journalEntries).some((e) => !e.auto && wroteIn(e))) earned.push('first_journal')
   if (h.vaultItems.length) earned.push('first_vault')
-  if (h.questLogs.length) earned.push('first_quest')
+  if (live(h.questLogs).length) earned.push('first_quest')
   if (h.postIts.length) earned.push('first_postit')
   return earned
 }

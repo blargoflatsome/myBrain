@@ -1,8 +1,7 @@
 // SPEC §5 Locking my journal: whether my journal is locked, whether this device has unlocked it, and my passkeys,
 // following the device's data (another device turning the lock on or off shows here at once).
+import { useDeviceQuery } from '@/sync/useRows'
 import { computed } from 'vue'
-import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { live } from '@/sync/live'
 import type { JournalPasskeyRow } from '@/sync/types'
 
@@ -17,11 +16,8 @@ interface LockState {
 }
 
 export function useJournalLock() {
-  const brain = useBrainStore()
-  const state = useLiveQuery<LockState>(
-    async () => {
-      const db = brain.db
-      if (!db) return { known: false, on: false, unlocked: false, passkeys: [], pending: 0 }
+  const state = useDeviceQuery<LockState>(
+    async (db) => {
       const row = (await db.journal_keys.toArray()).find((r) => !r.deleted_at)
       const secret = await db.secrets.get('journal')
       const passkeys = live(await db.journal_passkeys.toArray())
@@ -30,7 +26,6 @@ export function useJournalLock() {
       return { known, on: !!row, unlocked: !!row && secret?.keyRowId === row.id, passkeys, pending }
     },
     { known: false, on: false, unlocked: false, passkeys: [], pending: 0 },
-    [() => brain.db],
   )
   return {
     state,

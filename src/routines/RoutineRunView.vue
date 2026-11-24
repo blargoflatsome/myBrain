@@ -47,15 +47,14 @@
 // SPEC §5 Routines: one step at a time. Skip moves on at once; Completed crosses the step out first. Finishing goes
 // back to the Routines page; a finished run with skipped steps resumes here with just those steps.
 // A routine's reminder notification opens this screen directly (/routines/<id>/run).
+import { useRows, useRow } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, resumableRun, runState, skippedSteps, stepsForDay } from '@/routines/rules'
 import { messages } from '@/messages'
-import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
 
 const CROSS_OUT_MS = 600
 
@@ -66,25 +65,15 @@ const m = messages.routines
 const { today } = useToday()
 const id = computed(() => String(route.params.id))
 
-const routine = useLiveQuery<RoutineRow | undefined | null>(
-  async () => (brain.db ? ((await brain.db.routines.get(id.value)) ?? undefined) : null),
-  null,
-  [() => brain.db, id],
-)
-const steps = useLiveQuery<RoutineStepRow[]>(
-  async () => (brain.db ? activeSteps(await brain.db.routine_steps.where('routine_id').equals(id.value).toArray(), id.value) : []),
-  [],
-  [() => brain.db, id],
-)
-const runs = useLiveQuery<RoutineRunRow[]>(
-  async () => (brain.db ? brain.db.routine_runs.where('routine_id').equals(id.value).toArray() : []),
-  [],
-  [() => brain.db, id],
-)
-const logs = useLiveQuery<RoutineStepLogRow[]>(async () => (brain.db ? brain.db.routine_step_logs.toArray() : []), [], [() => brain.db])
+// A deleted routine reads as missing (SPEC §5 Routines), so the page says it can't find it.
+const routine = useRow('routines', id)
+const routineSteps = useRows((db) => db.routine_steps.where('routine_id').equals(id.value).toArray(), [id])
+const steps = computed(() => activeSteps(routineSteps.value, id.value))
+const runs = useRows((db) => db.routine_runs.where('routine_id').equals(id.value).toArray(), [id])
+const logs = useRows('routine_step_logs')
 
-const habits = useLiveQuery<HabitRow[]>(async () => (brain.db ? brain.db.habits.toArray() : []), [], [() => brain.db])
-const habitLogs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
+const habits = useRows('habits')
+const habitLogs = useRows('habit_logs')
 
 // Today's steps: habit steps only on days their habit is scheduled; habits already done count as passed.
 const daySteps = computed(() => stepsForDay(steps.value, habits.value, today.value))

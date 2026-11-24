@@ -89,6 +89,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRows } from '@/sync/useRows'
 import { useProfileStore } from '@/stores/profile'
 import { parseSetting } from '@/celebrate/rules'
 import AppIcon from '@/components/AppIcon.vue'
@@ -112,14 +113,12 @@ import { useSearchStore } from '@/stores/search'
 import { useCaptureStore } from '@/stores/capture'
 import { useAuthStore } from '@/stores/auth'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { supabase } from '@/lib/supabase'
 import { supabaseRemote } from '@/sync/supabaseRemote'
 import { messages } from '@/messages'
 import { deviceTimeZone } from '@/tasks/days'
 import { useWideScreen } from '@/composables/useWideScreen'
 import { useCheersStore } from '@/stores/cheers'
-import { live } from '@/sync/live'
 import { readKey, writeKey } from '@/ui/storage'
 
 const route = useRoute()
@@ -188,11 +187,8 @@ watch(
   { immediate: true },
 )
 
-const inboxCount = useLiveQuery(
-  async () => (brain.db ? live(await brain.db.inbox.toArray()).length : 0),
-  0,
-  [() => brain.db],
-)
+const orphans = useRows('inbox')
+const inboxCount = computed(() => orphans.value.length)
 
 // The signed-out home page (SPEC §5 Home page) has its own top bar, like the other public pages.
 // Nothing until the first page is worked out (route.matched is empty before that): a tap on the header in that gap

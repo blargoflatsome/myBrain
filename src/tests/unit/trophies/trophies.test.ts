@@ -1,5 +1,9 @@
 // SPEC §5 Trophies: what history earns, levels, and comebacks.
+import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+import { useBrainStore } from '@/stores/brain'
+import { FakeRemote } from '@/tests/support/fakeRemote'
 import { journalComeback, localMoment, newLevels, shownLevel, taskComeback, trophyStates, trophyValues, type TrophyHistory } from '@/trophies/rules'
 import { levelFor, TIERS, TROPHIES, trophyRowId } from '@/trophies/definitions'
 import { badgeId, BADGES } from '@/celebrate/rules'
@@ -72,6 +76,24 @@ describe('SPEC §5 Trophies: totals', () => {
       questLogs: [{ id: 'q', quest_id: 'q1', date: '2026-11-01', completed_at: '2026-11-01T12:00:00Z', deleted_at: null }],
     })
     expect(v).toMatchObject({ tasks_created: 3, tasks_completed: 1, habits_created: 1, habit_checkins: 2, quests_finished: 1 })
+  })
+})
+
+describe('SPEC §7: deleted tasks stay on the device because trophies count them', () => {
+  it('a task I deleted still counts toward Tasks created when trophies are worked out from this device', async () => {
+    setActivePinia(createPinia())
+    const brain = useBrainStore()
+    brain.online = false
+    brain.start(`u-${crypto.randomUUID()}`, new FakeRemote())
+    try {
+      await brain.db!.tasks.bulkPut([task('kept'), task('gone', { deleted_at: '2026-11-01T00:00:00Z' })])
+      const history = await brain.trophyHistory({ accountCreated: null, connections: null, blocks: null, cheers: null })
+      expect(trophyValues(history, NOW, TZ).tasks_created).toBe(2)
+    } finally {
+      const db = brain.db
+      brain.stop()
+      await db?.delete()
+    }
   })
 })
 
