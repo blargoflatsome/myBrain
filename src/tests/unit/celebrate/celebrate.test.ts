@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { messages } from '@/messages'
 import { newHabit } from '@/habits/rules'
@@ -144,9 +145,6 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     brain.stop()
     await db?.delete()
   })
-  // Only for checking that something did NOT happen: there is no result to wait for, so give it a moment.
-  // eslint-disable-next-line no-restricted-syntax -- waiting for something that must not happen
-  const nothingMore = () => new Promise((r) => setTimeout(r, 50))
 
   it('crossing off my first task earns its badge, with a message; the second time earns nothing new', async () => {
     const brain = useBrainStore()
@@ -162,7 +160,7 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
 
     await brain.saveTask({ ...t, title: 'Edited while done', status: 'done' })
     achieved({ kind: 'task', task: t })
-    await nothingMore()
+    await brain.trophiesIdle()
     expect(await brain.db!.badges.count()).toBe(1)
   })
 
@@ -184,7 +182,7 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     const t = task({ due_date: null })
     await brain.saveTask(t)
     await brain.saveTask({ ...t, status: 'done', completed_at: new Date().toISOString() })
-    await celebrate.catchUp(new Date(), TZ)
+    await brain.catchUpTrophies(new Date(), TZ)
     expect((await brain.db!.badges.toArray()).map((b) => b.kind)).toContain('first_task')
     release()
     await vi.waitFor(() => expect(celebrate.message?.text).toBe(messages.celebrations.badgeEarned(messages.celebrations.badges.first_task)))
@@ -216,7 +214,7 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     const t = task({ due_date: null })
     await brain.saveTask(t)
     await brain.saveTask({ ...t, status: 'done', completed_at: new Date().toISOString() })
-    const catching = celebrate.catchUp(new Date(), TZ)
+    const catching = brain.catchUpTrophies(new Date(), TZ)
     try {
       await vi.waitFor(() => expect(celebrate.message?.text).toBe(messages.celebrations.badgeEarned(messages.celebrations.badges.first_task)))
     } finally {
@@ -249,8 +247,8 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     brain.habitsReady = true
     const celebrate = useCelebrateStore()
     const now = new Date('2026-11-06T08:00:00Z')
-    await celebrate.catchUp(now, TZ)
-    await celebrate.catchUp(now, TZ)
+    await brain.catchUpTrophies(now, TZ)
+    await brain.catchUpTrophies(now, TZ)
     const alerts = (await brain.db!.notifications.toArray()).filter((n) => n.kind === 'perfect_day')
     expect(alerts).toHaveLength(1)
     expect(alerts[0]).toMatchObject({ title: 'Yesterday was a perfect day', url: '/habits', local_date: '2026-11-06' })
@@ -269,8 +267,9 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
       const celebrate = useCelebrateStore()
       celebrate.start()
       brain.habitsReady = true
-      // The first check finds no log. Nothing shows when it has run, so this pause only guards the "none yet" step.
-      await nothingMore()
+      // The first check finds no log.
+      await nextTick()
+      await brain.trophiesIdle()
       const perfect = async () => (await brain.db!.notifications.toArray()).filter((n) => n.kind === 'perfect_day')
       expect(await perfect()).toHaveLength(0)
       await brain.db!.habit_logs.put({ ...done(h.id, '2026-11-05'), user_id: UID })
@@ -279,6 +278,40 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+})
+
+describe('SPEC §5 Celebrations and Trophies: what I finish is kept, whether or not anything is on screen', () => {
+  let remote: FakeRemote
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-12T12:00:00Z') })
+    setActivePinia(createPinia())
+    remote = new FakeRemote()
+    localStorage.clear()
+  })
+  afterEach(async () => {
+    vi.useRealTimers()
+    const brain = useBrainStore()
+    const db = brain.db
+    brain.stop()
+    await db?.delete()
+  })
+  const kept = async (brain: ReturnType<typeof useBrainStore>) => ({
+    activity: (await brain.db!.activity_log.toArray()).map((a) => ({ kind: a.kind, detail: a.detail })),
+    badges: (await brain.db!.badges.toArray()).map((b) => b.kind),
+  })
+
+  it.each([
+    { what: 'two Focus sessions in the focus room', finish: (b: ReturnType<typeof useBrainStore>) => b.finishFocus(2, true), activity: [{ kind: 'focus', detail: { minutes: 25, together: true } }, { kind: 'focus', detail: { minutes: 25, together: true } }], badge: 'first_focus' },
+    { what: 'a Breathe', finish: (b: ReturnType<typeof useBrainStore>) => b.finishBreathe(), activity: [{ kind: 'breathe', detail: {} }], badge: 'first_breathe' },
+    { what: 'a Post It from Capture', finish: (b: ReturnType<typeof useBrainStore>) => b.capture({ destination: 'postit', text: '<p>Call the vet</p>' }), activity: [{ kind: 'capture', detail: { type: 'postit' } }], badge: 'first_postit' },
+  ])('$what: its activity counts toward trophies and earns its First, with no celebration running', async ({ finish, activity, badge }) => {
+    const brain = useBrainStore()
+    brain.start(UID, remote)
+    await firstSync(brain)
+    await finish(brain)
+    await brain.trophiesIdle()
+    expect(await kept(brain)).toMatchObject({ activity, badges: [badge] })
   })
 })
 
@@ -307,6 +340,11 @@ describe('SPEC §5 Trophies: earning levels', () => {
     await firstSync(brain)
     brain.habitsReady = true
     brain.badgesReady = true
+    // The keeper has already checked this empty device; each test then starts as a device that hasn't worked out
+    // its trophies yet.
+    await nextTick()
+    await brain.trophiesIdle()
+    localStorage.clear()
     return brain
   }
 
@@ -314,7 +352,7 @@ describe('SPEC §5 Trophies: earning levels', () => {
     const brain = await ready()
     await brain.db!.tasks.bulkPut(doneTasks(10))
     const celebrate = useCelebrateStore()
-    await celebrate.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
+    await brain.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
     const row = (await brain.db!.badges.toArray()).find((b) => b.kind === 'tasks_completed')
     expect(row?.levels).toHaveLength(1)
     expect(celebrate.message).toBeNull()
@@ -328,12 +366,13 @@ describe('SPEC §5 Trophies: earning levels', () => {
     const brain = await ready()
     await brain.db!.tasks.bulkPut(doneTasks(10))
     const celebrate = useCelebrateStore()
-    await celebrate.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
+    celebrate.start()
+    await brain.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
     await brain.db!.tasks.bulkPut(doneTasks(50))
-    await celebrate.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
+    await brain.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
     const silver = (id: string) => messages.celebrations.trophies.earned(messages.celebrations.trophies.names[id]!, messages.celebrations.trophies.tiers.silver!)
     expect([silver('tasks_created'), silver('tasks_completed')]).toContain(celebrate.message?.text)
-    await celebrate.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
+    await brain.checkTrophies(new Date('2026-11-06T12:00:00Z'), TZ)
     const row = (await brain.db!.badges.toArray()).find((b) => b.kind === 'tasks_completed')
     expect(row?.levels).toHaveLength(2)
   })

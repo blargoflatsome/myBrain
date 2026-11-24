@@ -1,6 +1,8 @@
-// SPEC §5 Celebrations: the data store says when I finished something; the celebration layer decides how to
-// celebrate. Kept apart so the store stays free of screen code (and unit tests run with nobody listening).
+// SPEC §5 Celebrations: actions say when I finished something (after saving it, and its activity row). The trophy
+// keeper (src/trophies/keeper.ts) listens to earn Firsts and trophy levels and says what it earned; the celebration
+// layer listens to all of it and only decides how to celebrate. Only actions say things here, never screens (lint).
 import type { HabitRow, TaskRow } from '@/sync/types'
+import type { BadgeKind } from '@/celebrate/rules'
 
 export type Achievement =
   | { kind: 'task'; task: TaskRow }
@@ -17,7 +19,9 @@ export type Achievement =
   | { kind: 'breathe' }
   | { kind: 'cheer_post' }
   | { kind: 'cheer' }
-  /** A trophy reached a new level (said by the celebration layer, for Cheers' offer; not itself celebrated). */
+  /** The keeper earned a First just now (Firsts found in my history are saved quietly and never said). */
+  | { kind: 'first'; badge: BadgeKind }
+  /** The keeper raised a trophy to a new level (the first time on a device they go in quietly, with one alert). */
   | { kind: 'trophy'; id: string; level: number }
 
 type Listener = (a: Achievement) => void

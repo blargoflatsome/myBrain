@@ -335,8 +335,7 @@ async function savePostIt() {
   }
   saving.value = true
   try {
-    await brain.addPostIt(postBody.value, postColor.value)
-    await brain.logActivity('capture', { type: 'postit' })
+    await brain.capture({ destination: 'postit', text: postBody.value, color: postColor.value })
     const message = brain.online ? m.saved.postit : m.savedOffline
     reset()
     beforeHeard.value = null

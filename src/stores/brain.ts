@@ -16,6 +16,8 @@ import { keyringFor } from '@/journal/keyring'
 import { lockingRemote } from '@/journal/lockingRemote'
 import { tagActions } from '@/tags/actions'
 import { trophyActions } from '@/trophies/actions'
+import { trophyKeeper } from '@/trophies/keeper'
+import { WORK_MS } from '@/focus/timer'
 import { vaultActions } from '@/vault/actions'
 import { dropLostBuckets } from '@/vault/sharing'
 import { priorityActions } from '@/reminders/actions'
@@ -27,7 +29,7 @@ import { peopleToSave } from '@/events/people'
 import type { PersonToInvite } from '@/events/sharing'
 import { live } from '@/sync/live'
 import { finishQuest as finishedQuest } from '@/quests/picker'
-import { buildCaptureRecord, buildConversion, textOf, type CaptureInput, type CaptureRecord } from '@/capture/capture'
+import { buildCaptureRecord, buildConversion, CaptureError, textOf, type CaptureInput, type CaptureRecord, type Destination } from '@/capture/capture'
 import { achieved } from '@/celebrate/bus'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
@@ -141,9 +143,11 @@ export const useBrainStore = defineStore('brain', () => {
       if (e.getStatus().state === 'synced') await e.purgeDeleted()
       await synced()
     }))
+    keeper.start()
   }
 
   function stop() {
+    keeper.stop()
     cleanup?.()
     cleanup = null
     db.value?.close()
@@ -196,13 +200,26 @@ export const useBrainStore = defineStore('brain', () => {
   const journalLock = journalLockActions(ctx)
   const tags = tagActions(ctx)
   const trophies = trophyActions(ctx)
+  // Badges are saved through the store itself, so a test can hold one save to check the catch-up race.
+  const keeper = trophyKeeper({ db, userId, online, habitsReady, badgesReady, syncedCount, trophies: { ...trophies, saveBadge: (kind, now) => useBrainStore().saveBadge(kind, now) } })
   const vault = vaultActions(ctx)
   const priority = priorityActions(ctx, habits.toggleHabit, saveTask)
 
   // ---------- Capture, tasks and quests (SPEC §5 Quick capture, Tasks, Random Quest) ----------
-  /** Save a captured thought. Resolves once it is stored on this device, online or not. */
-  async function capture(input: CaptureInput): Promise<CaptureRecord> {
+  /**
+   * Save a captured thought. Resolves once it is stored on this device, online or not. A Post It's text is its
+   * formatted note (SPEC §5 Post It).
+   */
+  async function capture(input: CaptureInput & { destination: Exclude<Destination, 'postit'> }): Promise<CaptureRecord>
+  async function capture(input: CaptureInput): Promise<CaptureRecord | { table: 'post_its'; row: PostItRow }>
+  async function capture(input: CaptureInput): Promise<CaptureRecord | { table: 'post_its'; row: PostItRow }> {
     const { engine: e, uid } = ready()
+    if (input.destination === 'postit') {
+      const row = await addPostIt(input.text, input.color ?? DEFAULT_POST_IT_COLOR)
+      if (!row) throw new CaptureError('empty')
+      await trophies.logActivity('capture', { type: 'postit' })
+      return { table: 'post_its', row }
+    }
     const record = buildCaptureRecord(input, uid)
     await e.save(record.table, record.row as never)
     await trophies.logActivity('capture', { type: input.destination })
@@ -306,6 +323,18 @@ export const useBrainStore = defineStore('brain', () => {
     await ready().engine.patch('notifications', id, (n) => (n.read_at ? {} : { read_at: new Date().toISOString() }))
   }
 
+  // ---------- Focus and Breathe (SPEC §5 Focus timer, Breathe) ----------
+  /** Finished Focus work sessions (and whether anyone else was in the focus room), counted toward trophies. */
+  async function finishFocus(sessions: number, together = false) {
+    for (let i = 0; i < sessions; i++) await trophies.logActivity('focus', { minutes: WORK_MS / 60_000, ...(together ? { together: true } : {}) })
+    achieved({ kind: 'focus', sessions, together })
+  }
+  /** A finished Breathe, counted toward trophies. */
+  async function finishBreathe() {
+    await trophies.logActivity('breathe')
+    achieved({ kind: 'breathe' })
+  }
+
   // ---------- Post Its (SPEC §5 Quick capture and Dashboard) ----------
   /** A new Post It goes in front of the others. Returns null when nothing was written. */
   async function addPostIt(html: string, color: PostItColor) {
@@ -399,8 +428,15 @@ export const useBrainStore = defineStore('brain', () => {
     ...vault,
     // Tags
     ...tags,
-    // Celebrations and trophies
+    // Celebrations and trophies: the keeper saves Firsts and levels while I'm signed in
     ...trophies,
+    trophyCounts: keeper.counts,
+    checkTrophies: keeper.checkTrophies,
+    recheckTrophies: keeper.recheckTrophies,
+    catchUpTrophies: keeper.catchUp,
+    trophiesIdle: keeper.idle,
+    finishFocus,
+    finishBreathe,
     // Alerts, Post Its, people and events
     clearNotification,
     clearNotifications,

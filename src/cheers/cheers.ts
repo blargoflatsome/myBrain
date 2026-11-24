@@ -1,6 +1,8 @@
 // SPEC §5 Cheers: the server calls. They never return who wrote a post or who reacted.
 import { supabase } from '@/lib/supabase'
 import type { CheerKind, Reaction } from '@/cheers/rules'
+import { achieved } from '@/celebrate/bus'
+import { useBrainStore } from '@/stores/brain'
 
 export interface CheerPost {
   id: string
@@ -29,6 +31,21 @@ export const cheerFeed = async () => (await call<CheerPost[] | null>('cheer_feed
 export const postCheer = (kind: CheerKind, body = '') => call<string>('post_cheer', { p_kind: kind, p_body: body })
 /** True if it was saved; false if I already have one (take it back first). */
 export const reactCheer = (post: string, reaction: Reaction) => call<boolean>('react_cheer', { post, p_reaction: reaction })
+
+/** Post that I did it, or that I'm stuck; it counts toward the Cheers First (SPEC §5 Cheers). Unstuck posts don't. */
+export async function shareCheer(kind: 'did_it' | 'stuck', body = '') {
+  const id = await postCheer(kind, body)
+  achieved({ kind: 'cheer_post' })
+  return id
+}
+
+/** Cheer someone on: it counts toward the First, and my Cheers tally (on the server) toward the trophies. */
+export async function cheerOn(post: string, reaction: Reaction) {
+  const saved = await reactCheer(post, reaction)
+  achieved({ kind: 'cheer' })
+  useBrainStore().recheckTrophies()
+  return saved
+}
 /** Take my reaction back, so I can pick again (SPEC §5 Cheers). */
 export const unreactCheer = (post: string) => call<void>('unreact_cheer', { post })
 /** Hide posts from this person; returns the hide's id, for Undo (null if there was nothing to hide). */
