@@ -21,6 +21,7 @@ const ATTACK = ATTACKS.join(' ')
 
 async function notHacked(page: Page) {
   // Waiting for something that must NOT happen: give any injected script a moment to run.
+  // eslint-disable-next-line no-restricted-syntax -- waiting for something that must not happen
   await page.waitForTimeout(300)
   expect(await page.evaluate(() => (window as unknown as { __hacked?: number }).__hacked)).toBeUndefined()
 }

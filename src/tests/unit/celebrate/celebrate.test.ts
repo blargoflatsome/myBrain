@@ -24,6 +24,8 @@ import { achieved } from '@/celebrate/bus'
 
 const UID = '11111111-1111-4111-8111-111111111111'
 const TZ = 'UTC'
+// brain.start's first sync has finished, so nothing it does later can undo a test's own setup.
+const firstSync = (brain: ReturnType<typeof useBrainStore>) => vi.waitFor(() => expect(brain.syncedCount).toBeGreaterThan(0))
 const start = new Date('2026-11-01T12:00:00Z')
 const habit = (title = 'Walk') => newHabit(title, UID, TZ, start)
 const done = (habitId: string, date: string): HabitLogRow => ({ id: `${habitId}-${date}`, habit_id: habitId, date, status: 'completed', deleted_at: null })
@@ -142,7 +144,9 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     brain.stop()
     await db?.delete()
   })
-  const settle = () => new Promise((r) => setTimeout(r, 50))
+  // Only for checking that something did NOT happen: there is no result to wait for, so give it a moment.
+  // eslint-disable-next-line no-restricted-syntax -- waiting for something that must not happen
+  const nothingMore = () => new Promise((r) => setTimeout(r, 50))
 
   it('crossing off my first task earns its badge, with a message; the second time earns nothing new', async () => {
     const brain = useBrainStore()
@@ -158,7 +162,7 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
 
     await brain.saveTask({ ...t, title: 'Edited while done', status: 'done' })
     achieved({ kind: 'task', task: t })
-    await settle()
+    await nothingMore()
     expect(await brain.db!.badges.count()).toBe(1)
   })
 
@@ -259,19 +263,19 @@ describe('Spec §5 Celebrations: what happens when I finish something', () => {
     try {
       const brain = useBrainStore()
       brain.start(UID, remote)
-      await settle()
+      await firstSync(brain)
       const h = { ...habit(), user_id: UID }
       await brain.db!.habits.put(h)
       const celebrate = useCelebrateStore()
       celebrate.start()
       brain.habitsReady = true
-      await settle()
+      // The first check finds no log. Nothing shows when it has run, so this pause only guards the "none yet" step.
+      await nothingMore()
       const perfect = async () => (await brain.db!.notifications.toArray()).filter((n) => n.kind === 'perfect_day')
       expect(await perfect()).toHaveLength(0)
       await brain.db!.habit_logs.put({ ...done(h.id, '2026-11-05'), user_id: UID })
       brain.syncedCount++
-      await settle()
-      expect(await perfect()).toHaveLength(1)
+      await vi.waitFor(async () => expect(await perfect()).toHaveLength(1))
     } finally {
       vi.useRealTimers()
     }
@@ -296,12 +300,11 @@ describe('SPEC §5 Trophies: earning levels', () => {
     brain.stop()
     await db?.delete()
   })
-  const settle = () => new Promise((r) => setTimeout(r, 50))
   const doneTasks = (n: number) => Array.from({ length: n }, (_, i) => task({ id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`, status: 'done', completed_at: '2026-11-05T15:00:00Z', user_id: UID }))
   async function ready() {
     const brain = useBrainStore()
     brain.start(UID, remote)
-    await settle()
+    await firstSync(brain)
     brain.habitsReady = true
     brain.badgesReady = true
     return brain
@@ -343,8 +346,7 @@ describe('SPEC §5 Trophies: earning levels', () => {
       const celebrate = useCelebrateStore()
       celebrate.start()
       achieved({ kind: 'task', task: task({ due_date: '2026-11-06', status: 'done' }) })
-      await settle()
-      expect(celebrate.message?.text).toBe(messages.celebrations.comebacks.carried)
+      await vi.waitFor(() => expect(celebrate.message?.text).toBe(messages.celebrations.comebacks.carried))
     } finally {
       vi.useRealTimers()
     }
