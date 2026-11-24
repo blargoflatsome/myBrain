@@ -29,6 +29,8 @@
 <script setup lang="ts">
 // SPEC §5 Profiles: a connection's profile: their picture, name, earned trophies and Invite to event. Read fresh from
 // the server each visit, which only answers for connections. My own profile is drawn from this device instead.
+import { readTables } from '@/sync/db'
+import { useRows, useDeviceQuery } from '@/sync/useRows'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import UserAvatar from '@/components/UserAvatar.vue'
@@ -39,11 +41,8 @@ import { connectionProfile, connectionVault, type PersonProfile, type ProfileBuc
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
 import { useProfileStore } from '@/stores/profile'
-import { live } from '@/sync/live'
-import type { BadgeRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { activeBuckets, itemsInBucket } from '@/vault/rules'
 import { ownsBucket } from '@/vault/sharing'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { primaryButton } from '@/ui/styles'
 
 const m = messages.personProfile
@@ -57,7 +56,7 @@ const profile = useProfileStore()
 const isMe = computed(() => !!brain.userId && friendId.value === brain.userId)
 
 // My own profile as my connections see it: my name and picture, and my trophies as they are on this device.
-const myBadges = useLiveQuery<BadgeRow[]>(async () => (brain.db ? live(await brain.db.badges.toArray()) : []), [], [() => brain.db])
+const myBadges = useRows('badges')
 const person = computed<PersonProfile | null>(() =>
   isMe.value
     ? { display_name: profile.shown?.display_name ?? messages.profile.heading, avatar_url: profile.shown?.avatar_url ?? null, badges: myBadges.value, invited_events: [] }
@@ -67,11 +66,11 @@ const state = computed(() => (isMe.value ? 'ready' : fetchState.value))
 
 // The Vault buckets shown on the profile (SPEC §5 The Vault, Shared Vaults): theirs from the server, mine from this device.
 const theirBuckets = ref<ProfileBucket[]>([])
-const myBuckets = useLiveQuery<ProfileBucket[]>(async () => {
-  if (!brain.db || !isMe.value) return []
-  const items = live(await brain.db.vault_items.toArray()) as VaultItemRow[]
-  return activeBuckets(await brain.db.vault_buckets.toArray() as VaultBucketRow[])
-    .filter((b) => b.on_profile && ownsBucket(b, brain.userId ?? ''))
+const myBuckets = useDeviceQuery<ProfileBucket[]>(async (db, me) => {
+  if (!isMe.value) return []
+  const { items, buckets } = await readTables(db, { items: 'vault_items', buckets: 'vault_buckets' })
+  return activeBuckets(buckets)
+    .filter((b) => b.on_profile && ownsBucket(b, me))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
     .map((b) => ({
       id: b.id,
@@ -79,7 +78,7 @@ const myBuckets = useLiveQuery<ProfileBucket[]>(async () => {
       checkable: !!b.checkable,
       items: itemsInBucket(items, b).map((i) => ({ id: i.id, title: i.title, notes: i.notes ?? null, rating: i.rating ?? null, link: i.link ?? null, checked: !!i.checked })),
     }))
-}, [], [() => brain.db, isMe])
+}, [], [isMe])
 const buckets = computed(() => (isMe.value ? myBuckets.value : theirBuckets.value))
 
 watch(

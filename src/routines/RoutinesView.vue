@@ -65,16 +65,15 @@
 
 <script setup lang="ts">
 // SPEC §5 Routines: the list of routines, today's progress, and completion stats.
+import { useRows } from '@/sync/useRows'
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import RoutineEditor from '@/routines/components/RoutineEditor.vue'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, isScheduled, percent, resumableRun, routineStats, runState, skippedSteps, stepsForDay } from '@/routines/rules'
 import { messages } from '@/messages'
-import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
-import { live } from '@/sync/live'
+import type { RoutineRow } from '@/sync/types'
 import { primaryButton } from '@/ui/styles'
 import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
@@ -85,17 +84,13 @@ const brain = useBrainStore()
 const m = messages.routines
 const { today } = useToday()
 
-const routines = useLiveQuery<RoutineRow[]>(
-  async () => (brain.db ? live(await brain.db.routines.toArray()) : []),
-  [],
-  [() => brain.db],
-)
-const steps = useLiveQuery<RoutineStepRow[]>(async () => (brain.db ? brain.db.routine_steps.toArray() : []), [], [() => brain.db])
-const runs = useLiveQuery<RoutineRunRow[]>(async () => (brain.db ? brain.db.routine_runs.toArray() : []), [], [() => brain.db])
-const logs = useLiveQuery<RoutineStepLogRow[]>(async () => (brain.db ? brain.db.routine_step_logs.toArray() : []), [], [() => brain.db])
+const routines = useRows('routines')
+const steps = useRows('routine_steps')
+const runs = useRows('routine_runs')
+const logs = useRows('routine_step_logs')
 
-const habits = useLiveQuery<HabitRow[]>(async () => (brain.db ? brain.db.habits.toArray() : []), [], [() => brain.db])
-const habitLogs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
+const habits = useRows('habits')
+const habitLogs = useRows('habit_logs')
 
 const rows = computed(() =>
   routines.value.map((r) => {

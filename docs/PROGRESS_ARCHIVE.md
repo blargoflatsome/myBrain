@@ -4,6 +4,11 @@ Older history moved out of `PROGRESS.md` on 2026-11-10 to keep session start-up 
 
 Newest first from here on, up to the next "Step 1" heading; below that, oldest first.
 
+## Docs review (merged via PR #100, branch `grill-with-docs-skill`)
+- Added the grill-with-docs skill (with grilling and domain-modeling). Reviewed the spec against the code with the user (DECISIONS 2026-11-24): new GLOSSARY.md; SPEC §4 matches the migrations; Connections moved into §5; email sending and Home Assistant dropped; README and .env.example updated.
+- Code: Firsts say "New trophy: …"; unused confirmation messages removed; migration `20261124010000_no_email_for_app_users.sql` (app users get push only, `event_notify_method` dropped) applied to dev and prod, `test:db` passes.
+- Help, home page and Bucket settings say "bucket" not "list", and "people" not "friends"; Cheers added to Help's Getting around; `help-inviting` picture retaken. Full review passed.
+
 ## Scheduled-job history cleanup (merged via PR, branch `cron-history-cleanup`)
 - Supabase flagged 41 slow queries; nearly all are migrations, Supabase's own upkeep or the API server's schema reload. App queries average under 25 ms. The real issue: `cron.job_run_details` was never cleared (69k rows, 12 MB on dev).
 - Migration `20261123010000_clean_cron_history.sql`: `clean_cron_history()` runs daily at 03:30 UTC and keeps 7 days. SPEC §6 updated. Applied to dev; check in `rls_notifications.sql`; `npm run test:db` passes (36 files). Applied to prod 2026-11-23 (job scheduled there too).

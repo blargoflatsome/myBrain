@@ -1,6 +1,7 @@
 // Reading and writing routines, their steps and runs (SPEC §5 Routines).
 import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
 import type { ActionContext } from '@/sync/actions'
+import { getRow } from '@/sync/db'
 import { activeSteps, completeSkipped, currentRun, habitDoneStepIds, recordStep, resumableRun, stepsForDay } from '@/routines/rules'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { achieved } from '@/celebrate/bus'
@@ -84,9 +85,9 @@ export function routineActions({ ready }: ActionContext, completeHabit: (habit: 
     await e.save('routine_step_logs', log)
     const left = logs.filter((l) => !l.deleted_at && l.status === 'skipped' && l.step_id !== stepId).length
     achieved({ kind: 'step', finished: left === 0 })
-    const step = await local.routine_steps.get(stepId)
-    const habit = step?.habit_id ? await local.habits.get(step.habit_id) : undefined
-    if (habit && !habit.deleted_at) await completeHabit(habit, now)
+    const step = await getRow(local, 'routine_steps', stepId)
+    const habit = step?.habit_id ? await getRow(local, 'habits', step.habit_id) : null
+    if (habit) await completeHabit(habit, now)
     return log
   }
 

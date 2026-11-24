@@ -1,6 +1,7 @@
 // What the priority reminder's slide, snooze and cancel write (SPEC §5 High-priority tasks and priority habits).
 import type { HabitRow, ReminderStateRow, TaskRow } from '@/sync/types'
 import type { ActionContext } from '@/sync/actions'
+import { getRow } from '@/sync/db'
 import { cancelState, snoozeState, type DuePriority } from '@/reminders/priority'
 import { toggleDone } from '@/tasks/rules'
 
@@ -15,11 +16,11 @@ export function priorityActions(
   async function completePriority(item: DuePriority, now = new Date()) {
     const { local } = ready()
     if (item.kind === 'habit') {
-      const habit = await local.habits.get(item.id)
+      const habit = await getRow(local, 'habits', item.id)
       if (habit) await toggleHabit(habit, now)
       return
     }
-    const task = await local.tasks.get(item.id)
+    const task = await getRow(local, 'tasks', item.id)
     if (task && task.status === 'open') await saveTask(toggleDone(task, now))
   }
 

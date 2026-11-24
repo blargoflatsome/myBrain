@@ -37,7 +37,7 @@ file says *how* the code is written.
 | A feature's page, rules and components | `src/<feature>/` (`XView.vue`, `rules.ts`, `components/`) |
 | Rules and calculations for a feature | `src/<feature>/rules.ts` (pure functions, no Vue, no database) |
 | Data on the device and syncing | `src/sync/` (`live()` for "not deleted", the sync engine, row types in `types.ts`) |
-| Reading rows on screens | `useRows('tasks')`, or `useRows((db) => db.x.where(...))` for index lookups, from `src/sync/useRows.ts`: empty when signed out, follows sign-in and data resets, deleted rows hidden. Pages never read `brain.db` themselves **(lint)** |
+| Reading rows on screens | `src/sync/useRows.ts`: `useRows('tasks')` (or a query function for index lookups), `useRow(table, id)` for one row, `useDeviceQuery` for something worked out from my data (stats, calendar items), and `readRows` / `findRow` for a button press. All are empty while signed out, follow sign-in, and hide deleted rows. Bundles live with their feature (`readDayData`, `useVisibleBuckets`). Pages never read `brain.db` or use `useLiveQuery` themselves **(lint)** |
 | Writing data from screens | `src/stores/brain.ts`, which hands out each feature's actions from `src/<feature>/actions.ts` (so screens import one store and every write goes through the sync queue) |
 | My profile (name, picture, settings) | `src/stores/profile.ts` (`load()` once per visit, `update(fields)`); screens use it rather than reading `profiles` themselves (the Delete-my-data check in `App.vue` reads fresh on purpose) |
 | Ids that must match on every device (a day's log, a fixed alert) | `src/sync/ids.ts` (`logIdFor`, `fixedId`) |

@@ -96,23 +96,21 @@
 <script setup lang="ts">
 // New or edit routine: title, reminder time and weekdays (or run anytime), ordered steps that can be my own text or
 // one of my habits (SPEC §5 Routines). Delete asks first (SPEC §2).
+import { useRows } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
 import EditorDialog from '@/components/EditorDialog.vue'
 import TitleField from '@/components/TitleField.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import { computed, nextTick, ref, useId, watch } from 'vue'
-import { useBrainStore } from '@/stores/brain'
 import HowOften from '@/components/HowOften.vue'
 import TagInput from '@/tags/components/TagInput.vue'
 import { useItemTags } from '@/tags/useItemTags'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { arrowStep, useDragSort } from '@/composables/useDragSort'
-import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
+import type { RoutineRow, RoutineStepRow } from '@/sync/types'
 import { ALL_WEEKDAYS } from '@/habits/rules'
 import { messages } from '@/messages'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { checkbox, field, smallButton } from '@/ui/styles'
-import { live } from '@/sync/live'
 import WeekdayPicker from '@/components/WeekdayPicker.vue'
 
 const props = defineProps<{ routine: RoutineRow | null; steps: RoutineStepRow[]; isNew?: boolean }>()
@@ -131,12 +129,8 @@ const tags = useItemTags('routine', computed(() => props.routine?.id))
 const stepRows = ref<{ key: string; id?: string; title: string; habitId?: string | null }[]>([])
 
 // My habits, for habit steps.
-const brain = useBrainStore()
-const habits = useLiveQuery<HabitRow[]>(
-  async () => (brain.db ? live(await brain.db.habits.toArray()).sort((a, b) => a.title.localeCompare(b.title)) : []),
-  [],
-  [() => brain.db],
-)
+const myHabits = useRows('habits')
+const habits = computed(() => [...myHabits.value].sort((a, b) => a.title.localeCompare(b.title)))
 const habitById = (id: string | null | undefined) => habits.value.find((h) => h.id === id)
 const habitChoices = computed(() => habits.value.filter((h) => !stepRows.value.some((r) => r.habitId === h.id)))
 const choosingHabit = ref(false)

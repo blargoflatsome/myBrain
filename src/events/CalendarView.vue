@@ -69,6 +69,8 @@
 <script setup lang="ts">
 // SPEC §5 Calendar and reminders: month, week and day views of my dated tasks and events.
 // Tap a day or time (or "+ New event") to add an event; tap an item to open it.
+import { readTables } from '@/sync/db'
+import { useRows, useDeviceQuery, readRows } from '@/sync/useRows'
 import { useProfileStore } from '@/stores/profile'
 import { computed, onMounted, ref, watch } from 'vue'
 import { isDark } from '@/ui/appearance'
@@ -93,20 +95,17 @@ import ShareFlow from '@/events/components/ShareFlow.vue'
 import { invitePeople, inviteLink, inviteMessage, type PersonToInvite, type ShareTarget } from '@/events/sharing'
 import { takeStartWith } from '@/events/startWith'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { calendarItems, newEvent, nextWholeHour, type CalendarItem } from '@/events/rules'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
-import type { EventInviteRow, EventRow, TaskRow } from '@/sync/types'
-import { live } from '@/sync/live'
+import type { EventRow, TaskRow } from '@/sync/types'
 import { useUndoStore } from '@/stores/undo'
 import { dialogBox, selected, smallButton } from '@/ui/styles'
 import NewButton from '@/components/NewButton.vue'
 import CloseX from '@/components/CloseX.vue'
 import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
 import { myUnavailable } from '@/events/availability'
-import type { AvailabilityExceptionRow, AvailabilityRuleRow } from '@/sync/types'
 
 const brain = useBrainStore()
 const route = useRoute()
@@ -127,31 +126,18 @@ const view = ref<ViewName>('dayGridMonth')
 const title = ref('')
 const range = ref<{ from: string; to: string }>({ from: today.value, to: today.value })
 
-const events = useLiveQuery<EventRow[]>(async () => (brain.db ? live(await brain.db.events.toArray()) : []), [], [() => brain.db])
-const items = useLiveQuery<CalendarItem[]>(
-  async () => {
-    const db = brain.db
-    if (!db) return []
-    return calendarItems(
-      {
-        tasks: await db.tasks.toArray(),
-        events: await db.events.toArray(),
-        invites: await db.event_invites.toArray(),
-        me: brain.userId,
-      },
-      range.value.from,
-      range.value.to,
-    )
-  },
+const events = useRows('events')
+const items = useDeviceQuery<CalendarItem[]>(
+  async (db, me) => calendarItems({ ...(await readTables(db, { tasks: 'tasks', events: 'events', invites: 'event_invites' })), me }, range.value.from, range.value.to),
   [],
-  [() => brain.db, range],
+  [range],
 )
 const emptyDay = computed(() => view.value === 'timeGridDay' && !items.value.some((i) => i.start.slice(0, 10) <= range.value.from && (i.end ?? i.start).slice(0, 10) >= range.value.from))
 
 // SPEC §10 Scheduler: my not-available times, shaded in Week and Day (never shown to anyone else).
 const availabilityDialog = ref<HTMLDialogElement | null>(null)
-const myRules = useLiveQuery<AvailabilityRuleRow[]>(async () => (brain.db ? brain.db.availability_rules.toArray() : []), [], [() => brain.db])
-const myExceptions = useLiveQuery<AvailabilityExceptionRow[]>(async () => (brain.db ? brain.db.availability_exceptions.toArray() : []), [], [() => brain.db])
+const myRules = useRows('availability_rules')
+const myExceptions = useRows('availability_exceptions')
 const unavailable = computed(() => (view.value === 'dayGridMonth' ? [] : myUnavailable(myRules.value, myExceptions.value, range.value.from, range.value.to)))
 const shading = computed(() => unavailable.value.map((b) => ({ start: b.start, end: b.end, display: 'background', className: 'unavailable' })))
 
@@ -203,7 +189,7 @@ function startNew(date: string, time: string | null, people: PersonToInvite[] = 
   editing.value = newEvent(brain.userId ?? '', date, time ?? nextWholeHour())
 }
 // Invitations I received (SPEC §5): my own invite rows, read-only.
-const myInvites = useLiveQuery<EventInviteRow[]>(async () => (brain.db ? brain.db.event_invites.toArray() : []), [], [() => brain.db])
+const myInvites = useRows('event_invites')
 const viewing = ref<EventRow | null>(null)
 const viewingInvite = computed(() => (viewing.value ? (myInvites.value.find((i) => i.event_id === viewing.value!.id && !i.deleted_at) ?? null) : null))
 
@@ -219,7 +205,7 @@ function openEvent(id: string, date?: string) {
 }
 
 // ---------- Viewing my own items read-only, then editing them here (SPEC §5 Calendar) ----------
-const tasks = useLiveQuery<TaskRow[]>(async () => (brain.db ? live(await brain.db.tasks.toArray()) : []), [], [() => brain.db])
+const tasks = useRows('tasks')
 const viewItem = ref<CalendarView | null>(null)
 const editingTask = ref<TaskRow | null>(null)
 function editItem(item: CalendarView) {
@@ -260,9 +246,9 @@ const changedEvent = ref<EventRow | null>(null)
 // Times come back from the server as 19:00:00 and from the editor as 19:00.
 const when = (x: EventRow) => [x.start_date, x.start_time?.slice(0, 5), x.end_date, x.end_time?.slice(0, 5), x.repeat].join('|')
 async function offerChangeNotice(before: EventRow | undefined, e: EventRow) {
-  if (!before || when(before) === when(e) || !brain.db) return
-  const invites = await brain.db.event_invites.where('event_id').equals(e.id).toArray()
-  if (!invites.some((i) => !i.deleted_at && i.response !== 'no' && i.response !== 'dropped')) return
+  if (!before || when(before) === when(e)) return
+  const invites = await readRows((db) => db.event_invites.where('event_id').equals(e.id).toArray())
+  if (!invites.some((i) => i.response !== 'no' && i.response !== 'dropped')) return
   changedEvent.value = e
   confirmNotify.value?.open()
 }

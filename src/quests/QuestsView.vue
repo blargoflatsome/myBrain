@@ -102,6 +102,7 @@
 
 <script setup lang="ts">
 // SPEC §5 Random Quest: pick a project from the bucket list when bored, filtered by time and energy.
+import { useRows } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -113,13 +114,12 @@ import { useAuthStore } from '@/stores/auth'
 import { DEFAULT_QUEST_ENERGY, DEFAULT_QUEST_TIME } from '@/capture/capture'
 import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { acceptQuest, byEffort, ENERGY_LEVELS, markPicked, pickFromDraw, RECENT_PICKS, tasksInDraw, TIME_BUCKETS } from '@/quests/picker'
 import { moveTask, toggleDone } from '@/tasks/rules'
 import { useToday } from '@/composables/useToday'
 import { useUndoStore } from '@/stores/undo'
 import { messages } from '@/messages'
-import type { EnergyLevel, QuestLogRow, QuestRow, TaskRow, TimeBucket } from '@/sync/types'
+import type { EnergyLevel,  QuestRow, TaskRow, TimeBucket } from '@/sync/types'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
 import { filterChip, primaryButtonSmall, smallButton } from '@/ui/styles'
@@ -128,7 +128,7 @@ const QUESTS_PER_PAGE = 10
 const brain = useBrainStore()
 const m = messages.quests
 
-const all = useLiveQuery<QuestRow[]>(async () => (brain.db ? brain.db.quests.toArray() : []), [], [() => brain.db])
+const all = useRows('quests')
 const live = computed(() => all.value.filter((q) => !q.deleted_at))
 // Easiest first, 10 at a time (SPEC §5 Random Quest).
 const open = computed(() => live.value.filter((q) => q.status === 'open').sort(byEffort))
@@ -142,7 +142,7 @@ const current = computed(() => live.value.find((q) => q.id === currentId.value) 
 
 // Tasks in the draw (SPEC §5 Random Quest): today's open tasks and Undated ones.
 const { today, timeZone } = useToday()
-const allTasks = useLiveQuery<TaskRow[]>(async () => (brain.db ? brain.db.tasks.toArray() : []), [], [() => brain.db])
+const allTasks = useRows('tasks')
 const drawTasks = computed(() => tasksInDraw(allTasks.value, today.value, timeZone.value))
 const currentTaskId = ref<string | null>(null)
 const currentTask = computed(() => drawTasks.value.find((t) => t.id === currentTaskId.value) ?? null)
@@ -245,7 +245,7 @@ async function remove(q: QuestRow) {
 }
 
 // How many times each quest has been done (they can be done again).
-const logs = useLiveQuery<QuestLogRow[]>(async () => (brain.db ? (await brain.db.quest_logs.toArray()).filter((l) => !l.deleted_at) : []), [], [() => brain.db])
+const logs = useRows('quest_logs')
 const doneCounts = computed(() => {
   const counts = new Map<string, number>()
   for (const l of logs.value) counts.set(l.quest_id, (counts.get(l.quest_id) ?? 0) + 1)

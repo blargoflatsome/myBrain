@@ -23,6 +23,18 @@ export default defineConfigWithVueTs(
     rules: { 'vue/no-restricted-syntax': 'off' },
   },
   {
+    // CODING_STANDARDS §3 and §9: pages read my data through src/sync/useRows.ts, which hides deleted rows and
+    // follows sign-in, never from the device database directly.
+    files: ['src/**/*.vue'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        { selector: "MemberExpression[object.name='brain'][property.name='db']", message: 'Read rows with useRows, useRow, useDeviceQuery, readRows or findRow (src/sync/useRows.ts).' },
+        { selector: "ImportDeclaration[source.value='@/composables/useLiveQuery']", message: 'Read rows with useRows, useRow or useDeviceQuery (src/sync/useRows.ts).' },
+      ],
+    },
+  },
+  {
     // The chip style itself, and the toggles and radios that aren't a choice of one value.
     files: ['src/components/ChoiceChips.vue', 'src/components/HowOften.vue', 'src/tasks/TasksView.vue'],
     rules: { 'no-restricted-imports': 'off' },

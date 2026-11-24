@@ -82,36 +82,26 @@
 
 <script setup lang="ts">
 // SPEC §5 Availability schedule: weekly times I'm never free, and one-off days (unavailable, or available after all).
+import { useRows } from '@/sync/useRows'
 import TimeInput from '@/components/TimeInput.vue'
 import DateInput from '@/components/DateInput.vue'
 import WeekdayPicker from '@/components/WeekdayPicker.vue'
 import { computed, ref } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { todayIn, deviceTimeZone } from '@/tasks/days'
 import { formatTime } from '@/time/parse'
 import { messages } from '@/messages'
-import type { AvailabilityExceptionRow, AvailabilityRuleRow } from '@/sync/types'
 import { fieldCompact, primaryButtonSmall } from '@/ui/styles'
 import { dayLabel } from '@/ui/dates'
-import { live } from '@/sync/live'
 
 const brain = useBrainStore()
 const auth = useAuthStore()
 const m = messages.availability
 const dayNames = messages.habits.weekdayNames
 
-const rules = useLiveQuery<AvailabilityRuleRow[]>(
-  async () => (brain.db ? live(await brain.db.availability_rules.toArray()) : []),
-  [],
-  [() => brain.db],
-)
-const exceptions = useLiveQuery<AvailabilityExceptionRow[]>(
-  async () => (brain.db ? live(await brain.db.availability_exceptions.toArray()) : []),
-  [],
-  [() => brain.db],
-)
+const rules = useRows('availability_rules')
+const exceptions = useRows('availability_exceptions')
 const today = todayIn(deviceTimeZone())
 const sortedRules = computed(() => [...rules.value].sort((a, b) => a.weekday - b.weekday || a.start_time.localeCompare(b.start_time)))
 const upcoming = computed(() => exceptions.value.filter((x) => x.date >= today).sort((a, b) => a.date.localeCompare(b.date)))

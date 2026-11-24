@@ -21,14 +21,14 @@
 <script setup lang="ts">
 // SPEC §5 Dashboard Up next: the first thing worth doing now (see upNext.ts for the order). The main button does it
 // here where it can, otherwise opens the right page; Something else skips it for today, on this device.
+import { readDayData } from '@/journal/dayData'
+import { useDeviceQuery, findRow } from '@/sync/useRows'
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { readTables } from '@/sync/db'
-import { DAY_TABLES } from '@/journal/stats'
 import { useBrainStore } from '@/stores/brain'
 import { useProfileStore } from '@/stores/profile'
 import { useUndoStore } from '@/stores/undo'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useNow } from '@/composables/useNow'
 import { useToday } from '@/composables/useToday'
 import { KEEP_GOING_DAYS, skippedToday, upNext, type Suggestion } from '@/dashboard/upNext'
@@ -54,16 +54,14 @@ void useProfileStore()
     journalTime.value = p?.evening_reminder_time ?? null
   })
 
-const suggestions = useLiveQuery(
-  async () => {
-    const db = brain.db
-    if (!db) return []
-    const day = await readTables(db, DAY_TABLES)
+const suggestions = useDeviceQuery<Suggestion[]>(
+  async (db, me) => {
+    const day = await readDayData(db)
     const rest = await readTables(db, { events: 'events', invites: 'event_invites', inbox: 'inbox', journal: 'journal_entries' })
-    return upNext({ ...day, ...rest, me: brain.userId }, now.value, timeZone.value, journalTime.value)
+    return upNext({ ...day, ...rest, me }, now.value, timeZone.value, journalTime.value)
   },
-  [] as Suggestion[],
-  [() => brain.db, now, today, journalTime],
+  [],
+  [now, today, journalTime],
 )
 
 // Skipped suggestions, kept for today on this device.
@@ -130,24 +128,22 @@ const action = computed(() => {
 
 async function doIt() {
   const s = current.value
-  const db = brain.db
   if (!s) {
     if (allSkipped.value) saveSkips([])
     else await router.push({ name: 'quests' })
     return
   }
-  if (!db) return
   switch (s.kind) {
     case 'priority_habit':
     case 'habit': {
-      const habit = await db.habits.get(s.id)
+      const habit = await findRow('habits', s.id)
       if (habit) await brain.toggleHabit(habit)
       return
     }
     case 'priority_task':
       return brain.completePriority({ kind: 'task', id: s.id, title: s.title, description: null, date: s.date })
     case 'task': {
-      const task = await db.tasks.get(s.id)
+      const task = await findRow('tasks', s.id)
       if (task) await brain.saveTask(toggleDone(task))
       return
     }
@@ -165,7 +161,7 @@ async function doIt() {
 // A task carried over 3+ times: Today, Undated or Cancel task, each with Undo (SPEC §5 Dashboard).
 async function stuckTask() {
   const s = current.value
-  return s?.kind === 'stuck_task' ? brain.db?.tasks.get(s.id) : undefined
+  return s?.kind === 'stuck_task' ? findRow('tasks', s.id) : null
 }
 async function moveStuck(dueDate: string | null) {
   const task = await stuckTask()

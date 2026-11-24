@@ -116,6 +116,7 @@
 
 <script setup lang="ts">
 // SPEC §5 The Vault: my buckets; inside one, its items with a quick add box, check-off, ratings and links.
+import { useRows } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -123,10 +124,9 @@ import VaultItemEditor from '@/vault/components/VaultItemEditor.vue'
 import BucketEditor from '@/vault/components/BucketEditor.vue'
 import DefaultBucketCheck from '@/vault/components/DefaultBucketCheck.vue'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { checkedItems, itemsInBucket, linkLabel, linkTarget } from '@/vault/rules'
 import { messages } from '@/messages'
-import type { VaultBucketRow, VaultItemRow, VaultShareRow, VaultStarRow } from '@/sync/types'
+import type { VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { fieldOnPage, primaryButton, smallButton } from '@/ui/styles'
 import PageHeading from '@/components/PageHeading.vue'
 import RowDelete from '@/components/RowDelete.vue'
@@ -135,7 +135,6 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { addedBySomeoneElse, isStar, leaveBucket, membersOf, ownsBucket, sharedWithMe, visibleBuckets } from '@/vault/sharing'
 import { useVaultPeople } from '@/vault/useVaultPeople'
 import { useCelebrateStore } from '@/stores/celebrate'
-import { live } from '@/sync/live'
 import { useUndoStore } from '@/stores/undo'
 import { plainText } from '@/journal/body'
 
@@ -145,12 +144,13 @@ const router = useRouter()
 const m = messages.vault
 
 const me = computed(() => brain.userId ?? '')
-const shares = useLiveQuery<VaultShareRow[]>(async () => (brain.db ? await brain.db.vault_shares.toArray() : []), [], [() => brain.db])
-const stars = useLiveQuery<VaultStarRow[]>(async () => (brain.db ? await brain.db.vault_stars.toArray() : []), [], [() => brain.db])
-const rawBuckets = useLiveQuery<VaultBucketRow[]>(async () => (brain.db ? await brain.db.vault_buckets.toArray() : []), [], [() => brain.db])
+const shares = useRows('vault_shares')
+// Deleted star rows are kept: toggling a star brings my old row back rather than adding another (SPEC §5 Shared Vaults).
+const stars = useRows('vault_stars', [], { includeDeleted: true })
+const rawBuckets = useRows('vault_buckets')
 // Mine and ones shared with me, each shared one with my own star (SPEC §5 Shared Vaults).
 const buckets = computed(() => visibleBuckets(rawBuckets.value, shares.value, stars.value, me.value))
-const items = useLiveQuery<VaultItemRow[]>(async () => (brain.db ? live(await brain.db.vault_items.toArray()) : []), [], [() => brain.db])
+const items = useRows('vault_items')
 
 const bucketId = computed(() => (typeof route.query.bucket === 'string' ? route.query.bucket : null))
 const bucket = computed(() => buckets.value.find((b) => b.id === bucketId.value) ?? null)

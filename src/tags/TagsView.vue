@@ -26,15 +26,15 @@
 <script setup lang="ts">
 // SPEC §5 Tags page: every tag A to Z with what it's on; tap one to search by it; rename, merge or delete in the
 // tag's window. Each change happens straight away with Undo (SPEC §2 Calm by design).
+import { readTables } from '@/sync/db'
+import { useDeviceQuery } from '@/sync/useRows'
 import { ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import TagEditor from '@/tags/components/TagEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useSearchStore } from '@/stores/search'
 import { useUndoStore } from '@/stores/undo'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { cleanTagName, tagUsage, type TagUse } from '@/tags/rules'
-import { live } from '@/sync/live'
 import { messages } from '@/messages'
 import type { TagRow } from '@/sync/types'
 import { rowAction } from '@/ui/styles'
@@ -45,20 +45,11 @@ const undo = useUndoStore()
 const m = messages.tagsPage
 const editing = ref<TagRow | null>(null)
 
-const uses = useLiveQuery<TagUse[]>(
-  async () => {
-    const db = brain.db
-    if (!db) return []
-    const ids = (rows: { id: string }[]) => new Set(rows.map((r) => r.id))
-    return tagUsage(await db.tags.toArray(), await db.item_tags.toArray(), {
-      task: ids(live(await db.tasks.toArray())),
-      habit: ids(live(await db.habits.toArray())),
-      routine: ids(live(await db.routines.toArray())),
-    })
-  },
-  [],
-  [() => brain.db],
-)
+const uses = useDeviceQuery<TagUse[]>(async (db) => {
+  const ids = (rows: { id: string }[]) => new Set(rows.map((r) => r.id))
+  const t = await readTables(db, { tags: 'tags', links: 'item_tags', tasks: 'tasks', habits: 'habits', routines: 'routines' })
+  return tagUsage(t.tags, t.links, { task: ids(t.tasks), habit: ids(t.habits), routine: ids(t.routines) })
+}, [])
 
 /** Returns the tag a new name clashes with, so the window can offer to merge. */
 async function rename(tag: TagRow, name: string, done: (clash: TagRow | null) => void) {

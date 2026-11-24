@@ -2,10 +2,11 @@
 
 Current state only. Update at the end of every session; when work merges, move its section to [docs/PROGRESS_ARCHIVE.md](docs/PROGRESS_ARCHIVE.md) (search it for a past step's history). Build order: [SPEC §11](docs/SPEC.md#11-suggested-build-order). Decisions: [docs/DECISIONS.md](docs/DECISIONS.md).
 
-## In progress: docs review (branch `grill-with-docs-skill`)
-- Added the grill-with-docs skill (with grilling and domain-modeling). Reviewed the spec against the code with the user (DECISIONS 2026-11-24): new GLOSSARY.md; SPEC §4 matches the migrations; Connections moved into §5; email sending and Home Assistant dropped; README and .env.example updated.
-- Code: Firsts say "New trophy: …"; unused confirmation messages removed; migration `20261124010000_no_email_for_app_users.sql` (app users get push only, `event_notify_method` dropped) applied to dev and prod, `test:db` passes.
-- Help, home page and Bucket settings say "bucket" not "list", and "people" not "friends"; Cheers added to Help's Getting around; `help-inviting` picture retaken. Full review passed.
+## In progress: one way to read rows (branch `live-rows`)
+- Architecture review (`/improve-codebase-architecture`), then grilled with the user (DECISIONS 2026-11-24 "One way to read rows"). New `src/sync/useRows.ts`: `useRows`, `useRow`, `useDeviceQuery`, `readRows`, `findRow`; every read hides deleted rows unless asked, and so do `readTables` and the new `getRow`. All 27 pages switched; lint stops pages reading `brain.db` or using `useLiveQuery`. Bundles: `journal/dayData.ts`, `vault/useVisibleBuckets.ts`.
+- Fixes: the routine run page says it can't find a deleted routine; Up next, the priority reminder, routine steps and the default bucket ignore a row deleted a moment earlier. Behaviour change (SPEC §5 Firsts): an undone quest no longer counts toward the quest First.
+- Tests: `unit/sync/useRows.test.ts` (deleted hidden, signed out, follows sign-in, deleted row by id), a First case in `celebrate.test.ts`, trophy history from the device in `trophies.test.ts`. `npm run test:quick` passes. Help and the home page need no change (nothing a page does changed).
+- Also pushed, not merged: branch `retro-architecture-skills` (the /retro and /improve-codebase-architecture skills).
 
 ## Next step
 - Voice capture is merged. Pick the next step with the user (idea waiting: the guest poll).

@@ -232,6 +232,7 @@
 
 <script setup lang="ts">
 // SPEC §5 Account page: display name and avatar, then settings. Streaks are on the Habits page.
+import { useRows } from '@/sync/useRows'
 import { useProfileStore } from '@/stores/profile'
 import AppIcon from '@/components/AppIcon.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
@@ -258,10 +259,7 @@ import { downloadMyData } from '@/account/export'
 import { clearAppKeys } from '@/ui/storage'
 import { checkbox, confirmBox, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
 import { appearance, APPEARANCES, setAppearance, type Appearance } from '@/ui/appearance'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { openPause } from '@/habits/rules'
-import { live } from '@/sync/live'
-import type { HabitPauseRow } from '@/sync/types'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { CELEBRATION_SETTINGS, parseSetting, type CelebrationSetting } from '@/celebrate/rules'
 
@@ -313,7 +311,7 @@ async function saveAppearance() {
 
 // SPEC §5 Habits Pause streaks: kept as pause periods, synced like the rest of my habits.
 const ps = messages.pauseStreaks
-const pauses = useLiveQuery<HabitPauseRow[]>(async () => (brain.db ? live(await brain.db.habit_pauses.toArray()) : []), [], [() => brain.db])
+const pauses = useRows('habit_pauses')
 const streaksPaused = computed(() => !!openPause(pauses.value))
 const pauseNotice = ref('')
 async function savePause(on: boolean) {

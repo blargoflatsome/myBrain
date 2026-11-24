@@ -95,6 +95,7 @@
 <script setup lang="ts">
 // SPEC §5 Calendar and reminders: add or edit a personal event: title, start and end (or all day), repeat,
 // reminder, notes. Delete asks first; deleting a repeating event deletes the whole series.
+import { readRows } from '@/sync/useRows'
 import EditorDialog from '@/components/EditorDialog.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import DateInput from '@/components/DateInput.vue'
@@ -106,7 +107,6 @@ import EventPeople from '@/events/components/EventPeople.vue'
 import FindATime from '@/events/components/FindATime.vue'
 import ChoiceChips from '@/components/ChoiceChips.vue'
 import { useScheduling, type SchedulingPerson } from '@/events/useScheduling'
-import { useBrainStore } from '@/stores/brain'
 import type { EventPerson, PersonToInvite } from '@/events/sharing'
 import { eventProblem, nextWholeHour, REMINDERS, REPEATS } from '@/events/rules'
 import { messages } from '@/messages'
@@ -117,7 +117,6 @@ import { dayLabel, timeLabel } from '@/ui/dates'
 
 const props = defineProps<{ event: EventRow | null; isNew: boolean; withPeople?: PersonToInvite[] }>()
 const emit = defineEmits<{ save: [EventRow, PersonToInvite[]]; delete: [EventRow, boolean]; close: []; cancel: [EventRow] }>()
-const brain = useBrainStore()
 const m = messages.calendar
 const c = messages.connections
 // Whether attendees see who else is going (SPEC §10 Connections).
@@ -239,8 +238,8 @@ async function save() {
 async function askDelete() {
   const e = props.event
   if (!e) return
-  const invites = brain.db ? await brain.db.event_invites.where('event_id').equals(e.id).toArray() : []
-  if (invites.some((i) => !i.deleted_at)) confirmDialog.value?.open()
+  const invites = await readRows((db) => db.event_invites.where('event_id').equals(e.id).toArray())
+  if (invites.length) confirmDialog.value?.open()
   else emit('delete', e, false)
 }
 function confirmDelete() {

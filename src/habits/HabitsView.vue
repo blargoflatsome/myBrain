@@ -84,20 +84,19 @@
 
 <script setup lang="ts">
 // SPEC §5 Habits: today's habits with their timer deadlines, streaks and best streaks.
+import { useRows, readRows } from '@/sync/useRows'
 import { useNow } from '@/composables/useNow'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref, watch } from 'vue'
 import HabitEditor from '@/habits/components/HabitEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useAuthStore } from '@/stores/auth'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { dayStatus, deadline, dueByMidnight, isScheduled, keptLately, newHabit, openPause, streaks, type DayStatus } from '@/habits/rules'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import { momentLabel } from '@/ui/dates'
-import type { HabitLogRow, HabitPauseRow, HabitRow } from '@/sync/types'
-import { live } from '@/sync/live'
+import type { HabitRow } from '@/sync/types'
 import { useRoute, useRouter } from 'vue-router'
 import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
@@ -110,13 +109,9 @@ const auth = useAuthStore()
 const m = messages.habits
 const { today, timeZone } = useToday()
 
-const habits = useLiveQuery<HabitRow[]>(
-  async () => (brain.db ? live(await brain.db.habits.toArray()) : []),
-  [],
-  [() => brain.db],
-)
-const logs = useLiveQuery<HabitLogRow[]>(async () => (brain.db ? brain.db.habit_logs.toArray() : []), [], [() => brain.db])
-const pauses = useLiveQuery<HabitPauseRow[]>(async () => (brain.db ? live(await brain.db.habit_pauses.toArray()) : []), [], [() => brain.db])
+const habits = useRows('habits')
+const logs = useRows('habit_logs')
+const pauses = useRows('habit_pauses')
 const pausedNow = computed(() => !!openPause(pauses.value))
 
 // A clock that ticks each minute, so a timer running out shows as missed without a reload.
@@ -174,7 +169,7 @@ async function toggle(h: HabitRow) {
   const kind = await brain.toggleHabit(h, new Date(), timeZone.value)
   now.value = new Date()
   justDone.value = kind === 'complete' ? h.id : null
-  const after = streaks(h, (await brain.db?.habit_logs.toArray()) ?? [], now.value, timeZone.value, pauses.value).best
+  const after = streaks(h, await readRows('habit_logs'), now.value, timeZone.value, pauses.value).best
   celebrated.value = kind === 'complete' && after > before && before > 0 ? h.id : null
 }
 

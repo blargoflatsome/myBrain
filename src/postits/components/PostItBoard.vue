@@ -116,10 +116,10 @@
 // SPEC §5 Dashboard: Post Its at the top, like sticky notes taped to the page. Several sit in a stack, newest on top,
 // shown one at a time (never automatic): Previous / Next on a computer; swipe or tap a dot on a phone; arrow keys.
 // On the note shown: an edit icon (bottom left) to edit in place, and an X (top right) that deletes it, with Undo.
+import { useRows } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, defineAsyncComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { boardOrder } from '@/postits/rules'
 import PostItColors from '@/postits/components/PostItColors.vue'
 import { cleanHtml, plainText } from '@/journal/body'
@@ -132,7 +132,8 @@ const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextE
 const brain = useBrainStore()
 const m = messages.postIts
 
-const notes = useLiveQuery<PostItRow[]>(async () => (brain.db ? boardOrder(await brain.db.post_its.toArray()) : []), [], [() => brain.db])
+const postIts = useRows('post_its')
+const notes = computed(() => boardOrder(postIts.value))
 
 // ---------- Which note is shown ----------
 const index = ref(0)

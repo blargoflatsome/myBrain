@@ -1,6 +1,6 @@
 // SPEC §5 The Vault, Shared Vaults: which buckets I see, my stars on shared ones, who added what, and clearing this
 // device's copy of buckets I can no longer see.
-import type { LocalDb } from '@/sync/db'
+import { readTables, type LocalDb } from '@/sync/db'
 import { supabase } from '@/lib/supabase'
 import type { VaultBucketRow, VaultItemRow, VaultShareRow, VaultStarRow } from '@/sync/types'
 import { activeBuckets } from '@/vault/rules'
@@ -43,7 +43,7 @@ export const addedBySomeoneElse = (item: VaultItemRow, me: string) => !!item.add
 
 /** Read the buckets I see, from this device. */
 export async function loadVisibleBuckets(db: LocalDb, me: string): Promise<VaultBucketRow[]> {
-  const [buckets, shares, stars] = await Promise.all([db.vault_buckets.toArray(), db.vault_shares.toArray(), db.vault_stars.toArray()])
+  const { buckets, shares, stars } = await readTables(db, { buckets: 'vault_buckets', shares: 'vault_shares', stars: 'vault_stars' })
   return visibleBuckets(buckets, shares, stars, me)
 }
 

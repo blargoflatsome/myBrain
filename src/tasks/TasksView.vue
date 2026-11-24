@@ -114,6 +114,7 @@
 
 <script setup lang="ts">
 // SPEC §5 Tasks: daily list (with carry-over), scheduling for other days, and the Undated list.
+import { useRows } from '@/sync/useRows'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import TaskItem from '@/tasks/components/TaskItem.vue'
@@ -121,7 +122,6 @@ import TaskEditor from '@/tasks/components/TaskEditor.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
 import { useBrainStore } from '@/stores/brain'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useToday } from '@/composables/useToday'
 import { addDays, daysBetween } from '@/tasks/days'
 import { cancelTask, clearDone, clearedForDay, DEFAULT_PRIORITY, moveTask, pickThree, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
@@ -144,7 +144,7 @@ watch(today, (next, prev) => {
   if (day.value === prev) day.value = next
 })
 
-const all = useLiveQuery<TaskRow[]>(async () => (brain.db ? brain.db.tasks.toArray() : []), [], [() => brain.db])
+const all = useRows('tasks')
 const list = computed(() => (view.value === 'undated' ? undatedTasks(all.value) : tasksForDay(all.value, day.value, today.value, timeZone.value)))
 
 const offset = computed(() => daysBetween(today.value, day.value))

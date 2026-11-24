@@ -26,17 +26,16 @@
 
 <script setup lang="ts">
 // SPEC §5 Orphans: things saved with "Decide later" wait here, shown one at a time until I file, delete or skip them.
+import { useRows } from '@/sync/useRows'
 import { computed, ref } from 'vue'
 import AppIcon from '@/components/AppIcon.vue'
 import RowDelete from '@/components/RowDelete.vue'
 import DestinationPicker from '@/capture/components/DestinationPicker.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useUndoStore } from '@/stores/undo'
-import { useLiveQuery } from '@/composables/useLiveQuery'
 import { messages } from '@/messages'
 import type { CaptureInput } from '@/capture/capture'
 import type { InboxRow } from '@/sync/types'
-import { live } from '@/sync/live'
 import { oldestFirst } from '@/capture/capture'
 import { smallButton } from '@/ui/styles'
 
@@ -44,11 +43,8 @@ const brain = useBrainStore()
 const undo = useUndoStore()
 const m = messages.inbox
 
-const queue = useLiveQuery<InboxRow[]>(
-  async () => (brain.db ? oldestFirst(live(await brain.db.inbox.toArray())) : []),
-  [],
-  [() => brain.db],
-)
+const orphans = useRows('inbox')
+const queue = computed(() => oldestFirst(orphans.value))
 
 // Skip moves on to the next one; past the newest it comes round to the oldest again, so a skipped orphan waits at
 // the back of the line. Only while I'm on this page: the next visit starts from the oldest.
