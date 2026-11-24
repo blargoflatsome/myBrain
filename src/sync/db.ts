@@ -192,16 +192,12 @@ export async function readTables<M extends Record<string, SyncTable>>(
   { includeDeleted = false }: ReadOptions<keyof M & string> = {},
 ): Promise<{ [K in keyof M]: RowTypes[M[K]][] }> {
   const keys = Object.keys(tables) as (keyof M & string)[]
+  const rows = await Promise.all(keys.map((k) => db.rows(tables[k]!).toArray()))
   const keep = (k: keyof M & string) => includeDeleted === true || (Array.isArray(includeDeleted) && includeDeleted.includes(k))
-  const rows = await Promise.all(keys.map(async (k) => {
-    const all = await db.rows(tables[k]!).toArray()
-    return keep(k) ? all : live(all)
-  }))
-  return Object.fromEntries(keys.map((k, i) => [k, rows[i]])) as { [K in keyof M]: RowTypes[M[K]][] }
+  return Object.fromEntries(keys.map((k, i) => [k, keep(k) ? rows[i] : live(rows[i]!)])) as { [K in keyof M]: RowTypes[M[K]][] }
 }
 
 /** One row by id; a deleted row reads as not found unless asked for. */
-export async function getRow<T extends SyncTable>(db: LocalDb, table: T, id: string, { includeDeleted = false }: ReadOptions = {}): Promise<RowTypes[T] | null> {
-  const row = await db.rows(table).get(id)
-  return row && (includeDeleted || !row.deleted_at) ? row : null
+export function getRow<T extends SyncTable>(db: LocalDb, table: T, id: string, { includeDeleted = false }: ReadOptions = {}): Promise<RowTypes[T] | null> {
+  return db.rows(table).get(id).then((row) => (row && (includeDeleted || !row.deleted_at) ? row : null))
 }

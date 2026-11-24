@@ -31,19 +31,32 @@ export function useDeviceQuery<T>(query: (db: LocalDb, me: string) => Promise<T>
 export function useRows<T extends SyncTable>(table: T, deps?: WatchSource[], options?: ReadOptions): Ref<RowTypes[T][]>
 export function useRows<R extends Row>(query: (db: LocalDb) => Promise<R[]>, deps?: WatchSource[], options?: ReadOptions): Ref<R[]>
 export function useRows(source: SyncTable | ((db: LocalDb) => Promise<Row[]>), deps: WatchSource[] = [], { includeDeleted = false }: ReadOptions = {}) {
-  return useDeviceQuery<Row[]>(
-    async (db) => {
+  const brain = useBrainStore()
+  return useLiveQuery<Row[]>(
+    async () => {
+      const db = brain.db
+      if (!db || !brain.userId) return []
       const rows = typeof source === 'string' ? await db.rows(source).toArray() : await source(db)
       return includeDeleted ? rows : live(rows)
     },
     [],
-    deps,
+    [() => brain.db, ...deps],
   )
 }
 
 /** One row that follows the device: `null` until known (or signed out), `undefined` when it's missing or deleted. */
 export function useRow<T extends SyncTable>(table: T, id: MaybeRefOrGetter<string>): Ref<RowTypes[T] | null | undefined> {
-  return useDeviceQuery<RowTypes[T] | null | undefined>(async (db) => (await getRow(db, table, toValue(id))) ?? undefined, null, [() => toValue(id)])
+  const brain = useBrainStore()
+  return useLiveQuery<RowTypes[T] | null | undefined>(
+    async () => {
+      const db = brain.db
+      if (!db || !brain.userId) return null
+      const row = await db.rows(table).get(toValue(id))
+      return row && !row.deleted_at ? row : undefined
+    },
+    null,
+    [() => brain.db, () => toValue(id)],
+  )
 }
 
 /** Read my rows once, now (for a button press): a table or an index query; empty while signed out, deleted rows hidden unless asked. */

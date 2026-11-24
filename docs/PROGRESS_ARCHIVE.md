@@ -4,6 +4,12 @@ Older history moved out of `PROGRESS.md` on 2026-11-10 to keep session start-up 
 
 Newest first from here on, up to the next "Step 1" heading; below that, oldest first.
 
+## One way to read rows (merged via PR, branch `live-rows`, with PR #101's skills)
+- Architecture review, grilled with the user (DECISIONS 2026-11-24 "One way to read rows"). `src/sync/useRows.ts` (`useRows`, `useRow`, `useDeviceQuery`, `readRows`, `findRow`); every read hides deleted rows unless asked, and so do `readTables` and `getRow`. All 27 pages switched; lint stops pages reading `brain.db` or using `useLiveQuery`. Bundles: `journal/dayData.ts`, `vault/useVisibleBuckets.ts`. Also merged the /retro and /improve-codebase-architecture skills (PR #101).
+- Fixes: the routine run page says it can't find a deleted routine; Up next, the priority reminder, routine steps and the default bucket ignore a row deleted a moment earlier. Behaviour change (SPEC §5 Firsts): an undone quest no longer counts toward the quest First.
+- Calendar: tapping an item reads its row when tapped. On iPhone the calendar drew items before the page's task and event lists arrived (each live query ~30 ms on WebKit, queued), so a quick tap opened nothing; the iPhone calendar tests caught it.
+- Tests: `unit/sync/useRows.test.ts`, a First case in `celebrate.test.ts`, trophy history from the device in `trophies.test.ts`. Full review passed. Help and the home page unchanged (nothing a page does changed).
+
 ## Docs review (merged via PR #100, branch `grill-with-docs-skill`)
 - Added the grill-with-docs skill (with grilling and domain-modeling). Reviewed the spec against the code with the user (DECISIONS 2026-11-24): new GLOSSARY.md; SPEC §4 matches the migrations; Connections moved into §5; email sending and Home Assistant dropped; README and .env.example updated.
 - Code: Firsts say "New trophy: …"; unused confirmation messages removed; migration `20261124010000_no_email_for_app_users.sql` (app users get push only, `event_notify_method` dropped) applied to dev and prod, `test:db` passes.

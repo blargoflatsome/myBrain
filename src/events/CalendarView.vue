@@ -70,7 +70,7 @@
 // SPEC §5 Calendar and reminders: month, week and day views of my dated tasks and events.
 // Tap a day or time (or "+ New event") to add an event; tap an item to open it.
 import { readTables } from '@/sync/db'
-import { useRows, useDeviceQuery, readRows } from '@/sync/useRows'
+import { useRows, useDeviceQuery, readRows, findRow } from '@/sync/useRows'
 import { useProfileStore } from '@/stores/profile'
 import { computed, onMounted, ref, watch } from 'vue'
 import { isDark } from '@/ui/appearance'
@@ -157,13 +157,17 @@ const options = computed<CalendarOptions>(() => ({
   colorScheme: scheme.value,
   events: [...items.value, ...shading.value],
   dateClick: (info: DateClickInfo) => startNew(info.dateStr.slice(0, 10), info.allDay ? null : info.dateStr.slice(11, 16)),
-  eventClick: (info: EventClickInfo) => {
+  // The tapped row is read when tapped: the calendar can show an item before a list of my rows has arrived.
+  eventClick: async (info: EventClickInfo) => {
     info.jsEvent.preventDefault()
     const { kind, itemId, date } = info.event.extendedProps as CalendarItem['extendedProps']
     if (kind === 'task') {
-      const row = tasks.value.find((t) => t.id === itemId)
+      const row = await findRow('tasks', itemId)
       if (row) viewItem.value = { kind, title: row.title, date, row }
-    } else openEvent(itemId, date)
+    } else {
+      const row = await findRow('events', itemId)
+      if (row) openEvent(row, date)
+    }
   },
   datesSet: (info: DatesSetInfo) => {
     title.value = info.view.title
@@ -193,9 +197,7 @@ const myInvites = useRows('event_invites')
 const viewing = ref<EventRow | null>(null)
 const viewingInvite = computed(() => (viewing.value ? (myInvites.value.find((i) => i.event_id === viewing.value!.id && !i.deleted_at) ?? null) : null))
 
-function openEvent(id: string, date?: string) {
-  const e = events.value.find((x) => x.id === id)
-  if (!e) return
+function openEvent(e: EventRow, date?: string) {
   // Someone else's event I was invited to opens with its answers; my own opens read-only, with Edit.
   if (e.user_id && brain.userId && e.user_id !== brain.userId) {
     viewing.value = e
@@ -205,7 +207,6 @@ function openEvent(id: string, date?: string) {
 }
 
 // ---------- Viewing my own items read-only, then editing them here (SPEC §5 Calendar) ----------
-const tasks = useRows('tasks')
 const viewItem = ref<CalendarView | null>(null)
 const editingTask = ref<TaskRow | null>(null)
 function editItem(item: CalendarView) {
@@ -329,8 +330,9 @@ watch(
   [() => route.query.event, events],
   ([id]) => {
     if (typeof id !== 'string' || editing.value || viewItem.value) return
-    if (events.value.some((e) => e.id === id)) {
-      openEvent(id)
+    const e = events.value.find((x) => x.id === id)
+    if (e) {
+      openEvent(e)
       void router.replace({ query: { date: route.query.date } })
     }
   },
