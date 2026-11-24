@@ -4,6 +4,11 @@ Older history moved out of `PROGRESS.md` on 2026-11-10 to keep session start-up 
 
 Newest first from here on, up to the next "Step 1" heading; below that, oldest first.
 
+## Scheduled-job history cleanup (merged via PR, branch `cron-history-cleanup`)
+- Supabase flagged 41 slow queries; nearly all are migrations, Supabase's own upkeep or the API server's schema reload. App queries average under 25 ms. The real issue: `cron.job_run_details` was never cleared (69k rows, 12 MB on dev).
+- Migration `20261123010000_clean_cron_history.sql`: `clean_cron_history()` runs daily at 03:30 UTC and keeps 7 days. SPEC §6 updated. Applied to dev; check in `rls_notifications.sql`; `npm run test:db` passes (36 files). Applied to prod 2026-11-23 (job scheduled there too).
+- `npm run test:all` passed (Vitest 489, Playwright 829).
+
 ## Voice capture (merged via PR, branch `voice-capture`)
 - Agreed with the user 2026-11-20: SPEC §5 Quick capture (Speak it fills the form), §5 The Vault (default bucket), §4, §11; DECISIONS 2026-11-20. Pi and Home Assistant voice dropped.
 - Built: the voice parser `src/voice/parse.ts` (loaded only once something is heard) and `findDate` in `time/parseDate.ts`; Speak it fills the Capture form, says what it filled in a status line, and has its own Undo in the form (the Undo bar sits behind the Capture window). Default bucket: Make this my default bucket in Bucket settings and in a shared bucket's window (`DefaultBucketCheck.vue`, `brain.setDefaultBucket`), listed first everywhere, preselected in Capture and Orphans.

@@ -51,6 +51,18 @@ begin
   select count(*) into n from cron.job where jobname = 'my-brain-expire-notifications';
   if n <> 1 then raise exception 'FAIL: Spec §6: the clear-out runs every hour'; end if;
 
+  -- Scheduled-job history is kept for 7 days (SPEC §6): a 2-day-old run stays, an 8-day-old one goes, daily.
+  insert into cron.job_run_details (jobid, runid, command, status, start_time, end_time) values
+    (0, -1, 'test', 'succeeded', now() - interval '2 days', now() - interval '2 days'),
+    (0, -2, 'test', 'succeeded', now() - interval '8 days', now() - interval '8 days');
+  perform public.clean_cron_history();
+  select count(*) into n from cron.job_run_details where runid in (-1, -2);
+  if n <> 1 or not exists (select 1 from cron.job_run_details where runid = -1) then
+    raise exception 'FAIL: Spec §6: scheduled-job history is kept for 7 days';
+  end if;
+  select count(*) into n from cron.job where jobname = 'my-brain-clean-cron-history';
+  if n <> 1 then raise exception 'FAIL: Spec §6: the job history clear-out runs every day'; end if;
+
   -- A reminder sent again counts as new again (seen is cleared).
   perform public.record_notification(alice, 'habit', item, 'Take meds', 'now', '/habits', now());
   update public.notifications set read_at = now() where user_id = alice and deleted_at is null;
