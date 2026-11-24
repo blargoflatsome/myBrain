@@ -1,5 +1,5 @@
 // SPEC §5 Trophies: connections ever made, people blocked and my Cheers tally live only on the server.
-import { supabase } from '@/lib/supabase'
+import { serverCall } from '@/server/server'
 import type { CheerTally } from '@/trophies/rules'
 
 export interface ServerCounts {
@@ -22,9 +22,9 @@ interface Row {
 export async function trophyCounts(): Promise<ServerCounts> {
   const none = { connections: null, blocks: null, cheers: null }
   try {
-    const { data, error } = await supabase.rpc('trophy_counts')
-    const row = (Array.isArray(data) ? data[0] : data) as Row | null
-    if (error || !row) return none
+    const data = await serverCall<Row[] | Row | null>('trophy_counts')
+    const row = Array.isArray(data) ? data[0] : data
+    if (!row) return none
     return {
       connections: row.connections ?? 0,
       blocks: row.blocks ?? 0,

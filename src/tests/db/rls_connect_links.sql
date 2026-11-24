@@ -53,7 +53,7 @@ begin
   begin
     for i in 1..10 loop perform public.preview_connect_link(null, 'ZZZZZZZZ'); end loop;
     raise exception 'FAIL: Spec §10: code tries are limited to 10 an hour';
-  exception when sqlstate '22023' then null;
+  exception when sqlstate 'P0429' then null;
   end;
 
   -- At most 5 working links at a time.
@@ -62,7 +62,7 @@ begin
   begin
     perform public.create_connect_link();
     raise exception 'FAIL: Spec §10: at most 5 working links at a time';
-  exception when sqlstate '22023' then null;
+  exception when sqlstate 'P0429' then null;
   end;
 
   raise exception 'PASS: all connect link checks passed (test data rolled back)';

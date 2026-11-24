@@ -36,7 +36,8 @@ import { useProfileStore } from '@/stores/profile'
 import CloseX from '@/components/CloseX.vue'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
-import { cancelEvent, dropOut, eventPeople, whenText, type EventPerson, type ShareTarget } from '@/events/sharing'
+import { eventPeople, whenText, type EventPerson, type ShareTarget } from '@/events/sharing'
+import { sayWhy } from '@/server/server'
 import { messages } from '@/messages'
 import type { EventRow } from '@/sync/types'
 import { secondaryButton, warningButton } from '@/ui/styles'
@@ -88,18 +89,17 @@ async function confirm() {
   try {
     let targets: ShareTarget[] = []
     if (props.mode === 'cancel') {
-      const rows = await cancelEvent(e.id)
+      const rows = await brain.cancelEvent(e.id)
       targets = rows
         .filter((r) => r.email || r.phone)
         .map((r) => ({ inviteId: r.invite_id, name: r.name, email: r.email, phone: r.phone, subject: `${e.title} is cancelled`, body: r.body }))
     } else {
-      await dropOut(e.id)
+      await brain.dropOut(e.id)
     }
-    await brain.refresh(['events', 'event_invites'])
     dialog.value?.close()
     emit('done', targets)
   } catch (err) {
-    error.value = m.failed(err instanceof Error ? err.message : String(err))
+    error.value = sayWhy(err, { offline: m.offline, limit: m.failed, failed: m.failed })
   } finally {
     busy.value = false
   }

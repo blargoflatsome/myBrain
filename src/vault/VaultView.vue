@@ -132,7 +132,7 @@ import PageHeading from '@/components/PageHeading.vue'
 import RowDelete from '@/components/RowDelete.vue'
 import CheckCircle from '@/components/CheckCircle.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { addedBySomeoneElse, isStar, leaveBucket, membersOf, ownsBucket, sharedWithMe, visibleBuckets } from '@/vault/sharing'
+import { addedBySomeoneElse, isStar, membersOf, ownsBucket, sharedWithMe, visibleBuckets } from '@/vault/sharing'
 import { useVaultPeople } from '@/vault/useVaultPeople'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { useUndoStore } from '@/stores/undo'
@@ -191,9 +191,8 @@ async function leave() {
   memberDialog.value?.close()
   if (!b) return
   try {
-    await leaveBucket(b.id)
+    await brain.leaveBucket(b.id)
     await router.push({ query: {} })
-    await brain.refresh(['vault_shares', 'vault_stars'])
     celebrate.say(m.left(b.name))
   } catch {
     celebrate.say(m.leaveFailed)

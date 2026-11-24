@@ -7,7 +7,7 @@ import { live } from '@/sync/live'
 import { achieved } from '@/celebrate/bus'
 import { ownsBucket } from '@/vault/sharing'
 
-export function vaultActions({ ready }: ActionContext) {
+export function vaultActions({ ready, onServer }: ActionContext) {
   async function createBucket(name: string) {
     const { engine: e, uid, local } = ready()
     const last = await local.vault_buckets.orderBy('position').last()
@@ -78,5 +78,11 @@ export function vaultActions({ ready }: ActionContext) {
     else await e.save('vault_stars', { id: crypto.randomUUID(), user_id: uid, bucket_id: bucketId, starred: false, is_default: true, deleted_at: null })
   }
 
-  return { setDefaultBucket, createBucket, deleteBucket, addVaultItem, saveVaultItem, toggleVaultItem, clearChecked }
+  // ---------- Shared Vaults (server calls, online only; SPEC §5 The Vault, Shared Vaults) ----------
+  const shareBucket = (bucket: string, friend: string) => onServer('share_vault_bucket', { bucket, friend }, ['vault_shares'])
+  const unshareBucket = (bucket: string, friend: string) => onServer('unshare_vault_bucket', { bucket, friend }, ['vault_shares', 'vault_stars'])
+  /** Leave a bucket shared with me; it goes from this device with my star (dropLostBuckets, after the download). */
+  const leaveBucket = (bucket: string) => onServer('leave_vault_bucket', { bucket }, ['vault_shares', 'vault_stars'])
+
+  return { shareBucket, unshareBucket, leaveBucket, setDefaultBucket, createBucket, deleteBucket, addVaultItem, saveVaultItem, toggleVaultItem, clearChecked }
 }

@@ -1,7 +1,7 @@
 // SPEC §5 The Vault, Shared Vaults: which buckets I see, my stars on shared ones, who added what, and clearing this
 // device's copy of buckets I can no longer see.
 import type { LocalDb } from '@/sync/db'
-import { supabase } from '@/lib/supabase'
+import { serverList } from '@/server/server'
 import type { VaultBucketRow, VaultItemRow, VaultShareRow, VaultStarRow } from '@/sync/types'
 import { activeBuckets } from '@/vault/rules'
 
@@ -75,14 +75,5 @@ export interface VaultPerson {
   is_owner: boolean
 }
 
-async function call<T>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
-  const { data, error } = await supabase.rpc(fn, args)
-  if (error) throw Object.assign(new Error(error.message), { limit: error.code === 'P0429' })
-  return data as T
-}
-
-export const vaultPeople = async () => (await call<VaultPerson[] | null>('vault_people')) ?? []
-export const shareBucket = (bucket: string, friend: string) => call<void>('share_vault_bucket', { bucket, friend })
-export const unshareBucket = (bucket: string, friend: string) => call<void>('unshare_vault_bucket', { bucket, friend })
-export const leaveBucket = (bucket: string) => call<void>('leave_vault_bucket', { bucket })
-export const isLimit = (err: unknown) => !!(err as { limit?: boolean })?.limit
+// Sharing, unsharing and leaving change my shares and stars, so they're brain actions (src/vault/actions.ts).
+export const vaultPeople = () => serverList<VaultPerson>('vault_people')

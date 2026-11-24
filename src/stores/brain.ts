@@ -7,7 +7,7 @@ import { ref, shallowRef } from 'vue'
 import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
 import type { EventRow, PostItColor, PostItRow, QuestRow, Remote, RowTypes, SyncStatus, SyncTable, TaskRow } from '@/sync/types'
-import { removeWithUndo, type ActionContext, type Undo } from '@/sync/actions'
+import { onServerWith, removeWithUndo, type ActionContext, type Undo } from '@/sync/actions'
 import { habitActions } from '@/habits/actions'
 import { routineActions } from '@/routines/actions'
 import { journalActions } from '@/journal/actions'
@@ -19,6 +19,8 @@ import { trophyActions } from '@/trophies/actions'
 import { trophyKeeper } from '@/trophies/keeper'
 import { WORK_MS } from '@/focus/timer'
 import { vaultActions } from '@/vault/actions'
+import { eventServerActions } from '@/events/actions'
+import { connectionActions } from '@/connections/actions'
 import { dropLostBuckets } from '@/vault/sharing'
 import { priorityActions } from '@/reminders/actions'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
@@ -189,11 +191,16 @@ export const useBrainStore = defineStore('brain', () => {
     return true
   }
 
+  /** SPEC §7 Catching up: upload what's queued, then download everything that changed. */
+  async function syncNow() {
+    await ready().engine.sync()
+  }
+
   const ready = () => {
     if (!engine.value || !userId.value || !db.value) throw new Error('Not signed in')
     return { engine: engine.value, uid: userId.value, local: db.value }
   }
-  const ctx: ActionContext = { ready, habitsReady, badgesReady }
+  const ctx: ActionContext = { ready, habitsReady, badgesReady, onServer: onServerWith(ready) }
   const habits = habitActions(ctx)
   const routines = routineActions(ctx, habits.completeHabit)
   const journal = journalActions(ctx)
@@ -204,6 +211,8 @@ export const useBrainStore = defineStore('brain', () => {
   const pinia = getActivePinia()
   const keeper = trophyKeeper({ db, userId, online, habitsReady, badgesReady, syncedCount, trophies: { ...trophies, saveBadge: (kind, now) => useBrainStore(pinia).saveBadge(kind, now) } })
   const vault = vaultActions(ctx)
+  const eventServer = eventServerActions(ctx)
+  const connections = connectionActions(ctx)
   const priority = priorityActions(ctx, habits.toggleHabit, saveTask)
 
   // ---------- Capture, tasks and quests (SPEC §5 Quick capture, Tasks, Random Quest) ----------
@@ -385,13 +394,6 @@ export const useBrainStore = defineStore('brain', () => {
     return e.save('events', { ...row, title: row.title.trim(), user_id: uid })
   }
 
-  /** Fetch the latest from the server for some tables (after a server function changed them). */
-  async function refresh(tables: SyncTable[]) {
-    const { engine: e } = ready()
-    await e.flush()
-    await e.pull(tables)
-  }
-
   return {
     // Signed-in state and syncing
     db,
@@ -406,7 +408,7 @@ export const useBrainStore = defineStore('brain', () => {
     applyDataReset,
     uploadBeforeSignOut,
     forgetDevice,
-    refresh,
+    syncNow,
     // Any row with no rules of its own
     save,
     remove,
@@ -449,5 +451,8 @@ export const useBrainStore = defineStore('brain', () => {
     savePostIt,
     savePeople,
     saveEvent,
+    // Server calls that change my events, invitations and connections (online only)
+    ...eventServer,
+    ...connections,
   }
 })

@@ -1,5 +1,5 @@
 // SPEC §5 Focus timer, the quiet room: the server calls. Only anonymous dots ever come back.
-import { supabase } from '@/lib/supabase'
+import { serverCall } from '@/server/server'
 import type { FocusPhase } from '@/focus/timer'
 
 /** At most this many dots come back, however many are focusing (SPEC §5 Focus timer: kept small and calm). */
@@ -26,19 +26,18 @@ interface Answer {
 /** Check in with my current part and see the room. */
 export async function checkIn(part: { phase: FocusPhase; endsAt: number }): Promise<Room> {
   const args = { p_phase: part.phase, p_ends_at: new Date(part.endsAt).toISOString() }
-  const { data, error } = await supabase.rpc('focus_room', args)
+  const data = await serverCall<Partial<Answer> | null>('focus_room', args)
   const now = Date.now()
-  if (error) throw new Error(error.message)
-  const a = (data ?? {}) as Partial<Answer>
+  const a = data ?? {}
   return {
     dots: (a.dots ?? []).slice(0, MAX_DOTS).map((d) => ({ id: d.id, endsAt: now + d.s * 1000 })),
     together: !!a.together,
   }
 }
 
-/** Leave the room (the timer stopped). */
+/** Leave the room (the timer stopped). If it fails, my dot fades by itself when my part's time is up. */
 export async function leave(): Promise<void> {
-  await supabase.rpc('focus_leave')
+  await serverCall('focus_leave').catch(() => {})
 }
 
 /** Where a dot sits, as percentages of the screen: from its id, on a ring around the time so it never covers it. */

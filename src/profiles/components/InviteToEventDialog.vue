@@ -34,7 +34,6 @@ import { useRouter } from 'vue-router'
 import CloseX from '@/components/CloseX.vue'
 import { useToday } from '@/composables/useToday'
 import { startEventWith } from '@/events/startWith'
-import { invitePeople } from '@/events/sharing'
 import { inviteChoices, type InviteChoice } from '@/profiles/rules'
 import { messages } from '@/messages'
 import { useBrainStore } from '@/stores/brain'
@@ -72,10 +71,9 @@ async function send() {
   sending.value = true
   error.value = ''
   try {
-    await invitePeople(choice.event.id, [{ user_id: props.friendId, name: props.name }])
+    await brain.invitePeople(choice.event.id, [{ user_id: props.friendId, name: props.name }])
     status.value = m.sent(props.name, choice.event.title)
     emit('invited', choice.event.id)
-    await brain.refresh(['event_invites'])
   } catch {
     error.value = m.failed
   } finally {

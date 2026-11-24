@@ -33,8 +33,15 @@ export default defineConfigWithVueTs(
         { selector: "ImportDeclaration[source.value='@/composables/useLiveQuery']", message: 'Read rows with useRows, useRow or useDeviceQuery (src/sync/useRows.ts).' },
         // CODING_STANDARDS §3: only actions say I finished something (after saving it), so nothing kept depends on a screen.
         { selector: "ImportDeclaration[source.value='@/celebrate/bus'] ImportSpecifier[imported.name='achieved']", message: 'Say it from the action that saves it (src/<feature>/actions.ts or the brain store), not from a screen.' },
+        // CODING_STANDARDS §3: server functions go through one seam, which refuses offline and says why a call failed.
+        { selector: "CallExpression[callee.property.name='rpc']", message: 'Call the server through src/server/server.ts (a brain action when it changes my tables), not supabase.rpc.' },
       ],
     },
+  },
+  {
+    files: ['src/**/*.ts'],
+    ignores: ['src/tests/**', 'src/server/server.ts'],
+    rules: { 'no-restricted-syntax': ['error', { selector: "CallExpression[callee.property.name='rpc']", message: 'Call the server through src/server/server.ts (a brain action when it changes my tables), not supabase.rpc.' }] },
   },
   {
     // writing-tests skill "Make them deterministic": a fixed wait passes on a fast machine and fails on a busy one (a

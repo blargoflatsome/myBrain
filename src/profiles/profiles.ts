@@ -1,5 +1,5 @@
 // SPEC §5 Profiles: a connection's profile comes from one server function that checks we're connected.
-import { supabase } from '@/lib/supabase'
+import { serverList } from '@/server/server'
 import type { ProfileBadge } from '@/profiles/rules'
 
 export interface PersonProfile {
@@ -20,15 +20,11 @@ export interface ProfileBucket {
 
 /** The buckets they chose to show, A to Z; empty when we aren't connected. */
 export async function connectionVault(friend: string): Promise<ProfileBucket[]> {
-  const { data, error } = await supabase.rpc('connection_vault', { friend })
-  if (error) throw new Error(error.message)
-  return ((data as ProfileBucket[] | null) ?? []).map((b) => ({ ...b, items: b.items ?? [] }))
+  return (await serverList<ProfileBucket>('connection_vault', { friend })).map((b) => ({ ...b, items: b.items ?? [] }))
 }
 
 /** Their profile, or null when we aren't connected (or either blocked the other). */
 export async function connectionProfile(friend: string): Promise<PersonProfile | null> {
-  const { data, error } = await supabase.rpc('connection_profile', { friend })
-  if (error) throw new Error(error.message)
-  const row = (data as PersonProfile[] | null)?.[0]
+  const row = (await serverList<PersonProfile>('connection_profile', { friend }))[0]
   return row ? { ...row, badges: row.badges ?? [], invited_events: row.invited_events ?? [] } : null
 }

@@ -1,5 +1,5 @@
 // SPEC §5 Cheers: the server calls. They never return who wrote a post or who reacted.
-import { supabase } from '@/lib/supabase'
+import { serverCall as call, serverList as list } from '@/server/server'
 import type { CheerKind, Reaction } from '@/cheers/rules'
 import { achieved } from '@/celebrate/bus'
 import { useBrainStore } from '@/stores/brain'
@@ -18,16 +18,7 @@ export interface CheerPost {
   celebrate: number | null
 }
 
-/** Why a call failed, for the message shown. */
-export type CheerError = 'limit' | 'failed'
-
-async function call<T>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
-  const { data, error } = await supabase.rpc(fn, args)
-  if (error) throw Object.assign(new Error(error.message), { reason: (error.code === 'P0429' ? 'limit' : 'failed') as CheerError })
-  return data as T
-}
-
-export const cheerFeed = async () => (await call<CheerPost[] | null>('cheer_feed')) ?? []
+export const cheerFeed = () => list<CheerPost>('cheer_feed')
 export const postCheer = (kind: CheerKind, body = '') => call<string>('post_cheer', { p_kind: kind, p_body: body })
 /** True if it was saved; false if I already have one (take it back first). */
 export const reactCheer = (post: string, reaction: Reaction) => call<boolean>('react_cheer', { post, p_reaction: reaction })
@@ -59,8 +50,7 @@ export interface HiddenPerson {
   post_body: string | null
   created_at: string
 }
-export const hiddenPeople = async () => (await call<HiddenPerson[] | null>('cheer_hidden')) ?? []
+export const hiddenPeople = () => list<HiddenPerson>('cheer_hidden')
 export const showAgain = (hide: string) => call<void>('cheer_unhide', { hide })
 export const stuckCount = async () => (await call<number | null>('cheer_stuck_count')) ?? 0
 export const amStuck = async () => !!(await call<boolean | null>('cheer_am_stuck'))
-export const reasonOf = (err: unknown): CheerError => ((err as { reason?: CheerError })?.reason === 'limit' ? 'limit' : 'failed')

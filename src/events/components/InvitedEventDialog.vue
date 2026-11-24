@@ -68,8 +68,9 @@ import RichNotes from '@/components/RichNotes.vue'
 import { dayTimeLabel } from '@/ui/dates'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
-import { messageEvent, respondToInvite } from '@/events/sharing'
-import { connectViaEvent, eventAttendees, setEventVisibility, type Attendee } from '@/connections/connections'
+import { messageEvent } from '@/events/sharing'
+import { sayWhy } from '@/server/server'
+import { eventAttendees, setEventVisibility, type Attendee } from '@/connections/connections'
 import { messages } from '@/messages'
 import type { EventInviteRow, EventRow } from '@/sync/types'
 import { checkbox, choice, smallButton, warningOutline } from '@/ui/styles'
@@ -119,7 +120,13 @@ async function loadAttendees() {
 }
 async function connectTo(a: Attendee) {
   if (!props.event || !a.user_id) return
-  await connectViaEvent(props.event.id, a.user_id)
+  error.value = ''
+  try {
+    await brain.connectViaEvent(props.event.id, a.user_id)
+  } catch (err) {
+    error.value = sayWhy(err, { offline: c.offline, limit: c.askLimit, failed: c.failed })
+    return
+  }
   attendeeStatus.value = c.requestSent(a.display_name)
   await loadAttendees()
 }
@@ -133,11 +140,10 @@ async function respond(a: 'yes' | 'maybe' | 'no') {
   if (!props.invite) return
   error.value = ''
   try {
-    await respondToInvite(props.invite.id, a)
+    await brain.respondToInvite(props.invite.id, a)
     answer.value = a
-    await brain.refresh(['event_invites'])
   } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err)
+    error.value = sayWhy(err, { offline: m.answerOffline, limit: m.answerFailed, failed: m.answerFailed })
   }
 }
 async function send() {
@@ -148,7 +154,7 @@ async function send() {
     text.value = ''
     notice.value = m.sent
   } catch (err) {
-    error.value = err instanceof Error ? err.message : String(err)
+    error.value = sayWhy(err, { offline: m.answerOffline, limit: m.messageLimit, failed: m.answerFailed })
   }
 }
 </script>

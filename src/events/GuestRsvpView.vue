@@ -81,6 +81,7 @@ import { useAuthStore } from '@/stores/auth'
 import { guestInvite, guestMessage, guestOptOut, guestRespond, whenText, type GuestInvite } from '@/events/sharing'
 import { downloadIcs } from '@/events/ics'
 import { messages } from '@/messages'
+import { sayWhy } from '@/server/server'
 import { fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
 
 const route = useRoute()
@@ -133,7 +134,14 @@ async function acceptAsMe() {
   if (await claimGuestInvite(invite.value, token.value).catch(() => false)) claim.value = 'claimed'
 }
 async function connectHost() {
-  await guestConnectWithHost(invite.value, token.value)
+  error.value = ''
+  try {
+    await guestConnectWithHost(invite.value, token.value)
+  } catch (err) {
+    const c = messages.connections
+    error.value = sayWhy(err, { offline: c.offline, limit: c.askLimit, failed: c.failed })
+    return
+  }
   offer.value = false
   connectNote.value = m.connectSent(host.value)
 }

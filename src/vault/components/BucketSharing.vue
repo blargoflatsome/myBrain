@@ -43,7 +43,8 @@ import { myConnections, type Connection } from '@/connections/connections'
 import { useBrainStore } from '@/stores/brain'
 import { useCelebrateStore } from '@/stores/celebrate'
 import type { VaultBucketRow, VaultShareRow } from '@/sync/types'
-import { isLimit, SHARE_LIMIT, shareBucket, unshareBucket } from '@/vault/sharing'
+import { SHARE_LIMIT } from '@/vault/sharing'
+import { sayWhy } from '@/server/server'
 import { useVaultPeople } from '@/vault/useVaultPeople'
 import { rowAction } from '@/ui/styles'
 import { messages } from '@/messages'
@@ -69,18 +70,17 @@ const name = (person: string) => connections.value.find((c) => c.friend_id === p
 
 // The button pressed moves or goes away: keep focus in this part of the window (WCAG 2.4.3).
 async function changed() {
-  await brain.refresh(['vault_shares'])
   await people.load()
   root.value?.focus()
 }
 async function share(c: Connection) {
   busy.value = true
   try {
-    await shareBucket(props.bucket.id, c.friend_id)
+    await brain.shareBucket(props.bucket.id, c.friend_id)
     await changed()
     celebrate.say(m.shared(c.display_name))
   } catch (err) {
-    celebrate.say(isLimit(err) ? m.shareLimit : m.shareFailed)
+    celebrate.say(sayWhy(err, { offline: m.shareFailed, limit: m.shareLimit, failed: m.shareFailed }))
   } finally {
     busy.value = false
   }
@@ -89,7 +89,7 @@ async function unshare(person: string) {
   const who = name(person)
   busy.value = true
   try {
-    await unshareBucket(props.bucket.id, person)
+    await brain.unshareBucket(props.bucket.id, person)
     await changed()
     celebrate.say(m.unshared(who))
   } catch {

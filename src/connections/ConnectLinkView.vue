@@ -19,6 +19,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { previewLink, useLink, type LinkOwner } from '@/connections/connections'
+import { sayWhy } from '@/server/server'
 import { messages } from '@/messages'
 import { primaryButton } from '@/ui/styles'
 
@@ -33,12 +34,18 @@ onMounted(async () => {
   try {
     who.value = (await previewLink({ token }))[0] ?? null
   } catch (e) {
-    problem.value = e instanceof Error ? e.message : String(e)
+    problem.value = sayWhy(e, { offline: m.offline, limit: m.triesLimit, failed: m.failed })
   }
   state.value = who.value ? 'ready' : 'gone'
 })
 async function connect() {
-  const result = await useLink({ token }).catch(() => null)
+  let result: string | null = null
+  try {
+    result = await useLink({ token })
+  } catch (e) {
+    // A link that stopped working answers nothing; only a limit or no connection is worth saying.
+    problem.value = sayWhy(e, { offline: m.offline, limit: m.triesLimit, failed: '' })
+  }
   if (!result) return (state.value = 'gone')
   name.value = result
   state.value = 'done'

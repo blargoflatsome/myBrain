@@ -128,13 +128,13 @@ import {
   type ActiveLink,
   type LinkOwner,
   type NewLink,
-  removeConnection,
   requestConnection,
   sentRequests,
   type Connection,
   type IncomingRequest,
   type SentRequest,
 } from '@/connections/connections'
+import { sayWhy } from '@/server/server'
 import { isEmail, isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
 import { momentLabel } from '@/ui/dates'
@@ -177,7 +177,7 @@ async function makeLink() {
     fresh.value = await createLink()
     await load()
   } catch (e) {
-    linkStatus.value = e instanceof Error ? e.message : String(e)
+    linkStatus.value = sayWhy(e, { offline: m.offline, limit: m.linkLimit, failed: m.failed })
   }
 }
 async function copyLink() {
@@ -188,7 +188,11 @@ function shareLink() {
   void navigator.share?.({ title: m.linkHeading, text: `${m.yourCode}: ${fresh.value?.code}`, url: freshUrl.value }).catch(() => {})
 }
 async function cancelOne(id: string) {
-  await cancelLink(id)
+  try {
+    await cancelLink(id)
+  } catch (e) {
+    return (linkStatus.value = sayWhy(e, { offline: m.offline, limit: m.failed, failed: m.failed }))
+  }
   if (fresh.value?.id === id) fresh.value = null
   await load()
 }
@@ -202,11 +206,16 @@ async function findCode() {
     codeOwner.value = (await previewLink({ code: code.value }))[0] ?? null
     if (!codeOwner.value) codeError.value = m.codeGone
   } catch (e) {
-    codeError.value = e instanceof Error ? e.message : String(e)
+    codeError.value = sayWhy(e, { offline: m.offline, limit: m.triesLimit, failed: m.failed })
   }
 }
 async function useCode() {
-  const name = await useLink({ code: code.value }).catch(() => null)
+  let name: string | null = null
+  try {
+    name = await useLink({ code: code.value })
+  } catch (e) {
+    return (codeError.value = sayWhy(e, { offline: m.offline, limit: m.triesLimit, failed: m.codeGone }))
+  }
   if (!name) return (codeError.value = m.codeGone)
   codeOwner.value = null
   code.value = ''
@@ -230,17 +239,28 @@ async function ask() {
     contact.value = ''
     await load()
   } catch (e) {
-    askError.value = e instanceof Error ? e.message : String(e)
+    askError.value = sayWhy(e, { offline: m.offline, limit: m.askLimit, failed: m.failed })
   }
 }
 
+/** Run a change to my requests or connections; a failure shows above the lists, and false means it didn't happen. */
+async function tryIt(change: () => Promise<unknown>): Promise<boolean> {
+  askError.value = ''
+  try {
+    await change()
+    return true
+  } catch (e) {
+    askError.value = sayWhy(e, { offline: m.offline, limit: m.failed, failed: m.failed })
+    return false
+  }
+}
 async function answer(r: IncomingRequest, a: 'accept' | 'decline' | 'block') {
-  await answerRequest(r.id, a)
+  if (!(await tryIt(() => answerRequest(r.id, a)))) return
   askStatus.value = a === 'accept' ? m.accepted(r.display_name) : ''
   await load()
 }
 async function cancel(r: SentRequest) {
-  await cancelRequest(r.id)
+  if (!(await tryIt(() => cancelRequest(r.id)))) return
   await load()
 }
 
@@ -251,8 +271,9 @@ function askEnd(c: Connection, block: boolean) {
   confirmEnd.value?.open()
 }
 async function end() {
-  if (ending.value) await removeConnection(ending.value.c.friend_id, ending.value.block)
+  const e = ending.value
   confirmEnd.value?.close()
+  if (e && !(await tryIt(() => brain.removeConnection(e.c.friend_id, e.block)))) return
   await load()
 }
 </script>
