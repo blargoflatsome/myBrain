@@ -1,6 +1,6 @@
 // Locking my journal (SPEC §5 Locking my journal): turning it on and off, unlocking a device, passkeys, changing
 // the passphrase or recovery key, and starting over.
-import type { ActionContext } from '@/sync/actions'
+import { removeWithUndo, type ActionContext } from '@/sync/actions'
 import type { LocalDb } from '@/sync/db'
 import type { SyncEngine } from '@/sync/engine'
 import type { JournalEntryRow, JournalKeyRow, JournalPasskeyRow } from '@/sync/types'
@@ -132,7 +132,7 @@ export function journalLockActions({ ready }: ActionContext) {
   }
 
   async function removeJournalPasskey(id: string) {
-    await ready().engine.remove('journal_passkeys', id)
+    return removeWithUndo(ready, 'journal_passkeys', [id])
   }
 
   /** Remove the lock and its passkeys, then forget this device's key. */

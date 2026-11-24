@@ -52,11 +52,25 @@ describe('Spec §5: Decide later, then sort it when I have time', () => {
     brain.start(`u-${crypto.randomUUID()}`, remote)
     const one = await brain.capture({ text: 'first', destination: 'later' })
     const two = await brain.capture({ text: 'second', destination: 'later' })
-    const emptied = async () => (await brain.db!.activity_log.toArray()).filter((a) => a.kind === 'orphans_cleared').length
+    const emptied = async () => (await brain.db!.activity_log.toArray()).filter((a) => a.kind === 'orphans_cleared' && !a.deleted_at).length
 
     await brain.removeOrphan(one.row.id)
     expect(await emptied()).toBe(0)
     await brain.removeOrphan(two.row.id)
+    expect(await emptied()).toBe(1)
+  })
+
+  it('SPEC §2 Undo puts back everything the delete did: Undo on the last orphan takes back the emptied-Orphans count', async () => {
+    const brain = useBrainStore()
+    brain.start(`u-${crypto.randomUUID()}`, remote)
+    const only = await brain.capture({ text: 'only one', destination: 'later' })
+    const emptied = async () => (await brain.db!.activity_log.toArray()).filter((a) => a.kind === 'orphans_cleared' && !a.deleted_at).length
+
+    const undo = await brain.removeOrphan(only.row.id)
+    await undo()
+    expect(await brain.db!.inbox.get(only.row.id)).toMatchObject({ body: 'only one', deleted_at: null })
+    expect(await emptied()).toBe(0)
+    await brain.removeOrphan(only.row.id)
     expect(await emptied()).toBe(1)
   })
 })

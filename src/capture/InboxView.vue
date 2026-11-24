@@ -9,7 +9,7 @@
     <p v-else-if="!current" class="text-muted">{{ m.empty }}</p>
 
     <!-- SPEC §5 Orphans: one at a time, oldest first, like the routine run screen. -->
-    <section v-else :key="current.id" class="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4" :aria-label="m.cardLabel" data-testid="orphan-card">
+    <section v-else :key="current.id" class="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4" :aria-label="m.cardLabel" tabindex="-1" data-testid="orphan-card">
       <div class="flex items-center justify-between gap-3">
         <p class="text-sm text-muted" role="status" data-testid="orphan-position">{{ m.position(index + 1, queue.length) }}</p>
         <RowDelete :label="m.deleteLabel" @click="remove(current)" />
@@ -27,7 +27,8 @@
 <script setup lang="ts">
 // SPEC §5 Orphans: things saved with "Decide later" wait here, shown one at a time until I file, delete or skip them.
 import { useRows } from '@/sync/useRows'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
+import { untilShown } from '@/a11y/focus'
 import AppIcon from '@/components/AppIcon.vue'
 import RowDelete from '@/components/RowDelete.vue'
 import DestinationPicker from '@/capture/components/DestinationPicker.vue'
@@ -64,9 +65,22 @@ async function file(item: InboxRow, choice: Omit<CaptureInput, 'text'>) {
 
 async function remove(item: InboxRow) {
   const last = queue.value.length === 1
-  await brain.removeOrphan(item.id)
+  const putBack = await brain.removeOrphan(item.id)
   if (last) sortedAll.value = true
-  undo.offer(messages.undo.deleted(preview(item.body)), () => brain.restore('inbox', item.id))
+  let undone = false
+  const undoDelete = async () => {
+    undone = true
+    await putBack()
+  }
+  undo.offer(messages.undo.deleted(preview(item.body)), undoDelete, { focusAfter: () => cardShown(undone ? item.id : null) })
+}
+
+/** Where keyboard focus lands once the Undo bar closes: the card now shown (the heading once all are sorted). */
+async function cardShown(broughtBack: string | null) {
+  // After Undo, the orphan comes back through the device database a moment later.
+  if (broughtBack) await untilShown(() => queue.value.some((o) => o.id === broughtBack))
+  await nextTick()
+  return document.querySelector<HTMLElement>('[data-testid="orphan-card"]')
 }
 
 /** The start of an orphan's text, for the Undo bar. */

@@ -40,12 +40,15 @@ test.describe('Spec §5 Orphans: one at a time', () => {
     await expect.poll(() => server.written('inbox').find((r) => r.id === 'i1')?.deleted_at).toBeTruthy()
   })
 
-  test('the trash can deletes it with Undo', async ({ page }) => {
+  test('the trash can deletes it with Undo; from the keyboard, Undo lands on the card brought back (SPEC §2)', async ({ page }) => {
     await page.goto('/orphans')
-    await page.getByRole('button', { name: msg.inbox.deleteLabel }).click()
+    await page.getByRole('button', { name: msg.inbox.deleteLabel }).focus()
+    await page.keyboard.press('Enter')
     await expect(body(page)).toHaveText('middle idea')
-    await page.getByRole('button', { name: msg.undo.undo, exact: true }).click()
+    await expect(page.getByTestId('undo-button')).toBeFocused()
+    await page.keyboard.press('Enter')
     await expect(body(page)).toHaveText('oldest idea')
+    await expect(page.getByTestId('orphan-card')).toBeFocused()
     await expect.poll(() => server.written('inbox').filter((r) => r.id === 'i1').at(-1)?.deleted_at).toBeNull()
   })
 })

@@ -54,7 +54,8 @@ file says *how* the code is written.
 | Formatted text | `NotesEditor.vue` for notes fields, `RichTextEditor.vue` for the journal and Post Its; `cleanHtml()` to show |
 | Dates typed by people | `DateInput.vue` (type or pick on a computer, the device picker on a phone) |
 | Times typed by people | `TimeInput.vue` (type or pick on a computer, the device picker on a phone) |
-| Reading and writing a row with no rules of its own | `brain.save(table, row)`, `brain.remove(table, id)`, `brain.restore(table, id)` |
+| Reading and writing a row with no rules of its own | `brain.save(table, row)`, `brain.remove(table, id)` / `brain.removeMany(table, ids)`. A delete returns its Undo, passed straight to `undo.offer`; a delete that does more than remove the row (counts, links) is its own action whose Undo takes all of it back (`removeOrphan`, `deleteTag`) |
+| The Undo bar | `useUndoStore().offer(message, undo, { focusAfter })`: done from the keyboard it takes focus; `focusAfter` says where focus lands when it closes (the page heading if not given) |
 | Security helpers | `src/security/`, `src/notifications/pushEndpoints.ts` |
 | Search listing and link previews | `src/seo/` (tags, sitemap, canonical, Page not found); `build/seo.ts` adds them at build; a new route also needs a line in `netlify.toml` |
 

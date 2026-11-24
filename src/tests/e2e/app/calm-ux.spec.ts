@@ -49,6 +49,22 @@ test.describe('Spec §2: one thing goes straight away, with Undo', () => {
     await expect(bar(page).getByRole('button', { name: msg.undo.undo })).toHaveCount(0)
   })
 
+  test('deleted from the keyboard, focus moves to Undo; Escape closes the bar and focus goes to the heading; a click leaves focus alone', async ({ page }) => {
+    server.seed('tasks', [task('t1', 'pay rent'), task('t2', 'buy milk')])
+    await open(page, '/tasks')
+    await page.getByRole('button', { name: msg.tasks.deleteLabel('pay rent') }).click()
+    await expect(bar(page).getByRole('button', { name: msg.undo.undo })).toBeVisible()
+    await expect(bar(page).getByRole('button', { name: msg.undo.undo })).not.toBeFocused()
+
+    await page.getByRole('button', { name: msg.tasks.deleteLabel('buy milk') }).focus()
+    await page.keyboard.press('Enter')
+    await expect(bar(page).getByRole('button', { name: msg.undo.undo })).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(bar(page).getByRole('button', { name: msg.undo.undo })).toHaveCount(0)
+    await expect(page.getByRole('heading', { level: 1 })).toBeFocused()
+    await expect(page.getByTestId('task-title')).toHaveCount(0)
+  })
+
   test('Clear crossed-off can be undone', async ({ page }) => {
     server.seed('tasks', [task('t1', 'pay rent', { status: 'done', completed_at: '2026-11-10T14:00:00Z' })])
     await open(page, '/tasks')

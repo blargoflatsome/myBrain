@@ -17,10 +17,12 @@ export function trophyActions({ ready, badgesReady }: ActionContext) {
     return true
   }
 
-  /** Record something the app didn't keep before: a finished Focus session, a capture, emptying Orphans. */
+  /** Record something the app didn't keep before: a finished Focus session, a capture, emptying Orphans. Returns the row's id. */
   async function logActivity(kind: ActivityKind, detail: ActivityLogRow['detail'] = {}, now = new Date()) {
     const { engine: e, uid } = ready()
-    await e.save('activity_log', { id: crypto.randomUUID(), user_id: uid, kind, at: now.toISOString(), detail, deleted_at: null })
+    const id = crypto.randomUUID()
+    await e.save('activity_log', { id, user_id: uid, kind, at: now.toISOString(), detail, deleted_at: null })
+    return id
   }
 
   /** Raise a trophy to a level (never lower), keeping the day each level was earned. Returns whether it rose. */

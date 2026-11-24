@@ -222,9 +222,9 @@ async function saveTask(t: TaskRow) {
   editingTask.value = null
 }
 async function deleteTask(t: TaskRow) {
-  await brain.remove('tasks', t.id)
+  const putBack = await brain.remove('tasks', t.id)
   editingTask.value = null
-  undo.offer(messages.undo.deleted(t.title), () => brain.restore('tasks', t.id))
+  undo.offer(messages.undo.deleted(t.title), putBack)
 }
 const undo = useUndoStore()
 
@@ -319,10 +319,10 @@ function cancelled(targets: ShareTarget[]) {
   }
 }
 async function deleteEvent(e: EventRow, confirmed = false) {
-  await brain.remove('events', e.id)
+  const putBack = await brain.remove('events', e.id)
   editing.value = null
   // Without guests it went straight away, so it can come back (SPEC §2 Undo).
-  if (!confirmed) undo.offer(messages.undo.deleted(e.title), () => brain.restore('events', e.id))
+  if (!confirmed) undo.offer(messages.undo.deleted(e.title), putBack)
 }
 
 // Opened with ?date= (a reminder or search) and maybe ?event= (search): go there and open the event.

@@ -81,8 +81,7 @@ const lockDialog = ref<InstanceType<typeof JournalLockDialog> | null>(null)
 const confirmStartOver = ref<InstanceType<typeof TypeToConfirmDialog> | null>(null)
 
 async function removePasskey(p: JournalPasskeyRow) {
-  await brain.removeJournalPasskey(p.id)
-  undo.offer(messages.undo.removed(p.name), () => brain.restore('journal_passkeys', p.id))
+  undo.offer(messages.undo.removed(p.name), await brain.removeJournalPasskey(p.id))
 }
 
 function startOver() {

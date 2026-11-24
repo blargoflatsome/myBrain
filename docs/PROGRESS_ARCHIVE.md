@@ -4,6 +4,10 @@ Older history moved out of `PROGRESS.md` on 2026-11-10 to keep session start-up 
 
 Newest first from here on, up to the next "Step 1" heading; below that, oldest first.
 
+## Deletes return their own Undo (merged via PR, branch `undo-from-deletes`)
+- Architecture review 2, candidate 2 (`docs/ARCHITECTURE_REVIEW_TASKS.md`; DECISIONS 2026-11-24 "Deletes return their own Undo"). `brain.remove` / `removeMany` return their Undo (`removeWithUndo` in `src/sync/actions.ts`); `brain.restore` is gone, so the type checker stops screens using it. `removeOrphan`'s Undo takes back the emptied-Orphans count (fixes Orphan wrangler inflating on delete → Undo → delete). Post Its use the shared Undo bar. A delete done from the keyboard moves focus to Undo, Escape closes it, focus then lands on the page heading or the Post It / Orphan card shown (`focusAfter`); Cheers' Share offer too.
+- Tests: Orphan Undo case in `unit/sync/brain.test.ts` (fails without the fix); keyboard focus and Escape in `e2e/app/calm-ux.spec.ts`; Post It and Orphans keyboard Undo. Full review passed (Vitest 496, Playwright 832). Help: an Undo step in Getting around; pictures unchanged.
+
 ## Escape leaves full screen writing (merged via PR, branch `fix-fullscreen-escape-flake`)
 - **Bug:** Escape pressed while the writing had focus never closed full screen (or the Capture window): the editor (ProseMirror) cancels every Escape keydown, so the window never heard it. Every browser. The iPhone a11y test flaked (about 1 in 20) because Tab only sometimes left focus on the writing there.
 - **Fix:** `RichTextEditor.vue` tells the editor to leave Escape alone. The a11y test now presses Escape straight after typing (it failed on desktop and iPhone before the fix). 40 iPhone repeats and the full review pass. Help unchanged.
