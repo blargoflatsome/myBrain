@@ -4,6 +4,10 @@ Older history moved out of `PROGRESS.md` on 2026-11-10 to keep session start-up 
 
 Newest first from here on, up to the next "Step 1" heading; below that, oldest first.
 
+## One owner for the signed-in session (merged via PR, branch `session-lifecycle`)
+- Architecture review 2, candidate 4 (DECISIONS 2026-11-24 "One owner for the signed-in session"). `src/stores/session.ts` (begin, data-reset check, sign out, Delete My Account with rollback, Delete my data); `src/session/adapter.ts` (Supabase sign-in, profile row, sync Remote, push; fake in `tests/support/fakeSession.ts`); App.vue and AccountView only route; the two deletes use the server seam. Bug fixed: Delete My Account also clears what the app remembered on the device.
+- Tests: `unit/session/session.test.ts` (5, each red with its line broken). Code review found nothing. Full review passed before merge.
+
 ## Server calls behind one seam (merged via PR, branch `server-seam`)
 - Architecture review 2, candidate 3 (DECISIONS 2026-11-24 "Server calls behind one seam"; SPEC §7 Things only the server can do). `src/server/server.ts` (offline refused before trying, `ServerError` reasons, `sayWhy`); `onServer` in `src/sync/actions.ts` flushes, calls, pulls the tables changed; brain actions for invites, cancel, drop out, answers, guest links, connections and Vault sharing (`brain.refresh` removed, `brain.syncNow` added); lint stops `supabase.rpc` outside the seam (Account's two deletes left for candidate 4). Migration `20261124120000_limit_error_code.sql`: limits raise P0429 so screens name them (dev and prod). Code review: every failing connect, request, link and invitee call now says why.
 - Tests: `unit/server/server.test.ts` with `support/fakeServer.ts` (invite uploads my event first and shows invitations, cancel, leave bucket, offline not tried; each fails with its line broken); e2e: a server limit is named. `test:db` 36/36 on dev. Full review passed (Vitest 508, browser 833 on desktop, Android, iPhone).
