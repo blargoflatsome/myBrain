@@ -25,7 +25,7 @@ export default defineConfig({
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
     // Spec §3: test a phone-sized screen. Android is the target phone.
     { name: 'android-phone', use: { ...devices['Pixel 7'] }, grep: phoneOnly },
-    // Spec §10 Phase 3: also run as an iPhone, on Safari's engine (WebKit).
+    // Spec §10 iPhone: also run as an iPhone, on Safari's engine (WebKit).
     // Its service worker is off: on WebKit, requests through a service worker skip Playwright's stand-in server.
     { name: 'iphone', use: { ...devices['iPhone 14'], serviceWorkers: 'block' }, grep: phoneOnly },
   ],

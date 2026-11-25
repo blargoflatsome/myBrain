@@ -507,3 +507,7 @@ The fourth `/improve-codebase-architecture` pass (`docs/ARCHITECTURE_REVIEW_TASK
 
 ## 2026-11-25 Claude runs the SQL checks
 - **Decided (user):** Claude runs `npm run test:db` itself, after a migration goes to dev and at merge when migrations changed, and reports any failure with a proposed fix. CLAUDE.md said only the user ran it, though the user had asked on 2026-11-06 for Claude to run it without asking. It runs only against dev, and every check rolls back.
+
+## 2026-11-25 Dropped plans and checks
+- **Decided (user):** forget the wording checks (every draft and placeholder line in `messages.ts` stays as it is), the checks on a real phone, the guest poll ("When can you come?"), further iPhone work and Discord server invites. Download my data leaving out Cheers posts is fine.
+- **In the spec:** the guest poll and Discord invites are gone from §10 and the build order. The iPhone section stays as a record of how the installed web app works on iPhone (built 2026-11-08), with no App Store app and no real-iPhone checks. §8 says Download my data leaves out Cheers posts.

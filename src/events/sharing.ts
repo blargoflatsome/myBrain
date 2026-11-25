@@ -87,7 +87,7 @@ export function inviteLink(inviteId: string, token: string, origin: string = win
 
 /** Open my messaging app (texts) or email app with one person's message ready. */
 export function shareHref(t: Pick<ShareTarget, 'email' | 'phone' | 'subject' | 'body'>, ios: boolean = isIOS()): string | null {
-  // iPhones only fill in the text when the link is written sms:NUMBER&body= (SPEC §10 Phase 3).
+  // iPhones only fill in the text when the link is written sms:NUMBER&body= (SPEC §10 iPhone).
   if (t.phone) return `sms:${t.phone.replace(/[^\d+]/g, '')}${ios ? '&' : '?'}body=${encodeURIComponent(t.body)}`
   if (t.email) return `mailto:${encodeURIComponent(t.email)}?subject=${encodeURIComponent(t.subject)}&body=${encodeURIComponent(t.body)}`
   return null
