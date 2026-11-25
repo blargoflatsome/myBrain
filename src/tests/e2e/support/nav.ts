@@ -3,6 +3,9 @@ import { expect, type Page } from '@playwright/test'
 /** The main navigation that's showing: the bottom tabs on a phone, the side menu on a wider screen. */
 export const mainNav = (page: Page) => page.locator('nav[aria-label="Main"]:visible')
 
+
+/** I'm on this page. Matches the path alone, so `/welcome?next=/habits` isn't taken for /habits. */
+export const expectPath = (page: Page, path: string) => expect(page).toHaveURL((url) => url.pathname === path)
 /**
  * Go to a page the way a person would (SPEC §2 Navigation): a tab or side-menu link, or under More; the Dashboard
  * is "My Brain".

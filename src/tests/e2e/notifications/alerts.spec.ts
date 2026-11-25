@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -67,7 +68,7 @@ test.describe('Spec §6 In-app alerts: the bell', () => {
     await expect(page.getByTestId('alerts-bell').first()).toHaveAccessibleName('Alerts, 2 new')
     await page.getByTestId('alerts-bell').first().click()
     await page.getByRole('dialog', { name: msg.alerts.heading }).getByRole('button', { name: /^New Take meds/ }).click()
-    await expect(page).toHaveURL(/\/habits$/)
+    await expectPath(page, '/habits')
     await expect.poll(() => lastWrite('notifications')).toMatchObject({ id: 'n1', read_at: expect.any(String) })
     await expect(page.getByTestId('alerts-bell').first()).toHaveAccessibleName('Alerts, 1 new')
   })
@@ -129,7 +130,7 @@ test.describe('Spec §6 In-app alerts: the banner', () => {
     server.seed('notifications', [note('n2', 'Dev Bob wants to connect', '2026-11-10T14:00:00Z', { kind: 'connection_request', url: '/connections' })])
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
     await page.getByTestId('alert-banner').getByRole('button', { name: /Dev Bob wants to connect/ }).click()
-    await expect(page).toHaveURL(/\/connections$/)
+    await expectPath(page, '/connections')
     await expect.poll(() => lastWrite('notifications')).toMatchObject({ id: 'n2', read_at: expect.any(String) })
   })
 })

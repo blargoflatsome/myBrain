@@ -474,3 +474,10 @@ Candidate 9 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. `DateInput` and `TimeInput` 
 - **A small composable, not one picker:** `src/composables/useTypedField.ts` holds the shared steps; each field keeps its own list or grid and keys, as they differ.
 - **An emptied box means none, unless the field is required:** then it goes back to the saved one (SPEC §5 Time fields and Date fields).
 - **Tests:** one Vitest table run against both fields (typed value used at once, not-a-value goes back, emptied optional gives none, emptied required keeps the saved one); the list and grid keys stay covered by the browser tests.
+
+## 2026-11-24 Retro: review per stacked branch, tests for review fixes, path checks
+From the retro of the architecture review 3 session.
+- **Review fixes get tests:** the merge review found two behaviours the refactors had dropped; they were fixed with no test, so nothing would catch them again. Each bug a review finds now gets a test that fails without the fix (CLAUDE.md).
+- **Stacked branches are reviewed one at a time:** nine branches were reviewed together as one 109-file diff at the end, after later steps had built on the breaks. Each stacked branch now gets `/code-review medium` on its own diff when committed; the merge review then checks the fixes.
+- **Review level:** `/code-review medium` once ran at high; if the header names another level, the agent says so.
+- **Two flakes were test bugs:** `toHaveURL(/\/habits$/)` also matches `/welcome?next=/habits`, so the phone step's test checked the save before it happened (fails 1 in 3 on main). The calm-ux Undo test clicked Tasks while Journal's page code was still loading, so it never left Tasks. `expectPath(page, path)` (`src/tests/e2e/support/nav.ts`) checks the path itself, and a lint rule refuses a `toHaveURL` regex ending in `$` that isn't anchored at the start.

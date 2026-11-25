@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
-import { goTo } from '../support/nav'
+import { goTo, expectPath } from '../support/nav'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
 
@@ -28,7 +28,7 @@ test.describe('Spec §5 Quick capture: the text box first', () => {
     await page.getByRole('button', { name: '+ Capture' }).click()
     const dialog = page.getByRole('dialog', { name: msg.capture.windowLabel })
     await expect(dialog).toBeVisible()
-    await expect(page).toHaveURL(/\/habits$/)
+    await expectPath(page, '/habits')
     await expect(laterBox(page)).toBeFocused()
     await expect(typeGroup(page).getByRole('button')).toHaveText(['Task', 'The Vault', 'Quest', 'Habit', 'Post It', 'Decide later'])
     await expect(typeGroup(page).getByRole('button', { name: msg.capture.destinations.later })).toHaveAttribute('aria-pressed', 'true')
@@ -46,7 +46,7 @@ test.describe('Spec §5 Quick capture: the text box first', () => {
     await expect(typeGroup(page).getByRole('button', { name: msg.capture.destinations.task, exact: true })).toHaveAttribute('aria-pressed', 'true')
     await expect(dialog.getByLabel(msg.capture.titleLabel, { exact: true })).toHaveValue('')
     await expect(dialog.getByLabel(msg.capture.titleLabel, { exact: true })).toBeFocused()
-    await expect(page).toHaveURL(/\/habits$/)
+    await expectPath(page, '/habits')
     await dialog.getByRole('button', { name: msg.capture.close }).click()
     await expect(dialog).toBeHidden()
     await expect(page.getByRole('heading', { name: msg.nav.habits, level: 1 })).toBeVisible()
@@ -265,7 +265,7 @@ test.describe('Spec §3: PWA install, home-screen shortcut, Web Share Target', (
   test('shared text fills the box, and choosing a type splits it into title and notes', async ({ page }) => {
     await page.goto('/capture?title=Great%20recipe&text=https%3A%2F%2Fexample.com%2Fsoup')
     await expect(laterBox(page)).toHaveValue('Great recipe\nhttps://example.com/soup')
-    await expect(page).toHaveURL(/\/capture$/)
+    await expectPath(page, '/capture')
     await typeGroup(page).getByRole('button', { name: msg.capture.destinations.vault }).click()
     await expect(titleBox(page)).toHaveValue('Great recipe')
     await expect(page.getByRole('textbox', { name: msg.capture.notesLabel })).toHaveText('https://example.com/soup')

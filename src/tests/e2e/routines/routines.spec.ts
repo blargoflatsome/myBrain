@@ -4,6 +4,7 @@ import { isSafari } from '../support/devices'
 import { dragHandle } from '../support/drag'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
 const NOW = new Date('2026-11-10T12:00:00Z') // Tue Nov 10, 7:00 am New York
@@ -76,7 +77,7 @@ test.describe('Spec §5 Routines: one step at a time', () => {
     await expect(current(page)).toHaveText('Take medication')
     await page.getByRole('button', { name: msg.routines.run.completed }).click()
     await page.clock.runFor(700)
-    await expect(page).toHaveURL(/\/routines$/)
+    await expectPath(page, '/routines')
     await expect.poll(() => server.written('routine_runs').at(-1)?.finished_at).toBeTruthy()
     await expect(page.getByTestId('routine-status')).toHaveText(msg.routines.doneSkipped(4))
   })
@@ -88,7 +89,7 @@ test.describe('Spec §5 Routines: one step at a time', () => {
       await page.getByRole('button', { name: action, exact: true }).click()
       await page.clock.runFor(700)
     }
-    await expect(page).toHaveURL(/\/routines$/)
+    await expectPath(page, '/routines')
     await page.getByRole('link', { name: msg.routines.resume }).click()
     await expect(page.getByTestId('step-of')).toHaveText(msg.routines.run.skippedOf(1, 2))
     await expect(current(page)).toHaveText('Brush teeth')
@@ -99,7 +100,7 @@ test.describe('Spec §5 Routines: one step at a time', () => {
 
     // Skipping it again ends the pass; Resume stays for the one still skipped.
     await page.getByRole('button', { name: msg.routines.run.skip }).click()
-    await expect(page).toHaveURL(/\/routines$/)
+    await expectPath(page, '/routines')
     await expect(page.getByTestId('routine-status')).toHaveText(msg.routines.doneSkipped(1))
     await page.getByRole('link', { name: msg.routines.resume }).click()
     await expect(current(page)).toHaveText('Skin care')
@@ -325,7 +326,7 @@ test.describe('Spec §5 Routines: run anytime', () => {
     await page.getByRole('link', { name: msg.routines.continue }).click()
     await expect(current(page)).toHaveText('Sweep')
     await page.getByRole('button', { name: msg.routines.run.completed }).click()
-    await expect(page).toHaveURL(/\/routines$/)
+    await expectPath(page, '/routines')
     await expect(page.getByTestId('routine-status')).toHaveText(msg.routines.anytime)
     await page.getByRole('link', { name: msg.routines.start }).click()
     await expect(current(page)).toHaveText('Sort tools')

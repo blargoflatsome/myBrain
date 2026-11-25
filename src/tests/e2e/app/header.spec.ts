@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 // A 1×1 PNG, served as the Google profile picture.
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64')
@@ -36,7 +37,7 @@ test.describe('Spec §2 Header: Account, Focus timer, alerts and sync on every s
     await expect(header.getByTestId('header-avatar')).toBeVisible()
     expect(await header.getByTestId('header-avatar').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(1)
     await header.getByRole('link', { name: msg.header.account }).click()
-    await expect(page).toHaveURL(/\/account$/)
+    await expectPath(page, '/account')
   })
 
   test('Account shows a plain person icon when I have no picture', async ({ page }) => {
@@ -117,7 +118,7 @@ test.describe('Spec §2 Header: Account, Focus timer, alerts and sync on every s
     await page.setViewportSize({ width: 320, height: 640 })
     const header = await open(page, null)
     await header.getByRole('link', { name: msg.header.account }).click()
-    await expect(page).toHaveURL(/\/account$/)
+    await expectPath(page, '/account')
     await header.getByTestId('header-home').click()
     await expect(page.getByRole('heading', { name: msg.dashboard.heading, level: 1 })).toBeVisible()
   })

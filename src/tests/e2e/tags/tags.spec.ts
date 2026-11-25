@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { FakeSupabase } from '../support/fakeSupabase'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 // SPEC §5 Tags page: every tag with what it's on, search by a tag, rename, merge and delete (with Undo).
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -48,7 +49,7 @@ test.describe('Spec §5 Tags page', () => {
   test('is reached from the Account page and lists every tag A to Z with what it is on', async ({ page }) => {
     await open(page, '/account')
     await page.getByTestId('account-tags').getByRole('link', { name: msg.accountGroups.openTags }).click()
-    await expect(page).toHaveURL(/\/tags$/)
+    await expectPath(page, '/tags')
     await expect(page.getByRole('heading', { name: msg.tagsPage.heading, level: 1 })).toBeVisible()
     await expect(page.getByTestId('tag-name')).toHaveText(['#chores', '#house', '#Money', '#someday'])
     await expect(page.getByTestId('tag-counts')).toHaveText(['1 task · 1 habit', '1 task', '1 task', 'Not on anything'])
