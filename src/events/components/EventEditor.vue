@@ -135,6 +135,8 @@ const endTime = ref('10:00')
 const repeat = ref<EventRepeat>('never')
 // Turning All day off fills in a time, so the time boxes are never empty (SPEC §5 Calendar).
 watch(allDay, (on) => {
+  // The end time it refused comes and goes with the time box.
+  endTimeError.clear()
   if (on || startTime.value) return
   startTime.value = nextWholeHour()
   endTime.value = `${String(Math.min(Number(startTime.value.slice(0, 2)) + 1, 23)).padStart(2, '0')}:${startTime.value === '23:00' ? '59' : '00'}`
@@ -233,6 +235,8 @@ const draft = computed<EventRow | null>(() =>
 async function save() {
   const row = draft.value
   if (!row) return
+  // Only this Save's answer shows.
+  for (const f of [titleError, endDateError, endTimeError]) f.clear()
   const problem = eventProblem(row)
   if (problem) {
     // The end date is the problem when it's before the start; otherwise it's the end time on the same day.

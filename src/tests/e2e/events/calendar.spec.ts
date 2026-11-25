@@ -90,6 +90,13 @@ test.describe('Spec §5 Calendar', { tag: '@phone' }, () => {
     await expect(end).toHaveAccessibleDescription(msg.calendar.editor.endError)
     await expectFocused(end)
     expect(server.written('events')).toHaveLength(0)
+    // All day takes the time box away, and its message with it.
+    await dialog.getByRole('checkbox', { name: msg.availability.allDay }).check()
+    await expect(dialog.getByTestId('field-error')).toHaveCount(0)
+    await dialog.getByRole('checkbox', { name: msg.availability.allDay }).uncheck()
+    await end.fill('14:00')
+    await dialog.getByRole('button', { name: msg.capture.save }).click()
+    await expect(end).toHaveAttribute('aria-invalid', 'true')
     // Picking a time from the list changes the field too, so the mark goes. Phones use their own picker (no list).
     if (test.info().project.name === 'desktop-chromium') {
       await end.click()

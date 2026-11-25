@@ -98,6 +98,9 @@ function startEdit(p: PersonRow) {
 }
 async function saveEdit() {
   if (!editing.value) return
+  // A box refused last time may be fine now: only this Save's answer shows.
+  emailError.clear()
+  phoneError.clear()
   const e = email.value.trim().toLowerCase()
   const ph = phone.value.trim()
   if (e && !isEmail(e)) return emailError.refuse(m.badEmail)
@@ -105,8 +108,8 @@ async function saveEdit() {
   if (!e && !ph) return emailError.refuse(m.needOne)
   // Someone else already saved with this email or phone: say so instead of saving them twice.
   const result = await brain.savePerson({ ...editing.value, name: name.value, email: e, phone: ph })
-  // The box they match on is the one to change.
-  if ('twin' in result) return (e && result.twin.email === e ? emailError : phoneError).refuse(m.alreadySaved(personLabel(result.twin)))
+  // The box they match on is the one to change: the email whenever one is typed (contactKey).
+  if ('twin' in result) return (e ? emailError : phoneError).refuse(m.alreadySaved(personLabel(result.twin)))
   if (adding.value) notice.value = m.addedNotice(personLabel(result.saved))
   editor.value?.close()
 }

@@ -60,6 +60,9 @@ watch(
 
 async function save() {
   if (!props.task) return
+  // Only this Save's answer shows.
+  titleError.clear()
+  reminderError.clear()
   if (!title.value.trim()) return titleError.refuse(messages.forms.titleNeeded)
   const due_date = dueDate.value || null
   const reminder_time = checkedReminder({ priority: priority.value, due_date, reminder_time: reminderTime.value }, props.isNew ? null : props.task)
