@@ -41,6 +41,7 @@ file says *how* the code is written.
 | Writing data from screens | `src/stores/brain.ts`, which hands out each feature's actions from `src/<feature>/actions.ts` (so screens import one store and every write goes through the sync queue). Brain itself only signs in and out, syncs and wires the actions together; a new action goes in its feature's `actions.ts` |
 | Signing in and out | `src/stores/session.ts`: `begin()` (once, App.vue) follows sign-in; `signOut`, `deleteAccount`, `deleteMyData` and `checkDataReset` each do the whole job, so screens only show windows and route. Supabase sign-in, my profile row, the sync Remote and push go through `src/session/adapter.ts` (a fake in tests: `src/tests/support/fakeSession.ts`) |
 | My profile (name, picture, settings) | `src/stores/profile.ts` (`load()` once per visit, `update(fields)`); screens use it rather than reading `profiles` themselves (the session's Delete-my-data check reads fresh on purpose) |
+| Saving a setting with its quiet Saved note | `src/composables/useSettingSave.ts`: `saveProfile(fields)` for my profile, `save(run)` for anything else (Pause all streaks); the note says Saved, offline or that it failed, and only the latest save's answer shows |
 | Ids that must match on every device (a day's log, a fixed alert) | `src/sync/ids.ts` (`logIdFor`, `fixedId`) |
 | A clock that ticks (timers running out) | `src/composables/useNow.ts` (`useNow(everyMs)`), next to `useToday` |
 | Reusable screen behaviour | `src/composables/useX.ts` (a composable only one feature uses lives in that feature's folder) |

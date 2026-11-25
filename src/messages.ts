@@ -459,7 +459,6 @@ export const messages = {
     cancelMessage: 'When I cancel an event I made',
     variables: 'You can use {{name}}, {{event}}, {{date}} and {{time}}; they are filled in for each person.',
     save: 'Save event settings',
-    saved: 'Saved.',
   },
   deleteData: {
     button: 'Delete my data',
@@ -1540,7 +1539,6 @@ export const messages = {
     eveningTime: 'Remind me at',
     eveningOff: "Don't remind me",
     save: 'Save reminder settings',
-    saved: 'Saved.',
   },
   profile: {
     deleteHeading: 'Delete my account',

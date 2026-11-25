@@ -22,12 +22,12 @@
             <input v-model="displayName" maxlength="120" :class="field">
           </label>
           <div class="flex flex-wrap items-center gap-3">
-            <button type="submit" :class="primaryButtonSmall" :disabled="saving">{{ m.save }}</button>
+            <button type="submit" :class="primaryButtonSmall" :disabled="nameSave.saving">{{ m.save }}</button>
             <!-- SPEC §5 Profiles: my profile as my connections see it. -->
             <RouterLink v-if="brain.userId" :to="`/people/${brain.userId}`" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line px-4 text-sm font-medium" data-testid="view-my-profile">
               <AppIcon name="user" size="size-5" />{{ messages.personProfile.viewMine }}
             </RouterLink>
-            <p v-if="notice" role="status" class="text-sm text-muted">{{ notice }}</p>
+            <p v-if="nameSave.notice" role="status" class="text-sm text-muted">{{ nameSave.notice }}</p>
           </div>
         </form>
         <p v-else class="text-muted">{{ m.offline }}</p>
@@ -46,7 +46,7 @@
             </select>
             <span class="text-xs">{{ cs.hint }}</span>
           </label>
-          <p class="min-h-5 text-sm text-muted" role="status">{{ celebrationsNotice }}</p>
+          <p class="min-h-5 text-sm text-muted" role="status">{{ celebrationsSave.notice }}</p>
         </div>
         <p v-else class="text-muted">{{ m.offline }}</p>
       </section>
@@ -60,7 +60,7 @@
               <option v-for="a in APPEARANCES" :key="a" :value="a">{{ as.options[a] }}</option>
             </select>
           </label>
-          <p class="min-h-5 text-sm text-muted" role="status">{{ appearanceNotice }}</p>
+          <p class="min-h-5 text-sm text-muted" role="status">{{ appearanceSave.notice }}</p>
         </div>
       </section>
 
@@ -68,11 +68,11 @@
       <section class="rounded-xl border border-line px-4 py-3" :aria-label="ps.label" data-testid="pause-settings">
         <div class="flex flex-col gap-3">
           <label class="flex min-h-11 items-center gap-3">
-            <input type="checkbox" :class="checkbox" :checked="streaksPaused" data-testid="pause-streaks" @change="savePause(($event.target as HTMLInputElement).checked)">
+            <input type="checkbox" :class="checkbox" :checked="streaksPaused" data-testid="pause-streaks" @change="savePause($event.target as HTMLInputElement)">
             <span>{{ ps.label }}</span>
           </label>
           <span class="text-xs text-muted">{{ ps.hint }}</span>
-          <p class="min-h-5 text-sm text-muted" role="status">{{ pauseNotice }}</p>
+          <p class="min-h-5 text-sm text-muted" role="status">{{ pauseSave.notice }}</p>
         </div>
       </section>
 
@@ -84,7 +84,7 @@
             <span>{{ fr.label }}</span>
           </label>
           <span class="text-xs text-muted">{{ fr.hint }}</span>
-          <p class="min-h-5 text-sm text-muted" role="status">{{ focusRoomNotice }}</p>
+          <p class="min-h-5 text-sm text-muted" role="status">{{ focusRoomSave.notice }}</p>
         </div>
         <p v-else class="text-muted">{{ m.offline }}</p>
       </section>
@@ -233,7 +233,8 @@
 <script setup lang="ts">
 // SPEC §5 Account page: display name and avatar, then settings. Streaks are on the Habits page.
 import { useRows } from '@/sync/useRows'
-import { notSaved, useProfileStore } from '@/stores/profile'
+import { useProfileStore } from '@/stores/profile'
+import { useSettingSave } from '@/composables/useSettingSave'
 import AppIcon from '@/components/AppIcon.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -275,8 +276,6 @@ const celebrations = ref<CelebrationSetting>(celebrate.setting)
 const displayName = ref('')
 const avatarUrl = ref<string | null>(null)
 const loaded = ref(false)
-const saving = ref(false)
-const notice = ref('')
 
 onMounted(async () => {
   const data = await profile.load()
@@ -289,52 +288,34 @@ onMounted(async () => {
   }
 })
 
-async function save() {
-  notice.value = ''
-  saving.value = true
-  const why = await profile.update({ display_name: displayName.value.trim() || null })
-  saving.value = false
-  notice.value = why ? notSaved(why, m.offline) : m.saved
-}
+const nameSave = useSettingSave()
+const save = () => nameSave.saveProfile({ display_name: displayName.value.trim() || null })
 
 // SPEC §3 Appearance: applies at once on this device, and is saved to my profile for my other devices.
 const as = messages.appearance
 const appearanceChoice = ref<Appearance>(appearance.value)
-const appearanceNotice = ref('')
-async function saveAppearance() {
-  appearanceNotice.value = ''
-  const why = await profile.update({ appearance: appearanceChoice.value })
-  appearanceNotice.value = why ? notSaved(why, m.offline) : m.saved
-}
+const appearanceSave = useSettingSave()
+const saveAppearance = () => appearanceSave.saveProfile({ appearance: appearanceChoice.value })
 
 // SPEC §5 Habits Pause streaks: kept as pause periods, synced like the rest of my habits.
 const ps = messages.pauseStreaks
 const pauses = useRows('habit_pauses')
 const streaksPaused = computed(() => !!openPause(pauses.value))
-const pauseNotice = ref('')
-async function savePause(on: boolean) {
-  pauseNotice.value = ''
-  await brain.setStreaksPaused(on)
-  pauseNotice.value = m.saved
+const pauseSave = useSettingSave()
+async function savePause(box: HTMLInputElement) {
+  const saved = await pauseSave.save(() => brain.setStreaksPaused(box.checked))
+  // Not saved: the box goes back to what's true.
+  if (!saved) box.checked = streaksPaused.value
 }
 
 // SPEC §5 Focus timer: Show me in the focus room.
 const fr = messages.focus.room
 const focusRoom = ref(true)
-const focusRoomNotice = ref('')
-async function saveFocusRoom() {
-  focusRoomNotice.value = ''
-  const why = await profile.update({ focus_room: focusRoom.value })
-  focusRoomNotice.value = why ? notSaved(why, m.offline) : m.saved
-}
+const focusRoomSave = useSettingSave()
+const saveFocusRoom = () => focusRoomSave.saveProfile({ focus_room: focusRoom.value })
 
-// Celebrations has its own Save in Account Settings.
-const celebrationsNotice = ref('')
-async function saveCelebrations() {
-  celebrationsNotice.value = ''
-  const why = await profile.update({ celebrations: celebrations.value })
-  celebrationsNotice.value = why ? notSaved(why, m.offline) : m.saved
-}
+const celebrationsSave = useSettingSave()
+const saveCelebrations = () => celebrationsSave.saveProfile({ celebrations: celebrations.value })
 
 
 // ---------- Delete My Account (SPEC §5 Account page, §8): confirm, then delete everything ----------

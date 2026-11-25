@@ -19,10 +19,10 @@
         <textarea v-model="cancelMessage" rows="3" :class="[field, 'py-2']" />
       </label>
       <p class="-mt-2 text-xs text-muted">{{ m.variables }}</p>
-      <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
+      <p v-if="error || settingSave.failed" class="text-sm text-danger" role="alert">{{ error || settingSave.notice }}</p>
       <div class="flex items-center gap-3">
         <button type="button" :class="primaryButtonSmall" @click="save">{{ m.save }}</button>
-        <p v-if="notice" class="text-sm text-muted" role="status">{{ notice }}</p>
+        <p v-if="!settingSave.failed && settingSave.notice" class="text-sm text-muted" role="status">{{ settingSave.notice }}</p>
       </div>
     </template>
   </section>
@@ -30,7 +30,8 @@
 
 <script setup lang="ts">
 // SPEC §5 Accounts and contact info, Cancelling: phone number, whether my free/busy is shared, and my two cancellation messages.
-import { notSaved, useProfileStore } from '@/stores/profile'
+import { useProfileStore } from '@/stores/profile'
+import { useSettingSave } from '@/composables/useSettingSave'
 import { onMounted, ref } from 'vue'
 import { isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
@@ -44,8 +45,9 @@ const phone = ref('')
 const shareAvailability = ref(true)
 const dropoutMessage = ref('')
 const cancelMessage = ref('')
-const notice = ref('')
+// A phone number that isn't one is refused here; the save's own note says Saved, or why not, as an alert when it failed.
 const error = ref('')
+const settingSave = useSettingSave()
 
 onMounted(async () => {
   const data = await useProfileStore().load()
@@ -58,19 +60,17 @@ onMounted(async () => {
 })
 
 async function save() {
-  notice.value = ''
   error.value = ''
   if (phone.value.trim() && !isPhone(phone.value)) {
+    settingSave.clear()
     error.value = w.phoneError
     return
   }
-  const why = await useProfileStore().update({
+  await settingSave.saveProfile({
     phone: phone.value.trim() || null,
     share_availability: shareAvailability.value,
     cancel_dropout_message: dropoutMessage.value.trim() || undefined,
     cancel_event_message: cancelMessage.value.trim() || undefined,
   })
-  if (why) error.value = notSaved(why, messages.profile.offline)
-  else notice.value = m.saved
 }
 </script>

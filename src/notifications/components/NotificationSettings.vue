@@ -59,7 +59,8 @@
 </template>
 
 <script setup lang="ts">
-import { notSaved, useProfileStore } from '@/stores/profile'
+import { useProfileStore } from '@/stores/profile'
+import { useSettingSave } from '@/composables/useSettingSave'
 // SPEC §6: Web Push, quiet hours, and whether priority reminders ring during them.
 import TimeInput from '@/components/TimeInput.vue'
 import { onMounted, ref } from 'vue'
@@ -115,15 +116,16 @@ async function togglePush() {
   pushOn.value = !refused
 }
 
+const settingSave = useSettingSave()
 async function save() {
   notice.value = ''
-  const why = await useProfileStore().update({
+  await settingSave.saveProfile({
     quiet_hours_start: quietStart.value || null,
     quiet_hours_end: quietEnd.value || null,
     quiet_hours_silence_priority: !priorityRings.value,
     evening_reminder_time: eveningOff.value || !eveningTime.value ? null : eveningTime.value,
   })
-  notice.value = why ? notSaved(why, messages.profile.offline) : m.saved
+  notice.value = settingSave.notice
 }
 
 async function test() {

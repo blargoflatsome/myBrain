@@ -19,7 +19,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 | 4 | A Capture draft module behind the form | Worth exploring | Built (branch `capture-draft`) |
 | 5 | The keyring answers "is this device unlocked" | Worth exploring, small bug | Built (branch `journal-keyring`) |
 | 6 | Sync timing in its own module; brain's leftover actions moved home | Worth exploring | Built (branch `sync-triggers`) |
-| 7 | One helper for "save a setting, say Saved" | Speculative, small bugs | Agreed |
+| 7 | One helper for "save a setting, say Saved" | Speculative, small bugs | Built (branch `setting-save`) |
 
 ## 2. One rule for "my place in this event"
 - **Files:** `events/rules.ts:78–81`; `dashboard/upNext.ts:85–87`; `CalendarView.vue` (`openEvent`, `:256`);
