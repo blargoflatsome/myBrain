@@ -62,8 +62,9 @@
 <script setup lang="ts">
 // SPEC §5 Time fields. On a computer: type a time ("8", "830", "6pm") or pick from a list every 15 minutes, like
 // Google Calendar (an accessible combobox). On a phone or tablet: the device's own time picker.
-import { computed, nextTick, onScopeDispose, ref, useId, watch } from 'vue'
+import { computed, nextTick, ref, useId } from 'vue'
 import { formatTime, nearestQuarter, parseTime, QUARTER_HOURS } from '@/time/parse'
+import { useTypedField } from '@/composables/useTypedField'
 import { messages } from '@/messages'
 
 const props = withDefaults(
@@ -83,18 +84,12 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const id = useId()
 const listId = `${id}-list`
 
-// Touch devices keep their own picker, which is easy to use with a finger.
-const coarseQuery = typeof matchMedia === 'function' ? matchMedia('(pointer: coarse)') : null
-const touch = ref(!!coarseQuery?.matches)
-const onPointerChange = (e: MediaQueryListEvent) => (touch.value = e.matches)
-coarseQuery?.addEventListener('change', onPointerChange)
-onScopeDispose(() => coarseQuery?.removeEventListener('change', onPointerChange))
-
 const value = computed(() => (props.modelValue ? props.modelValue.slice(0, 5) : ''))
-const text = ref(value.value ? formatTime(value.value) : '')
-const typing = ref(false)
-watch(value, (v) => {
-  if (!typing.value) text.value = v ? formatTime(v) : ''
+const { touch, text, type, settle, pick } = useTypedField({
+  value: () => value.value,
+  show: formatTime,
+  required: () => props.required,
+  save: (v) => emit('update:modelValue', v),
 })
 
 const open = ref(false)
@@ -115,13 +110,9 @@ function scrollToActive() {
 }
 
 function onInput(event: Event) {
-  typing.value = true
-  text.value = (event.target as HTMLInputElement).value
-  if (!text.value.trim()) {
-    emit('update:modelValue', '')
-    return
-  }
-  const parsed = parseTime(text.value)
+  const typed = type(event)
+  if (typed === null) return
+  const parsed = parseTime(typed)
   if (parsed) {
     emit('update:modelValue', parsed)
     // Typing never opens the list (it would cover the fields below); if it's already open, it follows along.
@@ -132,15 +123,11 @@ function onInput(event: Event) {
   }
 }
 function commit() {
-  typing.value = false
   open.value = false
-  // Whatever was typed settles to the saved time, shown the device's way; something that isn't a time goes back.
-  text.value = value.value ? formatTime(value.value) : ''
+  settle()
 }
 function choose(t: string) {
-  emit('update:modelValue', t)
-  typing.value = false
-  text.value = formatTime(t)
+  pick(t)
   open.value = false
 }
 function step(by: number) {

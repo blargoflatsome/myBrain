@@ -95,7 +95,8 @@
 // SPEC §5 Date fields, the partner of the time fields. On a computer: type a day ("tomorrow", "Fri", "Nov 20",
 // "11/20") or pick it from a month grid (an accessible combobox with a grid: arrows move by day and week, Page Up and
 // Page Down by month, Enter picks, Escape closes just the grid). On a phone or tablet: the device's own date picker.
-import { computed, onScopeDispose, ref, useId, watch } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
+import { useTypedField } from '@/composables/useTypedField'
 import { addMonths, monthGrid } from '@/time/months'
 import { dateReader, loadDateReader } from '@/time/typedDate'
 import { readIsoDate } from '@/time/isoDate'
@@ -124,24 +125,15 @@ const id = useId()
 const gridId = `${id}-grid`
 const cellId = (day: string) => `${id}-d-${day}`
 
-const coarseQuery = typeof matchMedia === 'function' ? matchMedia('(pointer: coarse)') : null
-const touch = ref(!!coarseQuery?.matches)
-const onPointerChange = (e: MediaQueryListEvent) => (touch.value = e.matches)
-coarseQuery?.addEventListener('change', onPointerChange)
-onScopeDispose(() => coarseQuery?.removeEventListener('change', onPointerChange))
+const today = todayIn(deviceTimeZone())
+const { touch, text, type, settle, pick } = useTypedField({
+  value: () => props.modelValue ?? '',
+  show: (v) => dayLabel(v, today),
+  required: () => props.required,
+  save: (v) => emit('update:modelValue', v),
+})
 // Ready before anything is typed: the typed box is the only one that reads typed days.
 watch(touch, (t) => !t && void loadDateReader(), { immediate: true })
-
-const today = todayIn(deviceTimeZone())
-const shown = (v: string | null | undefined) => (v ? dayLabel(v, today) : '')
-const text = ref(shown(props.modelValue))
-const typing = ref(false)
-watch(
-  () => props.modelValue,
-  (v) => {
-    if (!typing.value) text.value = shown(v)
-  },
-)
 
 const open = ref(false)
 const active = ref<string | null>(null)
@@ -158,13 +150,8 @@ function showGrid() {
   active.value = props.modelValue || (props.min && props.min > today ? props.min : today)
 }
 function onInput(event: Event) {
-  typing.value = true
-  text.value = (event.target as HTMLInputElement).value
-  if (!text.value.trim()) {
-    if (!props.required) emit('update:modelValue', '')
-    return
-  }
-  const typed = text.value
+  const typed = type(event)
+  if (typed === null) return
   // A full date (pasted, filled in by the browser) is used straight away, so a Save right after it never misses it.
   const exact = readIsoDate(typed)
   if (exact) return useTyped(exact)
@@ -180,22 +167,18 @@ function useTyped(day: string | null) {
   }
 }
 async function commit() {
+  // A day typed while the reader was loading is read first, so it isn't put back.
   if (!dateReader()) await loadDateReader()
-  typing.value = false
   open.value = false
-  // Whatever was typed settles to the saved day, shown the app's way; something that isn't a day goes back.
-  text.value = shown(props.modelValue)
+  settle()
 }
 function choose(day: string) {
   if (disabled(day)) return
-  emit('update:modelValue', day)
-  typing.value = false
-  text.value = shown(day)
+  pick(day)
   open.value = false
 }
 function clear() {
-  emit('update:modelValue', '')
-  text.value = ''
+  pick('')
   open.value = false
 }
 function moveMonth(by: number) {

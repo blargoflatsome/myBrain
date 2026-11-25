@@ -21,7 +21,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 | 6 | One way to show a list that comes from the server | Worth exploring | Built (branch `server-lists`) |
 | 7 | One module for "open this item" links | Worth exploring, real bug | Built (branch `item-links`) |
 | 8 | Focus and Breathe finish themselves | Worth exploring | Built (branch `focus-finish`) |
-| 9 | Typed date and time fields share one picker module | Speculative | To do |
+| 9 | Typed date and time fields share one picker module | Speculative | Built, smaller (branch `typed-fields`) |
 
 ## 1. Capture files through each kind's own add action
 - **Files:** `capture/capture.ts:92–142` (`buildCaptureRecord`), `:185` (`buildConversion`); `stores/brain.ts`

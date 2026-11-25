@@ -468,3 +468,9 @@ Candidate 5 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. No bug was found: the day ma
 - **Every import moved, no shim**; `src/tasks/days.ts` is gone.
 - **`ui/dates.ts`** reads the day and time of a moment through the module (device time zone, which SPEC §5 Tasks makes my time zone) instead of `getHours()`, and takes a time zone so tests can set one. No change in behaviour.
 - **Tests:** one Vitest table for clock times and weekdays across the clocks going back, midnight and zones ahead of and behind UTC, and a moment's day shown in my zone.
+
+## 2026-11-24 Typed date and time fields share their typed box (architecture review 3)
+Candidate 9 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. `DateInput` and `TimeInput` repeated the same steps (phone picker or typed box, typed text settling to the saved value, the emptied box), and had drifted: an emptied required time box saved "no time", where the date box keeps the saved day. No time field is required yet, so nothing broke. User's choices (all as recommended):
+- **A small composable, not one picker:** `src/composables/useTypedField.ts` holds the shared steps; each field keeps its own list or grid and keys, as they differ.
+- **An emptied box means none, unless the field is required:** then it goes back to the saved one (SPEC §5 Time fields and Date fields).
+- **Tests:** one Vitest table run against both fields (typed value used at once, not-a-value goes back, emptied optional gives none, emptied required keeps the saved one); the list and grid keys stay covered by the browser tests.
