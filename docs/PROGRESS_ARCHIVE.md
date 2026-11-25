@@ -642,3 +642,7 @@ Merged and live.
 ## Account page tidy-up (done, PR #41)
 - Accordion groups (`AccountGroup.vue`, native details/summary): Your profile (open by default), Reminders, Events (settings + availability side by side), People, Your data, Account; open groups remembered per device; page wider; shorter hints. Tests start with all groups open via the fake server (`openAccountGroups`); `e2e/account-layout.spec.ts` checks the real defaults and side-by-side layout. Vitest 285, Playwright 606.
 
+## Install on your phone (Help) — merged PR 114, 2026-11-25
+- Help topic Install on your phone, right after Getting around: Android (Chrome ⋮ → Install app) and iPhone (Safari Share → Add to Home Screen) steps. Reminders on your phone points to it.
+- Its picture is a drawing, `scripts/help-images/install.html`, rendered by `npm run docs:images` (a `DrawingShot` in `shots.ts`).
+- Checked: `/code-review medium` (two nits fixed), `npm run test:all` passed.

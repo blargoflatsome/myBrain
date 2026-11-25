@@ -1,7 +1,7 @@
 // Takes the Help and home page pictures (SPEC §5 Home page and Help): `npm run docs:images` (all) or
 // `npm run docs:images -- -g capture` (names matching "capture"). Phone size, dark mode, sample data, a highlight
 // ring around what to tap. Saved as WebP in public/help/, named after the shot.
-import { writeFileSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import { FakeSupabase } from '../../src/tests/e2e/support/fakeSupabase'
 import { NOW, seedSample } from './sample'
@@ -46,6 +46,11 @@ test.beforeAll(() => mkdirSync(OUT, { recursive: true }))
 
 for (const shot of SHOTS) {
   test(shot.name, async ({ page }) => {
+    if ('drawing' in shot) {
+      await page.setContent(readFileSync(`scripts/help-images/${shot.drawing}`, 'utf8'))
+      writeFileSync(`${OUT}/${shot.name}.webp`, await toWebp(page, await page.screenshot()))
+      return
+    }
     const server = new FakeSupabase()
     server.openAccountGroups = !!shot.accountOpen
     await server.install(page)

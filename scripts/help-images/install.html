@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- The Help picture for "Install on your phone" (SPEC §5 Home page and Help). The browser's own menus can't be
+     photographed, so this is a drawing: Android Chrome's menu on top, the iPhone share sheet below, in the app's dark
+     colours, with the same highlight ring as the screenshots. Rendered by `npm run docs:images`. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install on your phone</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 390px; height: 780px; background: #14181d; color: #e7ebef; font: 15px/1.3 system-ui, sans-serif; display: flex; flex-direction: column; }
+  .half { flex: 1; position: relative; padding: 14px 16px; overflow: hidden; }
+  .half + .half { border-top: 2px solid #2c333c; }
+  .label { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #9aa6b2; margin-bottom: 10px; }
+  .bar { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; border-radius: 22px; background: #1b2027; }
+  .url { flex: 1; color: #9aa6b2; }
+  .dots { width: 36px; height: 36px; display: grid; place-items: center; font-size: 22px; font-weight: 700; border-radius: 18px; }
+  .menu { position: absolute; right: 16px; top: 116px; width: 230px; background: #232a33; border-radius: 14px; padding: 6px 0; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
+  .item { display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 16px; }
+  .item i { width: 20px; height: 20px; border: 2px solid #9aa6b2; border-radius: 5px; flex: none; }
+  .muted { color: #9aa6b2; }
+  .ring { outline: 4px solid #ffd166; outline-offset: 2px; border-radius: 12px; background: #2d3540; color: #fff; font-weight: 600; }
+  .page { margin-top: 12px; height: 210px; border-radius: 14px; background: #1b2027; padding: 16px; }
+  .line { height: 12px; border-radius: 6px; background: #2c333c; margin-bottom: 12px; }
+  .safari { position: absolute; left: 16px; right: 16px; bottom: 14px; }
+  .sheet { background: #232a33; border-radius: 16px; padding: 6px 0; margin-bottom: 12px; }
+  .tools { display: flex; justify-content: space-around; align-items: center; height: 48px; border-radius: 24px; background: #1b2027; font-size: 20px; color: #9aa6b2; }
+  .share { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 20px; }
+  .share svg { width: 24px; height: 24px; }
+</style>
+</head>
+<body>
+  <section class="half">
+    <p class="label">Android · Chrome</p>
+    <div class="bar"><span class="url">My Brain</span><span class="dots ring" aria-hidden="true">⋮</span></div>
+    <div class="page"><div class="line" style="width:60%"></div><div class="line"></div><div class="line" style="width:80%"></div></div>
+    <div class="menu">
+      <div class="item muted"><i></i>New tab</div>
+      <div class="item muted"><i></i>Bookmarks</div>
+      <div class="item ring"><i style="border-color:#ffd166"></i>Install app</div>
+      <div class="item muted"><i></i>Settings</div>
+    </div>
+  </section>
+  <section class="half">
+    <p class="label">iPhone · Safari</p>
+    <div class="page" style="height:120px"><div class="line" style="width:60%"></div><div class="line"></div></div>
+    <div class="safari">
+      <div class="sheet">
+        <div class="item muted"><i></i>Copy</div>
+        <div class="item muted"><i></i>Add Bookmark</div>
+        <div class="item ring"><i style="border-color:#ffd166"></i>Add to Home Screen</div>
+      </div>
+      <div class="tools">
+        <span>‹</span><span>›</span>
+        <span class="share ring"><svg viewBox="0 0 24 24" fill="none" stroke="#ffd166" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4"/><path d="M6 11H5v10h14V11h-1"/></svg></span>
+        <span>▢</span><span>⋯</span>
+      </div>
+    </div>
+  </section>
+</body>
+</html>
