@@ -142,8 +142,8 @@ watch(
   },
   { immediate: true },
 )
-async function save(r: RoutineRow, s: { id?: string; title: string; habitId?: string | null }[]) {
-  await brain.saveRoutine(r, s)
+async function save(r: RoutineRow, s: { id?: string; title: string; habitId?: string | null }[], tags: string[]) {
+  await brain.saveRoutine(r, s, tags)
   editing.value = null
 }
 async function remove(r: RoutineRow) {

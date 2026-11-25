@@ -6,7 +6,7 @@ import Dexie from 'dexie'
 import { ref, shallowRef } from 'vue'
 import { getRow, LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
-import type { EventRow, PostItColor, PostItRow, QuestRow, Remote, RowTypes, SyncStatus, SyncTable } from '@/sync/types'
+import type { EventRow, PostItColor, PostItRow, QuestRow, Remote, SyncStatus, SyncTable } from '@/sync/types'
 import { onServerWith, removeWithUndo, type ActionContext, type Undo } from '@/sync/actions'
 import { habitActions } from '@/habits/actions'
 import { routineActions } from '@/routines/actions'
@@ -25,11 +25,11 @@ import { dropLostBuckets } from '@/vault/sharing'
 import { priorityActions } from '@/reminders/actions'
 import { taskActions } from '@/tasks/actions'
 import { questActions } from '@/quests/actions'
+import { peopleActions } from '@/events/peopleActions'
+import { availabilityActions } from '@/events/availabilityActions'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { normalizeBody, toEditorHtml } from '@/journal/body'
 import { DEFAULT_POST_IT_COLOR, frontPosition } from '@/postits/rules'
-import { peopleToSave } from '@/events/people'
-import type { PersonToInvite } from '@/events/sharing'
 import { live } from '@/sync/live'
 import { finishQuest as finishedQuest } from '@/quests/picker'
 import { CaptureError, fitTitle, type CaptureInput, type Captured } from '@/capture/capture'
@@ -216,6 +216,8 @@ export const useBrainStore = defineStore('brain', () => {
   const connections = connectionActions(ctx)
   const tasks = taskActions(ctx)
   const quests = questActions(ctx)
+  const people = peopleActions(ctx)
+  const availability = availabilityActions(ctx)
   const priority = priorityActions(ctx, habits.completeHabit, tasks.completeTask)
 
   // ---------- Capture, tasks and quests (SPEC §5 Quick capture, Tasks, Random Quest) ----------
@@ -366,11 +368,8 @@ export const useBrainStore = defineStore('brain', () => {
     if (!body) return null
     return ready().engine.save('post_its', { ...row, body })
   }
-  /** Save a row as it is, for screens whose rows need no rules of their own (always as the signed-in user). */
-  async function save<T extends SyncTable>(table: T, row: RowTypes[T]) {
-    const { engine: e, uid } = ready()
-    return e.save(table, { ...row, user_id: uid })
-  }
+  /** Delete a Post It. Returns its Undo (SPEC §2). */
+  const deletePostIt = (id: string) => remove('post_its', id)
   /** Delete a row (soft, so the deletion syncs). Returns its Undo (SPEC §2): deletes are soft, so it comes back with everything it had. */
   async function remove(table: SyncTable, id: string): Promise<Undo> {
     return removeMany(table, [id])
@@ -381,20 +380,13 @@ export const useBrainStore = defineStore('brain', () => {
     return removeWithUndo(ready, table, ids)
   }
 
-  // ---------- My people (SPEC §5 Calendar) ----------
-  /** Saving an event saves everyone I typed to my people (a new name replaces the old one). */
-  async function savePeople(typed: PersonToInvite[]) {
-    const { engine: e, uid, local } = ready()
-    const { add, rename } = peopleToSave(live(await local.people.toArray()), typed)
-    for (const r of rename) await e.patch('people', r.id, () => ({ name: r.name }))
-    for (const p of add) await e.save('people', { id: crypto.randomUUID(), user_id: uid, name: p.name ?? null, email: p.email ?? null, phone: p.phone ?? null, deleted_at: null })
-  }
-
   // ---------- Events (SPEC §5 Calendar and reminders) ----------
   async function saveEvent(row: EventRow) {
     const { engine: e, uid } = ready()
     return e.save('events', { ...row, title: row.title.trim(), user_id: uid })
   }
+  /** Delete an event of mine (one with guests is cancelled through the server instead). Returns its Undo (SPEC §2). */
+  const deleteEvent = (id: string) => remove('events', id)
 
   return {
     // Signed-in state and syncing
@@ -411,10 +403,6 @@ export const useBrainStore = defineStore('brain', () => {
     uploadBeforeSignOut,
     forgetDevice,
     syncNow,
-    // Any row with no rules of its own
-    save,
-    remove,
-    removeMany,
     // Capture, tasks and quests
     capture,
     fileOrphan,
@@ -451,8 +439,11 @@ export const useBrainStore = defineStore('brain', () => {
     markNotificationRead,
     addPostIt,
     savePostIt,
-    savePeople,
+    deletePostIt,
+    ...people,
+    ...availability,
     saveEvent,
+    deleteEvent,
     // Server calls that change my events, invitations and connections (online only)
     ...eventServer,
     ...connections,

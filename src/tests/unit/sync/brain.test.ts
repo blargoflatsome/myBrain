@@ -3,9 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useBrainStore } from '@/stores/brain'
 import { FakeRemote } from '@/tests/support/fakeRemote'
-import { newHabit } from '@/habits/rules'
 import { live } from '@/sync/live'
-import type { TaskRow } from '@/sync/types'
 
 let remote: FakeRemote
 
@@ -178,10 +176,9 @@ describe('Spec §5 Dashboard Up next and priority reminders: "Do it" and slide t
       slide: (b: Brain, id: string) => b.completePriority({ kind: 'task', id, title: 'Stamps', description: null, date: '2026-11-10' }, now),
     },
   }
-  async function add(brain: Brain, kind: 'habit' | 'task', uid: string) {
-    if (kind === 'habit') return (await brain.save('habits', newHabit('Meds', uid, 'UTC', new Date('2026-11-01T12:00:00Z')))).id
-    const row: TaskRow = { id: crypto.randomUUID(), user_id: uid, title: 'Stamps', due_date: '2026-11-10', priority: 3, status: 'open', source: 'manual', deleted_at: null }
-    return (await brain.save('tasks', row)).id
+  async function add(brain: Brain, kind: 'habit' | 'task') {
+    if (kind === 'habit') return (await brain.addHabit({ title: 'Meds', start_date: '2026-11-01' }, new Date('2026-11-01T12:00:00Z'), 'UTC'))!.id
+    return (await brain.addTask({ title: 'Stamps', due_date: '2026-11-10', priority: 3, source: 'manual' }, now))!.id
   }
   async function isDone(brain: Brain, kind: 'habit' | 'task', id: string) {
     if (kind === 'task') return (await brain.db!.tasks.get(id))?.status === 'done'
@@ -197,7 +194,7 @@ describe('Spec §5 Dashboard Up next and priority reminders: "Do it" and slide t
     const brain = useBrainStore()
     const uid = `u-${crypto.randomUUID()}`
     brain.start(uid, remote)
-    const id = await add(brain, kind, uid)
+    const id = await add(brain, kind)
     await ways[kind][way](brain, id)
     await ways[kind][way](brain, id)
     expect(await isDone(brain, kind, id)).toBe(true)

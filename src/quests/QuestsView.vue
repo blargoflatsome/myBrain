@@ -121,7 +121,7 @@ import RowDelete from '@/components/RowDelete.vue'
 import { blankQuest } from '@/quests/actions'
 import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
-import { acceptQuest, byEffort, ENERGY_LEVELS, markPicked, pickFromDraw, RECENT_PICKS, tasksInDraw, TIME_BUCKETS } from '@/quests/picker'
+import { byEffort, ENERGY_LEVELS, pickFromDraw, RECENT_PICKS, tasksInDraw, TIME_BUCKETS } from '@/quests/picker'
 import { moveTask, toggleDone } from '@/tasks/rules'
 import { useToday } from '@/composables/useToday'
 import UndoLine from '@/components/UndoLine.vue'
@@ -172,9 +172,8 @@ async function pick() {
     currentTaskId.value = choice.id
     return
   }
-  const quest = live.value.find((q) => q.id === choice.id)!
-  await brain.save('quests', markPicked(quest))
-  currentId.value = quest.id
+  await brain.pickQuest(choice.id)
+  currentId.value = choice.id
 }
 
 async function taskDone(t: TaskRow) {
@@ -188,7 +187,7 @@ async function doToday(t: TaskRow) {
 }
 
 async function accept(q: QuestRow) {
-  await brain.save('quests', acceptQuest(q))
+  await brain.acceptQuest(q.id)
   currentId.value = null
   notice.value = m.accepted
 }
@@ -198,7 +197,7 @@ const resultBox = ref<HTMLElement | null>(null)
 async function pickThis(q: QuestRow) {
   notice.value = ''
   currentTaskId.value = null
-  await brain.save('quests', markPicked(q))
+  await brain.pickQuest(q.id)
   currentId.value = q.id
   await nextTick()
   resultBox.value?.scrollIntoView({ block: 'nearest' })
@@ -246,12 +245,12 @@ watch(
 )
 async function saveEdit(q: QuestRow) {
   if (isNew.value) await brain.addQuest(q)
-  else await brain.save('quests', q)
+  else await brain.saveQuest(q)
   editing.value = null
 }
 async function remove(q: QuestRow) {
   const place = { row: { id: q.id, in: pageItems.value }, list: 'all' }
-  const putBack = await brain.remove('quests', q.id)
+  const putBack = await brain.deleteQuest(q.id)
   if (currentId.value === q.id) currentId.value = null
   if (editing.value?.id === q.id) editing.value = null
   undoable.offer(messages.undo.deleted(q.title), putBack, place)

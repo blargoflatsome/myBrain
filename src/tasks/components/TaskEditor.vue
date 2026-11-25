@@ -30,7 +30,7 @@ import { storedNotes } from '@/journal/body'
 import { checkedReminder } from '@/tasks/actions'
 
 const props = withDefaults(defineProps<{ task: TaskRow | null; isNew?: boolean }>(), { isNew: false })
-const emit = defineEmits<{ save: [TaskRow]; delete: [TaskRow]; close: [] }>()
+const emit = defineEmits<{ save: [TaskRow, string[]]; delete: [TaskRow]; close: [] }>()
 const m = messages.tasks
 
 const tags = useItemTags('task', computed(() => props.task?.id))
@@ -63,7 +63,6 @@ async function save() {
     reminderError.value = messages.tasks.reminderPast
     return
   }
-  await tags.save(props.task.id)
   emit('save', {
     ...props.task,
     title: title.value.trim(),
@@ -71,7 +70,7 @@ async function save() {
     due_date,
     priority: priority.value,
     reminder_time,
-  })
+  }, tags.names.value)
 }
 
 function deleteNow() {

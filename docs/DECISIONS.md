@@ -418,3 +418,15 @@ Candidate 2 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Up next's habit and task but
 - **Complete actions:** `completeHabit` and a new `completeTask` (`tasks/actions.ts`) do nothing when the item is already done. Up next and the slide use them; `priorityActions` takes them instead of `toggleHabit` and `saveTask`.
 - **The button stays enabled** while it works: the no-op check makes a double tap harmless, and disabling could drop keyboard focus.
 - **Tests:** completing twice leaves it done, for a habit and a task, through the actions Up next and the slide use.
+
+## 2026-11-24 Close brain's raw save (architecture review 3)
+Candidate 3 of `docs/ARCHITECTURE_REVIEW_TASKS.md` (review 2's candidate 5). Screens held rules through brain's generic `save` and `remove`: the Vault star and default, quest picking, availability rows built with `auth.user?.id`, the person-twin check; habit edits skipped the streak refresh; tags were saved by each editor (two without waiting); the availability ✕ dropped its Undo. User's choices (all as recommended):
+- **`save`, `remove`, `removeMany` and `restore` come off brain's interface** (types stop screens using them; no lint rule needed). Tests set up rows through named actions or the engine.
+- **Named actions in each kind's `actions.ts`**, new ones for availability and people in `src/events/`. Every named delete returns its Undo for the screen to offer.
+- **Removing an availability time or one-off day gets Undo in place** (SPEC §2), like any other single delete.
+- **`saveHabit`** applies the habit rules (keeping a start date already in the past) and refreshes the streak.
+- **Tags are saved with the item:** editors hand their tag names to the kind's add or save, which saves the item, then its tags, both awaited.
+- **Vault:** star or unstar a bucket (mine, or my own star on a shared one) and save bucket settings (one default) are actions by bucket id. **Quests:** pick and accept by id, reading the current row.
+- **`savePerson`** holds the "already saved with this email or phone" check and returns the twin; `savePeople` (inviting) keeps matching quietly; both use `contactKey`.
+- **Editing an empty Post It:** the board's own check goes; `savePostIt`'s "nothing written" answer shows the error.
+- **Tests:** one store test per moved rule with no test yet (shared-bucket star, habit edit refreshes its streak, availability Undo, person twin refused, tags saved after the item).

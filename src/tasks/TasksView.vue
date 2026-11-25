@@ -255,9 +255,9 @@ watch(
   },
   { immediate: true },
 )
-async function saveEdit(t: TaskRow) {
-  if (isNew.value) await brain.addTask({ ...t, source: 'manual' })
-  else await brain.saveTask(t)
+async function saveEdit(t: TaskRow, tags: string[]) {
+  if (isNew.value) await brain.addTask({ ...t, source: 'manual', tags })
+  else await brain.saveTask(t, tags)
   editing.value = null
 }
 // SPEC §5 Tasks: a task that keeps slipping moves to tomorrow or Undated in one tap, with Undo.
@@ -269,7 +269,7 @@ async function move(t: TaskRow, dueDate: string | null) {
 
 async function remove(t: TaskRow) {
   const place = placeOf(t)
-  const putBack = await brain.remove('tasks', t.id)
+  const putBack = await brain.deleteTask(t.id)
   if (editing.value?.id === t.id) editing.value = null
   undoable.offer(messages.undo.deleted(t.title), putBack, place)
 }

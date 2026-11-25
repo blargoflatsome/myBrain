@@ -221,12 +221,12 @@ function editItem(item: CalendarView) {
     editing.value = item.row
   }
 }
-async function saveTask(t: TaskRow) {
-  await brain.saveTask(t)
+async function saveTask(t: TaskRow, tags: string[]) {
+  await brain.saveTask(t, tags)
   editingTask.value = null
 }
 async function deleteTask(t: TaskRow) {
-  const putBack = await brain.remove('tasks', t.id)
+  const putBack = await brain.deleteTask(t.id)
   editingTask.value = null
   undoable.offer(messages.undo.deleted(t.title), putBack)
 }
@@ -321,7 +321,7 @@ function cancelled(targets: ShareTarget[]) {
   }
 }
 async function deleteEvent(e: EventRow, confirmed = false) {
-  const putBack = await brain.remove('events', e.id)
+  const putBack = await brain.deleteEvent(e.id)
   editing.value = null
   // Without guests it went straight away, so it can come back (SPEC §2 Undo).
   if (!confirmed) undoable.offer(messages.undo.deleted(e.title), putBack)

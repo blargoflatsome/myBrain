@@ -1,17 +1,20 @@
 // Writing tasks (SPEC §5 Tasks).
 import type { TaskRow } from '@/sync/types'
-import type { ActionContext } from '@/sync/actions'
+import { removeWithUndo, type ActionContext } from '@/sync/actions'
 import { getRow } from '@/sync/db'
 import { DEFAULT_PRIORITY, toggleDone } from '@/tasks/rules'
 import { reminderInPast, taskReminder } from '@/reminders/priority'
 import { clipTitle } from '@/lib/titles'
 import { achieved } from '@/celebrate/bus'
+import { saveItemTags } from '@/tags/actions'
 
 /** A new task as Capture, Orphans, the Tasks page or the task editor gives it. */
 export type TaskDraft = Partial<Pick<TaskRow, 'id' | 'notes' | 'due_date' | 'priority' | 'reminder_time'>> & {
   title: string
   /** Where it was added: Capture (and Orphans) or the Tasks page. */
   source: 'capture' | 'manual'
+  /** Tag names from the editor, saved after the task. */
+  tags?: string[]
 }
 
 /**
@@ -54,17 +57,24 @@ export function taskActions({ ready }: ActionContext) {
       created_at: now.toISOString(),
       deleted_at: null,
     }
-    return e.save('tasks', row)
+    const saved = await e.save('tasks', row)
+    if (draft.tags) await saveItemTags(ready, 'task', saved.id, draft.tags)
+    return saved
   }
 
-  async function saveTask(row: TaskRow) {
-    const { engine: e, local } = ready()
+  /** Save a task as changed; with `tags` (from the editor), its tags too, after it. */
+  async function saveTask(row: TaskRow, tags?: string[]) {
+    const { engine: e, uid, local } = ready()
     const before = await local.tasks.get(row.id)
-    const saved = await e.save('tasks', row)
+    const saved = await e.save('tasks', { ...row, user_id: uid })
+    if (tags) await saveItemTags(ready, 'task', saved.id, tags)
     // Crossed off just now (not a later edit of a task already done): celebrate it (SPEC §5 Celebrations).
     if (row.status === 'done' && before?.status !== 'done') achieved({ kind: 'task', task: row })
     return saved
   }
+
+  /** Delete a task. Returns its Undo (SPEC §2). */
+  const deleteTask = (id: string) => removeWithUndo(ready, 'tasks', [id])
 
   /** Cross a task off if it is still open (never un-crosses it), for "Do it" and the slide to complete. */
   async function completeTask(id: string, now = new Date()) {
@@ -72,5 +82,5 @@ export function taskActions({ ready }: ActionContext) {
     if (task?.status === 'open') await saveTask(toggleDone(task, now))
   }
 
-  return { addTask, saveTask, completeTask }
+  return { addTask, saveTask, completeTask, deleteTask }
 }

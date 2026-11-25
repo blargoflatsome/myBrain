@@ -54,7 +54,7 @@ import { useItemTags } from '@/tags/useItemTags'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 
 const props = defineProps<{ habit: HabitRow | null; isNew?: boolean }>()
-const emit = defineEmits<{ save: [HabitRow]; delete: [HabitRow]; close: [] }>()
+const emit = defineEmits<{ save: [HabitRow, string[]]; delete: [HabitRow]; close: [] }>()
 const m = messages.habits
 
 const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
@@ -95,7 +95,6 @@ const earliestStart = computed(() => {
 
 function save() {
   if (!props.habit || !title.value.trim()) return
-  void tags.save(props.habit.id)
   emit('save', {
     ...props.habit,
     title: title.value.trim(),
@@ -106,7 +105,7 @@ function save() {
     monthly: monthly.value,
     start_date: startDate.value || props.habit.start_date,
     is_priority: isPriority.value,
-  })
+  }, tags.names.value)
 }
 
 function confirmDelete() {

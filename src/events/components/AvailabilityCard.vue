@@ -7,12 +7,15 @@
 
     <div class="flex flex-col gap-2">
       <h3 class="text-sm font-semibold">{{ m.weekly }}</h3>
-      <p v-if="!sortedRules.length" class="text-sm text-muted">{{ m.noWeekly }}</p>
+      <p v-if="!rulesShown.length" class="text-sm text-muted">{{ m.noWeekly }}</p>
       <ul class="flex flex-col gap-1">
-        <li v-for="r in sortedRules" :key="r.id" class="flex items-center justify-between gap-2 text-sm" data-testid="availability-rule">
-          <span>{{ dayNames[r.weekday] }} · {{ t(r.start_time) }} – {{ t(r.end_time) }}</span>
-          <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(`${dayNames[r.weekday]} ${t(r.start_time)}`)" @click="brain.remove('availability_rules', r.id)">✕</button>
-        </li>
+        <template v-for="{ key, row: r, line } in rulesShown" :key="key">
+          <UndoLine v-if="line" :line="line" in-box class="!pl-0" @undo="(el) => undoable.run(line, el)" />
+          <li v-else-if="r" class="flex items-center justify-between gap-2 text-sm" data-testid="availability-rule">
+            <span>{{ ruleLabel(r) }}</span>
+            <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(`${dayNames[r.weekday]} ${t(r.start_time)}`)" @click="removeRule(r)">✕</button>
+          </li>
+        </template>
       </ul>
       <form v-if="addingRule" class="grid grid-cols-3 gap-2" @submit.prevent="addRule">
         <label class="flex flex-col gap-1 text-xs text-muted">{{ m.day }}
@@ -45,16 +48,19 @@
 
     <div class="flex flex-col gap-2 border-t border-line pt-4">
       <h3 class="text-sm font-semibold">{{ m.exceptions }}</h3>
-      <p v-if="!upcoming.length" class="text-sm text-muted">{{ m.noExceptions }}</p>
+      <p v-if="!daysShown.length" class="text-sm text-muted">{{ m.noExceptions }}</p>
       <ul class="flex flex-col gap-1">
-        <li v-for="x in upcoming" :key="x.id" class="flex items-center justify-between gap-2 text-sm" data-testid="availability-exception">
-          <span>
-            {{ dayLabel(x.date) }} · {{ x.start_time ? `${t(x.start_time)} – ${t(x.end_time)}` : m.allDay }} ·
-            <span :class="x.kind === 'available' ? 'text-accent' : 'text-muted'">{{ m.kinds[x.kind] }}</span>
-            <span v-if="x.note" class="text-muted"> · {{ x.note }}</span>
-          </span>
-          <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(dayLabel(x.date))" @click="brain.remove('availability_exceptions', x.id)">✕</button>
-        </li>
+        <template v-for="{ key, row: x, line } in daysShown" :key="key">
+          <UndoLine v-if="line" :line="line" in-box class="!pl-0" @undo="(el) => undoable.run(line, el)" />
+          <li v-else-if="x" class="flex items-center justify-between gap-2 text-sm" data-testid="availability-exception">
+            <span>
+              {{ dayLabel(x.date) }} · {{ x.start_time ? `${t(x.start_time)} – ${t(x.end_time)}` : m.allDay }} ·
+              <span :class="x.kind === 'available' ? 'text-accent' : 'text-muted'">{{ m.kinds[x.kind] }}</span>
+              <span v-if="x.note" class="text-muted"> · {{ x.note }}</span>
+            </span>
+            <button type="button" class="size-9 rounded-lg text-muted" :aria-label="m.remove(dayLabel(x.date))" @click="removeDay(x)">✕</button>
+          </li>
+        </template>
       </ul>
       <form v-if="addingException" class="flex flex-col gap-2" @submit.prevent="addException">
         <div class="grid grid-cols-2 gap-2">
@@ -88,7 +94,9 @@ import DateInput from '@/components/DateInput.vue'
 import WeekdayPicker from '@/components/WeekdayPicker.vue'
 import { computed, ref } from 'vue'
 import { useBrainStore } from '@/stores/brain'
-import { useAuthStore } from '@/stores/auth'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
+import type { AvailabilityExceptionRow, AvailabilityRuleRow } from '@/sync/types'
 import { todayIn, deviceTimeZone } from '@/tasks/days'
 import { formatTime } from '@/time/parse'
 import { messages } from '@/messages'
@@ -96,7 +104,6 @@ import { fieldCompact, primaryButtonSmall } from '@/ui/styles'
 import { dayLabel } from '@/ui/dates'
 
 const brain = useBrainStore()
-const auth = useAuthStore()
 const m = messages.availability
 const dayNames = messages.habits.weekdayNames
 
@@ -107,6 +114,20 @@ const sortedRules = computed(() => [...rules.value].sort((a, b) => a.weekday - b
 const upcoming = computed(() => exceptions.value.filter((x) => x.date >= today).sort((a, b) => a.date.localeCompare(b.date)))
 
 const t = (time: string | null) => (time ? formatTime(time, true) : '')
+const ruleLabel = (r: AvailabilityRuleRow) => `${dayNames[r.weekday]} · ${t(r.start_time)} – ${t(r.end_time)}`
+
+// Removing one goes straight away, with Undo in place (SPEC §2).
+const undoable = useUndoInPlace()
+const rulesShown = computed(() => undoable.placed(sortedRules.value, 'rules'))
+const daysShown = computed(() => undoable.placed(upcoming.value, 'days'))
+async function removeRule(r: AvailabilityRuleRow) {
+  const place = { row: { id: r.id, in: sortedRules.value }, list: 'rules' }
+  undoable.offer(messages.undo.removed(ruleLabel(r)), await brain.removeAvailability('availability_rules', r.id), place)
+}
+async function removeDay(x: AvailabilityExceptionRow) {
+  const place = { row: { id: x.id, in: upcoming.value }, list: 'days' }
+  undoable.offer(messages.undo.removed(dayLabel(x.date)), await brain.removeAvailability('availability_exceptions', x.id), place)
+}
 
 // ---------- Weekly ----------
 const addingRule = ref(false)
@@ -115,9 +136,8 @@ const ruleFrom = ref('09:00')
 const ruleUntil = ref('17:00')
 const ruleError = ref('')
 async function addRule() {
-  if (ruleUntil.value <= ruleFrom.value) return (ruleError.value = m.timeError)
+  if (!(await brain.addAvailability([ruleDay.value], ruleFrom.value, ruleUntil.value))) return (ruleError.value = m.timeError)
   ruleError.value = ''
-  await brain.save('availability_rules', { id: crypto.randomUUID(), user_id: auth.user?.id, weekday: ruleDay.value, start_time: ruleFrom.value, end_time: ruleUntil.value, deleted_at: null })
   addingRule.value = false
 }
 
@@ -128,11 +148,8 @@ const workFrom = ref('09:00')
 const workUntil = ref('17:00')
 const workError = ref('')
 async function addWorkHours() {
-  if (workUntil.value <= workFrom.value) return (workError.value = m.timeError)
+  if (!(await brain.addAvailability(workDays.value, workFrom.value, workUntil.value))) return (workError.value = m.timeError)
   workError.value = ''
-  for (const weekday of [...workDays.value].sort()) {
-    await brain.save('availability_rules', { id: crypto.randomUUID(), user_id: auth.user?.id, weekday, start_time: workFrom.value, end_time: workUntil.value, deleted_at: null })
-  }
   addingWork.value = false
 }
 // ---------- One-off days ----------
@@ -145,18 +162,15 @@ const exKind = ref<'unavailable' | 'available'>('unavailable')
 const exNote = ref('')
 const exError = ref('')
 async function addException() {
-  if (!exAllDay.value && exUntil.value <= exFrom.value) return (exError.value = m.timeError)
-  exError.value = ''
-  await brain.save('availability_exceptions', {
-    id: crypto.randomUUID(),
-    user_id: auth.user?.id,
+  const added = await brain.addAvailabilityDay({
     date: exDate.value,
-    start_time: exAllDay.value ? null : exFrom.value,
-    end_time: exAllDay.value ? null : exUntil.value,
+    from: exAllDay.value ? null : exFrom.value,
+    until: exAllDay.value ? null : exUntil.value,
     kind: exKind.value,
-    note: exNote.value.trim() || null,
-    deleted_at: null,
+    note: exNote.value,
   })
+  if (!added) return (exError.value = m.timeError)
+  exError.value = ''
   exNote.value = ''
   addingException.value = false
 }

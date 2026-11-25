@@ -136,7 +136,7 @@ import PageHeading from '@/components/PageHeading.vue'
 import RowDelete from '@/components/RowDelete.vue'
 import CheckCircle from '@/components/CheckCircle.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { addedBySomeoneElse, isStar, membersOf, ownsBucket, sharedWithMe, visibleBuckets } from '@/vault/sharing'
+import { addedBySomeoneElse, membersOf, ownsBucket, sharedWithMe, visibleBuckets } from '@/vault/sharing'
 import { useVaultPeople } from '@/vault/useVaultPeople'
 import { useCelebrateStore } from '@/stores/celebrate'
 import UndoLine from '@/components/UndoLine.vue'
@@ -179,13 +179,8 @@ function sharingLine(b: VaultBucketRow) {
   const n = membersOf(shares.value, b.id).length
   return n ? m.sharedWithCount(n) : ''
 }
-// My star: on my own bucket it's the bucket's; on a shared one it's mine alone, on the row that also keeps my default.
-async function toggleStar(b: VaultBucketRow) {
-  if (ownsBucket(b, me.value)) return brain.save('vault_buckets', { ...b, starred: !b.starred })
-  const mine = stars.value.find((s) => s.bucket_id === b.id)
-  if (mine) return brain.save('vault_stars', { ...mine, starred: !isStar(mine), is_default: !mine.deleted_at && !!mine.is_default, deleted_at: null })
-  return brain.save('vault_stars', { id: crypto.randomUUID(), user_id: me.value, bucket_id: b.id, starred: true, is_default: false, deleted_at: null })
-}
+// My star: on my own bucket it's the bucket's; on a shared one it's mine alone (SPEC §5 Shared Vaults).
+const toggleStar = (b: VaultBucketRow) => brain.toggleStar(b.id)
 const memberDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 function openSettings(b: VaultBucketRow) {
   if (ownsBucket(b, me.value)) editingBucket.value = b
@@ -212,10 +207,8 @@ async function createBucket() {
 }
 const editingBucket = ref<VaultBucketRow | null>(null)
 async function saveBucket(b: VaultBucketRow) {
-  const was = !!editingBucket.value?.is_default
-  await brain.save('vault_buckets', { ...b, is_default: was })
   // Only one default: ticking it here moves it from wherever it was, without asking (SPEC §5 Default bucket).
-  if (!!b.is_default !== was) await brain.setDefaultBucket(b.is_default ? b.id : null)
+  await brain.saveBucket(b)
   editingBucket.value = null
 }
 async function deleteBucket(b: VaultBucketRow) {
@@ -254,13 +247,13 @@ const undoable = useUndoInPlace()
 const placeOf = (i: VaultItemRow) => ({ row: { id: i.id, in: bucketItems.value }, list: bucket.value?.id })
 async function deleteItem(i: VaultItemRow) {
   const place = placeOf(i)
-  const putBack = await brain.remove('vault_items', i.id)
+  const putBack = await brain.deleteVaultItem(i.id)
   await closeEditor()
   undoable.offer(messages.undo.deleted(i.title), putBack, place)
 }
 async function askDelete(i: VaultItemRow) {
   const place = placeOf(i)
-  undoable.offer(messages.undo.deleted(i.title), await brain.remove('vault_items', i.id), place)
+  undoable.offer(messages.undo.deleted(i.title), await brain.deleteVaultItem(i.id), place)
 }
 async function clearChecked() {
   if (!bucket.value) return

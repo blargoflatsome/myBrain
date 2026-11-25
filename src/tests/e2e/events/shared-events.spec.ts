@@ -65,7 +65,7 @@ test.describe('Spec §5 Accounts and contact info', () => {
 })
 
 test.describe('Spec §10 Connections, scheduling: availability for connections', () => {
-  test('weekly unavailable times and one-off days are saved', async ({ page }) => {
+  test('weekly unavailable times and one-off days are saved, and one removed comes back with Undo', async ({ page }) => {
     await open(page, '/account')
     const card = page.getByTestId('availability')
     await card.getByRole('button', { name: msg.availability.addWeekly }).click()
@@ -82,6 +82,12 @@ test.describe('Spec §10 Connections, scheduling: availability for connections',
     await card.getByRole('button', { name: msg.invites.addContact, exact: true }).click()
     await expect(card.getByTestId('availability-exception')).toContainText(msg.calendar.editor.allDay)
     await expect.poll(() => server.written('availability_exceptions').at(-1)).toMatchObject({ date: '2026-11-20', start_time: null, kind: 'unavailable' })
+
+    // SPEC §2: removing one goes straight away, with Undo in place.
+    await card.getByTestId('availability-rule').getByRole('button').click()
+    await expect(card.getByTestId('availability-rule')).toHaveCount(0)
+    await card.getByTestId('undo-button').click()
+    await expect(card.getByTestId('availability-rule')).toContainText('Tue · 9:00 am – 5:00 pm')
   })
 })
 

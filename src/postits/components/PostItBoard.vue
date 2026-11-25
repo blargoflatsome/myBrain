@@ -122,7 +122,7 @@ import { untilShown } from '@/a11y/focus'
 import { useBrainStore } from '@/stores/brain'
 import { boardOrder } from '@/postits/rules'
 import PostItColors from '@/postits/components/PostItColors.vue'
-import { cleanHtml, plainText } from '@/journal/body'
+import { cleanHtml } from '@/journal/body'
 import { messages } from '@/messages'
 import type { PostItColor, PostItRow } from '@/sync/types'
 
@@ -206,11 +206,11 @@ function startEdit(n: PostItRow) {
   editError.value = ''
 }
 async function saveEdit(n: PostItRow) {
-  if (!plainText(draft.value)) {
+  // Formatting with no words in it is still an empty note: savePostIt says so (SPEC §5 Post It).
+  if (!(await brain.savePostIt({ ...n, body: draft.value, color: draftColor.value }))) {
     editError.value = m.emptyError
     return
   }
-  await brain.savePostIt({ ...n, body: draft.value, color: draftColor.value })
   editingId.value = null
   await focusAction('edit')
 }
@@ -236,7 +236,7 @@ async function focusAction(action: string) {
 const undoable = useUndoInPlace()
 async function deleteNote(n: PostItRow) {
   followId.value = null
-  const putBack = await brain.remove('post_its', n.id)
+  const putBack = await brain.deletePostIt(n.id)
   undoable.offer(m.removed, async () => {
     followId.value = n.id
     await putBack()

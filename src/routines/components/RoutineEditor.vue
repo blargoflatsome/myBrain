@@ -114,7 +114,7 @@ import { checkbox, field, smallButton } from '@/ui/styles'
 import WeekdayPicker from '@/components/WeekdayPicker.vue'
 
 const props = defineProps<{ routine: RoutineRow | null; steps: RoutineStepRow[]; isNew?: boolean }>()
-const emit = defineEmits<{ save: [RoutineRow, { id?: string; title: string; habitId?: string | null }[]]; delete: [RoutineRow]; close: [] }>()
+const emit = defineEmits<{ save: [RoutineRow, { id?: string; title: string; habitId?: string | null }[], string[]]; delete: [RoutineRow]; close: [] }>()
 const m = messages.routines
 
 const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
@@ -212,7 +212,6 @@ function remove(i: number) {
 
 function save() {
   if (!props.routine || !title.value.trim()) return
-  void tags.save(props.routine.id)
   emit(
     'save',
     {
@@ -224,6 +223,7 @@ function save() {
       week_interval: weekInterval.value,
     },
     stepRows.value.map((s) => ({ id: s.id, title: s.habitId ? (habitById(s.habitId)?.title ?? s.title) : s.title, habitId: s.habitId ?? null })),
+    tags.names.value,
   )
 }
 function confirmDelete() {

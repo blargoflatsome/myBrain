@@ -195,9 +195,9 @@ watch(
   },
   { immediate: true },
 )
-async function save(h: HabitRow) {
-  if (isNew.value) await brain.addHabit(h, new Date(), timeZone.value)
-  else await brain.save('habits', h)
+async function save(h: HabitRow, tags: string[]) {
+  if (isNew.value) await brain.addHabit({ ...h, tags }, new Date(), timeZone.value)
+  else await brain.saveHabit(h, tags, new Date(), timeZone.value)
   editing.value = null
 }
 async function remove(h: HabitRow) {
