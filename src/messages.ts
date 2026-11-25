@@ -802,7 +802,7 @@ export const messages = {
     headingCancel: 'Cancel this event?',
     headingDrop: 'Drop out of this event?',
     whoCancel: 'Everyone still invited will get your cancellation message:',
-    whoDrop: 'The host and the other people going will get your message:',
+    whoDrop: 'The host and anyone going who’s on My Brain will get your message. People invited by email or text hear from the host. Still going:',
     nobody: 'No one else is invited, so no one will be messaged.',
     preview: 'Your message (each person gets their own copy, with their name):',
     confirmCancel: 'Cancel and notify',
