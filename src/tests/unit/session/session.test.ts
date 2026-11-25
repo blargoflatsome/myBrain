@@ -9,6 +9,9 @@ import type { TaskRow } from '@/sync/types'
 import { FakeRemote } from '@/tests/support/fakeRemote'
 import { FakeServer } from '@/tests/support/fakeServer'
 import { FakeSession } from '@/tests/support/fakeSession'
+import { useProfileStore } from '@/stores/profile'
+import { useCelebrateStore } from '@/stores/celebrate'
+import { deviceTimeZone } from '@/tasks/days'
 
 let remote: FakeRemote
 let server: FakeServer
@@ -136,5 +139,31 @@ describe('SPEC §7 Offline and sync: signing in opens my data and starts syncing
     document.dispatchEvent(new Event('visibilitychange'))
     await vi.waitFor(() => expect(brain.syncedCount).toBeGreaterThan(0))
     expect(brain.userId).toBe(uid)
+  })
+})
+
+describe('SPEC §5 Tasks: my profile’s time zone is kept in step with the device', () => {
+  it.each([
+    { profile: 'Pacific/Chatham', saved: [{ timezone: deviceTimeZone() }] },
+    { profile: deviceTimeZone(), saved: [] },
+  ])('signed in with $profile on my profile', async ({ profile, saved }) => {
+    fake.profile = { ...fake.profile, timezone: profile }
+    await signedIn()
+    await vi.waitFor(() => expect(fake.profileSaves).toEqual(saved))
+  })
+})
+
+describe('SPEC §3 Appearance, §5 Celebrations: settings on this device', () => {
+  it('my Celebrations setting comes with my profile when I sign in', async () => {
+    fake.profile = { ...fake.profile, celebrations: 'off' }
+    await signedIn()
+    await vi.waitFor(() => expect(useCelebrateStore().setting).toBe('off'))
+  })
+
+  it.each(['offline', 'failed'] as const)('a save that fails (%s) says why, and this device keeps the choice', async (why) => {
+    await signedIn()
+    fake.failProfileSaves = why
+    expect(await useProfileStore().update({ celebrations: 'gentle' })).toBe(why)
+    expect(useCelebrateStore().setting).toBe('gentle')
   })
 })

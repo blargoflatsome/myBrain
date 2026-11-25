@@ -1509,6 +1509,8 @@ export const messages = {
     webPushOff: 'Off for this device',
     webPushBlocked: 'Notifications are blocked for this site. Allow them in your browser settings, then try again.',
     webPushUnsupported: "This browser can't receive push notifications. Try Chrome, or install My Brain to your home screen.",
+    // Draft wording for the user to check.
+    webPushOffline: 'Connect to the internet to turn this on.',
     webPushIphone: 'On an iPhone, add My Brain to your Home Screen first (Share, then Add to Home Screen), open it from there, and turn this on.',
     test: 'Send a test',
     testTitle: 'My Brain test',
@@ -1544,6 +1546,8 @@ export const messages = {
     save: 'Save profile',
     saved: 'Saved.',
     offline: 'Connect to the internet to edit your profile.',
+    // Draft wording for the user to check (any save of my settings that failed while online).
+    saveFailed: 'That didn’t save. Try again in a moment.',
     settingsHeading: 'Your profile',
     longest: (n: number, title: string) => `Longest streak ever: ${n} (${title})`,
   },

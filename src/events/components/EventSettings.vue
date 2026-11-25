@@ -30,7 +30,7 @@
 
 <script setup lang="ts">
 // SPEC §5 Accounts and contact info, Cancelling: phone number, whether my free/busy is shared, and my two cancellation messages.
-import { useProfileStore } from '@/stores/profile'
+import { notSaved, useProfileStore } from '@/stores/profile'
 import { onMounted, ref } from 'vue'
 import { isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
@@ -64,13 +64,13 @@ async function save() {
     error.value = w.phoneError
     return
   }
-  const saved = await useProfileStore().update({
+  const why = await useProfileStore().update({
     phone: phone.value.trim() || null,
     share_availability: shareAvailability.value,
     cancel_dropout_message: dropoutMessage.value.trim() || undefined,
     cancel_event_message: cancelMessage.value.trim() || undefined,
   })
-  if (!saved) error.value = messages.profile.offline
+  if (why) error.value = notSaved(why, messages.profile.offline)
   else notice.value = m.saved
 }
 </script>

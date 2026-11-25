@@ -4,6 +4,9 @@ import { useAuthStore } from '@/stores/auth'
 import { sessionAdapter } from '@/session/adapter'
 import { readJson, writeJson } from '@/ui/storage'
 import { parseAppearance, setAppearance } from '@/ui/appearance'
+import { useCelebrateStore } from '@/stores/celebrate'
+import { ServerError, type ServerReason } from '@/server/server'
+import { messages } from '@/messages'
 
 /** The columns of my profile the app reads (SPEC §4 profiles). */
 export interface Profile {
@@ -45,10 +48,18 @@ export const useProfileStore = defineStore('profile', () => {
   let loading: Promise<Profile | null> | null = null
   let loadedFor: string | null = null
 
+  /**
+   * Settings that change this device: applied the moment I choose them, and when my profile loads (SPEC §3
+   * Appearance, §5 Celebrations), so they follow me to every device. Only what's given is applied.
+   */
+  function apply(fields: Partial<Profile>) {
+    if (fields.appearance) setAppearance(parseAppearance(fields.appearance))
+    if (fields.celebrations) useCelebrateStore().setSetting(fields.celebrations)
+  }
+
   function keep(next: Profile) {
     full = next
-    // SPEC §3 Appearance: my saved choice follows me to every device.
-    if (next.appearance !== undefined) setAppearance(parseAppearance(next.appearance))
+    apply(next)
     shown.value = { user_id: next.user_id, display_name: next.display_name, avatar_url: next.avatar_url }
     writeJson(CACHE_KEY, shown.value)
   }
@@ -82,18 +93,27 @@ export const useProfileStore = defineStore('profile', () => {
     return loading
   }
 
-  /** Save some fields of my profile; false when it failed (for example offline). */
-  async function update(fields: Partial<Omit<Profile, 'user_id'>>): Promise<boolean> {
+  /**
+   * Save some fields of my profile. Device settings among them apply here at once, even if the save fails. Returns
+   * null when saved, or why not (offline, or it failed).
+   */
+  async function update(fields: Partial<Omit<Profile, 'user_id'>>): Promise<ServerReason | null> {
+    apply(fields)
     const uid = auth.user?.id
-    if (!uid) return false
-    // Loaded on first use, like the session adapter, so unit tests never need Supabase's keys.
-    const { supabase } = await import('@/lib/supabase')
-    const { error } = await supabase.from('profiles').update(fields).eq('user_id', uid)
-    if (error) return false
+    if (!uid) return 'failed'
+    try {
+      await sessionAdapter().updateProfile(uid, fields)
+    } catch (err) {
+      console.error(err)
+      return err instanceof ServerError ? err.reason : 'failed'
+    }
     const given = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined))
     if (full && loadedFor === uid) keep({ ...full, ...given })
-    return true
+    return null
   }
 
   return { shown, load, update, follow }
 })
+
+/** What a settings screen says when a profile save didn't go through: its own offline line, or that it failed. */
+export const notSaved = (why: ServerReason, offline: string) => (why === 'offline' ? offline : messages.profile.saveFailed)

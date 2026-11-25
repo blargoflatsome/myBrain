@@ -16,7 +16,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 | 1 | Capture files through each kind's own add action | Strong, real bug | Built (branch `capture-through-adds`) |
 | 2 | "Do it" and "Done" complete, never toggle | Strong, suspected bug | Built (branch `complete-not-toggle`) |
 | 3 | Close brain's raw `save` (review 2, candidate 5) | Worth exploring | Built (branch `close-raw-save`) |
-| 4 | Device settings behind the server seam: push and profile saves | Strong, suspected bug | To do |
+| 4 | Device settings behind the server seam: push and profile saves | Strong (suspected bug heals itself) | Built (branch `device-settings`) |
 | 5 | One module for calendar days and clock times | Worth exploring | To do |
 | 6 | One way to show a list that comes from the server | Worth exploring | To do |
 | 7 | One module for "open this item" links | Worth exploring, suspected bug | To do |

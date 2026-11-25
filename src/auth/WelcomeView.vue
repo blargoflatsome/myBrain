@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { useProfileStore } from '@/stores/profile'
+import { notSaved, useProfileStore } from '@/stores/profile'
 import { safeNext } from '@/security/redirect'
 // SPEC §5 Accounts and contact info: after the first sign-in, a short step for my phone number. Existing accounts see it once too.
 import { ref } from 'vue'
@@ -41,10 +41,10 @@ async function save() {
     return
   }
   saving.value = true
-  const saved = await useProfileStore().update({ phone: phone.value.trim() })
+  const why = await useProfileStore().update({ phone: phone.value.trim() })
   saving.value = false
-  if (!saved) {
-    error.value = m.offline
+  if (why) {
+    error.value = notSaved(why, m.offline)
     return
   }
   const next = safeNext(route.query.next)

@@ -430,3 +430,11 @@ Candidate 3 of `docs/ARCHITECTURE_REVIEW_TASKS.md` (review 2's candidate 5). Scr
 - **`savePerson`** holds the "already saved with this email or phone" check and returns the twin; `savePeople` (inviting) keeps matching quietly; both use `contactKey`.
 - **Editing an empty Post It:** the board's own check goes; `savePostIt`'s "nothing written" answer shows the error.
 - **Tests:** one store test per moved rule with no test yet (shared-bucket star, habit edit refreshes its streak, availability Undo, person twin refused, tags saved after the item).
+
+## 2026-11-24 Device settings behind seams (architecture review 3)
+Candidate 4 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. The push toggle wrote `push_subscriptions` from the screen; `profile.update` wrote to Supabase directly and returned true or false, so six screens said "offline" for every failure; appearance and celebrations were each applied in two places, one before the save and one only after. The suspected stale push row turned out to heal itself: the sender drops endpoints the push service reports gone (404/410, `netlify/functions/send-push.mts`). User's choices (all as recommended):
+- **A push module** (`notifications/push.ts`): permission, the browser's subscription, the server row and the test notification, behind a push adapter (the browser in the app, a fake in tests). Turning off unsubscribes this device even offline; the sender cleans up the row. The row is still written directly (no new server functions), its failures given a reason like server errors.
+- **Profile writes go through the session adapter** (next to `readProfile`, with its fake), not `server.ts`, which only runs server functions.
+- **`profile.update` says why it failed** (`offline` or `failed`); screens show "offline" only when offline, and a plain "couldn't save" line otherwise (draft wording for the user).
+- **Settings apply on this device at once**, appearance and celebrations alike, from one place (the profile store, also when my profile loads); the save carries them to my other devices, and a failed save says so but keeps the device's choice.
+- **Tests:** the push rules through the fake adapter; a failed profile save gives its reason; the profile timezone kept in step with the device (listed in PROGRESS as having no test).

@@ -6,11 +6,9 @@ import { ref, watch } from 'vue'
 import Dexie from 'dexie'
 import { useAuthStore } from '@/stores/auth'
 import { useBrainStore } from '@/stores/brain'
-import { useCelebrateStore } from '@/stores/celebrate'
 import { useProfileStore } from '@/stores/profile'
 import { sessionAdapter } from '@/session/adapter'
 import { serverCall } from '@/server/server'
-import { parseSetting } from '@/celebrate/rules'
 import { deviceTimeZone } from '@/tasks/days'
 import { clearAppKeys } from '@/ui/storage'
 
@@ -21,7 +19,6 @@ export const useSessionStore = defineStore('session', () => {
   const auth = useAuthStore()
   const brain = useBrainStore()
   const profile = useProfileStore()
-  const celebrate = useCelebrateStore()
 
   /** SPEC §5 Accounts: my profile has no phone number yet, so it's asked for once (App.vue routes). */
   const needsPhone = ref(false)
@@ -52,8 +49,6 @@ export const useSessionStore = defineStore('session', () => {
     // SPEC §5 Tasks: keep the profile's timezone in step with the device, for server-side jobs.
     if (data.timezone !== deviceTimeZone()) void profile.update({ timezone: deviceTimeZone() })
     await brain.applyDataReset(data.data_reset_at)
-    // SPEC §5 Celebrations: my setting follows me to this device.
-    if (data.celebrations) celebrate.setSetting(parseSetting(data.celebrations))
     needsPhone.value = !data.phone
   }
 
