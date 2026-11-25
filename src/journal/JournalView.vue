@@ -77,12 +77,12 @@
           <p v-if="!locked" class="text-sm text-muted" data-testid="journal-unreadable">{{ lm.couldNotOpen }}</p>
         </template>
         <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
-        <div v-else-if="e.body.trim()" class="rich" data-testid="journal-body" v-html="cleanHtml(e.body)" />
+        <div v-else-if="written(e.body)" class="rich" data-testid="journal-body" v-html="cleanHtml(e.body)" />
         <p v-else-if="e.auto" class="text-sm text-muted">{{ m.autoNote }}</p>
-        <div v-if="editingDate !== e.date && e.tomorrow?.trim() && !isEncrypted(e.tomorrow)" class="flex flex-col gap-1 text-sm" data-testid="journal-tomorrow">
+        <div v-if="editingDate !== e.date && written(e.tomorrow) && !isEncrypted(e.tomorrow)" class="flex flex-col gap-1 text-sm" data-testid="journal-tomorrow">
           <span class="font-medium">{{ m.tomorrowLabel }}</span>
           <!-- eslint-disable-next-line vue/no-v-html -- cleaned to the editor's own formatting by cleanHtml (DOMPurify) -->
-          <div class="rich" v-html="cleanHtml(e.tomorrow)" />
+          <div class="rich" v-html="cleanHtml(e.tomorrow ?? '')" />
         </div>
       </article>
       <PageControls v-model:page="page" :page-count="pageCount" :label="m.olderHeading" />
@@ -106,7 +106,7 @@ import { useBrainStore } from '@/stores/brain'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { useToday } from '@/composables/useToday'
 import { hadActivity, hasStats } from '@/journal/stats'
-import { cleanHtml } from '@/journal/body'
+import { cleanHtml, written } from '@/journal/body'
 import { isEncrypted } from '@/journal/crypto'
 import UnlockJournal from '@/journal/components/UnlockJournal.vue'
 import { useJournalLock } from '@/journal/useJournalLock'
@@ -161,7 +161,7 @@ const todayEntry = computed(() => entries.value.find((e) => e.date === today.val
 // Past entries; a day with no writing and nothing done is not shown (SPEC §5 Journal: entries only when I did something).
 const earlier = computed(() =>
   entries.value
-    .filter((e) => e.date < today.value && (e.body.trim() || e.tomorrow?.trim() || e.better_than_yesterday != null || (hasStats(e.stats) && hadActivity(e.stats))))
+    .filter((e) => e.date < today.value && (written(e.body) || written(e.tomorrow) || e.better_than_yesterday != null || (hasStats(e.stats) && hadActivity(e.stats))))
     .sort((a, b) => b.date.localeCompare(a.date)),
 )
 // Three days per page, newest first (SPEC §5 Journal).

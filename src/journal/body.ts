@@ -92,6 +92,13 @@ export function wroteIn(entry: Writing): boolean {
   if (entry.has_writing !== undefined) return entry.has_writing
   return !isEncrypted(entry.body) && !!plainText(entry.body)
 }
+/**
+ * Whether a field holds writing to show: words (an empty paragraph isn't), or encrypted text, which always has some
+ * (an empty field stays empty). Unlike wroteIn it reads the field, so writing deleted by Start over doesn't count.
+ */
+export function written(html: string | null | undefined): boolean {
+  return !!html && (isEncrypted(html) || !!plainText(html))
+}
 /** Words in an entry's writing (same fallback as wroteIn). */
 export function wordsIn(entry: Writing): number {
   if (entry.word_count !== undefined) return entry.word_count

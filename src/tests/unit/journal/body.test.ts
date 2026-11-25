@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanHtml, normalizeBody, plainText, toEditorHtml, wordsIn, writingFacts, wroteIn } from '@/journal/body'
+import { cleanHtml, normalizeBody, plainText, toEditorHtml, wordsIn, writingFacts, written, wroteIn } from '@/journal/body'
 
 describe('Spec §5 Journal: formatted writing', () => {
   it('entries written as plain text open in the editor as paragraphs', () => {
@@ -52,5 +52,18 @@ describe('SPEC §5 Locking my journal: the facts kept beside the writing', () =>
     expect([wroteIn(encrypted), wordsIn(encrypted)]).toEqual([false, 0])
     expect([wroteIn({ ...encrypted, has_writing: true, word_count: 12 }), wordsIn({ ...encrypted, has_writing: true, word_count: 12 })]).toEqual([true, 12])
     expect([wroteIn({ body: '<p>two words</p>' }), wordsIn({ body: '<p>two words</p>' })]).toEqual([true, 2])
+  })
+})
+
+describe('SPEC §5 Journal: entries only when I did something', () => {
+  it.each([
+    ['<p>Good day</p>', true],
+    ['enc:v1:AAAA BBBB', true],
+    ['<p></p>', false],
+    ['<ul><li><p> </p></li></ul>', false],
+    ['', false],
+    [undefined, false],
+  ])('%j counts as writing: %s', (html, expected) => {
+    expect(written(html)).toBe(expected)
   })
 })
