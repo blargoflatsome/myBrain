@@ -34,7 +34,7 @@ The footer credit "Conceived of by Jordan Buermann © <this year>" (`src/compone
 - `npm run lint` / `npm run typecheck`
 - `npm test` — Vitest (`src/tests/unit/` and `src/tests/integration/`)
 - `npm run test:e2e` — Playwright (`src/tests/e2e/`, desktop + phones; builds and serves on :4173)
-- `npm run test:quick` — quick checks while coding: types, Vitest, and the browser tests on desktop only (~3 min)
+- `npm run test:quick` — quick checks while coding: lint (warnings fail), types, Vitest, and the browser tests on desktop only (~3 min)
 - `npm run test:e2e:quick` — just the desktop browser tests; add a file name to run one (`npm run test:e2e:quick -- quests`)
 - `npm run test:all` — the full pre-merge review, everything CI runs: lint, types, Vitest, all browser tests on desktop, and the phone-sensitive ones (listed files + `@phone` tag) on Android and iPhone. Tag new tests that depend on screen size, touch or the browser engine with `{ tag: '@phone' }`.
 - `npm run test:db` — SQL rule checks (RLS, `src/tests/db/`) against dev; prints ✔/✘ per file. Run it after applying a migration to dev, and at merge when migrations changed; it changes nothing (every check rolls back).
