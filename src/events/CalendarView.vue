@@ -73,8 +73,7 @@ import { useOpenLinked } from '@/router/links'
 // SPEC §5 Calendar and reminders: month, week and day views of my dated tasks and events.
 // Tap a day or time (or "+ New event") to add an event; tap an item to open it.
 import { readTables } from '@/sync/db'
-import { useRows, useDeviceQuery, readRows, findRow } from '@/sync/useRows'
-import { useProfileStore } from '@/stores/profile'
+import { useRows, useDeviceQuery, findRow } from '@/sync/useRows'
 import { computed, onMounted, ref, watch } from 'vue'
 import { isDark } from '@/ui/appearance'
 import { useRoute } from 'vue-router'
@@ -93,14 +92,13 @@ import TaskEditor from '@/tasks/components/TaskEditor.vue'
 import InvitedEventDialog from '@/events/components/InvitedEventDialog.vue'
 import CancelEventDialog from '@/events/components/CancelEventDialog.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import { eventChanged } from '@/connections/connections'
 import ShareFlow from '@/events/components/ShareFlow.vue'
-import { inviteLink, inviteMessage, type PersonToInvite, type ShareTarget } from '@/events/sharing'
+import type { PersonToInvite, ShareTarget } from '@/events/sharing'
 import { sayWhy } from '@/server/server'
 import { takeStartWith } from '@/events/startWith'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
-import { calendarItems, myPlace, newEvent, nextWholeHour, shownToMe, stillCounts, type CalendarItem } from '@/events/rules'
+import { calendarItems, myPlace, newEvent, nextWholeHour, shownToMe, type CalendarItem } from '@/events/rules'
 import { addDays } from '@/time/days'
 import { messages } from '@/messages'
 import type { EventRow, TaskRow } from '@/sync/types'
@@ -241,30 +239,16 @@ function shared(sent: number) {
 }
 const shareTargets = ref<ShareTarget[]>([])
 const shareKind = ref<'invite' | 'cancel' | 'update'>('invite')
-async function myName() {
-  return (await useProfileStore().load())?.display_name || 'A friend'
-}
 // Changing the date or time of an event people are invited to offers to let them know (SPEC §10 Connections).
 const cm = messages.connections
 const confirmNotify = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const changedEvent = ref<EventRow | null>(null)
-// Times come back from the server as 19:00:00 and from the editor as 19:00.
-const when = (x: EventRow) => [x.start_date, x.start_time?.slice(0, 5), x.end_date, x.end_time?.slice(0, 5), x.repeat].join('|')
-async function offerChangeNotice(before: EventRow | undefined, e: EventRow) {
-  if (!before || when(before) === when(e)) return
-  const invites = await readRows((db) => db.event_invites.where('event_id').equals(e.id).toArray())
-  if (!invites.some((i) => stillCounts(i.response))) return
-  changedEvent.value = e
-  confirmNotify.value?.open()
-}
 async function notifyChange() {
   const e = changedEvent.value
   confirmNotify.value?.close()
   if (!e) return
-  if (!brain.online) return (inviteError.value = messages.invites.offline)
   try {
-    const recipients = await eventChanged(e.id)
-    const targets = recipients.map((r) => ({ inviteId: r.invite_id, name: r.name, email: r.email, phone: r.phone, subject: `${e.title} has changed`, body: r.body }))
+    const targets = await brain.tellEventChanged(e)
     if (targets.length) {
       shareKind.value = 'update'
       shareTargets.value = targets
@@ -275,29 +259,22 @@ async function notifyChange() {
 }
 
 async function saveEvent(e: EventRow, people: PersonToInvite[] = []) {
-  const before = isNew.value ? undefined : events.value.find((x) => x.id === e.id)
-  await brain.saveEvent(e)
-  void offerChangeNotice(before, e)
-  // Everyone I typed joins my people, to pick from next time (SPEC §5 Calendar).
-  await brain.savePeople(people)
+  const saved = await brain.saveEventWithPeople(e, people)
   editing.value = null
   inviteError.value = ''
   inviteNotice.value = ''
-  if (!people.length) return
-  if (!brain.online) return (inviteError.value = messages.invites.offline)
-  try {
-    const created = await brain.invitePeople(e.id, people)
-    const host = await myName()
-    shareKind.value = 'invite'
-    const targets = created
-      .filter((c) => c.token && (c.email || c.phone))
-      .map((c) => ({ inviteId: c.invite_id, name: c.name, email: c.email, phone: c.phone, ...inviteMessage(host, c.name, e, inviteLink(c.invite_id, c.token!)) }))
-    const inApp = created.length - targets.length
-    inviteNotice.value = [targets.length ? messages.invites.ready(targets.length) : '', inApp ? messages.invites.inApp(inApp) : ''].filter(Boolean).join(' ')
-    shareTargets.value = targets
-  } catch (err) {
-    inviteError.value = sayWhy(err, { offline: messages.invites.offline, limit: messages.invites.overLimit, failed: messages.invites.failed })
+  if (saved.offerChangeNotice) {
+    changedEvent.value = e
+    confirmNotify.value?.open()
   }
+  if (saved.inviteFailed) {
+    inviteError.value = { offline: messages.invites.offline, limit: messages.invites.overLimit, failed: messages.invites.failed }[saved.inviteFailed]
+    return
+  }
+  if (!people.length) return
+  shareKind.value = 'invite'
+  inviteNotice.value = [saved.toMessage.length ? messages.invites.ready(saved.toMessage.length) : '', saved.inApp ? messages.invites.inApp(saved.inApp) : ''].filter(Boolean).join(' ')
+  shareTargets.value = saved.toMessage
 }
 
 // ---------- Cancel and notify / drop out ----------

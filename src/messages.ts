@@ -705,6 +705,8 @@ export const messages = {
   },
   invites: {
     // Messages to other people are written from me to them, not in the "past you" voice.
+    /** Who invited a guest, when I haven't set a display name yet. */
+    someHost: 'A friend',
     people: 'Attendees',
     peopleHint: 'Invite people by email or phone number.',
     attendeesSummary: (invited: number, going: number) =>

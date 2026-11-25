@@ -44,6 +44,8 @@ describe('SPEC §7 Things only the server can do: my copy is brought up to date 
     remote.online = false
     const event = { ...newEvent(me, '2026-11-28', '19:00'), title: 'Board games' }
     await brain.saveEvent(event)
+    // The upload tried at once failed: the event waits on this device.
+    await vi.waitFor(() => expect(brain.status.state).toBe('offline'))
     remote.online = true
     let eventWasOnServer = false
     const row = invite(event.id)
@@ -53,7 +55,7 @@ describe('SPEC §7 Things only the server can do: my copy is brought up to date 
       return [{ invite_id: row.id, name: 'Sam', email: null, phone: null, token: null }]
     }
 
-    await brain.invitePeople(event.id, [{ name: 'Sam', user_id: 'friend' }])
+    await brain.inviteToEvent(event, [{ name: 'Sam', user_id: 'friend' }])
 
     expect(eventWasOnServer).toBe(true)
     expect(await brain.db!.event_invites.get(row.id)).toMatchObject({ event_id: event.id, response: 'pending' })
@@ -94,7 +96,7 @@ describe('SPEC §7 Things only the server can do: offline, they are not tried', 
     const brain = await signedIn()
     server.isOnline = false
 
-    const err = await brain.invitePeople('some-event', [{ name: 'Sam', user_id: 'friend' }]).catch((e: unknown) => e)
+    const err = await brain.inviteToEvent(newEvent(me, '2026-11-28', '19:00'), [{ name: 'Sam', user_id: 'friend' }]).catch((e: unknown) => e)
 
     expect(reasonOf(err)).toBe('offline')
     expect(server.calls).toEqual([])

@@ -6,7 +6,7 @@ import Dexie from 'dexie'
 import { ref, shallowRef } from 'vue'
 import { getRow, LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
-import type { EventRow, PostItColor, PostItRow, QuestRow, Remote, SyncStatus, SyncTable } from '@/sync/types'
+import type { PostItColor, PostItRow, QuestRow, Remote, SyncStatus, SyncTable } from '@/sync/types'
 import { onServerWith, removeWithUndo, type ActionContext, type Undo } from '@/sync/actions'
 import { habitActions } from '@/habits/actions'
 import { routineActions } from '@/routines/actions'
@@ -19,7 +19,7 @@ import { trophyActions } from '@/trophies/actions'
 import { trophyKeeper } from '@/trophies/keeper'
 import { WORK_MS } from '@/focus/timer'
 import { vaultActions } from '@/vault/actions'
-import { eventServerActions } from '@/events/actions'
+import { eventActions } from '@/events/actions'
 import { connectionActions } from '@/connections/actions'
 import { dropLostBuckets } from '@/vault/sharing'
 import { priorityActions } from '@/reminders/actions'
@@ -34,6 +34,8 @@ import { live } from '@/sync/live'
 import { finishQuest as finishedQuest } from '@/quests/picker'
 import { CaptureError, fitTitle, type CaptureInput, type Captured } from '@/capture/capture'
 import { achieved } from '@/celebrate/bus'
+import { useProfileStore } from '@/stores/profile'
+import { messages } from '@/messages'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
 function background(work: Promise<unknown> | undefined) {
@@ -212,11 +214,12 @@ export const useBrainStore = defineStore('brain', () => {
   const pinia = getActivePinia()
   const keeper = trophyKeeper({ db, userId, online, habitsReady, badgesReady, syncedCount, trophies: { ...trophies, saveBadge: (kind, now) => useBrainStore(pinia).saveBadge(kind, now) } })
   const vault = vaultActions(ctx)
-  const eventServer = eventServerActions(ctx)
   const connections = connectionActions(ctx)
   const tasks = taskActions(ctx)
   const quests = questActions(ctx)
   const people = peopleActions(ctx)
+  // Guests see my name in their invitation; with no name yet, "A friend" (SPEC §5 Shared events).
+  const events = eventActions(ctx, { savePeople: people.savePeople, hostName: async () => (await useProfileStore().load())?.display_name || messages.invites.someHost })
   const availability = availabilityActions(ctx)
   const priority = priorityActions(ctx, habits.completeHabit, tasks.completeTask)
 
@@ -380,14 +383,6 @@ export const useBrainStore = defineStore('brain', () => {
     return removeWithUndo(ready, table, ids)
   }
 
-  // ---------- Events (SPEC §5 Calendar and reminders) ----------
-  async function saveEvent(row: EventRow) {
-    const { engine: e, uid } = ready()
-    return e.save('events', { ...row, title: row.title.trim(), user_id: uid })
-  }
-  /** Delete an event of mine (one with guests is cancelled through the server instead). Returns its Undo (SPEC §2). */
-  const deleteEvent = (id: string) => remove('events', id)
-
   return {
     // Signed-in state and syncing
     db,
@@ -442,10 +437,8 @@ export const useBrainStore = defineStore('brain', () => {
     deletePostIt,
     ...people,
     ...availability,
-    saveEvent,
-    deleteEvent,
-    // Server calls that change my events, invitations and connections (online only)
-    ...eventServer,
+    // My events, and the server calls that change them, my invitations and connections (online only)
+    ...events,
     ...connections,
   }
 })
