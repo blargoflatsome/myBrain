@@ -46,8 +46,7 @@ test.beforeAll(() => mkdirSync(OUT, { recursive: true }))
 
 for (const shot of SHOTS) {
   test(shot.name, async ({ page }) => {
-    if (shot.drawing) {
-      await page.goto('/')
+    if ('drawing' in shot) {
       await page.setContent(readFileSync(`scripts/help-images/${shot.drawing}`, 'utf8'))
       writeFileSync(`${OUT}/${shot.name}.webp`, await toWebp(page, await page.screenshot()))
       return
