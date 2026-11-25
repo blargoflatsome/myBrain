@@ -64,6 +64,17 @@ test.describe('Spec §5 Tags page', () => {
     await expect(search.getByTestId('search-result')).toContainText(['Sweep', 'Water plants'])
   })
 
+  // SPEC §5 Forms, When a save is refused: in the app's words, never the browser's pop-up.
+  test('an empty name is refused beside the box', async ({ page }) => {
+    await open(page)
+    const dialog = await edit(page, 'chores')
+    const name = dialog.getByLabel(msg.tagsPage.editor.name)
+    await name.fill('  ')
+    await dialog.getByRole('button', { name: msg.tagsPage.editor.save }).click()
+    await expect(name).toHaveAccessibleDescription(msg.forms.nameNeeded)
+    await expect(row(page, 'chores')).toHaveCount(1)
+  })
+
   test('rename moves every item to the new name, and Undo puts it back', async ({ page }) => {
     await open(page)
     const dialog = await edit(page, 'chores')

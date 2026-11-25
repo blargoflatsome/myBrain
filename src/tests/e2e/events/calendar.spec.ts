@@ -90,6 +90,12 @@ test.describe('Spec §5 Calendar', { tag: '@phone' }, () => {
     await expect(end).toHaveAccessibleDescription(msg.calendar.editor.endError)
     await expectFocused(end)
     expect(server.written('events')).toHaveLength(0)
+    // Picking a time from the list changes the field too, so the mark goes. Phones use their own picker (no list).
+    if (test.info().project.name === 'desktop-chromium') {
+      await end.click()
+      await dialog.getByRole('option', { name: '4:00 pm' }).click()
+      await expect(end).toHaveAttribute('aria-invalid', 'false')
+    }
   })
 
   test('tapping an event opens it; deleting a repeating event with no guests deletes the series, with Undo', async ({ page }) => {

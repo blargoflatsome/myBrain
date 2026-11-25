@@ -521,6 +521,7 @@ dialog::backdrop {
 
 /* SPEC §5 Forms, When a save is refused: the field with the problem gets a soft red border beside its message. Outside
    any layer, so it wins over the border colour a field's utility classes give it. */
-:is(input, select, textarea)[aria-invalid='true'] {
+:is(input, select, textarea)[aria-invalid='true'],
+[data-rich-box]:has([contenteditable][aria-invalid='true']) {
   border-color: var(--danger);
 }

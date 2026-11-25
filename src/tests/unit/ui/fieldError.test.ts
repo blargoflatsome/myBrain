@@ -71,4 +71,13 @@ describe('SPEC §5 Forms: when a save is refused', () => {
     await vi.runAllTimersAsync()
     expect(document.querySelector('[data-announcer]')?.textContent).toBe('Add an email address or a phone number.')
   })
+
+  it("refused when its field isn't shown (an all-day day has no Until): the message is said out loud", async () => {
+    vi.useFakeTimers()
+    let error!: ReturnType<typeof useFieldError>
+    wrapper = mount(defineComponent({ setup: () => ((error = useFieldError()), () => null) }), { attachTo: document.body })
+    await error.refuse('The end time needs to be after the start.')
+    await vi.runAllTimersAsync()
+    expect(document.querySelector('[data-announcer]')?.textContent).toBe('The end time needs to be after the start.')
+  })
 })

@@ -5,6 +5,8 @@ import { nextTick, reactive, ref, useId, watch, type Directive } from 'vue'
 import { announce } from '@/a11y/announce'
 
 const CONTROL = 'input, select, textarea'
+/** Sent (bubbling) by a field component when it saves a value with no input event, such as a time picked from a list. */
+export const FIELD_CHANGED = 'my-brain:field-changed'
 // A formatting editor's writing area, picked before the link box in its toolbar.
 const WRITING = '[contenteditable="true"]'
 
@@ -32,7 +34,8 @@ export function useFieldError(): FieldError {
       message.value = text
       await nextTick()
       const el = control
-      if (!el) return
+      // No field to move to (it isn't shown): say why out loud instead.
+      if (!el) return announce(text)
       // A field in a closed fold-out can't take focus, so its fold-outs open first.
       for (let d = el.closest('details'); d; d = d.parentElement?.closest('details') ?? null) d.open = true
       if (document.activeElement === el) announce(text)
@@ -84,6 +87,7 @@ export const vFieldError: Directive<HTMLElement, FieldError> = {
     bound.set(el, entry)
     el.addEventListener('input', entry.clear)
     el.addEventListener('change', entry.clear)
+    el.addEventListener(FIELD_CHANGED, entry.clear)
     follow(el, entry)
   },
   updated(el, { value }) {
@@ -98,6 +102,7 @@ export const vFieldError: Directive<HTMLElement, FieldError> = {
     entry.stop()
     el.removeEventListener('input', entry.clear)
     el.removeEventListener('change', entry.clear)
+    el.removeEventListener(FIELD_CHANGED, entry.clear)
     entry.error.attach(null)
     bound.delete(el)
   },

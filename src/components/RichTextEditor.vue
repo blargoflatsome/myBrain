@@ -4,6 +4,7 @@
          it was opened from, and Escape leaves full screen without closing that window. -->
     <Teleport defer :to="`#${fullScreenId}`" :disabled="!fullScreen">
       <div
+        data-rich-box
         class="flex flex-col overflow-hidden border border-control bg-surface text-ink focus-within:border-accent"
         :class="fullScreen ? 'h-full rounded-none border-0' : 'rounded-xl'"
       >
