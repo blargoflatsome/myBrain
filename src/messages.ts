@@ -9,10 +9,9 @@ export const messages = {
   appName: 'My Brain',
   /** SPEC §2 Windows: the ✕ in every window's top right corner. */
   windows: { close: 'Close' },
-  /** SPEC §2: the Undo bar after removing one thing or clearing a list. */
+  /** SPEC §2 Undo in place: the line left after removing one thing, moving it off a list or clearing a list. */
   undo: {
     undo: 'Undo',
-    dismiss: 'Close',
     deleted: (title: string) => `Deleted "${title}"`,
     removed: (name: string) => `Removed ${name}`,
     movedTomorrow: (title: string) => `Moved "${title}" to tomorrow`,
@@ -936,7 +935,6 @@ export const messages = {
     shownAgain: 'Their posts will show again.',
     /** The bar offered at natural moments (SPEC §5 Cheers). */
     offer: {
-      share: 'Share',
       didIt: 'Share it in Cheers?',
       unstuck: 'You got unstuck! Share it in Cheers?',
     },
@@ -1631,7 +1629,7 @@ export const messages = {
     topicsLabel: 'Topics',
     backToTopics: 'Back to topics',
     topics: [
-      { id: 'getting-around', title: 'Getting around', what: 'Four main pages sit along the bottom. Everything else is under More. On a computer, the same list is on the left.', steps: ['Tap Tasks, Habits, Calendar or The Vault at the bottom.', 'Tap More for Routines, Journal, Quests, Cheers, Orphans, Connections and Help.', 'Tap the house at the top for your Dashboard.', 'Deleted something by mistake? Tap Undo at the bottom of the screen. With a keyboard you land on it, and Escape closes it.'], alt: 'The More panel open at the bottom of the screen, highlighted, listing Routines, Journal, Quests, Orphans, Connections and Help.' },
+      { id: 'getting-around', title: 'Getting around', what: 'Four main pages sit along the bottom. Everything else is under More. On a computer, the same list is on the left.', steps: ['Tap Tasks, Habits, Calendar or The Vault at the bottom.', 'Tap More for Routines, Journal, Quests, Cheers, Orphans, Connections and Help.', 'Tap the house at the top for your Dashboard.', 'Deleted something by mistake? Tap Undo right where it was. It stays until you leave the page.'], alt: 'The More panel open at the bottom of the screen, highlighted, listing Routines, Journal, Quests, Orphans, Connections and Help.' },
       { id: 'capture', title: 'Capture', what: 'Get a thought out of your head in seconds, from any page.', steps: ['Tap Capture at the bottom right.', 'Type it, or tap Speak it and say it.', 'Say the whole thing, like “add call mom tomorrow to my tasks”, and the form fills in for you. Check it before you save.', 'Pick where it goes, or leave Decide later. Then tap Save.', 'What you picked stays picked, so the next one goes to the same place.'], alt: 'The Tasks page with the Capture button at the bottom right highlighted.' },
       { id: 'orphans', title: 'Orphans', what: 'Things you saved with Decide later wait here.', steps: ['Open More, then Orphans.', 'Tap where each one goes: Task, The Vault, Quest, Habit or Post It.', 'Not sure yet? Tap Skip.'], alt: 'The Orphans page with one saved note and the buttons for where it should go highlighted.' },
       { id: 'tasks', title: 'Tasks', what: 'Your to-do list for each day. Undated holds tasks with no day yet.', steps: ['Type in the Add a task box and tap Add.', 'Tap the circle to cross it off.', "Not done today? It moves to tomorrow, so it's never lost."], alt: 'The Tasks page with the Add a task for today box highlighted.' },
@@ -1648,7 +1646,7 @@ export const messages = {
       { id: 'quests', title: 'Random Quest', what: 'Bored? Let the app pick something to do.', steps: ['Open More, then Quests.', 'Pick your energy and how much time you have.', 'Tap Pick a quest for me.'], alt: 'The Random Quest page with the Pick a quest for me button highlighted.' },
       { id: 'focus', title: 'Focus timer', what: 'A timer for working in short bursts.', steps: ['Tap the stopwatch at the top. It starts right away.', 'Faint dots are other people focusing too.', 'Tap Minimize to keep using the app.'], alt: 'The top of the screen with the stopwatch button highlighted.' },
       { id: 'breathe', title: 'Breathe', what: '5 calm minutes. Breathe in as the ring grows, out as it shrinks.', steps: ['Tap the wind icon at the top, next to the stopwatch.', 'Follow the ring until the 5 minutes are up.', 'It’s also there after I’m stuck in Cheers.'], alt: 'The top of the screen with the wind button highlighted.' },
-      { id: 'cheers', title: 'Cheers', what: 'Share a win or say you’re stuck, and cheer others on. Nobody sees who posted.', steps: ['Open More, then Cheers.', 'Tap I did it! or I’m stuck. While you’re stuck, I got unstuck! is there instead.', 'Tap a reaction to cheer someone on. Tap it again to take it back, or another to switch.', 'Tap 🚫 to hide someone’s posts. Hidden people, at the bottom, lets you show them again.'], alt: 'The Cheers page with the reactions on a post highlighted.' },
+      { id: 'cheers', title: 'Cheers', what: 'Share a win or say you’re stuck, and cheer others on. Nobody sees who posted.', steps: ['Open More, then Cheers.', 'Tap I did it! or I’m stuck. While you’re stuck, I got unstuck! is there instead.', 'Tap a reaction to cheer someone on. Tap it again to take it back, or another to switch.', 'Tap 🚫 to hide someone’s posts. Hidden people, at the bottom, lets you show them again.', 'After a win, the bell may offer Share it in Cheers? for a day. Tap it to share.'], alt: 'The Cheers page with the reactions on a post highlighted.' },
       { id: 'dashboard', title: 'Dashboard and Post Its', what: "Your home page: Post Its, what's up next, and how yesterday went.", steps: ['Tap the house at the top.', 'Post Its hold quick notes. Swipe to see the next one.', 'Up next suggests one thing to do now.'], alt: 'The Dashboard with the Post Its on the chalkboard highlighted.' },
       { id: 'trophies', title: 'Trophies', what: 'Trophies reward you for keeping at it.', steps: ['Find them on your Dashboard.', 'Tap See all trophies to see what you have earned.', 'Close to the next one? The Dashboard says so.'], alt: 'The Trophies section of the Dashboard highlighted.' },
       { id: 'alerts', title: 'Alerts', what: 'Every reminder and message also lands under the bell.', steps: ['Tap the bell. The number is how many are new.', 'Tap an alert to go to it.', 'Tap ✕ to clear one, or Clear all.'], alt: 'The Alerts list open from the bell, highlighted.' },

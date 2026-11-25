@@ -1,8 +1,9 @@
+// SPEC §8 Auth: who is signed in. What happens around signing in and out (syncing, clearing this device, deleting
+// the account) is the session store's (src/stores/session.ts).
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import Dexie from 'dexie'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { sessionAdapter } from '@/session/adapter'
 
 export const useAuthStore = defineStore('auth', () => {
   const session = ref<Session | null>(null)
@@ -14,50 +15,22 @@ export const useAuthStore = defineStore('auth', () => {
   /** Loads the stored session once and keeps it updated. Safe to call many times. */
   function init(): Promise<void> {
     ready ??= (async () => {
-      const { data } = await supabase.auth.getSession()
-      session.value = data.session
-      supabase.auth.onAuthStateChange((_event, next) => {
+      const adapter = sessionAdapter()
+      session.value = await adapter.getSession()
+      adapter.onChange((next) => {
         session.value = next
       })
     })()
     return ready
   }
 
-  async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    })
-    if (error) throw error
-  }
+  const signInWithGoogle = () => sessionAdapter().signInWithGoogle()
 
-  async function signOut() {
-    await supabase.auth.signOut()
+  /** Sign out on the server (`global`) or, once the account is gone, on this device only (`local`). */
+  async function signOut(scope: 'global' | 'local' = 'global') {
+    await sessionAdapter().signOut(scope)
     session.value = null
   }
 
-  /**
-   * SPEC §5 Account page, §8: permanently delete my account and everything in it on the server, then clear this
-   * device (its stored copy and its push subscription) and sign out. Needs a connection; returns false if it failed.
-   */
-  async function deleteAccount(): Promise<boolean> {
-    const uid = user.value?.id
-    if (!uid) return false
-    // Left for architecture review candidate 4 (the signed-in session's lifecycle).
-    // eslint-disable-next-line no-restricted-syntax
-    const { error } = await supabase.rpc('delete_my_account')
-    if (error) return false
-    try {
-      const reg = await navigator.serviceWorker?.getRegistration()
-      await (await reg?.pushManager.getSubscription())?.unsubscribe()
-    } catch {
-      // No push on this device.
-    }
-    await Dexie.delete(`my-brain-${uid}`).catch(() => {})
-    await supabase.auth.signOut({ scope: 'local' })
-    session.value = null
-    return true
-  }
-
-  return { session, user, isSignedIn, init, signInWithGoogle, signOut, deleteAccount }
+  return { session, user, isSignedIn, init, signInWithGoogle, signOut }
 })

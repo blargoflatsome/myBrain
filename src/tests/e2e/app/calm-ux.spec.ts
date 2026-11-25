@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
+import { expectFocused } from '../support/focus'
+import { goTo } from '../support/nav'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
 
@@ -14,7 +16,8 @@ async function open(page: Page, path: string) {
   await page.clock.install({ time: NOW })
   await page.goto(path)
 }
-const bar = (page: Page) => page.getByTestId('undo-bar')
+const bar = (page: Page) => page.getByTestId('undo-line')
+const undoButton = (page: Page) => bar(page).getByRole('button', { name: msg.undo.undo })
 const task = (id: string, title: string, extra: Record<string, unknown> = {}) => ({ id, title, notes: null, due_date: DAY, priority: 1, status: 'open', source: 'manual', created_at: '2026-11-01T00:00:01Z', ...extra })
 
 test.beforeEach(async ({ page }) => {
@@ -33,36 +36,44 @@ test.describe('Spec §2: one thing goes straight away, with Undo', () => {
     await expect(bar(page).getByTestId('undo-message')).toHaveText(`Deleted "${LONG_LINE}"`)
     await page.setViewportSize({ width: 320, height: 700 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-    await bar(page).getByRole('button', { name: msg.undo.undo }).click()
+    await undoButton(page).click()
     await expect(page.getByTestId('task-title')).toHaveText([LONG_LINE])
     await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't1', deleted_at: null })
   })
 
-  test('the Undo bar goes away after 8 seconds', async ({ page }) => {
+  test('SPEC §2 Undo in place: no timer; the line stays until I leave the page', async ({ page }) => {
     server.seed('tasks', [task('t1', 'pay rent')])
     await open(page, '/tasks')
-    await page.getByText('pay rent').click()
-    await page.getByRole('dialog', { name: msg.tasks.editor.heading }).getByRole('button', { name: msg.tasks.editor.delete }).click()
-    await expect(bar(page).getByRole('button', { name: msg.undo.undo })).toBeVisible()
-    await page.mouse.move(0, 0)
-    await page.clock.runFor(8_100)
-    await expect(bar(page).getByRole('button', { name: msg.undo.undo })).toHaveCount(0)
+    await page.getByRole('button', { name: msg.tasks.deleteLabel('pay rent') }).click()
+    await page.clock.runFor(60_000)
+    await expect(undoButton(page)).toBeVisible()
+    await goTo(page, msg.nav.journal)
+    await goTo(page, msg.nav.home)
+    await expect(page.getByRole('heading', { name: msg.nav.home, level: 1 })).toBeVisible()
+    await expect(bar(page)).toHaveCount(0)
   })
 
-  test('deleted from the keyboard, focus moves to Undo; Escape closes the bar and focus goes to the heading; a click leaves focus alone', async ({ page }) => {
+  test('SPEC §2 Undo in place: the line stands where the row was and its Undo takes focus; after Undo, focus is on the row brought back', async ({ page }) => {
+    server.seed('tasks', [task('t1', 'pay rent'), task('t2', 'buy milk'), task('t3', 'call mum')])
+    await open(page, '/tasks')
+    await page.getByRole('button', { name: msg.tasks.deleteLabel('buy milk') }).focus()
+    await page.keyboard.press('Enter')
+    await expect(page.locator('li').filter({ has: page.getByTestId('task-title') }).or(bar(page))).toHaveText([/pay rent/, /buy milk/, /call mum/])
+    await expectFocused(undoButton(page))
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('task-title')).toHaveText(['pay rent', 'buy milk', 'call mum'])
+    await expectFocused(page.getByTestId('task-t2').getByTestId('task-toggle'))
+  })
+
+  test('SPEC §2 Undo in place: each delete keeps its own Undo', async ({ page }) => {
     server.seed('tasks', [task('t1', 'pay rent'), task('t2', 'buy milk')])
     await open(page, '/tasks')
     await page.getByRole('button', { name: msg.tasks.deleteLabel('pay rent') }).click()
-    await expect(bar(page).getByRole('button', { name: msg.undo.undo })).toBeVisible()
-    await expect(bar(page).getByRole('button', { name: msg.undo.undo })).not.toBeFocused()
-
-    await page.getByRole('button', { name: msg.tasks.deleteLabel('buy milk') }).focus()
-    await page.keyboard.press('Enter')
-    await expect(bar(page).getByRole('button', { name: msg.undo.undo })).toBeFocused()
-    await page.keyboard.press('Escape')
-    await expect(bar(page).getByRole('button', { name: msg.undo.undo })).toHaveCount(0)
-    await expect(page.getByRole('heading', { level: 1 })).toBeFocused()
-    await expect(page.getByTestId('task-title')).toHaveCount(0)
+    await page.getByRole('button', { name: msg.tasks.deleteLabel('buy milk') }).click()
+    await expect(bar(page).getByTestId('undo-message')).toHaveText([msg.undo.deleted('pay rent'), msg.undo.deleted('buy milk')])
+    await bar(page).filter({ hasText: 'pay rent' }).getByRole('button', { name: msg.undo.undo }).click()
+    await expect(page.getByTestId('task-title')).toHaveText(['pay rent'])
+    await expect(bar(page).getByTestId('undo-message')).toHaveText([msg.undo.deleted('buy milk')])
   })
 
   test('Clear crossed-off can be undone', async ({ page }) => {
@@ -71,7 +82,7 @@ test.describe('Spec §2: one thing goes straight away, with Undo', () => {
     await page.getByTestId('clear-done').click()
     await expect(page.getByTestId('task-title')).toHaveCount(0)
     await expect(bar(page).getByTestId('undo-message')).toHaveText(msg.undo.clearedTasks(1))
-    await bar(page).getByRole('button', { name: msg.undo.undo }).click()
+    await undoButton(page).click()
     await expect(page.getByTestId('task-title')).toHaveText(['pay rent'])
     await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't1', cleared_at: null, status: 'done' })
   })
@@ -81,7 +92,7 @@ test.describe('Spec §2: one thing goes straight away, with Undo', () => {
     await open(page, '/quests')
     await page.getByRole('button', { name: 'Mark done: Paint the fence' }).click()
     await expect(bar(page).getByTestId('undo-message')).toHaveText(msg.undo.questDone('Paint the fence'))
-    await bar(page).getByRole('button', { name: msg.undo.undo }).click()
+    await undoButton(page).click()
     await expect(page.getByRole('heading', { name: msg.quests.inProgress })).toBeVisible()
     await expect.poll(() => server.written('quest_logs').at(-1)?.deleted_at).toBeTruthy()
     await expect.poll(() => server.written('quests').at(-1)).toMatchObject({ id: 'q1', status: 'accepted' })

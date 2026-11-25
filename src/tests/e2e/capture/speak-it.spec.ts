@@ -61,6 +61,9 @@ test.describe('SPEC §5 Quick capture: Speak it fills the form', () => {
 
   test('speaking again replaces the form, and Undo puts back what was there', async ({ page }) => {
     await page.goto('/capture')
+    // "my shopping list" names a bucket, so wait until the buckets are on this device (seen under The Vault).
+    await typeChip(page, msg.capture.destinations.vault).click()
+    await expect(page.getByText('Shopping list', { exact: true })).toBeVisible()
     await say(page, 'add learn the ukulele as a quest')
     await expect(titleBox(page)).toHaveValue('Learn the ukulele')
 

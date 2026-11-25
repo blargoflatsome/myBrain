@@ -15,7 +15,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 | 1 | One module for "I finished it" | Strong | Merged (branch `finish-module`) |
 | 2 | Deletes that return their own Undo | Strong, real bug | Merged (branch `undo-from-deletes`) |
 | 3 | Server calls behind a seam that keeps my copy up to date | Strong | Merged (branch `server-seam`) |
-| 4 | One module for the signed-in session's lifecycle | Worth exploring | To do |
+| 4 | One module for the signed-in session's lifecycle | Worth exploring | Merged (branch `session-lifecycle`) |
 | 5 | Close brain's raw `save`; tasks, quests and Post Its get their own actions | Worth exploring | To do |
 | 6 | One capture path, Post Its included | Speculative | Done with 1 |
 
@@ -110,6 +110,14 @@ Words: **module** (anything with an interface and an implementation), **interfac
   sign-out order (`uploadBeforeSignOut` → `forgetDevice` → `auth.signOut` → route) lives in a screen.
 - **Deeper module would hide:** open, reset if wiped, start listeners, sign out, roll back a failed account delete.
 - **Tests:** sign-out, a reset on another device and a failed delete, unit-tested instead of e2e only.
+- **Decided (user, 2026-11-24):**
+  - A session store, `src/stores/session.ts`: App.vue calls `session.begin()` once; it follows sign-in (start and stop
+    brain, profile, timezone, the data-reset check on sign-in and on coming back, my Celebrations setting).
+    `signOut`, `deleteAccount` and `deleteMyData` do the whole order, including rolling back a failed account delete.
+    Screens keep only windows and routing; App.vue still does the phone redirect, from `session.needsPhone`.
+  - A small session adapter (`src/session/adapter.ts`: sign-in session, sign out, my profile row, the sync Remote,
+    push), Supabase or a fake; the two deletes go through the server seam, so the lint exceptions go.
+  - Bug fixed with it: Delete My Account now also forgets what the app remembered on the device, like Sign out.
 
 ## 5. Close brain's raw `save`; tasks, quests and Post Its get their own actions
 

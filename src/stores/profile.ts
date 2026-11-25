@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
+import { sessionAdapter } from '@/session/adapter'
 import { readJson, writeJson } from '@/ui/storage'
 import { parseAppearance, setAppearance } from '@/ui/appearance'
 
@@ -70,13 +70,13 @@ export const useProfileStore = defineStore('profile', () => {
     if (!uid) return Promise.resolve(null)
     if (full) return Promise.resolve(full)
     loading ??= (async () => {
-      const { data, error } = await supabase.from('profiles').select('*').eq('user_id', uid).maybeSingle()
+      const data = await sessionAdapter().readProfile(uid)
       if (loadedFor !== uid) return null
-      if (error || !data) {
+      if (!data) {
         loading = null // try again next time
         return null
       }
-      keep(data as Profile)
+      keep(data)
       return full
     })()
     return loading
@@ -86,6 +86,8 @@ export const useProfileStore = defineStore('profile', () => {
   async function update(fields: Partial<Omit<Profile, 'user_id'>>): Promise<boolean> {
     const uid = auth.user?.id
     if (!uid) return false
+    // Loaded on first use, like the session adapter, so unit tests never need Supabase's keys.
+    const { supabase } = await import('@/lib/supabase')
     const { error } = await supabase.from('profiles').update(fields).eq('user_id', uid)
     if (error) return false
     const given = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined))

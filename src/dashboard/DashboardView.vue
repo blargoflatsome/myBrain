@@ -50,16 +50,19 @@
         </ul>
       </template>
       <!-- Yesterday's leftovers (SPEC §5 Dashboard): tasks due yesterday still open, with Undated and Let it go. -->
-      <div v-if="stats.leftovers.length" class="flex flex-col gap-2" data-testid="dash-leftovers">
+      <div v-if="leftoversShown.length" class="flex flex-col gap-2" data-testid="dash-leftovers">
         <h3 class="text-sm font-semibold">{{ m.leftoversHeading }}</h3>
         <ul class="flex flex-col gap-2">
-          <li v-for="task in stats.leftovers" :key="task.id" class="flex flex-wrap items-center justify-between gap-2" data-testid="dash-leftover">
-            <span class="min-w-0 break-words">{{ task.title }}</span>
-            <span class="flex shrink-0 gap-2">
-              <button type="button" :class="smallButton" :aria-label="m.leftoverUndated(task.title)" @click="leftoverUndated(task)">{{ m.undated }}</button>
-              <button type="button" :class="smallButton" :aria-label="m.leftoverLetGo(task.title)" @click="leftoverLetGo(task)">{{ m.letGo }}</button>
-            </span>
-          </li>
+          <template v-for="{ key, row: task, line } in leftoversShown" :key="key">
+            <UndoLine v-if="line" :line="line" in-box class="!pl-0" @undo="(el) => undoable.run(line, el)" />
+            <li v-else-if="task" class="flex flex-wrap items-center justify-between gap-2" data-testid="dash-leftover">
+              <span class="min-w-0 break-words">{{ task.title }}</span>
+              <span class="flex shrink-0 gap-2">
+                <button type="button" :class="smallButton" :aria-label="m.leftoverUndated(task.title)" @click="leftoverUndated(task)">{{ m.undated }}</button>
+                <button type="button" :class="smallButton" :aria-label="m.leftoverLetGo(task.title)" @click="leftoverLetGo(task)">{{ m.letGo }}</button>
+              </span>
+            </li>
+          </template>
         </ul>
       </div>
       <ul v-if="yesterdayTrophies.length" class="flex flex-wrap gap-2 text-sm" :aria-label="t.yesterday">
@@ -115,7 +118,8 @@ import { daysSinceWorstDay, favoriteBuckets, yesterdayLeftovers, yesterdaySummar
 import UpNextCard from '@/dashboard/components/UpNextCard.vue'
 import WorstDayBoard from '@/dashboard/components/WorstDayBoard.vue'
 import { cancelTask, moveTask } from '@/tasks/rules'
-import { useUndoStore } from '@/stores/undo'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import type { TaskRow } from '@/sync/types'
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
@@ -160,14 +164,18 @@ const stats = useDeviceQuery(
 
 
 
-// Yesterday's leftovers (SPEC §5 Dashboard): Undated or Let it go (cancel), each with Undo.
-const undo = useUndoStore()
+// Yesterday's leftovers (SPEC §5 Dashboard): Undated or Let it go (cancel), each with Undo in place (SPEC §2).
+const undoable = useUndoInPlace()
+const leftoversShown = computed(() => undoable.placed(stats.value?.leftovers ?? []))
+const placeOf = (task: TaskRow) => ({ row: { id: task.id, in: stats.value?.leftovers ?? [] } })
 async function leftoverUndated(task: TaskRow) {
+  const place = placeOf(task)
   await brain.saveTask(moveTask(task, null))
-  undo.offer(messages.undo.movedUndated(task.title), () => brain.saveTask(task))
+  undoable.offer(messages.undo.movedUndated(task.title), () => brain.saveTask(task), place)
 }
 async function leftoverLetGo(task: TaskRow) {
+  const place = placeOf(task)
   await brain.saveTask(cancelTask(task))
-  undo.offer(messages.undo.cancelled(task.title), () => brain.saveTask(task))
+  undoable.offer(messages.undo.cancelled(task.title), () => brain.saveTask(task), place)
 }
 </script>

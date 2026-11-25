@@ -1,6 +1,8 @@
 <template>
   <main class="mx-auto flex w-full max-w-xl flex-col gap-6 px-5 pt-8 md:px-8 pb-28">
     <h1 class="text-2xl font-bold">{{ m.heading }}</h1>
+    <!-- SPEC §2 Undo in place: a deleted orphan's card is replaced by the next one, so its Undo shows above it. -->
+    <UndoLine v-for="l in undoable.ownLines()" :key="l.key" :line="l" tag="p" @undo="(el) => undoable.run(l, el)" />
     <!-- SPEC §5 Celebrations: sorting the last orphan gets a friendly "all sorted". -->
     <div v-if="!current && sortedAll" class="flex items-center gap-4 rounded-2xl bg-surface p-6" role="status" data-testid="orphans-sorted">
       <span class="celebrate-fold flex size-12 shrink-0 items-center justify-center rounded-full bg-done text-bg" aria-hidden="true"><AppIcon name="check" size="size-7" /></span>
@@ -33,7 +35,8 @@ import AppIcon from '@/components/AppIcon.vue'
 import RowDelete from '@/components/RowDelete.vue'
 import DestinationPicker from '@/capture/components/DestinationPicker.vue'
 import { useBrainStore } from '@/stores/brain'
-import { useUndoStore } from '@/stores/undo'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { messages } from '@/messages'
 import type { CaptureInput } from '@/capture/capture'
 import type { InboxRow } from '@/sync/types'
@@ -41,7 +44,7 @@ import { oldestFirst } from '@/capture/capture'
 import { smallButton } from '@/ui/styles'
 
 const brain = useBrainStore()
-const undo = useUndoStore()
+const undoable = useUndoInPlace()
 const m = messages.inbox
 
 const orphans = useRows('inbox')
@@ -67,23 +70,18 @@ async function remove(item: InboxRow) {
   const last = queue.value.length === 1
   const putBack = await brain.removeOrphan(item.id)
   if (last) sortedAll.value = true
-  let undone = false
-  const undoDelete = async () => {
-    undone = true
-    await putBack()
-  }
-  undo.offer(messages.undo.deleted(preview(item.body)), undoDelete, { focusAfter: () => cardShown(undone ? item.id : null) })
+  undoable.offer(messages.undo.deleted(preview(item.body)), putBack, { focusAfter: () => cardShown(item.id) })
 }
 
-/** Where keyboard focus lands once the Undo bar closes: the card now shown (the heading once all are sorted). */
-async function cardShown(broughtBack: string | null) {
+/** Where keyboard focus lands after Undo: the card now shown. */
+async function cardShown(broughtBack: string) {
   // After Undo, the orphan comes back through the device database a moment later.
-  if (broughtBack) await untilShown(() => queue.value.some((o) => o.id === broughtBack))
+  await untilShown(() => queue.value.some((o) => o.id === broughtBack))
   await nextTick()
   return document.querySelector<HTMLElement>('[data-testid="orphan-card"]')
 }
 
-/** The start of an orphan's text, for the Undo bar. */
+/** The start of an orphan's text, for its Undo line. */
 function preview(body: string) {
   const line = body.trim().split(/\r?\n/)[0] ?? ''
   return line.length > 60 ? `${line.slice(0, 59).trimEnd()}…` : line

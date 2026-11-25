@@ -200,7 +200,7 @@ test.describe('Spec §5 Calendar, my people: fixed or removed on the Account pag
     await open(page, '/account')
     const section = page.getByTestId('my-people-settings')
     await section.getByRole('button', { name: 'Remove Frank' }).click()
-    await expect(page.getByTestId('undo-bar')).toContainText(msg.undo.removed('Frank'))
+    await expect(page.getByTestId('undo-line')).toContainText(msg.undo.removed('Frank'))
     await expect(section.getByTestId('saved-person')).toHaveCount(0)
     await expect(section).toContainText(msg.myPeople.empty)
     await expect.poll(() => server.written('people').at(-1)?.deleted_at).toBeTruthy()

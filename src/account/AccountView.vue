@@ -245,10 +245,9 @@ import { useJournalLock } from '@/journal/useJournalLock'
 import { computed, onMounted, ref } from 'vue'
 import AccountGroup from '@/account/components/AccountGroup.vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { supabase } from '@/lib/supabase'
-import { supabaseRemote } from '@/sync/supabaseRemote'
 import { useAuthStore } from '@/stores/auth'
 import { useBrainStore } from '@/stores/brain'
+import { useSessionStore } from '@/stores/session'
 import { messages } from '@/messages'
 import NotificationSettings from '@/notifications/components/NotificationSettings.vue'
 import EventSettings from '@/events/components/EventSettings.vue'
@@ -256,7 +255,6 @@ import MyPeople from '@/events/components/MyPeople.vue'
 import ConnectionsPanel from '@/connections/components/ConnectionsPanel.vue'
 import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
-import { clearAppKeys } from '@/ui/storage'
 import { checkbox, confirmBox, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
 import { appearance, APPEARANCES, setAppearance, type Appearance } from '@/ui/appearance'
 import { openPause } from '@/habits/rules'
@@ -265,6 +263,7 @@ import { CELEBRATION_SETTINGS, parseSetting, type CelebrationSetting } from '@/c
 
 const auth = useAuthStore()
 const brain = useBrainStore()
+const session = useSessionStore()
 const profile = useProfileStore()
 const router = useRouter()
 const m = messages.profile
@@ -351,14 +350,9 @@ function askDelete() {
 async function deleteAccount() {
   deleting.value = true
   deleteError.value = ''
-  brain.stop()
-  const ok = await auth.deleteAccount()
+  const ok = await session.deleteAccount()
   deleting.value = false
-  if (!ok) {
-    deleteError.value = m.deleteConfirm.failed
-    if (auth.user) brain.start(auth.user.id, supabaseRemote(supabase))
-    return
-  }
+  if (!ok) return (deleteError.value = m.deleteConfirm.failed)
   confirmDelete.value?.close()
   await router.push({ name: 'sign-in', query: { deleted: '1' } })
 }
@@ -409,16 +403,10 @@ function askWipe() {
 async function wipeData() {
   wiping.value = true
   wipeError.value = ''
-  // Left for architecture review candidate 4 (the signed-in session's lifecycle).
-  // eslint-disable-next-line no-restricted-syntax
-  const { data, error } = await supabase.rpc('delete_my_data', { parts: wipeChosen.value })
+  const ok = await session.deleteMyData(wipeChosen.value)
   wiping.value = false
-  if (error) {
-    wipeError.value = messages.deleteData.failed
-    return
-  }
+  if (!ok) return (wipeError.value = messages.deleteData.failed)
   confirmWipe.value?.close()
-  await brain.applyDataReset(typeof data === 'string' ? data : new Date().toISOString())
   wipeDone.value = messages.deleteData.done
 }
 
@@ -427,14 +415,9 @@ async function wipeData() {
 const confirmUnsent = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const unsent = ref(0)
 async function signOut(discardUnsent: boolean) {
-  if (!discardUnsent) {
-    unsent.value = await brain.uploadBeforeSignOut()
-    if (unsent.value > 0) return confirmUnsent.value?.open()
-  }
+  unsent.value = await session.signOut(discardUnsent)
+  if (unsent.value > 0) return confirmUnsent.value?.open()
   confirmUnsent.value?.close()
-  await brain.forgetDevice()
-  clearAppKeys()
-  await auth.signOut()
   await router.push({ name: 'sign-in' })
 }
 

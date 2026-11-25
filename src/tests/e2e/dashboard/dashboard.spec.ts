@@ -133,7 +133,7 @@ test.describe('Spec §5 Dashboard: Up next', () => {
     await upNext(page).getByTestId('up-next-today').click()
     await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't1', due_date: '2026-11-10' })
     await expect(upNext(page).getByTestId('up-next-title')).toHaveText('Fix the bike') // now a normal task for today
-    await page.getByTestId('undo-bar').getByRole('button', { name: msg.undo.undo }).click()
+    await page.getByTestId('undo-line').getByRole('button', { name: msg.undo.undo }).click()
     await expect.poll(() => server.written('tasks').at(-1)?.due_date).toBe('2026-11-07')
   })
 
@@ -162,7 +162,7 @@ test.describe("Spec §5 Dashboard: yesterday's leftovers", () => {
     const leftovers = page.getByTestId('dash-leftovers')
     await leftovers.getByRole('button', { name: msg.dashboard.leftoverLetGo('Email Sam') }).click()
     await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't1', status: 'cancelled' })
-    await page.getByTestId('undo-bar').getByRole('button', { name: msg.undo.undo }).click()
+    await page.getByTestId('undo-line').getByRole('button', { name: msg.undo.undo }).click()
     await expect.poll(() => server.written('tasks').at(-1)?.status).toBe('open')
     await leftovers.getByRole('button', { name: msg.dashboard.leftoverUndated('Call Mum') }).click()
     await expect.poll(() => server.written('tasks').at(-1)).toMatchObject({ id: 't2', due_date: null })

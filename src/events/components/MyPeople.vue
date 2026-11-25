@@ -7,17 +7,20 @@
     </div>
     <p class="text-sm text-muted" role="status" data-testid="people-notice">{{ notice }}</p>
     <p v-if="!people.length" class="text-muted">{{ m.empty }}</p>
-    <ul v-else class="flex flex-col gap-2">
-      <li v-for="p in pageItems" :key="p.id" class="flex min-w-0 items-center justify-between gap-2" data-testid="saved-person">
-        <button type="button" class="min-h-11 min-w-0 flex-1 text-left text-sm [overflow-wrap:anywhere]" :aria-label="m.editLabel(shownAs(p))" @click="startEdit(p)">
-          <span class="font-medium">{{ personLabel(p) }}</span>
-          <span v-if="p.name" class="text-muted"> · {{ p.email || p.phone }}</span>
-        </button>
-        <span class="flex shrink-0 flex-wrap justify-end gap-1">
-          <button v-if="withAccounts.has(p.id)" type="button" class="min-h-11 rounded-xl border border-accent px-3 text-sm" :aria-label="c.connectPersonLabel(personLabel(p))" @click="connect(p)">{{ c.connectPerson }}</button>
-          <RowDelete :label="m.removeLabel(personLabel(p))" @click="askRemove(p)" />
-        </span>
-      </li>
+    <ul v-if="peopleShown.length" class="flex flex-col gap-2">
+      <template v-for="{ key, row: p, line } in peopleShown" :key="key">
+        <UndoLine v-if="line" :line="line" in-box class="!pl-0" @undo="(el) => undoable.run(line, el)" />
+        <li v-else-if="p" class="flex min-w-0 items-center justify-between gap-2" data-testid="saved-person">
+          <button type="button" class="min-h-11 min-w-0 flex-1 text-left text-sm [overflow-wrap:anywhere]" :aria-label="m.editLabel(shownAs(p))" @click="startEdit(p)">
+            <span class="font-medium">{{ personLabel(p) }}</span>
+            <span v-if="p.name" class="text-muted"> · {{ p.email || p.phone }}</span>
+          </button>
+          <span class="flex shrink-0 flex-wrap justify-end gap-1">
+            <button v-if="withAccounts.has(p.id)" type="button" class="min-h-11 rounded-xl border border-accent px-3 text-sm" :aria-label="c.connectPersonLabel(personLabel(p))" @click="connect(p)">{{ c.connectPerson }}</button>
+            <RowDelete :label="m.removeLabel(personLabel(p))" @click="askRemove(p)" />
+          </span>
+        </li>
+      </template>
     </ul>
     <PageControls v-model:page="page" :page-count="pageCount" :label="m.heading" />
 
@@ -44,7 +47,8 @@ import { useRows } from '@/sync/useRows'
 import RowDelete from '@/components/RowDelete.vue'
 import CloseX from '@/components/CloseX.vue'
 import { computed, onMounted, ref } from 'vue'
-import { useUndoStore } from '@/stores/undo'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
 import { contactKey, isEmail, isPhone } from '@/events/contacts'
@@ -115,9 +119,11 @@ async function connect(p: PersonRow) {
   await loadAccounts()
 }
 
-// Removing someone happens straight away, with Undo (SPEC §2).
-const undo = useUndoStore()
+// Removing someone happens straight away, with Undo in place (SPEC §2).
+const undoable = useUndoInPlace()
+const peopleShown = computed(() => undoable.placed(pageItems.value))
 async function askRemove(p: PersonRow) {
-  undo.offer(messages.undo.removed(personLabel(p)), await brain.remove('people', p.id))
+  const place = { row: { id: p.id, in: pageItems.value } }
+  undoable.offer(messages.undo.removed(personLabel(p)), await brain.remove('people', p.id), place)
 }
 </script>

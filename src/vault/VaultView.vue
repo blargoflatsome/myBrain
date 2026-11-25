@@ -53,42 +53,46 @@
 
       <p v-if="!bucketItems.length" class="text-muted">{{ m.empty }}</p>
       <ul class="flex flex-col gap-2">
-        <li
-          v-for="i in bucketItems"
-          :key="i.id"
-          class="flex items-start gap-3 rounded-2xl border border-line bg-surface p-3"
-          :class="i.checked ? 'text-muted' : ''"
-          data-testid="vault-item"
-        >
-          <CheckCircle
-            v-if="bucket.checkable"
-            role="checkbox"
-            :on="!!i.checked"
-            :label="i.checked ? m.uncheck(i.title) : m.check(i.title)"
-            @click="brain.toggleVaultItem(i.id)"
-          />
-          <div class="flex min-w-0 flex-1 flex-col gap-1">
-            <button type="button" class="text-left font-medium" :class="i.checked ? 'line-through' : ''" :aria-label="m.open(i.title)" @click="editing = i">
-              {{ i.title }}
-            </button>
-            <span v-if="i.rating" class="text-sm text-star" :aria-label="m.stars(i.rating)" role="img"><AppIcon v-for="n in 5" :key="n" name="star" :filled="n <= i.rating" :class="n <= i.rating ? '' : 'text-muted'" /></span>
-            <p v-if="i.notes" class="line-clamp-2 text-sm text-muted">{{ plainText(i.notes) }}</p>
-            <p v-if="addedBySomeoneElse(i, me)" class="text-xs text-muted" data-testid="vault-added-by">{{ m.addedBy(people.nameOf(i.added_by)) }}</p>
-            <a
-              v-if="i.link"
-              :href="linkTarget(i.link).href"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="self-start text-sm text-accent underline"
-              :aria-label="`${linkTarget(i.link).kind === 'map' ? m.openMap : m.openLink}: ${linkLabel(i.link)}`"
-            ><AppIcon :name="linkTarget(i.link).kind === 'map' ? 'pin' : 'link'" class="mr-1" />{{ linkLabel(i.link) }}</a>
-          </div>
-          <RowDelete class="-my-1 -mr-1" :label="m.deleteItem(i.title)" @click="askDelete(i)" />
-        </li>
+        <template v-for="{ key, row: i, line } in undoable.placed(bucketItems, bucket.id)" :key="key">
+          <UndoLine v-if="line" :line="line" @undo="(el) => undoable.run(line, el)" />
+          <li
+            v-else-if="i"
+            class="flex items-start gap-3 rounded-2xl border border-line bg-surface p-3"
+            :class="i.checked ? 'text-muted' : ''"
+            data-testid="vault-item"
+          >
+            <CheckCircle
+              v-if="bucket.checkable"
+              role="checkbox"
+              :on="!!i.checked"
+              :label="i.checked ? m.uncheck(i.title) : m.check(i.title)"
+              @click="brain.toggleVaultItem(i.id)"
+            />
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+              <button type="button" class="text-left font-medium" :class="i.checked ? 'line-through' : ''" :aria-label="m.open(i.title)" @click="editing = i">
+                {{ i.title }}
+              </button>
+              <span v-if="i.rating" class="text-sm text-star" :aria-label="m.stars(i.rating)" role="img"><AppIcon v-for="n in 5" :key="n" name="star" :filled="n <= i.rating" :class="n <= i.rating ? '' : 'text-muted'" /></span>
+              <p v-if="i.notes" class="line-clamp-2 text-sm text-muted">{{ plainText(i.notes) }}</p>
+              <p v-if="addedBySomeoneElse(i, me)" class="text-xs text-muted" data-testid="vault-added-by">{{ m.addedBy(people.nameOf(i.added_by)) }}</p>
+              <a
+                v-if="i.link"
+                :href="linkTarget(i.link).href"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="self-start text-sm text-accent underline"
+                :aria-label="`${linkTarget(i.link).kind === 'map' ? m.openMap : m.openLink}: ${linkLabel(i.link)}`"
+              ><AppIcon :name="linkTarget(i.link).kind === 'map' ? 'pin' : 'link'" class="mr-1" />{{ linkLabel(i.link) }}</a>
+            </div>
+            <RowDelete class="-my-1 -mr-1" :label="m.deleteItem(i.title)" @click="askDelete(i)" />
+          </li>
+        </template>
       </ul>
       <button v-if="checked.length" type="button" :class="[smallButton, 'self-start']" @click="clearChecked">
         {{ m.clearChecked }}
       </button>
+      <!-- SPEC §2 Undo in place: Clear checked leaves its Undo where the button was. -->
+      <UndoLine v-for="l in undoable.ownLines(bucket.id)" :key="l.key" :line="l" tag="p" @undo="(el) => undoable.run(l, el)" />
     </template>
 
     <VaultItemEditor :item="editing" :buckets="buckets" @save="saveItem" @delete="deleteItem" @close="closeEditor" />
@@ -135,7 +139,8 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { addedBySomeoneElse, isStar, membersOf, ownsBucket, sharedWithMe, visibleBuckets } from '@/vault/sharing'
 import { useVaultPeople } from '@/vault/useVaultPeople'
 import { useCelebrateStore } from '@/stores/celebrate'
-import { useUndoStore } from '@/stores/undo'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { plainText } from '@/journal/body'
 
 const brain = useBrainStore()
@@ -244,20 +249,24 @@ async function saveItem(i: VaultItemRow) {
   await brain.saveVaultItem(i)
   await closeEditor()
 }
-// One item, or the checked ones, go straight away with Undo (SPEC §2).
-const undo = useUndoStore()
+// One item, or the checked ones, go straight away with Undo in place (SPEC §2); each bucket keeps its own lines.
+const undoable = useUndoInPlace()
+const placeOf = (i: VaultItemRow) => ({ row: { id: i.id, in: bucketItems.value }, list: bucket.value?.id })
 async function deleteItem(i: VaultItemRow) {
+  const place = placeOf(i)
   const putBack = await brain.remove('vault_items', i.id)
   await closeEditor()
-  undo.offer(messages.undo.deleted(i.title), putBack)
+  undoable.offer(messages.undo.deleted(i.title), putBack, place)
 }
 async function askDelete(i: VaultItemRow) {
-  undo.offer(messages.undo.deleted(i.title), await brain.remove('vault_items', i.id))
+  const place = placeOf(i)
+  undoable.offer(messages.undo.deleted(i.title), await brain.remove('vault_items', i.id), place)
 }
 async function clearChecked() {
   if (!bucket.value) return
-  const cleared = await brain.clearChecked(bucket.value.id)
-  undo.offer(messages.undo.clearedChecked(cleared.count), cleared.undo)
+  const list = bucket.value.id
+  const cleared = await brain.clearChecked(list)
+  undoable.offer(messages.undo.clearedChecked(cleared.count), cleared.undo, { list })
 }
 
 </script>

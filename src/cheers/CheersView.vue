@@ -53,7 +53,10 @@
       <p v-if="loadFailed" class="text-sm text-danger" role="alert">{{ m.loadFailed }}</p>
       <p v-else-if="loaded && !posts.length" class="text-muted" data-testid="cheers-empty">{{ m.empty }}</p>
       <ul class="flex flex-col gap-3" data-testid="cheers-feed">
-        <CheerPostCard v-for="p in posts" :key="p.id" :post="p" :now="now" :busy="reacting === p.id" @react="react" @unreact="unreact" @hide="hide" />
+        <template v-for="{ key, row: p, line } in undoable.placed(posts)" :key="key">
+          <UndoLine v-if="line" :line="line" @undo="(el) => undoable.run(line, el)" />
+          <CheerPostCard v-else-if="p" :post="p" :now="now" :busy="reacting === p.id" @react="react" @unreact="unreact" @hide="hide" />
+        </template>
       </ul>
     </section>
 
@@ -82,13 +85,16 @@ import PageHeading from '@/components/PageHeading.vue'
 import CheerPostCard from '@/cheers/components/CheerPostCard.vue'
 import { cheerFeed, cheerOn, hiddenPeople, hideAuthor, postCheer, shareCheer, showAgain, stuckCount, unreactCheer, type CheerPost, type HiddenPerson } from '@/cheers/cheers'
 import { sayWhy } from '@/server/server'
-import { MAX_CHARS, pickOne, postText, type Reaction } from '@/cheers/rules'
+import { CHEERS_OFFER_ALERT, MAX_CHARS, pickOne, postText, type Reaction } from '@/cheers/rules'
 import { useNow } from '@/composables/useNow'
 import { useBrainStore } from '@/stores/brain'
 import { useBreatheStore } from '@/stores/breathe'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { useCheersStore } from '@/stores/cheers'
-import { useUndoStore } from '@/stores/undo'
+import { findRow } from '@/sync/useRows'
+import { useRoute, useRouter } from 'vue-router'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { dayOfLabel } from '@/ui/dates'
 import { card, field, fieldLabel, primaryButton, primaryButtonSmall, rowAction, secondaryButton, smallButton } from '@/ui/styles'
 import { messages } from '@/messages'
@@ -98,7 +104,7 @@ const brain = useBrainStore()
 const breathe = useBreatheStore()
 const celebrate = useCelebrateStore()
 const cheers = useCheersStore()
-const undo = useUndoStore()
+const undoable = useUndoInPlace()
 const now = useNow(60_000)
 const hintId = useId()
 const countId = useId()
@@ -150,7 +156,20 @@ async function startDidIt() {
   await nextTick()
   box.value?.focus()
 }
-// An offer's Share fills the box: put me in it.
+// SPEC §5 Cheers: opened from a "Share it in Cheers?" alert (?offer=<its id>), its suggested line fills the box.
+const route = useRoute()
+const router = useRouter()
+watch(
+  () => route.query.offer,
+  async (id) => {
+    if (typeof id !== 'string') return
+    const alert = await findRow('notifications', id)
+    if (alert?.kind === CHEERS_OFFER_ALERT && alert.body) cheers.draft = alert.body
+    void router.replace({ query: {} })
+  },
+  { immediate: true },
+)
+// The box opening (I did it!, or an offer's line) puts me in it.
 watch(() => cheers.draft !== null, async (open) => {
   if (!open) return
   await nextTick()
@@ -247,15 +266,16 @@ async function unreact(post: CheerPost) {
   }
 }
 
-// Hiding happens straight away, with Undo (SPEC §5 Cheers, Block).
+// Hiding happens straight away, with Undo in place (SPEC §5 Cheers, Block; SPEC §2).
 async function hide(post: CheerPost) {
   try {
+    const place = { row: { id: post.id, in: posts.value } }
     const id = await hideAuthor(post.id)
     posts.value = posts.value.filter((p) => p.id !== post.id)
-    undo.offer(m.hidden, async () => {
+    undoable.offer(m.hidden, async () => {
       if (id) await showAgain(id)
       await Promise.all([load(), loadHidden()])
-    })
+    }, place)
     await Promise.all([load(), loadHidden()])
   } catch {
     celebrate.say(m.hideFailed)

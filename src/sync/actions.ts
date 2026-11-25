@@ -6,7 +6,7 @@ import type { SyncEngine } from './engine'
 import type { SyncTable } from './types'
 import { ServerError, serverCall, serverOnline } from '@/server/server'
 
-/** Puts back everything a change did (SPEC §2 Undo); each delete returns its own, so the Undo bar never guesses. */
+/** Puts back everything a change did (SPEC §2 Undo); each delete returns its own, so Undo never guesses. */
 export type Undo = () => Promise<void>
 
 export interface Ready {

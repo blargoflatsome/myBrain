@@ -3,7 +3,7 @@
 Current state only. Update at the end of every session; when work merges, move its section to [docs/PROGRESS_ARCHIVE.md](docs/PROGRESS_ARCHIVE.md) (search it for a past step's history). Build order: [SPEC §11](docs/SPEC.md#11-suggested-build-order). Decisions: [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Next step
-- **Architecture review 2** ([docs/ARCHITECTURE_REVIEW_TASKS.md](docs/ARCHITECTURE_REVIEW_TASKS.md)): candidates 2, 1, 6 and 3 merged. Next: 4 (signed-in session's lifecycle, which also takes Account's two raw server calls), then 5 if wanted.
+- **Architecture review 2** ([docs/ARCHITECTURE_REVIEW_TASKS.md](docs/ARCHITECTURE_REVIEW_TASKS.md)): candidates 2, 1, 6, 3 and 4 merged. Next: 5 (close brain's raw `save`) if wanted.
 - Voice capture is merged. Pick the next step with the user (idea waiting: the guest poll).
 - **Needs from the user:** the Cheers smug lines (`messages.cheers.afterReact`, `messages.cheers.subtitle`, and the unstuck alert, which lives in `post_cheer` in the migrations, so changing it is a small migration) and the Cheering others on trophy names and "You…" lines (`celebrations.trophies.names` / `about` / `earnedAbout`: cheers_given, cheer_days, cheer_firsts, cheer_unstuck, cheering_while_stuck). All are plain placeholders. The I'm stuck lines (`messages.cheers.stuckLines`) are sincere drafts for the user to check.
 - **Small gap:** Download my data doesn't include Cheers posts (they live only on the server and expire after 48 hours).

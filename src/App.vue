@@ -81,7 +81,6 @@
 
     <!-- SPEC §5: full-screen reminder for due priority habits and tasks, on every screen. -->
     <PriorityReminder v-if="showChrome" />
-    <UndoBar v-if="showChrome" />
     <FocusTimer v-if="showChrome" />
     <BreatheWindow v-if="showChrome" />
     <CelebrationLayer v-if="showChrome" />
@@ -90,13 +89,10 @@
 
 <script setup lang="ts">
 import { useRows } from '@/sync/useRows'
-import { useProfileStore } from '@/stores/profile'
-import { parseSetting } from '@/celebrate/rules'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref, watch } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
-import UndoBar from '@/components/UndoBar.vue'
 import AlertBanner from '@/notifications/components/AlertBanner.vue'
 import BottomTabs from '@/components/BottomTabs.vue'
 import { MAIN_NAV, MORE_NAV, inMore } from '@/ui/nav'
@@ -112,11 +108,8 @@ import SearchDialog from '@/search/components/SearchDialog.vue'
 import { useSearchStore } from '@/stores/search'
 import { useCaptureStore } from '@/stores/capture'
 import { useAuthStore } from '@/stores/auth'
-import { useBrainStore } from '@/stores/brain'
-import { supabase } from '@/lib/supabase'
-import { supabaseRemote } from '@/sync/supabaseRemote'
+import { useSessionStore } from '@/stores/session'
 import { messages } from '@/messages'
-import { deviceTimeZone } from '@/tasks/days'
 import { useWideScreen } from '@/composables/useWideScreen'
 import { useCheersStore } from '@/stores/cheers'
 import { readKey, writeKey } from '@/ui/storage'
@@ -124,14 +117,12 @@ import { readKey, writeKey } from '@/ui/storage'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
-const brain = useBrainStore()
 const capture = useCaptureStore()
 const searchWindow = useSearchStore()
 const celebrate = useCelebrateStore()
 celebrate.start()
 // SPEC §5 Cheers: the quiet "Share it in Cheers?" offer listens for finished things.
 useCheersStore().start()
-const profile = useProfileStore()
 
 // SPEC §5 Celebrations: after a capture is saved, the Capture button gives one soft pulse (once its window is closed,
 // so it can be seen).
@@ -147,44 +138,18 @@ function pulse() {
 watch(() => celebrate.captureSaved, () => (capture.isOpen ? (pulseDue = true) : pulse()))
 watch(() => capture.isOpen, (open) => !open && pulseDue && pulse())
 
-// SPEC §8 Delete my data: if my data was deleted on another device, clear this device's copy and download again.
-let lastResetCheck = 0
-async function checkDataReset() {
-  const id = auth.user?.id
-  if (!id || !navigator.onLine) return
-  lastResetCheck = Date.now()
-  const { data } = await supabase.from('profiles').select('data_reset_at').eq('user_id', id).maybeSingle()
-  await brain.applyDataReset(data?.data_reset_at)
-}
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && Date.now() - lastResetCheck > 60_000) void checkDataReset()
-})
-
-// Open the signed-in user's on-device store and start syncing; close it on sign-out.
+// SPEC §8: the session store opens my data on sign-in and closes it on sign-out.
+const session = useSessionStore()
+session.begin()
+// SPEC §5 Accounts: the phone number is asked for once, right after sign-in (skipped when offline).
 watch(
-  () => auth.user?.id,
-  (id) => {
-    profile.follow(id ?? null)
-    if (!id) return brain.stop()
-    brain.start(id, supabaseRemote(supabase))
-    // One read of my profile, shared by every screen: has my data been deleted elsewhere, my Celebrations
-    // setting, and my phone number.
-    lastResetCheck = Date.now()
-    void profile.load()
-      .then(async (data) => {
-        // SPEC §5 Tasks: keep the profile's timezone in step with the device, for server-side jobs.
-        if (data && data.timezone !== deviceTimeZone()) void profile.update({ timezone: deviceTimeZone() })
-        await brain.applyDataReset(data?.data_reset_at)
-        // SPEC §5 Celebrations: my setting follows me to this device.
-        if (data?.celebrations) celebrate.setSetting(parseSetting(data.celebrations))
-        // SPEC §5 Accounts: the phone number is asked for once, right after sign-in (skipped when offline).
-        if (!data || data.phone) return
-        await router.isReady()
-        if (route.meta.public || route.name === 'welcome') return
-        void router.replace({ name: 'welcome', query: { next: route.fullPath } })
-      })
+  () => session.needsPhone,
+  async (needed) => {
+    if (!needed) return
+    await router.isReady()
+    if (route.meta.public || route.name === 'welcome') return
+    void router.replace({ name: 'welcome', query: { next: route.fullPath } })
   },
-  { immediate: true },
 )
 
 const orphans = useRows('inbox')

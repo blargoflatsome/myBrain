@@ -47,7 +47,7 @@
       <div class="flex flex-wrap gap-2">
         <button type="button" :class="primaryButtonSmall" @click="accept(current)">{{ m.accept }}</button>
         <button type="button" :class="quiet" @click="pick">{{ m.reroll }}</button>
-        <button type="button" :class="quiet" @click="finish(current)">{{ m.done }}</button>
+        <button type="button" :class="quiet" @click="finish(current, 'result')">{{ m.done }}</button>
       </div>
     </section>
     <!-- SPEC §5 Random Quest: a task can come up too; it has its own buttons and leaves quest numbers alone. -->
@@ -62,36 +62,44 @@
       </div>
     </section>
     <p v-if="notice" class="rounded-xl border border-line bg-surface p-3" role="status" data-testid="quest-notice">{{ notice }}</p>
+    <!-- SPEC §2 Undo in place: Done on the picked quest leaves its Undo where the quest was shown. -->
+    <UndoLine v-for="l in undoable.ownLines('result')" :key="l.key" :line="l" tag="p" @undo="(el) => undoable.run(l, el)" />
 
-    <section v-if="inProgress.length" class="flex flex-col gap-2">
+    <section v-if="inProgressShown.length" class="flex flex-col gap-2">
       <h2 class="text-lg font-semibold">{{ m.inProgress }}</h2>
       <ul class="divide-y divide-line rounded-2xl border border-line bg-surface">
-        <li v-for="q in inProgress" :key="q.id" class="flex items-center gap-3 px-3 py-2">
-          <span class="min-w-0 flex-1">{{ q.title }}</span>
-          <button type="button" :class="quiet" :aria-label="`${m.done}: ${q.title}`" @click="finish(q)">{{ m.done }}</button>
-        </li>
+        <template v-for="{ key, row: q, line } in inProgressShown" :key="key">
+          <UndoLine v-if="line" :line="line" in-box @undo="(el) => undoable.run(line, el)" />
+          <li v-else-if="q" class="flex items-center gap-3 px-3 py-2">
+            <span class="min-w-0 flex-1">{{ q.title }}</span>
+            <button type="button" :class="quiet" :aria-label="`${m.done}: ${q.title}`" @click="finish(q, 'progress')">{{ m.done }}</button>
+          </li>
+        </template>
       </ul>
     </section>
 
     <section class="flex flex-col gap-3">
       <h2 class="text-lg font-semibold">{{ m.allHeading }}</h2>
       <p v-if="!open.length" class="text-muted">{{ m.empty }}</p>
-      <ul v-else class="divide-y divide-line rounded-2xl border border-line bg-surface" data-testid="quest-list">
-        <li v-for="q in pageItems" :key="q.id" class="flex items-center gap-1 pr-1" data-testid="quest-row">
-          <!-- The title gets the full width, with its chips on a line under it, so a long title never squeezes. -->
-          <button type="button" class="flex min-h-14 min-w-0 flex-1 flex-col items-start gap-1 px-3 py-2 text-left hover:bg-bg" @click="edit(q)">
-            <span class="max-w-full break-words" data-testid="quest-title">{{ q.title }}</span>
-            <span class="flex flex-wrap gap-1.5 text-xs">
-              <span v-if="q.energy_level" :class="tag">{{ m.energy[q.energy_level] }}</span>
-              <span v-if="q.time_bucket" :class="tag">{{ m.time[q.time_bucket] }}</span>
-              <span v-if="doneCounts.get(q.id)" :class="tag" data-testid="quest-done-count">{{ m.doneCount(doneCounts.get(q.id)!) }}</span>
-            </span>
-          </button>
-          <button type="button" :class="[smallButton, 'shrink-0']" :aria-label="m.pickThisLabel(q.title)" @click="pickThis(q)">
-            {{ m.pickThis }}
-          </button>
-          <RowDelete :label="m.deleteLabel(q.title)" @click="remove(q)" />
-        </li>
+      <ul v-if="allShown.length" class="divide-y divide-line rounded-2xl border border-line bg-surface" data-testid="quest-list">
+        <template v-for="{ key, row: q, line } in allShown" :key="key">
+          <UndoLine v-if="line" :line="line" in-box @undo="(el) => undoable.run(line, el)" />
+          <li v-else-if="q" class="flex items-center gap-1 pr-1" data-testid="quest-row">
+            <!-- The title gets the full width, with its chips on a line under it, so a long title never squeezes. -->
+            <button type="button" class="flex min-h-14 min-w-0 flex-1 flex-col items-start gap-1 px-3 py-2 text-left hover:bg-bg" @click="edit(q)">
+              <span class="max-w-full break-words" data-testid="quest-title">{{ q.title }}</span>
+              <span class="flex flex-wrap gap-1.5 text-xs">
+                <span v-if="q.energy_level" :class="tag">{{ m.energy[q.energy_level] }}</span>
+                <span v-if="q.time_bucket" :class="tag">{{ m.time[q.time_bucket] }}</span>
+                <span v-if="doneCounts.get(q.id)" :class="tag" data-testid="quest-done-count">{{ m.doneCount(doneCounts.get(q.id)!) }}</span>
+              </span>
+            </button>
+            <button type="button" :class="[smallButton, 'shrink-0']" :aria-label="m.pickThisLabel(q.title)" @click="pickThis(q)">
+              {{ m.pickThis }}
+            </button>
+            <RowDelete :label="m.deleteLabel(q.title)" @click="remove(q)" />
+          </li>
+        </template>
       </ul>
       <PageControls v-model:page="page" :page-count="pageCount" :label="m.allHeading" />
     </section>
@@ -117,7 +125,8 @@ import { useBrainStore } from '@/stores/brain'
 import { acceptQuest, byEffort, ENERGY_LEVELS, markPicked, pickFromDraw, RECENT_PICKS, tasksInDraw, TIME_BUCKETS } from '@/quests/picker'
 import { moveTask, toggleDone } from '@/tasks/rules'
 import { useToday } from '@/composables/useToday'
-import { useUndoStore } from '@/stores/undo'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { messages } from '@/messages'
 import type { EnergyLevel,  QuestRow, TaskRow, TimeBucket } from '@/sync/types'
 import PageControls from '@/components/PageControls.vue'
@@ -197,14 +206,18 @@ async function pickThis(q: QuestRow) {
   resultBox.value?.focus()
 }
 
-// Done and delete happen straight away, with Undo (SPEC §2).
-const undo = useUndoStore()
-async function finish(q: QuestRow) {
+// Done and delete happen straight away, with Undo in place (SPEC §2).
+const undoable = useUndoInPlace()
+const inProgressShown = computed(() => undoable.placed(inProgress.value, 'progress'))
+const allShown = computed(() => undoable.placed(pageItems.value, 'all'))
+/** Done from the picked quest ('result', a line of its own) or from its In progress row. */
+async function finish(q: QuestRow, from: 'result' | 'progress') {
   const before = { ...q }
+  const place = from === 'progress' ? { row: { id: q.id, in: inProgress.value }, list: 'progress' } : { list: 'result' }
   const logId = await brain.finishQuest(q)
   if (currentId.value === q.id) currentId.value = null
   notice.value = ''
-  undo.offer(messages.undo.questDone(q.title), () => brain.unfinishQuest(before, logId))
+  undoable.offer(messages.undo.questDone(q.title), () => brain.unfinishQuest(before, logId), place)
 }
 
 const editing = ref<QuestRow | null>(null)
@@ -238,10 +251,11 @@ async function saveEdit(q: QuestRow) {
   editing.value = null
 }
 async function remove(q: QuestRow) {
+  const place = { row: { id: q.id, in: pageItems.value }, list: 'all' }
   const putBack = await brain.remove('quests', q.id)
   if (currentId.value === q.id) currentId.value = null
   if (editing.value?.id === q.id) editing.value = null
-  undo.offer(messages.undo.deleted(q.title), putBack)
+  undoable.offer(messages.undo.deleted(q.title), putBack, place)
 }
 
 // How many times each quest has been done (they can be done again).

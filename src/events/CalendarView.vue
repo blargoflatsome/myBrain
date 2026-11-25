@@ -7,6 +7,8 @@
         <NewButton :label="m.newEvent" data-testid="new-event" @click="startNew(range.from <= today && today <= range.to ? today : range.from, null)" />
       </div>
     </div>
+    <!-- SPEC §2 Undo in place: a deleted event or task has no row here to stand in, so its Undo goes under the heading. -->
+    <UndoLine v-for="l in undoable.ownLines()" :key="l.key" :line="l" tag="p" @undo="(el) => undoable.run(l, el)" />
 
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-1">
@@ -101,7 +103,8 @@ import { calendarItems, newEvent, nextWholeHour, type CalendarItem } from '@/eve
 import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import type { EventRow, TaskRow } from '@/sync/types'
-import { useUndoStore } from '@/stores/undo'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { dialogBox, selected, smallButton } from '@/ui/styles'
 import NewButton from '@/components/NewButton.vue'
 import CloseX from '@/components/CloseX.vue'
@@ -225,9 +228,9 @@ async function saveTask(t: TaskRow) {
 async function deleteTask(t: TaskRow) {
   const putBack = await brain.remove('tasks', t.id)
   editingTask.value = null
-  undo.offer(messages.undo.deleted(t.title), putBack)
+  undoable.offer(messages.undo.deleted(t.title), putBack)
 }
-const undo = useUndoStore()
+const undoable = useUndoInPlace()
 
 // ---------- Inviting, and reaching guests one at a time (SPEC §5 Shared events) ----------
 const inviteError = ref('')
@@ -321,7 +324,7 @@ async function deleteEvent(e: EventRow, confirmed = false) {
   const putBack = await brain.remove('events', e.id)
   editing.value = null
   // Without guests it went straight away, so it can come back (SPEC §2 Undo).
-  if (!confirmed) undo.offer(messages.undo.deleted(e.title), putBack)
+  if (!confirmed) undoable.offer(messages.undo.deleted(e.title), putBack)
 }
 
 // Opened with ?date= (a reminder or search) and maybe ?event= (search): go there and open the event.
