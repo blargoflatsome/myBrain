@@ -44,6 +44,11 @@ export default defineConfigWithVueTs(
     rules: { 'no-restricted-syntax': ['error', { selector: "CallExpression[callee.property.name='rpc']", message: 'Call the server through src/server/server.ts (a brain action when it changes my tables), not supabase.rpc.' }] },
   },
   {
+    // A test file may define a few small components, one per case.
+    files: ['src/tests/**/*.ts'],
+    rules: { 'vue/one-component-per-file': 'off' },
+  },
+  {
     // writing-tests skill "Make them deterministic": a fixed wait passes on a fast machine and fails on a busy one (a
     // 50 ms sleep failed CI on 2026-11-24). A wait for something that must NOT happen has no result to wait for, so it
     // may stay, with an eslint-disable-next-line comment giving that reason.

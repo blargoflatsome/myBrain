@@ -1,4 +1,3 @@
-/* eslint-disable vue/one-component-per-file -- small test forms, one per case */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent } from 'vue'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
