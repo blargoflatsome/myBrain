@@ -49,6 +49,7 @@
 
       <template v-else-if="step === 'off'">
         <p>{{ m.turnOffBody }}</p>
+        <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
         <div class="flex flex-col gap-2 sm:flex-row">
           <button type="button" :class="[warningButton, 'flex-1']" :disabled="busy" data-testid="turn-off-confirm" @click="turnOff">{{ m.turnOff }}</button>
           <button type="button" :class="[secondaryButton, 'flex-1']" @click="close">{{ m.keep }}</button>
@@ -208,10 +209,17 @@ async function addPasskey() {
 }
 
 async function turnOff() {
+  if (busy.value) return
   busy.value = true
-  await brain.unlockJournalForGood(raw!)
-  busy.value = false
-  advance()
+  error.value = ''
+  try {
+    await brain.unlockJournalForGood(raw!)
+    advance()
+  } catch {
+    error.value = m.failed
+  } finally {
+    busy.value = false
+  }
 }
 
 defineExpose({ open })
