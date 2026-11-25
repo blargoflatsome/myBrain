@@ -15,7 +15,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 |---|---|---|---|
 | 2 | One rule for "my place in this event" | Strong, real bug | Built (branch `event-place`) |
 | 1 | Saving an event with invitees becomes one events action | Strong | Built (branch `event-save`) |
-| 3 | One guest-messages module | Strong, small bug | Agreed |
+| 3 | One guest-messages module | Strong, small bug | Built (branch `guest-messages`) |
 | 4 | A Capture draft module behind the form | Worth exploring | Agreed |
 | 5 | The keyring answers "is this device unlocked" | Worth exploring, small bug | Agreed |
 | 6 | Sync timing in its own module; brain's leftover actions moved home | Worth exploring | Agreed |
