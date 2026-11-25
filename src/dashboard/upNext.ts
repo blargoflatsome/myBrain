@@ -5,7 +5,7 @@ import type { EventInviteRow, EventRow, InboxRow, JournalEntryRow, TaskRow } fro
 import { dayStatus, deadline, isScheduled as habitScheduled, streaks } from '@/habits/rules'
 import { isAnytime, isScheduled as routineScheduled, runFor } from '@/routines/rules'
 import { remindsOn } from '@/reminders/priority'
-import { occursOn } from '@/events/rules'
+import { myPlace, occursOn } from '@/events/rules'
 import { carryOverCount, tasksForDay } from '@/tasks/rules'
 import { wroteIn } from '@/journal/body'
 import { todayIn, zonedTime } from '@/time/days'
@@ -82,9 +82,9 @@ export function upNext(data: UpNextData, now: Date, timeZone: string, journalTim
   }
 
   // 4. Events starting in the next 2 hours: mine, or ones I said Yes to.
-  const going = new Set(live(data.invites).filter((i) => i.response === 'yes').map((i) => i.event_id))
+  const going = (e: EventRow) => ['mine', 'yes'].includes(myPlace(e, data.invites, data.me) ?? '')
   const events = live(data.events)
-    .filter((e) => !e.cancelled_at && e.start_time && (!data.me || !e.user_id || e.user_id === data.me || going.has(e.id)) && occursOn(e, today))
+    .filter((e) => !e.cancelled_at && e.start_time && going(e) && occursOn(e, today))
     .map((e) => ({ e, start: zonedTime(today, e.start_time!, timeZone) }))
     .filter(({ start }) => start > at && start - at <= SOON_MS)
     .sort((a, b) => a.start - b.start)

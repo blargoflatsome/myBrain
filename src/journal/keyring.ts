@@ -17,10 +17,21 @@ export class JournalKeyring {
 
   /** This device's journal key, only if it belongs to the current lock (a key from an earlier lock is never used). */
   async key(): Promise<CryptoKey | null> {
-    const row = await this.keyRow()
-    if (!row) return null
-    const secret = await this.db.secrets.get(SECRET)
-    return secret?.keyRowId === row.id ? secret.value : null
+    return (await this.lock()).key
+  }
+
+  /** Whether my journal is locked, and whether this device is unlocked for that lock (SPEC §5 Locking my journal). */
+  async state(): Promise<{ on: boolean; unlocked: boolean }> {
+    const { row, key } = await this.lock()
+    return { on: !!row, unlocked: !!key }
+  }
+
+  // Both reads start before the first await, so a live query (useJournalLock) follows them both.
+  private async lock(): Promise<{ row?: JournalKeyRow; key: CryptoKey | null }> {
+    const [rows, secret] = await Promise.all([this.db.journal_keys.toArray(), this.db.secrets.get(SECRET)])
+    const row = rows.find((r) => !r.deleted_at)
+    if (!row) return { key: null }
+    return { row, key: secret?.keyRowId === row.id ? secret.value : null }
   }
 
   async remember(keyRowId: string, value: CryptoKey): Promise<void> {
@@ -33,7 +44,7 @@ export class JournalKeyring {
 
   /** A row to upload: its writing encrypted while my journal is locked and this device has the key. */
   async seal(row: JournalEntryRow, uid: string): Promise<JournalEntryRow> {
-    const key = (await this.keyRow()) ? await this.key() : null
+    const key = await this.key()
     if (!key) return row
     const out = { ...row }
     for (const field of FIELDS) {

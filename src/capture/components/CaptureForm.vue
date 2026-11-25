@@ -107,7 +107,7 @@
 // Shown in the Capture window over any page (CaptureDialog), and on the /capture page used for sharing from other apps.
 import { useVisibleBuckets } from '@/vault/useVisibleBuckets'
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, defineAsyncComponent, nextTick, onMounted, ref, toRaw, watch, type Ref } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import HabitFields from '@/habits/components/HabitFields.vue'
 import ChoiceChips from '@/components/ChoiceChips.vue'
@@ -115,25 +115,16 @@ import PostItColors from '@/postits/components/PostItColors.vue'
 import QuestFields from '@/quests/components/QuestFields.vue'
 import TaskFields from '@/tasks/components/TaskFields.vue'
 import { checkedReminder } from '@/tasks/actions'
-import { DEFAULT_QUEST_ENERGY, DEFAULT_QUEST_TIME } from '@/quests/actions'
-import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import VaultItemFields from '@/vault/components/VaultItemFields.vue'
 import { deviceTimeZone, todayIn } from '@/time/days'
-import { DEFAULT_POST_IT_COLOR } from '@/postits/rules'
-import { plainText, storedNotes, textLines, toEditorHtml } from '@/journal/body'
+import { storedNotes } from '@/journal/body'
+import { useCaptureDraft } from '@/capture/useCaptureDraft'
 import { useSpeech } from '@/composables/useSpeech'
-import {
-  splitTitle,
-  CaptureError,
-  type CaptureInput,
-  type Destination,
-} from '@/capture/capture'
+import { CaptureError, type CaptureInput, type Destination } from '@/capture/capture'
 import { messages } from '@/messages'
-import type { EnergyLevel, PostItColor, TimeBucket } from '@/sync/types'
 import { fieldOnPage, primaryButton, smallButton } from '@/ui/styles'
 import { ownsBucket } from '@/vault/sharing'
 import { dayLabel } from '@/ui/dates'
-import type { VoiceCommand } from '@/voice/parse'
 
 // The formatting editor (Tiptap) is large, so it loads the first time it's shown, not with the app.
 const RichTextEditor = defineAsyncComponent(() => import('@/components/RichTextEditor.vue'))
@@ -147,29 +138,19 @@ const brain = useBrainStore()
 const m = messages.capture
 const pm = messages.postIts
 
-// Post It (SPEC §5 Quick capture): a small formatted note and a color.
-const postBody = ref('')
-const postColor = ref<PostItColor>(DEFAULT_POST_IT_COLOR)
+const draft = useCaptureDraft(deviceTimeZone())
+const {
+  type, title, notes, dueDate, priority, reminderTime, energy, time, bucketId, newBucketName, rating, link, postBody, postColor,
+  habitDays, habitInterval, habitMonthly, habitStart, habitTime, habitTimer, habitPriority, beforeHeard,
+} = draft
+const habitToday = draft.today
+// A new Post It editor whenever its text is replaced (after a save or an Undo), empty and focused for the next note.
+const saves = draft.version
 
-const type = ref<Destination>('later')
-const title = ref('')
-const notes = ref('')
-const dueDate = ref('')
-const priority = ref(DEFAULT_PRIORITY)
-const reminderTime = ref('')
 const reminderError = ref('')
-const energy = ref<EnergyLevel>(DEFAULT_QUEST_ENERGY)
-const time = ref<TimeBucket>(DEFAULT_QUEST_TIME)
-const bucketId = ref<string | null>(null)
-const newBucketName = ref<string | null>(null)
-const rating = ref<number | null>(null)
-const link = ref('')
-
 const notice = ref('')
 const error = ref('')
 const saving = ref(false)
-// Counts saves: a new Post It editor after each one, empty and focused, ready for the next note.
-const saves = ref(0)
 const titleBox = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
 const buckets = useVisibleBuckets()
@@ -186,80 +167,22 @@ onMounted(async () => {
   titleBox.value?.focus()
 })
 
-/** Everything typed so far as plain lines, whatever the type. */
-function typedText(): string {
-  if (type.value === 'postit') return textLines(postBody.value)
-  return [title.value.trim(), notes.value ? textLines(notes.value) : ''].filter(Boolean).join('\n')
-}
-
-// Choosing a type keeps what I typed: the first line is the title and the rest the notes or details (SPEC §5
-// Quick capture). Between two types that both have a title and notes, both stay as they are, formatting and all.
+// Choosing a type keeps what I typed (SPEC §5 Quick capture).
 function choose(d: Destination) {
   if (d === type.value) return
-  const titled = (t: Destination) => t !== 'later' && t !== 'postit'
-  if (!titled(type.value) || !titled(d)) {
-    const text = typedText()
-    title.value = ''
-    notes.value = ''
-    postBody.value = ''
-    if (d === 'postit') postBody.value = toEditorHtml(text)
-    else if (d === 'later') title.value = text
-    else {
-      const { title: first, rest } = splitTitle(text)
-      title.value = first
-      notes.value = rest
-    }
-  }
-  type.value = d
+  draft.choose(d)
   notice.value = ''
-  beforeHeard.value = null
   error.value = ''
 }
 
-// Habit (SPEC §5 Quick capture: the full habit form).
-const habitDays = ref<number[]>([0, 1, 2, 3, 4, 5, 6])
-const habitInterval = ref(1)
-const habitMonthly = ref(false)
-const habitToday = todayIn(deviceTimeZone())
-const habitStart = ref(habitToday)
-const habitTime = ref('')
-const habitTimer = ref<number | null>(null)
-const habitPriority = ref(false)
+/** The next one starts fresh; the type stays chosen, so I can add several of the same kind in a row. */
 function reset() {
-  saves.value++
-  postBody.value = ''
-  postColor.value = DEFAULT_POST_IT_COLOR
-  habitDays.value = [0, 1, 2, 3, 4, 5, 6]
-  habitInterval.value = 1
-  habitMonthly.value = false
-  habitStart.value = habitToday
-  habitTime.value = ''
-  habitTimer.value = null
-  habitPriority.value = false
-  // The type stays chosen after a save, so I can add several of the same kind in a row (SPEC §5 Quick capture).
-  title.value = ''
-  notes.value = ''
-  dueDate.value = ''
-  priority.value = DEFAULT_PRIORITY
-  reminderTime.value = ''
+  draft.clear()
   reminderError.value = ''
-  energy.value = DEFAULT_QUEST_ENERGY
-  time.value = DEFAULT_QUEST_TIME
-  newBucketName.value = null
-  rating.value = null
-  link.value = ''
   error.value = ''
 }
 
 // ---------- Speak it fills the form (SPEC §5 Quick capture) ----------
-// Every part of the form, so speaking again can put back what was there.
-const formState = {
-  type, title, notes, dueDate, priority, reminderTime, energy, time, bucketId, newBucketName, rating, link, postBody, postColor,
-  habitDays, habitInterval, habitMonthly, habitStart, habitTime, habitTimer, habitPriority,
-}
-type FormState = { [K in keyof typeof formState]: (typeof formState)[K]['value'] }
-const snapshot = () => Object.fromEntries(Object.entries(formState).map(([k, r]) => [k, structuredClone(toRaw(r.value))])) as FormState
-const beforeHeard = ref<FormState | null>(null)
 
 /** The parser understands English only; other languages just fill the text box. */
 const speaksEnglish = () => (navigator.language || 'en').toLowerCase().startsWith('en')
@@ -276,34 +199,16 @@ async function hear(heard: string) {
     title.value = title.value ? `${title.value} ${heard}` : heard
     return
   }
-  const had = !!(title.value.trim() || plainText(notes.value) || plainText(postBody.value))
-  const before = had ? snapshot() : null
-  fill(command)
-  beforeHeard.value = before
+  reminderError.value = ''
+  error.value = ''
+  draft.heard(command)
   notice.value = m.heard(m.destinations[command.destination], command.title, command.dueDate ? dayLabel(command.dueDate) : null)
   await nextTick()
   titleBox.value?.focus()
 }
 
-/** Replace the form with what was heard; anything not said keeps its usual default. */
-function fill(c: VoiceCommand) {
-  reset()
-  type.value = c.destination
-  if (c.destination === 'postit') postBody.value = toEditorHtml(c.title)
-  else title.value = c.title
-  dueDate.value = c.dueDate ?? ''
-  if (c.priority) priority.value = c.priority
-  reminderTime.value = c.reminderTime ?? ''
-  if (c.notifyTime) habitTime.value = c.notifyTime
-  if (c.bucketId) bucketId.value = c.bucketId
-}
-
 function undoHeard() {
-  const before = beforeHeard.value
-  if (!before) return
-  for (const k of Object.keys(before) as (keyof FormState)[]) (formState[k] as Ref<unknown>).value = before[k]
-  saves.value++
-  beforeHeard.value = null
+  draft.undoHeard()
   notice.value = ''
   titleBox.value?.focus()
 }
@@ -341,7 +246,6 @@ async function savePostIt() {
     }
     const message = brain.online ? m.saved.postit : m.savedOffline
     reset()
-    beforeHeard.value = null
     notice.value = message
     await nextTick()
     titleBox.value?.focus()
@@ -404,7 +308,6 @@ async function save() {
     }
     const message = savedMessage(input)
     reset()
-    beforeHeard.value = null
     notice.value = message
     await nextTick()
     titleBox.value?.focus()

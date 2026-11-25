@@ -1,9 +1,11 @@
-// Writing quests (SPEC §5 Random Quest).
+// Writing quests and marking them done (SPEC §5 Random Quest).
 import type { EnergyLevel, QuestRow, TimeBucket } from '@/sync/types'
 import { removeWithUndo, type ActionContext } from '@/sync/actions'
 import { getRow } from '@/sync/db'
-import { acceptQuest as accepted, markPicked } from '@/quests/picker'
+import { acceptQuest as accepted, finishQuest as finished, markPicked } from '@/quests/picker'
 import { clipTitle } from '@/lib/titles'
+import { deviceTimeZone, todayIn } from '@/time/days'
+import { achieved } from '@/celebrate/bus'
 
 /** Every new quest starts as Ugh and 30 min unless changed (SPEC §5 Random Quest). */
 export const DEFAULT_QUEST_ENERGY: EnergyLevel = 'ugh'
@@ -56,5 +58,22 @@ export function questActions({ ready }: ActionContext) {
   /** Delete a quest. Returns its Undo (SPEC §2). */
   const deleteQuest = (id: string) => removeWithUndo(ready, 'quests', [id])
 
-  return { addQuest, saveQuest, pickQuest, acceptQuest, deleteQuest }
+  /** Mark a quest done: it goes back to the list, and the completion is logged for stats. Returns the log's id. */
+  async function finishQuest(quest: QuestRow, now = new Date(), timeZone = deviceTimeZone()) {
+    const { engine: e, uid } = ready()
+    const logId = crypto.randomUUID()
+    await e.save('quest_logs', { id: logId, user_id: uid, quest_id: quest.id, date: todayIn(timeZone, now), completed_at: now.toISOString(), deleted_at: null })
+    await e.save('quests', finished(quest, now))
+    achieved({ kind: 'quest', energy: quest.energy_level ?? null })
+    return logId
+  }
+
+  /** Undo marking a quest done: the quest goes back as it was and its completion is taken off the log. */
+  async function unfinishQuest(before: QuestRow, logId: string) {
+    const { engine: e } = ready()
+    await e.remove('quest_logs', logId)
+    await e.save('quests', before)
+  }
+
+  return { addQuest, saveQuest, pickQuest, acceptQuest, deleteQuest, finishQuest, unfinishQuest }
 }

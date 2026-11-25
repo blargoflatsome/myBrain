@@ -3,6 +3,7 @@
 // so Capture loads it only once something has been heard.
 import type { Destination } from '@/capture/capture'
 import { findDate } from '@/time/parseDate'
+import { HIGH } from '@/tasks/rules'
 
 /** A bucket I can capture to, in the order they're listed (my default first). */
 export interface VoiceBucket {
@@ -102,7 +103,7 @@ function build(destination: Destination, words: string, ctx: VoiceContext, prior
     if (date) {
       command.dueDate = date.date
       // A time fills the Reminder time only on a High task with a date; otherwise it stays in the title.
-      const useTime = !!time && priority === 3
+      const useTime = !!time && priority === HIGH
       if (useTime) command.reminderTime = time.time
       text = tidy(date.rest.replace(HELD, useTime ? '' : timeWords))
     }

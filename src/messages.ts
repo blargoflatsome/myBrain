@@ -459,7 +459,6 @@ export const messages = {
     cancelMessage: 'When I cancel an event I made',
     variables: 'You can use {{name}}, {{event}}, {{date}} and {{time}}; they are filled in for each person.',
     save: 'Save event settings',
-    saved: 'Saved.',
   },
   deleteData: {
     button: 'Delete my data',
@@ -580,7 +579,6 @@ export const messages = {
     newLink: 'New link',
     newLinkLabel: (name: string) => `Send ${name} a new link`,
     newLinkReady: (name: string) => `New link for ${name} is ready. Their old link no longer works.`,
-    newLinkBody: (link: string) => `Here’s your new link for my invitation: ${link}`,
     sendNewLink: 'Send it',
     letEveryoneKnow: {
       heading: 'Let everyone know?',
@@ -705,6 +703,8 @@ export const messages = {
   },
   invites: {
     // Messages to other people are written from me to them, not in the "past you" voice.
+    /** Who invited a guest, when I haven't set a display name yet. */
+    someHost: 'A friend',
     people: 'Attendees',
     peopleHint: 'Invite people by email or phone number.',
     attendeesSummary: (invited: number, going: number) =>
@@ -783,12 +783,25 @@ export const messages = {
     finished: 'Everyone has been messaged.',
     close: 'Close',
   },
+  guestMessages: {
+    // Messages to guests are written from me to them, not in the "past you" voice (src/events/guestMessages.ts).
+    // The subject lines only show in an email; a text gets the body alone.
+    invitedSubject: (host: string, event: string) => `${host} invited you to ${event}`,
+    invitedBody: (host: string, guest: string, event: string, when: string, link: string) =>
+      `Hi ${guest}! ${host} invited you to ${event} on ${when}. Can you make it? Answer here: ${link}`,
+    changedSubject: (event: string) => `${event} has changed`,
+    cancelledSubject: (event: string) => `${event} is cancelled`,
+    newLinkSubject: 'Your new invitation link',
+    newLinkBody: (link: string) => `Here’s your new link for my invitation: ${link}`,
+    /** An event's date and time together, e.g. "Friday, November 20 at 7:00 pm". */
+    when: (date: string, time: string) => `${date} at ${time}`,
+  },
   cancelEvent: {
     button: 'Cancel and notify',
     headingCancel: 'Cancel this event?',
     headingDrop: 'Drop out of this event?',
     whoCancel: 'Everyone still invited will get your cancellation message:',
-    whoDrop: 'The host and the other people going will get your message:',
+    whoDrop: 'The host and anyone going who’s on My Brain will get your message. People invited by email or text hear from the host. Still going:',
     nobody: 'No one else is invited, so no one will be messaged.',
     preview: 'Your message (each person gets their own copy, with their name):',
     confirmCancel: 'Cancel and notify',
@@ -1526,7 +1539,6 @@ export const messages = {
     eveningTime: 'Remind me at',
     eveningOff: "Don't remind me",
     save: 'Save reminder settings',
-    saved: 'Saved.',
   },
   profile: {
     deleteHeading: 'Delete my account',
@@ -1641,7 +1653,7 @@ export const messages = {
       { id: 'habits', title: 'Habits', what: 'Things you want to do regularly, with streaks.', steps: ['Tap New habit and pick which days.', "Tap the circle when you've done it today.", 'Your streak and best streak show under each one.'], alt: 'The Habits page with the circle next to Take meds highlighted.' },
       { id: 'routines', title: 'Routines', what: 'Steps you do in order, like a morning routine.', steps: ['Tap New routine and add the steps.', 'Tap Start and do one step at a time.', 'Skipped a step? Tap Resume later to finish it.'], alt: 'The Routines page with the Start button highlighted.' },
       { id: 'calendar', title: 'Calendar and events', what: 'Your tasks and events by month, week or day.', steps: ['Tap New event, or tap a day.', 'Add a time, and a reminder if you want one.', 'Switch between Month, Week and Day at the top.'], alt: 'The calendar for November with the New event button highlighted.' },
-      { id: 'inviting', title: 'Inviting people', what: "Invite anyone to an event, even if they don't use My Brain.", steps: ['Open an event and tap Edit.', 'Open Attendees and add an email, a phone number or a connection.', "Save. You'll see who's going as people answer."], alt: 'The Edit event window with the Attendees section highlighted.' },
+      { id: 'inviting', title: 'Inviting people', what: "Invite anyone to an event, even if they don't use My Brain.", steps: ['Open an event and tap Edit.', 'Open Attendees and add an email, a phone number or a connection.', "Save. You'll see who's going as people answer.", "Invited and can't go after all? Open the event and tap I can’t make it. The host, and anyone going who uses My Brain, hear that you dropped out; the host lets guests know."], alt: 'The Edit event window with the Attendees section highlighted.' },
       { id: 'scheduling', title: 'Finding a time', what: 'See who’s free before you pick a time. Works with your connections.', steps: ['Set the times you’re not available: Calendar, then My availability (Work hours fills in a work week).', 'Add connections to an event. Each one shows free, busy, maybe busy or unknown.', 'Open Schedule and tap Find a time, then tap a time to use it.'], alt: 'The event editor’s Schedule section with the Find a time button highlighted.' },
       { id: 'connections', title: 'Connections', what: 'Connect with people you know, so you can invite each other in the app.', steps: ['Open Account, then People (or More, then Connections).', 'Type their email or phone number and tap Send request.', "Once they accept, you can invite them, see when they're free, and share Vault buckets with them.", 'People you invite by email or phone are saved under Offsite connections, below your connections. They answer from a link, no account needed.'], alt: 'The Connections page with the box for their email or phone number highlighted.' },
       { id: 'vault', title: 'The Vault', what: 'Buckets of things to keep: shopping, books, places to go.', steps: ['Tap a bucket to open it.', 'Add items, with a rating, a link or notes if you like.', 'Checklists let you tick things off.', 'To make a new bucket, type its name at the top and tap Add bucket.', 'In Bucket settings, tick Make this my default bucket: it’s listed first and picked for you when you capture to the Vault.', 'In Bucket settings, share a list with your connections so they can add to it too, or show it on your profile for them to see.'], alt: 'The Vault page with the Books to read list highlighted.' },

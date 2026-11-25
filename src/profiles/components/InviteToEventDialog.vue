@@ -71,7 +71,7 @@ async function send() {
   sending.value = true
   error.value = ''
   try {
-    await brain.invitePeople(choice.event.id, [{ user_id: props.friendId, name: props.name }])
+    await brain.inviteToEvent(choice.event, [{ user_id: props.friendId, name: props.name }])
     status.value = m.sent(props.name, choice.event.title)
     emit('invited', choice.event.id)
   } catch {

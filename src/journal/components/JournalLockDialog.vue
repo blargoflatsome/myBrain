@@ -30,7 +30,7 @@
         <RecoveryKeyShow v-model:saved="savedRecovery" :recovery-key="recoveryKey" />
         <p v-if="action !== 'recovery'" class="text-xs text-muted">{{ m.oldCopies }}</p>
         <button type="button" :class="[primaryButton, 'self-start']" :disabled="!savedRecovery" data-testid="recovery-next" @click="afterRecovery">
-          {{ offerPasskey ? m.next : m.done }}
+          {{ after === 'passkey' ? m.next : m.done }}
         </button>
       </template>
 
@@ -49,6 +49,7 @@
 
       <template v-else-if="step === 'off'">
         <p>{{ m.turnOffBody }}</p>
+        <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
         <div class="flex flex-col gap-2 sm:flex-row">
           <button type="button" :class="[warningButton, 'flex-1']" :disabled="busy" data-testid="turn-off-confirm" @click="turnOff">{{ m.turnOff }}</button>
           <button type="button" :class="[secondaryButton, 'flex-1']" @click="close">{{ m.keep }}</button>
@@ -65,8 +66,7 @@
 </template>
 
 <script setup lang="ts">
-// SPEC §5 Locking my journal: every lock flow in one window. Turning it on and starting over choose a passphrase,
-// show the recovery key once, then offer a passkey. Changes to an existing lock first ask me to show it's me.
+// SPEC §5 Locking my journal: every lock flow in one window, its screens in the order `lockSteps` gives.
 import { computed, ref, useId } from 'vue'
 import CloseX from '@/components/CloseX.vue'
 import PassphraseFields from '@/journal/components/PassphraseFields.vue'
@@ -75,12 +75,10 @@ import UnlockForm from '@/journal/components/UnlockForm.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useProfileStore } from '@/stores/profile'
 import type { JournalKeyBytes, LockAction } from '@/journal/lockActions'
-import { passphraseProblem } from '@/journal/lockRules'
+import { nextStep, lockSteps, passphraseProblem, type LockStep } from '@/journal/lockRules'
 import { NoPrfError, passkeysSupported } from '@/journal/passkeys'
 import { messages } from '@/messages'
 import { field, fieldLabel, primaryButton, secondaryButton, warningButton } from '@/ui/styles'
-
-type Step = 'prove' | 'passphrase' | 'recovery' | 'passkey' | 'off' | 'done'
 
 const m = messages.journalLock
 const uid = useId()
@@ -88,7 +86,9 @@ const brain = useBrainStore()
 const profile = useProfileStore()
 const dialog = ref<HTMLDialogElement | null>(null)
 const action = ref<LockAction | null>(null)
-const step = ref<Step>('passphrase')
+const step = ref<LockStep>('passphrase')
+// Whether this device can make a passkey, checked when the window opens.
+const canPasskey = ref(false)
 const passphrase = ref('')
 const repeat = ref('')
 const tried = ref(false)
@@ -101,7 +101,8 @@ const doneNote = ref('')
 // Held in memory only while this window is open, for the change I'm making.
 let raw: JournalKeyBytes | null = null
 
-const offerPasskey = computed(() => (action.value === 'setup' || action.value === 'startOver') && passkeysSupported())
+// The screen after this one (null: the window closes).
+const after = computed(() => (action.value ? nextStep(action.value, step.value, canPasskey.value) : null))
 const problem = computed(() => passphraseProblem(passphrase.value, repeat.value))
 // Shown once I've tried to go on, not while I'm still typing.
 const shownProblem = computed(() => (tried.value ? problem.value : null))
@@ -125,7 +126,8 @@ const heading = computed(() => {
 function open(next: LockAction) {
   reset()
   action.value = next
-  step.value = next === 'setup' || next === 'startOver' ? 'passphrase' : 'prove'
+  canPasskey.value = passkeysSupported()
+  step.value = lockSteps(next, canPasskey.value)[0]!
   dialog.value?.showModal()
 }
 function close() {
@@ -145,15 +147,21 @@ function reset() {
   doneNote.value = ''
 }
 
+/** On to the next screen, or close the window after the last. `note` is what the done screen says. */
+function advance(note = '') {
+  const next = after.value
+  if (!next) return close()
+  if (next === 'done') {
+    raw = null
+    doneNote.value = note
+  }
+  step.value = next
+}
+
 async function onProved(key: JournalKeyBytes) {
   raw = key
-  if (action.value === 'passphrase') step.value = 'passphrase'
-  else if (action.value === 'passkey') step.value = 'passkey'
-  else if (action.value === 'off') step.value = 'off'
-  else if (action.value === 'recovery') {
-    recoveryKey.value = await brain.newJournalRecoveryKey(key)
-    step.value = 'recovery'
-  }
+  if (action.value === 'recovery') recoveryKey.value = await brain.newJournalRecoveryKey(key)
+  advance()
 }
 
 async function savePassphrase() {
@@ -164,12 +172,12 @@ async function savePassphrase() {
   try {
     if (action.value === 'passphrase') {
       await brain.changeJournalPassphrase(raw!, passphrase.value)
-      finish(m.passphraseChanged)
+      advance(m.passphraseChanged)
     } else {
       const made = action.value === 'startOver' ? await brain.startJournalOver(passphrase.value) : await brain.lockJournal(passphrase.value)
       raw = made.raw
       recoveryKey.value = made.recoveryKey
-      step.value = 'recovery'
+      advance()
     }
   } catch {
     error.value = m.failed
@@ -182,9 +190,7 @@ async function savePassphrase() {
 }
 
 function afterRecovery() {
-  if (offerPasskey.value) step.value = 'passkey'
-  else if (action.value === 'recovery') close()
-  else finish(m.lockedDone)
+  advance(m.lockedDone)
 }
 
 async function addPasskey() {
@@ -193,7 +199,7 @@ async function addPasskey() {
   error.value = ''
   try {
     await brain.addJournalPasskey(raw!, passkeyName.value, m.passkeyAccount(profile.shown?.display_name || m.passkeySite), m.passkeySite)
-    finish(m.passkeyAdded)
+    advance(m.passkeyAdded)
   } catch (err) {
     if (err instanceof NoPrfError) error.value = m.noPrf
     else if ((err as { name?: string })?.name !== 'NotAllowedError') error.value = m.passkeyFailed
@@ -203,16 +209,17 @@ async function addPasskey() {
 }
 
 async function turnOff() {
+  if (busy.value) return
   busy.value = true
-  await brain.unlockJournalForGood(raw!)
-  busy.value = false
-  close()
-}
-
-function finish(note: string) {
-  raw = null
-  doneNote.value = note
-  step.value = 'done'
+  error.value = ''
+  try {
+    await brain.unlockJournalForGood(raw!)
+    advance()
+  } catch {
+    error.value = m.failed
+  } finally {
+    busy.value = false
+  }
 }
 
 defineExpose({ open })

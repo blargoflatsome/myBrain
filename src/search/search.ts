@@ -1,7 +1,8 @@
 // Search (SPEC §5 Global search and tags): runs on the device's copy of my data, so it is instant and works offline.
-import type { EventRow, HabitRow, ItemTagRow, JournalEntryRow, QuestRow, RoutineRow, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
+import type { EventInviteRow, EventRow, HabitRow, ItemTagRow, JournalEntryRow, QuestRow, RoutineRow, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
 import { plainText } from '@/journal/body'
 import { isEncrypted } from '@/journal/crypto'
+import { shownToMe } from '@/events/rules'
 
 const readable = (text: string | undefined) => (text && !isEncrypted(text) ? text : '')
 
@@ -36,12 +37,15 @@ export interface SearchData {
   journal: JournalEntryRow[]
   quests: QuestRow[]
   events: EventRow[]
+  /** My invites, so an event I said No to or dropped out of isn't found (SPEC §5 Shared events). */
+  invites: EventInviteRow[]
+  me: string | null
   habits: HabitRow[]
   routines: RoutineRow[]
   itemTags: ItemTagRow[]
 }
 
-/** Everything searchable, one document per item. Deleted items are left out. */
+/** Everything searchable, one document per item. Deleted items, and events no longer on my side, are left out. */
 export function searchDocs(data: SearchData): SearchDoc[] {
   const tagsByItem = new Map<string, Set<string>>()
   for (const it of data.itemTags) {
@@ -72,7 +76,7 @@ export function searchDocs(data: SearchData): SearchDoc[] {
       .filter(({ j, words }) => !j.deleted_at && words)
       .map(({ j, words }) => doc('journal_entry', j.id, j.date, words, j.updated_at, { date: j.date })),
     ...data.quests.filter((q) => !q.deleted_at).map((q) => doc('quest', q.id, q.title, plainText(q.details ?? ''), q.updated_at)),
-    ...data.events.filter((e) => !e.deleted_at).map((e) => doc('event', e.id, e.title, plainText(e.notes ?? ''), e.updated_at, { date: e.start_date })),
+    ...data.events.filter((e) => shownToMe(e, data.invites, data.me)).map((e) => doc('event', e.id, e.title, plainText(e.notes ?? ''), e.updated_at, { date: e.start_date })),
     ...data.habits.filter((h) => !h.deleted_at).map((h) => doc('habit', h.id, h.title, '', h.updated_at)),
     ...data.routines.filter((r) => !r.deleted_at).map((r) => doc('routine', r.id, r.title, '', r.updated_at)),
   ]

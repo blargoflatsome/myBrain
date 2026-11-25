@@ -3,6 +3,7 @@
 import { useDeviceQuery } from '@/sync/useRows'
 import { computed } from 'vue'
 import { live } from '@/sync/live'
+import { keyringFor } from '@/journal/keyring'
 import type { JournalPasskeyRow } from '@/sync/types'
 
 interface LockState {
@@ -18,12 +19,14 @@ interface LockState {
 export function useJournalLock() {
   const state = useDeviceQuery<LockState>(
     async (db) => {
-      const row = (await db.journal_keys.toArray()).find((r) => !r.deleted_at)
-      const secret = await db.secrets.get('journal')
-      const passkeys = live(await db.journal_passkeys.toArray())
-      const pending = await db.outbox.where('table').equals('journal_entries').count()
-      const known = !!row || !!(await db.meta.get('downloaded:journal_keys'))
-      return { known, on: !!row, unlocked: !!row && secret?.keyRowId === row.id, passkeys, pending }
+      // Every read starts before the first await: a live query only follows reads made before it awaits other code.
+      const [{ on, unlocked }, passkeys, pending, downloaded] = await Promise.all([
+        keyringFor(db).state(),
+        db.journal_passkeys.toArray(),
+        db.outbox.where('table').equals('journal_entries').count(),
+        db.meta.get('downloaded:journal_keys'),
+      ])
+      return { known: on || !!downloaded, on, unlocked, passkeys: live(passkeys), pending }
     },
     { known: false, on: false, unlocked: false, passkeys: [], pending: 0 },
   )

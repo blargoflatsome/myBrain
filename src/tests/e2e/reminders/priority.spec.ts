@@ -166,7 +166,7 @@ test.describe('Spec §6: reminder settings', { tag: '@phone' }, () => {
     await settings.getByLabel(msg.notifications.quietEnd, { exact: true }).fill('07:00')
     await expect(settings.getByRole('checkbox', { name: /Priority reminders still ring/ })).toBeChecked()
     await settings.getByRole('button', { name: msg.notifications.save }).click()
-    await expect(settings.getByText(msg.notifications.saved)).toBeVisible()
+    await expect(settings.getByText(msg.profile.saved)).toBeVisible()
     expect(server.written('profiles').at(-1)).toMatchObject({
       quiet_hours_start: '22:00',
       quiet_hours_end: '07:00',

@@ -167,6 +167,8 @@ begin
   execute 'reset role';
   select count(*) into n from public.outbound_messages where kind = 'dropout' and channel = 'push' and recipient_user_id = alice and body like 'Hi Alice Able, I''m sorry, but I can''t make it to Picnic%';
   if n <> 1 then raise exception 'FAIL: Spec §5 Cancelling: when I drop out, the host gets my personal message'; end if;
+  select count(*) into n from public.outbound_messages where kind = 'dropout' and recipient_user_id = alice and subject = 'Bob Baker dropped out of Picnic';
+  if n <> 1 then raise exception 'FAIL: Spec §5 Cancelling: the push about my drop-out says who dropped out'; end if;
 
   -- ===== Deleting my account withdraws invitations I received =====
   execute 'set local role authenticated';

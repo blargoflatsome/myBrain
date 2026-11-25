@@ -12,6 +12,8 @@ describe('Spec §5 Global search', () => {
     journal: [{ id: 'j1', date: '2026-11-09', body: '<p>Met Sam at the <strong>cafe</strong>.</p>', stats: {}, stats_final: true, auto: false, updated_at: '2026-11-09', deleted_at: null }],
     quests: [{ id: 'q1', title: 'Learn to bake', status: 'open', updated_at: '2026-11-01', deleted_at: null }],
     events: [{ ...newEvent(UID, '2026-11-12', '10:00', 'e1'), title: 'Dentist', notes: 'bring card', updated_at: '2026-11-03' }],
+    invites: [],
+    me: UID,
     habits: [],
     routines: [],
     itemTags: [{ id: 'it1', tag_id: 'tag-food', item_type: 'task', item_id: 't1', deleted_at: null }],
@@ -37,11 +39,21 @@ describe('Spec §5 Global search', () => {
 
   it('SPEC §5 Locking my journal: writing still encrypted on this device is left out, not searched as gibberish', () => {
     const locked = searchDocs({
-      tasks: [], vaultItems: [], buckets: [], quests: [], events: [], habits: [], routines: [], itemTags: [],
+      tasks: [], vaultItems: [], buckets: [], quests: [], events: [], invites: [], me: UID, habits: [], routines: [], itemTags: [],
       journal: [{ id: 'j2', date: '2026-11-08', body: 'enc:v1:c2VjcmV0', tomorrow: '<p>call Sam</p>', stats: {}, stats_final: true, auto: false, deleted_at: null }],
     })
     expect(search(locked, 'enc')).toEqual([])
     expect(search(locked, 'sam').map((d) => d.id)).toEqual(['j2'])
   })
-})
 
+  it('SPEC §5 Shared events: an event I said No to or dropped out of is not found; one I said Yes to is', () => {
+    const HOST = '99999999-2222-4333-8444-555555555555'
+    const party = (id: string) => ({ ...newEvent(HOST, '2026-11-20', '19:00', id), title: 'Party' })
+    const invited = searchDocs({
+      tasks: [], vaultItems: [], buckets: [], quests: [], journal: [], habits: [], routines: [], itemTags: [], me: UID,
+      events: [party('yes'), party('no'), party('dropped')],
+      invites: (['yes', 'no', 'dropped'] as const).map((r) => ({ id: `i-${r}`, event_id: r, response: r, deleted_at: null })),
+    })
+    expect(search(invited, 'party').map((d) => d.id)).toEqual(['yes'])
+  })
+})

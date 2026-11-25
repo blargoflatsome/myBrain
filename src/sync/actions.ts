@@ -18,6 +18,8 @@ export interface Ready {
 export interface ActionContext {
   /** The signed-in user's engine and store; throws when nobody is signed in. */
   ready: () => Ready
+  /** Whether anyone is signed in, for work that can finish after signing out (a timer running out). */
+  signedIn: () => boolean
   /** True once this device holds the server's habit history, so misses are never guessed. */
   habitsReady: Readonly<Ref<boolean>>
   /** True once this device holds my badges, so a badge I already have is never earned again. */

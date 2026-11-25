@@ -1,5 +1,5 @@
 // Event rules (SPEC §5 Calendar and reminders): repeats, occurrences in a date range, and what the calendar shows.
-import type { EventInviteRow, EventRepeat, EventRow, TaskRow } from '@/sync/types'
+import type { EventInviteRow, EventRepeat, EventRow, InviteResponse, TaskRow } from '@/sync/types'
 import { addDays, daysBetween, weekdayOf } from '@/time/days'
 
 export const REPEATS: EventRepeat[] = ['never', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'yearly']
@@ -53,6 +53,30 @@ export interface CalendarItem {
 
 const hhmm = (time: string) => time.slice(0, 5)
 
+/** My place in an event: mine, or my answer to someone else's invitation. */
+export type MyPlace = 'mine' | InviteResponse
+
+/**
+ * My place in an event (SPEC §5 Shared events). Someone else's event is mine only through my invite; with no invite
+ * (or a deleted one) it isn't mine at all, so it's null.
+ */
+export function myPlace(event: Pick<EventRow, 'id' | 'user_id'>, invites: readonly EventInviteRow[], me: string | null | undefined): MyPlace | null {
+  if (!me || !event.user_id || event.user_id === me) return 'mine'
+  return invites.find((i) => i.event_id === event.id && !i.deleted_at)?.response ?? null
+}
+
+/** Whether an invitee still counts for change and cancel notices: not after No or dropping out (SPEC §5, GLOSSARY Answer). */
+export function stillCounts(response: InviteResponse): boolean {
+  return response !== 'no' && response !== 'dropped'
+}
+
+/** Whether an event shows on my side of the app: a No or dropping out removes it everywhere (SPEC §5 Shared events). */
+export function shownToMe(event: Pick<EventRow, 'id' | 'user_id' | 'deleted_at'>, invites: readonly EventInviteRow[], me: string | null | undefined): boolean {
+  if (event.deleted_at) return false
+  const place = myPlace(event, invites, me)
+  return place === 'mine' || (!!place && stillCounts(place))
+}
+
 /** Everything the calendar shows between two dates: dated tasks and my events (SPEC §5 Calendar). */
 export function calendarItems(
   data: { tasks: TaskRow[]; events: EventRow[]; invites?: EventInviteRow[]; me?: string | null },
@@ -74,16 +98,14 @@ export function calendarItems(
     })
   }
   for (const e of data.events) {
-    if (e.deleted_at) continue
     // Invited events (SPEC §5): dashed until answered, faded for Maybe, gone after No or dropping out.
-    const invited = !!data.me && !!e.user_id && e.user_id !== data.me
-    const mine = invited ? data.invites?.find((i) => i.event_id === e.id && !i.deleted_at) : undefined
-    if (invited && (!mine || mine.response === 'no' || mine.response === 'dropped')) continue
+    if (!shownToMe(e, data.invites ?? [], data.me)) continue
+    const place = myPlace(e, data.invites ?? [], data.me)
     const style = [
       'cal-event',
       ...(e.cancelled_at ? ['cal-cancelled'] : []),
-      ...(mine?.response === 'pending' ? ['cal-pending'] : []),
-      ...(mine?.response === 'maybe' ? ['cal-maybe'] : []),
+      ...(place === 'pending' ? ['cal-pending'] : []),
+      ...(place === 'maybe' ? ['cal-maybe'] : []),
     ].join(' ')
     const length = daysBetween(e.start_date, e.end_date)
     for (const d of occurrences(e, from, to)) {
@@ -92,7 +114,7 @@ export function calendarItems(
         e.start_time && e.end_time
           ? {
               id: `event:${e.id}:${d}`,
-              title: mine?.response === 'maybe' ? `? ${e.title}` : e.title,
+              title: place === 'maybe' ? `? ${e.title}` : e.title,
               start: `${d}T${hhmm(e.start_time)}`,
               end: `${endDate}T${hhmm(e.end_time)}`,
               allDay: false,
@@ -101,7 +123,7 @@ export function calendarItems(
             }
           : {
               id: `event:${e.id}:${d}`,
-              title: mine?.response === 'maybe' ? `? ${e.title}` : e.title,
+              title: place === 'maybe' ? `? ${e.title}` : e.title,
               start: d,
               end: addDays(endDate, 1),
               allDay: true,

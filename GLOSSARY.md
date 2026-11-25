@@ -63,6 +63,10 @@ _Avoid_: Attendee (except as the event form's Attendees fold-out)
 **Guest**:
 An invitee who answers through a private link instead of in the app, with or without an account.
 
+**Answer**:
+What an invitee says to an invitation: pending (not yet), Yes, Maybe, No, or Dropped out. Invitees who said No or dropped out no longer count when the event changes or is cancelled, and the event leaves their side of the app.
+_Avoid_: RSVP
+
 ## Alerts
 
 **Alert**:
