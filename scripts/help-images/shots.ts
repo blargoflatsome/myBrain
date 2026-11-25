@@ -16,6 +16,9 @@ export interface Shot {
   ready?: (page: Page) => Promise<void>
   /** What the highlight ring goes around. */
   ring?: (page: Page) => Locator
+  /** A drawing instead of a screenshot of the app: an HTML file in scripts/help-images, for what the app can't
+   *  show (the browser's own menus). It draws its own rings. */
+  drawing?: string
 }
 
 const openCapture = async (page: Page, text?: string) => {
@@ -31,6 +34,7 @@ const waitFor = (text: string) => async (page: Page) => {
 export const SHOTS: Shot[] = [
   // ---------- Help ----------
   { name: 'help-getting-around', path: '/tasks', ready: async (p) => { await p.getByTestId('bottom-tabs').getByRole('button', { name: msg.nav.more }).click(); await p.getByTestId('more-sheet').waitFor() }, ring: (p) => p.getByTestId('more-sheet') },
+  { name: 'help-install', path: '', drawing: 'install.html' },
   { name: 'help-capture', path: '/tasks', ready: waitFor('Pay rent'), ring: (p) => p.getByTestId('capture-button') },
   { name: 'help-orphans', path: '/orphans', ready: waitFor('Call the dentist'), ring: (p) => p.getByRole('button', { name: 'Task', exact: true }).locator('..') },
   { name: 'help-tasks', path: '/tasks', ready: waitFor('Pay rent'), ring: (p) => p.getByPlaceholder(msg.tasks.addPlaceholder('today')) },

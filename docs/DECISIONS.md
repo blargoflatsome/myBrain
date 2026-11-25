@@ -521,3 +521,8 @@ The fourth `/improve-codebase-architecture` pass (`docs/ARCHITECTURE_REVIEW_TASK
 - **Lint warnings fail (user):** `npm run lint` runs `eslint . --max-warnings 0`, and `test:quick` runs lint first. Two warnings in a new test file sat unseen through the quick checks (lint's last line is always the limit-codes check) and only showed in `test:all`. Tests may define several small components (`vue/one-component-per-file` off in `src/tests/**`).
 - **Refusal rule for review (user):** CODING_STANDARDS §7: each Save clears every earlier refusal first, and a refusal lands on the visible box I have to change. The merge review found three bugs of this kind that the first review missed.
 - **modern-web-guidance updated (user)** to 2026_11_16. Its updater swaps `.claude/skills/modern-web-guidance` for a junction into a new `.agents/` folder; the repo keeps plain files, so copy them back and delete `.agents/` after an update.
+
+## 2026-11-25 Install on your phone (Help)
+- **Found:** Help had no install tutorial, only one line each for Android and iPhone inside Reminders on your phone.
+- **Decided (user, all as proposed):** one topic, Install on your phone, right after Getting around, with Android and iPhone steps; its picture is a drawing, since the browser's menus can't be screenshotted; Reminders on your phone points to it instead of repeating the steps.
+- **Claude's calls:** the drawing is `scripts/help-images/install.html`, rendered by `npm run docs:images` like the screenshots, so it stays in the same size and format. The iPhone step mentions ⋯ because newer Safari hides Share under it.

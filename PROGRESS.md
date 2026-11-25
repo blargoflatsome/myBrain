@@ -6,7 +6,7 @@ Current state only. Update at the end of every session; when work merges, move i
 - **Refused fields merged** (PR 112, 2026-11-25, history in `docs/PROGRESS_ARCHIVE.md`). Nothing else is planned: the user dropped the wording and phone checks, the guest poll, further iPhone work and Discord invites (DECISIONS 2026-11-25). The gamifying ideas (mystery drops, combo meter, monthly challenge) are dropped too. So are the smartwatch and the calendar feed (`.ics` subscription) to evaluate; SPEC §10 has nothing planned.
 
 ## In progress
-- Nothing.
+- **Install on your phone** (branch `help-install`, 2026-11-25): a Help topic after Getting around with Android and iPhone steps and a drawn picture (`scripts/help-images/install.html`, rendered by `npm run docs:images`); Reminders on your phone points to it. Quick checks pass; not committed or merged.
 
 ## Rules without a test yet
 - Web Push delivery end to end: checked by hand after deploy (SQL checks cover who is due and what is recorded; the push function has no automated test yet).
