@@ -663,9 +663,8 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 ## 9. Raspberry Pi dashboard display
 - **Dropped (2026-11-11):** no Pi display, device pairing or kiosk mode is planned.
 
-## 10. Phase 2 (not built yet; don't block it)
+## 10. Phase 2 (nothing planned; 2026-11-25, user)
 - **Dropped (2026-11-24, user):** automatic email sending (with its domain and email service) and Home Assistant. Guests keep being messaged one at a time from my own apps (§5 Cancelling an event or attendance).
-- **Smartwatch:** start by forwarding notifications to the watch; native watch apps come later.
 
 ### iPhone (the installed web app, built 2026-11-08; nothing more planned, 2026-11-25, user)
 - **The app stays a web app on iPhone** (installed with Share → Add to Home Screen; iPhones never offer an install prompt). No App Store app.
@@ -690,7 +689,6 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 1. Shared events: contact info at signup, invitations, RSVPs, cancellations and notifications, and the availability schedule. Data export, account deletion, privacy policy and terms, and rate limits must be in place before anyone other than me uses the app.
 1. Breathe, then Cheers, then the focus room (2026-11-15).
 1. Voice capture: Speak it fills the Capture form, and the default Vault bucket (2026-11-20).
-1. Phase 2 (§10).
 
 After each step, the app should deploy and be usable, and all Vitest and Playwright tests must pass.
 
@@ -700,7 +698,6 @@ After each step, the app should deploy and be usable, and all Vitest and Playwri
 
 - Automatic email: dropped (2026-11-24). Phone verification and any SMS service: dropped (2026-11-12).
 
-- Evaluate and recommend, but do not build without my approval: a private `.ics` subscription feed so Google, Outlook, or Apple calendars can follow my events without needing Google's API verification.
 
 ## 13. Accounts, services, and credentials
 
