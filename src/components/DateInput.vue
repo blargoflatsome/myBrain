@@ -1,5 +1,5 @@
 <template>
-  <div class="relative flex flex-col gap-1">
+  <div ref="root" class="relative flex flex-col gap-1">
     <label :for="id" :class="labelClass">{{ label }}</label>
     <input
       v-if="touch"
@@ -95,6 +95,7 @@
 // SPEC §5 Date fields, the partner of the time fields. On a computer: type a day ("tomorrow", "Fri", "Nov 20",
 // "11/20") or pick it from a month grid (an accessible combobox with a grid: arrows move by day and week, Page Up and
 // Page Down by month, Enter picks, Escape closes just the grid). On a phone or tablet: the device's own date picker.
+import { FIELD_CHANGED } from '@/composables/useFieldError'
 import { computed, ref, useId, watch } from 'vue'
 import { useTypedField } from '@/composables/useTypedField'
 import { addMonths, monthGrid } from '@/time/months'
@@ -121,6 +122,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 const m = messages.dateInput
 const weekdayShort = messages.habits.weekdayNames.map((d) => d.slice(0, 2))
 
+const root = ref<HTMLElement | null>(null)
 const id = useId()
 const gridId = `${id}-grid`
 const cellId = (day: string) => `${id}-d-${day}`
@@ -130,7 +132,11 @@ const { touch, text, type, settle, pick } = useTypedField({
   value: () => props.modelValue ?? '',
   show: (v) => dayLabel(v, today),
   required: () => props.required,
-  save: (v) => emit('update:modelValue', v),
+  save: (v) => {
+    emit('update:modelValue', v)
+    // A pick from the list (or the grid) fires no input event, so a refused field hears it this way (useFieldError).
+    root.value?.dispatchEvent(new Event(FIELD_CHANGED, { bubbles: true }))
+  },
 })
 // Ready before anything is typed: the typed box is the only one that reads typed days.
 watch(touch, (t) => !t && void loadDateReader(), { immediate: true })

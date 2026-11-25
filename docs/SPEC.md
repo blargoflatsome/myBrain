@@ -311,6 +311,7 @@ Matches the migrations as of 2026-11-24 (docs review). Planned tables that were 
 
 ### Forms
 - **One form per item type (2026-11-12, user):** wherever an item is made or edited (Capture, its editor, Orphans), its fields are the same, in the same order, with the same controls and labels (CODING_STANDARDS §6). The task editor is Title, then Capture's task fields (Date, Notes, Priority), then tags. The quest editor is Title, then Energy and Time as chips (no "not set"; new quests default to Ugh and 30 min) and Details. The Vault item editor is Title, then Bucket, Notes and More details (rating, link).
+- **When a save is refused (2026-11-25, user):** what I typed is checked when I press Save, never while I'm typing. The field with the problem gets a soft red border and its message right there, screen readers hear the message with the field, and focus moves to it (a closed fold-out it's in opens). The mark goes as soon as I change that field. Every editor says why a missing title or name is refused (an empty one, or only spaces), in the app's own words rather than the browser's pop-up. A save that fails as a whole (offline, the server) is still said out loud as before.
 - **Choices:** a short fixed choice (up to 10 options) is a row of chips; a longer list is a dropdown. **Buckets** are chips while there are 10 or fewer, and a dropdown beyond that, with New bucket last either way (2026-11-12, user).
 - **"+ New"** is always at the right of the page heading.
 - **Spacing (2026-11-11, user):** form sections are 32 px apart (`gap-8`), inside fold-outs too, and every field title (label, legend or heading over a field) has 8 px below it (`pb-2`).
@@ -658,38 +659,22 @@ Trophies give me things to work toward and a little dopamine for using the app. 
   - **Journal lock (2026-11-13):** optional end-to-end encryption of journal writing (§5 Locking my journal): AES-256-GCM per field with the entry and field bound in; the journal key wrapped by PBKDF2-SHA-256 (600,000 rounds) from my passphrase, by a random recovery key, and by passkeys (WebAuthn PRF + HKDF); non-exportable on the device; the server refuses plain journal text once I've locked it. WebCrypto only, so no CSP change (no WebAssembly).
 
 - Before anyone other than me uses the app, build: a data export of all my data (JSON or CSV), account deletion that removes everything, privacy policy and terms of service pages, and rate limits on invitations and any message sent to other people. Texting people also has consent and compliance rules; verify them before enabling it.
-- **Built:** "Download my data" on the Account page saves one JSON file with everything I own. **"Delete my data"** next to it lets me start fresh without deleting my account; it is shown in an **orange warning colour** (its button, box and confirmation), while red stays for errors and Delete My Account. The confirmation is a checklist of what to delete, all ticked to start: tasks, Orphans, quests, The Vault (the three starter buckets come back), journal, habits (with their history and streaks; a habit used as a routine step is removed from that routine), routines (with their history), tags, my own events (except events I've invited people to, which are always left alone), Post Its, Offsite connections, and Cheers (my posts, the cheers I gave and who I hid; the tally behind my Cheering others on trophies stays, like trophies, 2026-11-17). I untick anything I want to keep, the confirmation shows what stays, and I type DELETE. Only the ticked parts are permanently removed, along with their reminder state and the tags on them. It keeps my account, profile and all settings, my availability times, invitations I received, and the log of messages I sent. My other devices clear their copy and download again the next time they open or come back to the app. Privacy policy and terms pages are public (linked from the home page and the Account page). Claude drafts them in plain language from how the app actually works; they are a starting point to review, not legal advice. Account deletion was built earlier (Delete My Account) and now also removes invitations I sent; invitations I received are deleted, and their hosts see me as removed.
+- **Built:** "Download my data" on the Account page saves one JSON file with everything I own, except Cheers posts, which live only on the server and are gone after 48 hours (2026-11-25, user). **"Delete my data"** next to it lets me start fresh without deleting my account; it is shown in an **orange warning colour** (its button, box and confirmation), while red stays for errors and Delete My Account. The confirmation is a checklist of what to delete, all ticked to start: tasks, Orphans, quests, The Vault (the three starter buckets come back), journal, habits (with their history and streaks; a habit used as a routine step is removed from that routine), routines (with their history), tags, my own events (except events I've invited people to, which are always left alone), Post Its, Offsite connections, and Cheers (my posts, the cheers I gave and who I hid; the tally behind my Cheering others on trophies stays, like trophies, 2026-11-17). I untick anything I want to keep, the confirmation shows what stays, and I type DELETE. Only the ticked parts are permanently removed, along with their reminder state and the tags on them. It keeps my account, profile and all settings, my availability times, invitations I received, and the log of messages I sent. My other devices clear their copy and download again the next time they open or come back to the app. Privacy policy and terms pages are public (linked from the home page and the Account page). Claude drafts them in plain language from how the app actually works; they are a starting point to review, not legal advice. Account deletion was built earlier (Delete My Account) and now also removes invitations I sent; invitations I received are deleted, and their hosts see me as removed.
 
 ## 9. Raspberry Pi dashboard display
 - **Dropped (2026-11-11):** no Pi display, device pairing or kiosk mode is planned.
 
-## 10. Phase 2 (not built yet; don't block it)
+## 10. Phase 2 (nothing planned; 2026-11-25, user)
 - **Dropped (2026-11-24, user):** automatic email sending (with its domain and email service) and Home Assistant. Guests keep being messaged one at a time from my own apps (§5 Cancelling an event or attendance).
-- **When can you come?** a poll for guests without accounts, through their answer link (Prefer, Yes or No for a few times), like Outlook's Scheduling Poll.
-- **Smartwatch:** start by forwarding notifications to the watch; native watch apps come later.
 
-- **More gamifying, worth more thought later (2026-11-18, user; don't build yet):**
-  - **Mystery drops:** now and then, finishing something drops a surprise unlock (a Post It colour, an app theme, a header icon).
-  - **Combo meter:** finishing 3 or more things within an hour builds a combo ("3× combo") that fades quietly; it rewards momentum and never punishes.
-  - **Monthly challenge:** one optional goal a month (for example, journal 10 days in November) with a trophy only that month can earn.
-
-### Phase 3: iPhone support (started 2026-11-08: the installed web app; a native app only if this falls short)
-- **The app stays a web app on iPhone** (installed with Share → Add to Home Screen; iPhones never offer an install prompt). A Capacitor App Store app (Apple Developer Program, $99 a year, and a Mac for builds) is only considered if the web app falls short in real use.
-- **Tested on Safari's engine:** the browser tests also run as an iPhone (Playwright's WebKit "iPhone 14"), so every change is checked against Safari. A final pass on a real iPhone is done by the user.
+### iPhone (the installed web app, built 2026-11-08; nothing more planned, 2026-11-25, user)
+- **The app stays a web app on iPhone** (installed with Share → Add to Home Screen; iPhones never offer an install prompt). No App Store app.
+- **Tested on Safari's engine:** the browser tests also run as an iPhone (Playwright's WebKit "iPhone 14"), so every change is checked against Safari.
 - **Opens like an app:** the page asks iOS to open it full-screen from the Home Screen, with the status bar over the app and room for the notch and home bar.
 - **Texting guests:** iPhones need the message link written as `sms:NUMBER&body=…` (Android uses `?body=`), so the one-message-at-a-time flow fills in the text on both.
 - **Offline data kept:** the app asks the browser to keep its stored data for good (Safari can otherwise clear a website's data after weeks unopened); synced data comes back from the server either way.
 - **Reminders:** web push works on iOS 16.4 and later **only after adding to the Home Screen**, and is turned on from inside the installed app. On an iPhone in Safari (not installed), the Reminders setting explains this instead of saying the browser can't do it. In-app alerts (bell and banner) work either way. A priority reminder can't take over the screen on iOS; it arrives as an ordinary notification.
 - **Not on iPhone:** sharing text or links into Capture from other apps (iOS doesn't let web apps into the Share sheet); paste into Capture instead.
-- To check on a real iPhone: Google sign-in returning to the installed app, voice capture, and that push reminders arrive.
-
-### Phase 3: Discord server invites (planned 2026-11-12; do not build yet)
-- **Connect my server:** on the Account page I add the My Brain bot to a Discord server I manage, once. Neither Discord nor Telegram lets the app read my contacts or friends list, so invites go through a server channel, not contacts.
-- **Invite a channel:** when I save an event I can pick a connected server and one of its channels (for example `#sessions`). The bot posts the event there with **Yes / Maybe / No** buttons. Each member's click is saved as their answer, as a Discord guest (their Discord name, no email or phone), and they can change it by clicking again.
-- **Changes and cancelling:** editing the event updates the post; cancelling marks the post cancelled and pings the channel or a role I pick (for example `@party`).
-- **Optional:** the bot also creates a matching Discord Scheduled Event in the server, cancelled when I cancel mine.
-- **Not planned:** private messages to every server member (needs Discord's member-list permission, which bots must apply for at 100+ servers, and feels like spam), and Telegram, whose bots can post in a group but can't list or invite its members.
-- Free to run. Needs a Discord application and bot token (server-side only), a check of each button click's Discord signature, and the same rate limits as other invitations.
 
 ## 11. Suggested build order
 1. Repo, Vue + Vite + TypeScript + Tailwind scaffold, Vitest and Playwright set up with a first passing test, GitHub Actions, Netlify deploy, dev and production Supabase projects, Google sign-in, schema with row-level security. Start by walking me through creating the accounts in section 13.
@@ -705,9 +690,6 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 1. Shared events: contact info at signup, invitations, RSVPs, cancellations and notifications, and the availability schedule. Data export, account deletion, privacy policy and terms, and rate limits must be in place before anyone other than me uses the app.
 1. Breathe, then Cheers, then the focus room (2026-11-15).
 1. Voice capture: Speak it fills the Capture form, and the default Vault bucket (2026-11-20).
-1. Phase 2 (§10).
-1. Phase 3: iPhone support.
-1. Phase 3: Discord server invites.
 
 After each step, the app should deploy and be usable, and all Vitest and Playwright tests must pass.
 
@@ -717,7 +699,6 @@ After each step, the app should deploy and be usable, and all Vitest and Playwri
 
 - Automatic email: dropped (2026-11-24). Phone verification and any SMS service: dropped (2026-11-12).
 
-- Evaluate and recommend, but do not build without my approval: a private `.ics` subscription feed so Google, Outlook, or Apple calendars can follow my events without needing Google's API verification.
 
 ## 13. Accounts, services, and credentials
 
@@ -739,7 +720,6 @@ Before building, walk me through creating each account below. Ask me for the cre
 - **Web Push keys (VAPID):** no account needed. Generate the key pair yourself; the private key is server-side only.
 
 ### Services for later phases
-- **Discord** (Phase 3, Discord server invites): a Discord application with a bot at https://discord.com/developers; ask me for its bot token, application id and public key when we get there.
 - **Domain name:** none for now (decided 2026-11-06). The app uses its free Netlify address, https://myadhdbrain.netlify.app. Worth buying one before Google's OAuth verification for a public app, which works much better with an owned domain.
 
 ## 14. Decisions

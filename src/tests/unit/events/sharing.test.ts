@@ -29,7 +29,7 @@ describe('Spec §5 Shared events: reaching guests one at a time', () => {
   })
   it('opens the messaging app for a phone number, or the email app for an email', () => {
     expect(shareHref({ phone: '(555) 010-3000', email: null, subject: 's', body: 'Hi & bye' }, false)).toBe('sms:5550103000?body=Hi%20%26%20bye')
-    // iPhones need sms:NUMBER&body= to fill in the text (SPEC §10 Phase 3).
+    // iPhones need sms:NUMBER&body= to fill in the text (SPEC §10 iPhone).
     expect(shareHref({ phone: '(555) 010-3000', email: null, subject: 's', body: 'Hi & bye' }, true)).toBe('sms:5550103000&body=Hi%20%26%20bye')
     expect(shareHref({ phone: null, email: 'c@x.com', subject: 'Hi', body: 'Yo' })).toBe('mailto:c%40x.com?subject=Hi&body=Yo')
   })

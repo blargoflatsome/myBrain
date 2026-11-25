@@ -43,7 +43,7 @@ test.describe('Spec §5 Accounts and contact info', () => {
     await expect(page.getByText(msg.welcome.body)).toBeVisible()
     await page.getByLabel(msg.welcome.phone).fill('call me')
     await page.getByRole('button', { name: msg.welcome.save }).click()
-    await expect(page.getByRole('alert')).toContainText('doesn’t look like a phone number')
+    await expect(page.getByTestId('field-error')).toHaveText(msg.welcome.phoneError)
     await page.getByLabel(msg.welcome.phone).fill('+1 (555) 010-2222')
     await page.getByRole('button', { name: msg.welcome.save }).click()
     await expectPath(page, '/habits')

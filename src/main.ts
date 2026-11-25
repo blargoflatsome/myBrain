@@ -28,7 +28,7 @@ registerSW({
   },
 })
 
-// SPEC §10 Phase 3: ask the browser to keep this device's data for good (Safari can otherwise clear it after weeks
+// SPEC §10 iPhone: ask the browser to keep this device's data for good (Safari can otherwise clear it after weeks
 // unopened; anything synced would come back, but changes not yet uploaded wouldn't).
 void navigator.storage?.persist?.().catch(() => false)
 

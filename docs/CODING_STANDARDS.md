@@ -121,8 +121,7 @@ it's missing, make it shared first, then use it in every place.
 - Hidden-until-hover controls also appear on keyboard focus.
 - Focus is never hidden behind the sticky header or bottom bar (WCAG 2.4.11): scrolling areas get `scroll-margin` /
   `scroll-padding` the height of the bars (2026-11-15).
-- When a save is refused, the field with the problem gets `aria-invalid="true"` and its message
-  (`aria-describedby`), and focus moves to the first such field (2026-11-15).
+- When a save is refused because of one field, use `useFieldError()` (`src/composables/useFieldError.ts`): `v-field-error` on the field (or the component around it) gives it `aria-invalid` and links its message with `aria-describedby`, `<FieldError :of>` shows the message (no live region: focus reads it), `refuse(message)` moves focus to the field (opening its fold-out), and changing the field clears it. A failure of the whole save (offline, the server) stays a `role="alert"` message. Forms check on Save with `novalidate`, never the browser's pop-up (2026-11-15; 2026-11-25).
 
 ## 8. Security
 

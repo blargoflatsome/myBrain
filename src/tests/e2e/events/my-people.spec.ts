@@ -174,14 +174,16 @@ test.describe('Spec §5 Calendar, my people: fixed or removed on the Account pag
   })
 
   test('adding someone already saved with that email or phone says so instead of saving them twice', async ({ page }) => {
-    server.seed('people', [person('pe-1', 'Frank', 'frank@example.com', null)])
+    // Saved before emails were kept in small letters.
+    server.seed('people', [person('pe-1', 'Frank', 'Frank@Example.com', null)])
     await open(page, '/account')
     await expect(page.getByTestId('saved-person')).toHaveText([/^Frank/])
     await page.getByRole('button', { name: msg.myPeople.add }).click()
     const editor = page.getByRole('dialog', { name: msg.myPeople.add })
     await editor.getByLabel(msg.myPeople.email).fill('FRANK@example.com')
     await editor.getByRole('button', { name: msg.capture.save }).click()
-    await expect(editor.getByTestId('person-error')).toHaveText(msg.myPeople.alreadySaved('Frank'))
+    // Said beside the email box, the one they match on.
+    await expect(editor.getByLabel(msg.myPeople.email)).toHaveAccessibleDescription(msg.myPeople.alreadySaved('Frank'))
     expect(server.written('people')).toHaveLength(0)
   })
 
@@ -193,6 +195,10 @@ test.describe('Spec §5 Calendar, my people: fixed or removed on the Account pag
     await editor.getByLabel(msg.myPeople.email).fill('')
     await editor.getByRole('button', { name: msg.capture.save }).click()
     await expect(editor.getByTestId('person-error')).toHaveText(msg.myPeople.needOne)
+    // Saving again with a phone that isn't one: only that answer shows, beside the phone box.
+    await editor.getByLabel(msg.myPeople.phone).fill('abc')
+    await editor.getByRole('button', { name: msg.capture.save }).click()
+    await expect(editor.getByTestId('person-error')).toHaveText(msg.myPeople.badPhone)
   })
 
   test('removing someone takes them off the list straight away, with Undo (SPEC §2)', async ({ page }) => {

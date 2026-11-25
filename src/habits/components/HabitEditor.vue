@@ -9,7 +9,7 @@
     @delete="confirmDialog?.open()"
     @close="emit('close')"
   >
-    <TitleField v-model="title" :label="m.editor.title" />
+    <TitleField v-model="title" :label="m.editor.title" :error="titleError" />
     <HabitFields
       v-model:week-interval="weekInterval"
       v-model:monthly="monthly"
@@ -41,6 +41,7 @@
 <script setup lang="ts">
 import EditorDialog from '@/components/EditorDialog.vue'
 import TitleField from '@/components/TitleField.vue'
+import { useFieldError } from '@/composables/useFieldError'
 import HabitFields from '@/habits/components/HabitFields.vue'
 // New or edit habit: title, reminder time, timer, weekdays (SPEC §5 Habits). Delete asks first (SPEC §2).
 import { computed, ref, watch } from 'vue'
@@ -59,6 +60,8 @@ const m = messages.habits
 
 const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const title = ref('')
+// SPEC §5 Forms: an empty title is refused, beside the title box.
+const titleError = useFieldError()
 const notifyTime = ref('')
 const timer = ref<number | null>(null)
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
@@ -74,6 +77,7 @@ watch(
   () => props.habit,
   (h) => {
     if (!h) return
+    titleError.clear()
     title.value = h.title
     notifyTime.value = h.notify_time?.slice(0, 5) ?? ''
     timer.value = h.timer_minutes ?? null
@@ -94,7 +98,8 @@ const earliestStart = computed(() => {
 })
 
 function save() {
-  if (!props.habit || !title.value.trim()) return
+  if (!props.habit) return
+  if (!title.value.trim()) return titleError.refuse(messages.forms.titleNeeded)
   emit('save', {
     ...props.habit,
     title: title.value.trim(),

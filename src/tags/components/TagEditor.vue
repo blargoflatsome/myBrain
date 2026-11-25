@@ -3,11 +3,12 @@
     <div class="flex flex-col gap-8 p-5">
       <h2 class="text-lg font-semibold">{{ m.heading }}</h2>
 
-      <form class="flex flex-col gap-3" @submit.prevent="save">
+      <form class="flex flex-col gap-3" novalidate @submit.prevent="save">
         <label :class="fieldLabel">
           <span class="pb-2">{{ m.name }}</span>
-          <input v-model="name" :maxlength="TAG_MAX" required :class="field" @input="clash = null">
+          <input v-model="name" v-field-error="nameError" :maxlength="TAG_MAX" required :class="field" @input="clash = null">
         </label>
+        <FieldError :of="nameError" />
         <div v-if="clash" class="flex flex-col gap-3 rounded-xl bg-bg p-3" role="alert" data-testid="tag-clash">
           <p class="text-sm break-words">{{ m.clash(clash.name) }}</p>
           <div class="flex flex-wrap gap-2">
@@ -47,6 +48,8 @@
 // tag, or delete it. The page does the work and offers Undo.
 import { computed, ref, watch } from 'vue'
 import CloseX from '@/components/CloseX.vue'
+import FieldError from '@/components/FieldError.vue'
+import { useFieldError, vFieldError } from '@/composables/useFieldError'
 import { TAG_MAX } from '@/tags/rules'
 import { messages } from '@/messages'
 import type { TagRow } from '@/sync/types'
@@ -63,6 +66,8 @@ const m = messages.tagsPage.editor
 
 const dialog = ref<HTMLDialogElement | null>(null)
 const name = ref('')
+// SPEC §5 Forms: an empty name is refused beside the box, in the app's words.
+const nameError = useFieldError()
 const target = ref('')
 const clash = ref<TagRow | null>(null)
 const others = computed(() => props.tags.filter((t) => t.id !== props.tag?.id))
@@ -72,6 +77,7 @@ watch(
   (t) => {
     if (!t) return dialog.value?.close()
     name.value = t.name
+    nameError.clear()
     target.value = ''
     clash.value = null
     if (!dialog.value?.open) dialog.value?.showModal()
@@ -80,6 +86,7 @@ watch(
 
 function save() {
   if (!props.tag) return
+  if (!name.value.trim()) return nameError.refuse(messages.forms.nameNeeded)
   emit('rename', props.tag, name.value, (other) => (clash.value = other))
 }
 function mergeInto(into: TagRow) {

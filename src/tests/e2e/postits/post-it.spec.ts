@@ -48,7 +48,7 @@ test.describe('Spec §5 Post It', () => {
     await open(page, '/capture')
     await page.getByRole('group', { name: msg.capture.whereHeading }).getByRole('button', { name: msg.postIts.label, exact: true }).click()
     await page.getByTestId('capture-save').click()
-    await expect(page.getByRole('alert')).toHaveText(msg.postIts.emptyError)
+    await expect(page.getByTestId('field-error')).toHaveText(msg.postIts.emptyError)
     expect(server.written('post_its')).toHaveLength(0)
   })
 

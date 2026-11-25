@@ -10,7 +10,7 @@
     @delete="confirmDialog?.open()"
     @close="emit('close')"
   >
-    <TitleField v-model="title" :label="m.editor.title" />
+    <TitleField v-model="title" :label="m.editor.title" :error="titleError" />
     <fieldset class="flex flex-col gap-2">
       <legend class="mb-1 text-sm font-medium pb-2">{{ m.editor.steps }}</legend>
       <p v-if="stepRows.length > 1" class="-mt-1 text-xs text-muted">{{ m.editor.dragHint }}</p>
@@ -100,6 +100,7 @@ import { useRows } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
 import EditorDialog from '@/components/EditorDialog.vue'
 import TitleField from '@/components/TitleField.vue'
+import { useFieldError } from '@/composables/useFieldError'
 import TimeInput from '@/components/TimeInput.vue'
 import { computed, nextTick, ref, useId, watch } from 'vue'
 import HowOften from '@/components/HowOften.vue'
@@ -119,6 +120,8 @@ const m = messages.routines
 
 const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const title = ref('')
+// SPEC §5 Forms: an empty title is refused, beside the title box.
+const titleError = useFieldError()
 const notifyTime = ref('')
 const weekdays = ref<number[]>([...ALL_WEEKDAYS])
 const anytime = ref(false)
@@ -150,6 +153,7 @@ watch(
   () => props.routine,
   (r) => {
     if (!r) return
+    titleError.clear()
     title.value = r.title
     notifyTime.value = r.notify_time?.slice(0, 5) ?? ''
     anytime.value = !r.weekdays
@@ -211,7 +215,8 @@ function remove(i: number) {
 }
 
 function save() {
-  if (!props.routine || !title.value.trim()) return
+  if (!props.routine) return
+  if (!title.value.trim()) return titleError.refuse(messages.forms.titleNeeded)
   emit(
     'save',
     {

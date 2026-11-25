@@ -8,14 +8,15 @@
     </div>
 
     <!-- Post It: a small formatted note in place of the box (SPEC §5 Quick capture) -->
-    <div v-if="type === 'postit'" class="flex flex-col gap-1" data-testid="capture-postit">
+    <div v-if="type === 'postit'" v-field-error="postError" class="flex flex-col gap-1" data-testid="capture-postit">
       <span class="pb-2 text-sm text-muted">{{ pm.label }}</span>
-      <RichTextEditor :key="saves" v-model="postBody" :label="pm.label" :placeholder="pm.placeholder" min-height="8rem" autofocus @update:model-value="error = ''" />
+      <RichTextEditor :key="saves" v-model="postBody" :label="pm.label" :placeholder="pm.placeholder" min-height="8rem" autofocus @update:model-value="postError.clear()" />
+      <FieldError :of="postError" />
     </div>
 
     <div v-if="type !== 'postit'" class="flex flex-col gap-1">
       <label for="capture-title" class="pb-2 text-sm text-muted">{{ type === 'later' ? m.placeholder : m.titleLabel }}</label>
-      <div class="relative">
+      <div v-field-error="titleError" class="relative">
         <!-- Capture's own text box: the one field no other form has (CODING_STANDARDS §6). -->
         <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
         <textarea
@@ -27,10 +28,9 @@
           rows="4"
           :placeholder="m.placeholder"
           :class="[fieldOnPage, 'resize-none py-3 pr-28 text-lg']"
-          @input="error = ''"
         />
         <!-- eslint-disable-next-line vue/no-restricted-html-elements -->
-        <input v-else id="capture-title" ref="titleBox" v-model="title" maxlength="500" :class="[fieldOnPage, 'pr-28 text-lg']" @input="error = ''">
+        <input v-else id="capture-title" ref="titleBox" v-model="title" maxlength="500" :class="[fieldOnPage, 'pr-28 text-lg']">
         <button
           v-if="speech.supported"
           type="button"
@@ -41,6 +41,7 @@
           <AppIcon name="mic" /> {{ speech.listening.value ? m.micListening : m.micStart }}
         </button>
       </div>
+      <FieldError :of="titleError" />
       <p v-if="speech.failed.value" class="text-sm text-danger" role="alert">{{ m.micError }}</p>
     </div>
 
@@ -93,7 +94,6 @@
       <QuestFields v-model:energy="energy" v-model:time="time" v-model:details="notes" details-test-id="capture-notes" />
     </div>
 
-    <p v-if="error" class="text-danger" role="alert">{{ error }}</p>
     <!-- SPEC §5 Quick capture: the Save button looks like every editor's and says what it saves. -->
     <button type="submit" :class="primaryButton" :disabled="saving" data-testid="capture-save">
       {{ m.saveAs[type] }}
@@ -119,6 +119,8 @@ import VaultItemFields from '@/vault/components/VaultItemFields.vue'
 import { deviceTimeZone, todayIn } from '@/time/days'
 import { storedNotes } from '@/journal/body'
 import { useCaptureDraft } from '@/capture/useCaptureDraft'
+import FieldError from '@/components/FieldError.vue'
+import { useFieldError, vFieldError } from '@/composables/useFieldError'
 import { useSpeech } from '@/composables/useSpeech'
 import { CaptureError, type CaptureInput, type Destination } from '@/capture/capture'
 import { messages } from '@/messages'
@@ -147,9 +149,11 @@ const habitToday = draft.today
 // A new Post It editor whenever its text is replaced (after a save or an Undo), empty and focused for the next note.
 const saves = draft.version
 
-const reminderError = ref('')
+// SPEC §5 Forms: why Save was refused, beside the field it's about.
+const titleError = useFieldError()
+const postError = useFieldError()
+const reminderError = useFieldError()
 const notice = ref('')
-const error = ref('')
 const saving = ref(false)
 const titleBox = ref<HTMLInputElement | HTMLTextAreaElement | null>(null)
 
@@ -172,14 +176,16 @@ function choose(d: Destination) {
   if (d === type.value) return
   draft.choose(d)
   notice.value = ''
-  error.value = ''
+  clearErrors()
 }
 
 /** The next one starts fresh; the type stays chosen, so I can add several of the same kind in a row. */
 function reset() {
   draft.clear()
-  reminderError.value = ''
-  error.value = ''
+  clearErrors()
+}
+function clearErrors() {
+  for (const f of [titleError, postError, reminderError]) f.clear()
 }
 
 // ---------- Speak it fills the form (SPEC §5 Quick capture) ----------
@@ -199,8 +205,7 @@ async function hear(heard: string) {
     title.value = title.value ? `${title.value} ${heard}` : heard
     return
   }
-  reminderError.value = ''
-  error.value = ''
+  clearErrors()
   draft.heard(command)
   notice.value = m.heard(m.destinations[command.destination], command.title, command.dueDate ? dayLabel(command.dueDate) : null)
   await nextTick()
@@ -241,7 +246,7 @@ async function savePostIt() {
     } catch (err) {
       // Formatting with no words in it is still an empty note.
       if (!(err instanceof CaptureError)) throw err
-      error.value = pm.emptyError
+      await postError.refuse(pm.emptyError)
       return
     }
     const message = brain.online ? m.saved.postit : m.savedOffline
@@ -255,20 +260,12 @@ async function savePostIt() {
 }
 
 async function save() {
-  error.value = ''
+  clearErrors()
   if (type.value === 'postit') return savePostIt()
-  if (!title.value.trim()) {
-    error.value = m.emptyError
-    titleBox.value?.focus()
-    return
-  }
+  if (!title.value.trim()) return titleError.refuse(m.emptyError)
   // SPEC §5 High-priority tasks: saving never sets a reminder off at once.
-  reminderError.value = ''
   const reminder = type.value === 'task' ? checkedReminder({ priority: priority.value, due_date: dueDate.value, reminder_time: reminderTime.value }, null) : null
-  if (reminder === 'past') {
-    reminderError.value = messages.tasks.reminderPast
-    return
-  }
+  if (reminder === 'past') return reminderError.refuse(messages.tasks.reminderPast)
   saving.value = true
   try {
     if (type.value === 'vault' && newBucketName.value?.trim()) {
@@ -302,8 +299,7 @@ async function save() {
     } catch (err) {
       // The reminder's minute can pass between the check above and the save.
       if (!(err instanceof CaptureError) || err.reason === 'bucket' || err.reason === 'bucket-name') throw err
-      if (err.reason === 'reminder') reminderError.value = messages.tasks.reminderPast
-      else error.value = m.emptyError
+      await (err.reason === 'reminder' ? reminderError.refuse(messages.tasks.reminderPast) : titleError.refuse(m.emptyError))
       return
     }
     const message = savedMessage(input)

@@ -75,7 +75,7 @@ test.describe('Spec §5 Quick capture: the text box first', () => {
   test('only the title is required: an empty title is not saved', async ({ page }) => {
     await startCapture(page, 'Quest')
     await save(page).click()
-    await expect(page.getByRole('alert')).toHaveText(msg.capture.emptyError)
+    await expect(page.getByTestId('field-error')).toHaveText(msg.capture.emptyError)
     expect(server.writes).toHaveLength(0)
   })
 })

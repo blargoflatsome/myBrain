@@ -2,7 +2,7 @@
 // Each check file is one DO block that raises "FAIL: <rule>" on the first broken rule, or "PASS: ..." at the
 // very end. Raising is how it forces Postgres to roll back the fake test users, so the Supabase CLI always
 // reports it as an error; this script reads that message and turns it into a normal pass/fail.
-// Running `npm run test:db` yourself is your confirmation to run these statements on dev (hence --yes).
+// It runs only against dev, and every check rolls back, so it confirms with --yes and needs no one to answer.
 import { execFileSync } from 'node:child_process'
 import { readdirSync } from 'node:fs'
 

@@ -5,9 +5,9 @@
   <PriorityPicker :model-value="priority" @update:model-value="emit('update:priority', $event)" />
   <!-- SPEC §5 High-priority tasks: a High task with a date can have a full-screen reminder. -->
   <div v-if="priority === HIGH && dueDate" class="flex flex-col" data-testid="task-reminder">
-    <TimeInput :model-value="reminderTime" :label="t.reminderLabel" :input-class="fieldClass" @update:model-value="emit('update:reminderTime', $event)" />
+    <TimeInput v-field-error="reminderError" :model-value="reminderTime" :label="t.reminderLabel" :input-class="fieldClass" @update:model-value="emit('update:reminderTime', $event)" />
     <p class="pt-1 text-sm text-muted">{{ t.reminderHint }}</p>
-    <p v-if="reminderError" class="pt-1 text-danger" role="alert">{{ reminderError }}</p>
+    <FieldError :of="reminderError" class="pt-1" />
   </div>
 </template>
 
@@ -16,14 +16,16 @@
 import DateInput from '@/components/DateInput.vue'
 import NotesEditor from '@/components/NotesEditor.vue'
 import TimeInput from '@/components/TimeInput.vue'
+import FieldError from '@/components/FieldError.vue'
+import { vFieldError, type FieldError as FieldErrorState } from '@/composables/useFieldError'
 import PriorityPicker from '@/tasks/components/PriorityPicker.vue'
 import { HIGH } from '@/tasks/rules'
 import { messages } from '@/messages'
 import { field } from '@/ui/styles'
 
 withDefaults(
-  defineProps<{ dueDate: string; notes: string; priority: number; reminderTime?: string; reminderError?: string; fieldClass?: string; notesTestId?: string }>(),
-  { reminderTime: '', reminderError: '', fieldClass: field, notesTestId: 'task-notes' },
+  defineProps<{ dueDate: string; notes: string; priority: number; reminderTime?: string; reminderError: FieldErrorState; fieldClass?: string; notesTestId?: string }>(),
+  { reminderTime: '', fieldClass: field, notesTestId: 'task-notes' },
 )
 const emit = defineEmits<{ 'update:dueDate': [value: string]; 'update:notes': [value: string]; 'update:priority': [value: number]; 'update:reminderTime': [value: string] }>()
 const m = messages.capture

@@ -4,8 +4,9 @@
     <template v-if="loaded">
       <label :class="fieldLabel">
         {{ m.phone }}
-        <input v-model="phone" type="tel" autocomplete="tel" :class="field">
+        <input v-model="phone" v-field-error="phoneError" type="tel" autocomplete="tel" :class="field">
       </label>
+      <FieldError :of="phoneError" />
       <label class="flex items-center justify-between gap-4">
         <span><span class="font-medium">{{ m.shareAvailability }}</span><span class="block text-xs text-muted">{{ m.shareAvailabilityHint }}</span></span>
         <input v-model="shareAvailability" type="checkbox" :class="checkbox">
@@ -19,7 +20,7 @@
         <textarea v-model="cancelMessage" rows="3" :class="[field, 'py-2']" />
       </label>
       <p class="-mt-2 text-xs text-muted">{{ m.variables }}</p>
-      <p v-if="error || settingSave.failed" class="text-sm text-danger" role="alert">{{ error || settingSave.notice }}</p>
+      <p v-if="settingSave.failed" class="text-sm text-danger" role="alert">{{ settingSave.notice }}</p>
       <div class="flex items-center gap-3">
         <button type="button" :class="primaryButtonSmall" @click="save">{{ m.save }}</button>
         <p v-if="!settingSave.failed && settingSave.notice" class="text-sm text-muted" role="status">{{ settingSave.notice }}</p>
@@ -32,6 +33,8 @@
 // SPEC §5 Accounts and contact info, Cancelling: phone number, whether my free/busy is shared, and my two cancellation messages.
 import { useProfileStore } from '@/stores/profile'
 import { useSettingSave } from '@/composables/useSettingSave'
+import FieldError from '@/components/FieldError.vue'
+import { useFieldError, vFieldError } from '@/composables/useFieldError'
 import { onMounted, ref } from 'vue'
 import { isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
@@ -45,8 +48,8 @@ const phone = ref('')
 const shareAvailability = ref(true)
 const dropoutMessage = ref('')
 const cancelMessage = ref('')
-// A phone number that isn't one is refused here; the save's own note says Saved, or why not, as an alert when it failed.
-const error = ref('')
+// A phone number that isn't one is refused beside it; the save's own note says Saved, or why not, as an alert when it failed.
+const phoneError = useFieldError()
 const settingSave = useSettingSave()
 
 onMounted(async () => {
@@ -60,11 +63,9 @@ onMounted(async () => {
 })
 
 async function save() {
-  error.value = ''
   if (phone.value.trim() && !isPhone(phone.value)) {
     settingSave.clear()
-    error.value = w.phoneError
-    return
+    return phoneError.refuse(w.phoneError)
   }
   await settingSave.saveProfile({
     phone: phone.value.trim() || null,

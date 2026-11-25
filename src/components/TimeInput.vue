@@ -1,5 +1,5 @@
 <template>
-  <div class="relative flex flex-col gap-1">
+  <div ref="root" class="relative flex flex-col gap-1">
     <label :for="id" :class="labelClass">{{ label }}</label>
     <input
       v-if="touch"
@@ -62,6 +62,7 @@
 <script setup lang="ts">
 // SPEC §5 Time fields. On a computer: type a time ("8", "830", "6pm") or pick from a list every 15 minutes, like
 // Google Calendar (an accessible combobox). On a phone or tablet: the device's own time picker.
+import { FIELD_CHANGED } from '@/composables/useFieldError'
 import { computed, nextTick, ref, useId } from 'vue'
 import { formatTime, nearestQuarter, parseTime, QUARTER_HOURS } from '@/time/parse'
 import { useTypedField } from '@/composables/useTypedField'
@@ -81,6 +82,7 @@ const props = withDefaults(
 )
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
 
+const root = ref<HTMLElement | null>(null)
 const id = useId()
 const listId = `${id}-list`
 
@@ -89,7 +91,11 @@ const { touch, text, type, settle, pick } = useTypedField({
   value: () => value.value,
   show: formatTime,
   required: () => props.required,
-  save: (v) => emit('update:modelValue', v),
+  save: (v) => {
+    emit('update:modelValue', v)
+    // A pick from the list (or the grid) fires no input event, so a refused field hears it this way (useFieldError).
+    root.value?.dispatchEvent(new Event(FIELD_CHANGED, { bubbles: true }))
+  },
 })
 
 const open = ref(false)

@@ -1,4 +1,4 @@
-// SPEC §10 Phase 3 iPhone: telling an iPhone (or iPad) apart, and whether the app runs from the Home Screen.
+// SPEC §10 iPhone: telling an iPhone (or iPad) apart, and whether the app runs from the Home Screen.
 export function isIOS(nav: { userAgent: string; platform?: string; maxTouchPoints?: number } = navigator): boolean {
   // iPads report themselves as a Mac, but with a touch screen.
   return /iPad|iPhone|iPod/.test(nav.userAgent) || (nav.platform === 'MacIntel' && (nav.maxTouchPoints ?? 0) > 1)
