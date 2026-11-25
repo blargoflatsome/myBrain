@@ -330,7 +330,8 @@ async function deleteEvent(e: EventRow, confirmed = false) {
 // Opened from a link: ?date= (a reminder or search) goes to that day, also when the calendar is already open, and
 // ?event= opens the event on its own day (alerts' links name only the event).
 useOpenLinked('event', events, (e) => {
-  if (editing.value || viewItem.value) return
+  // An event being edited stays open; one only being looked at gives way to the link.
+  if (editing.value) return
   if (typeof route.query.date !== 'string') api()?.gotoDate(e.start_date)
   openEvent(e)
 }, (query) => ({ date: query.date }))

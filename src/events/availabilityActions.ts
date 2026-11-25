@@ -2,8 +2,8 @@
 import type { AvailabilityExceptionRow } from '@/sync/types'
 import { removeWithUndo, type ActionContext } from '@/sync/actions'
 
-/** A time range ends after it starts ('HH:MM'). */
-export const validRange = (from: string, until: string) => until > from
+/** A time range has both times, and ends after it starts ('HH:MM'). */
+export const validRange = (from: string | null | undefined, until: string | null | undefined) => !!from && !!until && until > from
 
 export function availabilityActions({ ready }: ActionContext) {
   /** Add the same times on each weekday given (0 Sunday … 6 Saturday). Returns false when the times don't make a range. */
@@ -16,10 +16,13 @@ export function availabilityActions({ ready }: ActionContext) {
     return true
   }
 
-  /** Add a one-off day, all day (no times) or for a time range. Returns false when the times don't make a range. */
+  /**
+   * Add a one-off day: all day when no times are given (null), else for a time range. Returns false when the times
+   * don't make a range, an emptied time box included, so it's never saved as all day by mistake.
+   */
   async function addAvailabilityDay(day: Pick<AvailabilityExceptionRow, 'date' | 'kind' | 'note'> & { from?: string | null; until?: string | null }) {
-    const timed = !!day.from && !!day.until
-    if (timed && !validRange(day.from!, day.until!)) return false
+    const timed = day.from != null || day.until != null
+    if (timed && !validRange(day.from, day.until)) return false
     const { engine: e, uid } = ready()
     await e.save('availability_exceptions', {
       id: crypto.randomUUID(),

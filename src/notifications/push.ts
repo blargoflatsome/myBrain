@@ -42,7 +42,14 @@ export async function turnPushOn(): Promise<PushRefusal | null> {
   const support = adapter.support()
   if (support !== 'yes') return support === 'install' ? 'install' : 'unsupported'
   if ((await adapter.askPermission()) !== 'granted') return 'blocked'
-  const sub = await adapter.subscribe()
+  let sub: PushSub
+  try {
+    sub = await adapter.subscribe()
+  } catch (err) {
+    // The push service can refuse (unavailable, or blocked by the browser).
+    console.error(err)
+    return 'failed'
+  }
   // Only real browser push services are kept (SPEC §8); the sender refuses anything else anyway.
   if (!isPushEndpoint(sub.endpoint)) {
     await adapter.unsubscribe()
@@ -66,7 +73,7 @@ export async function turnPushOff(): Promise<void> {
   const sub = await adapter.current()
   if (!sub) return
   await adapter.removeRow(sub.endpoint).catch((err: unknown) => console.error(err))
-  await adapter.unsubscribe()
+  await adapter.unsubscribe().catch((err: unknown) => console.error(err))
 }
 
 /** "Send a test": shows one on this device, when push is on here. */

@@ -8,7 +8,7 @@ import { useRoute, useRouter, type LocationQuery, type RouteLocationRaw } from '
 export type ItemLink =
   | { kind: 'task' | 'habit' | 'routine' | 'quest'; id: string }
   | { kind: 'event'; id: string; date?: string | null }
-  | { kind: 'vault_item'; id: string; bucket: string }
+  | { kind: 'vault_item'; id: string; bucket?: string | null }
   | { kind: 'bucket'; bucket: string }
   | { kind: 'journal'; date: string }
   | { kind: 'day'; date: string }
@@ -30,11 +30,11 @@ export function linkTo(link: ItemLink): RouteLocationRaw {
     case 'event':
       return { name: 'calendar', query: { date: link.date ?? undefined, event: link.id } }
     case 'vault_item':
-      return { name: 'vault', query: { bucket: link.bucket, item: link.id } }
+      return { name: 'vault', query: { bucket: link.bucket || undefined, item: link.id } }
     case 'bucket':
       return { name: 'vault', query: { bucket: link.bucket } }
     case 'journal':
-      return { name: 'journal', query: { date: link.date } }
+      return { name: 'journal', query: { date: link.date || undefined } }
     case 'day':
       return { name: 'calendar', query: { date: link.date } }
     default:

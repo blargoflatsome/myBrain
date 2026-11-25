@@ -226,7 +226,7 @@ async function react(post: CheerPost, reaction: Reaction) {
   reacting.value = post.id
   try {
     // Tapping another icon switches (SPEC §5 Cheers, Compact).
-    await switchCheer(post.id, post.my_reaction ?? null, reaction)
+    await switchCheer(post.id, post.my_reaction ?? null, reaction, () => (post.my_reaction = null))
     post.my_reaction = reaction
     // The smug line is only ever for the one cheering (SPEC §5 Cheers).
     celebrate.say(pickOne(m.afterReact))

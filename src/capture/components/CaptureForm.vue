@@ -393,7 +393,15 @@ async function save() {
         isPriority: habitPriority.value,
       },
     }
-    await brain.capture(input)
+    try {
+      await brain.capture(input)
+    } catch (err) {
+      // The reminder's minute can pass between the check above and the save.
+      if (!(err instanceof CaptureError) || err.reason === 'bucket' || err.reason === 'bucket-name') throw err
+      if (err.reason === 'reminder') reminderError.value = messages.tasks.reminderPast
+      else error.value = m.emptyError
+      return
+    }
     const message = savedMessage(input)
     reset()
     beforeHeard.value = null

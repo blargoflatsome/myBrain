@@ -163,7 +163,7 @@ const targets: Record<SearchType, (d: SearchDoc) => RouteLocationRaw> = {
   routine: (d) => linkTo({ kind: 'routine', id: d.id }),
   event: (d) => linkTo({ kind: 'event', id: d.id, date: d.date }),
   journal_entry: (d) => linkTo({ kind: 'journal', date: d.date ?? '' }),
-  vault_item: (d) => linkTo({ kind: 'vault_item', id: d.id, bucket: d.bucketId ?? '' }),
+  vault_item: (d) => linkTo({ kind: 'vault_item', id: d.id, bucket: d.bucketId }),
   quest: (d) => linkTo({ kind: 'quest', id: d.id }),
 }
 async function openResult(doc: SearchDoc) {
