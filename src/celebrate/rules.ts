@@ -64,7 +64,7 @@ export function firstFor(a: Achievement): BadgeKind | null {
     case 'task': return 'first_task'
     case 'habit': return 'first_habit'
     case 'step': return a.finished ? 'first_routine' : null
-    case 'capture': return a.table === 'vault_items' ? 'first_vault' : null
+    case 'capture': return null
     case 'postit': return 'first_postit'
     case 'journal': return 'first_journal'
     case 'quest': return 'first_quest'

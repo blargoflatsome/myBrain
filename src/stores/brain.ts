@@ -4,9 +4,9 @@
 import { defineStore, getActivePinia } from 'pinia'
 import Dexie from 'dexie'
 import { ref, shallowRef } from 'vue'
-import { LocalDb } from '@/sync/db'
+import { getRow, LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
-import type { EventRow, PostItColor, PostItRow, QuestRow, Remote, RowTypes, SyncStatus, SyncTable, TaskRow } from '@/sync/types'
+import type { EventRow, PostItColor, PostItRow, QuestRow, Remote, RowTypes, SyncStatus, SyncTable } from '@/sync/types'
 import { onServerWith, removeWithUndo, type ActionContext, type Undo } from '@/sync/actions'
 import { habitActions } from '@/habits/actions'
 import { routineActions } from '@/routines/actions'
@@ -24,15 +24,15 @@ import { connectionActions } from '@/connections/actions'
 import { dropLostBuckets } from '@/vault/sharing'
 import { priorityActions } from '@/reminders/actions'
 import { taskActions } from '@/tasks/actions'
+import { questActions } from '@/quests/actions'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
-import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { normalizeBody, toEditorHtml } from '@/journal/body'
 import { DEFAULT_POST_IT_COLOR, frontPosition } from '@/postits/rules'
 import { peopleToSave } from '@/events/people'
 import type { PersonToInvite } from '@/events/sharing'
 import { live } from '@/sync/live'
 import { finishQuest as finishedQuest } from '@/quests/picker'
-import { buildCaptureRecord, buildConversion, CaptureError, textOf, type CaptureInput, type CaptureRecord, type Destination } from '@/capture/capture'
+import { CaptureError, fitTitle, type CaptureInput, type Captured } from '@/capture/capture'
 import { achieved } from '@/celebrate/bus'
 
 /** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
@@ -215,49 +215,76 @@ export const useBrainStore = defineStore('brain', () => {
   const eventServer = eventServerActions(ctx)
   const connections = connectionActions(ctx)
   const tasks = taskActions(ctx)
+  const quests = questActions(ctx)
   const priority = priorityActions(ctx, habits.completeHabit, tasks.completeTask)
 
   // ---------- Capture, tasks and quests (SPEC §5 Quick capture, Tasks, Random Quest) ----------
   /**
-   * Save a captured thought. Resolves once it is stored on this device, online or not. A Post It's text is its
-   * formatted note (SPEC §5 Post It).
+   * File a thought as the kind chosen, through that kind's own add, so every way in gets the same defaults, checks and
+   * celebration (SPEC §5 Quick capture). A Post It's text is its formatted note. Throws CaptureError when refused.
    */
-  async function capture(input: CaptureInput & { destination: Exclude<Destination, 'postit'> }): Promise<CaptureRecord>
-  async function capture(input: CaptureInput): Promise<CaptureRecord | { table: 'post_its'; row: PostItRow }>
-  async function capture(input: CaptureInput): Promise<CaptureRecord | { table: 'post_its'; row: PostItRow }> {
-    const { engine: e, uid } = ready()
+  async function fileAs(input: CaptureInput, now: Date): Promise<Captured> {
     if (input.destination === 'postit') {
-      const row = await addPostIt(input.text, input.color ?? DEFAULT_POST_IT_COLOR)
+      const row = await addPostIt(input.text, input.color ?? DEFAULT_POST_IT_COLOR, now)
       if (!row) throw new CaptureError('empty')
-      await trophies.logActivity('capture', { type: 'postit' })
-      return { table: 'post_its', row }
+      return { table: 'post_its', id: row.id }
     }
-    const record = buildCaptureRecord(input, uid)
-    await e.save(record.table, record.row as never)
-    await trophies.logActivity('capture', { type: input.destination })
-    achieved({ kind: 'capture', table: record.table })
-    return record
+    if (!input.text.trim()) throw new CaptureError('empty')
+    if (input.destination === 'later') {
+      const { engine: e, uid } = ready()
+      const row = await e.save('inbox', { id: crypto.randomUUID(), user_id: uid, body: input.text.trim(), created_at: now.toISOString(), deleted_at: null })
+      return { table: 'inbox', id: row.id }
+    }
+    // A title is one line; anything after the first line (or past 500 characters) moves into the notes.
+    const { title, notes } = fitTitle(input.text, input.notes)
+    switch (input.destination) {
+      case 'task': {
+        const row = await tasks.addTask({ title, notes, due_date: input.dueDate, priority: input.priority, reminder_time: input.reminderTime, source: 'capture' }, now)
+        if (!row) throw new CaptureError('reminder')
+        return { table: 'tasks', id: row.id }
+      }
+      case 'vault': {
+        if (!input.bucketId) throw new CaptureError('bucket')
+        const row = await vault.addVaultItem(input.bucketId, { title, notes, rating: input.rating, link: input.link }, now)
+        return { table: 'vault_items', id: row!.id }
+      }
+      case 'quest': {
+        const row = await quests.addQuest({ title, details: notes, energy_level: input.energy, time_bucket: input.time }, now)
+        return { table: 'quests', id: row!.id }
+      }
+      case 'habit': {
+        const h = input.habit
+        const row = await habits.addHabit(
+          h
+            ? { title, weekdays: h.weekdays, week_interval: h.weekInterval, monthly: !!h.monthly, start_date: h.startDate ?? undefined, notify_time: h.notifyTime, timer_minutes: h.timerMinutes, is_priority: h.isPriority }
+            : { title },
+          now,
+        )
+        return { table: 'habits', id: row!.id }
+      }
+    }
   }
 
-  /** Convert an item to another type, or file an inbox item (SPEC §5). Returns the new item (null for a Post It). */
-  async function convert(from: CaptureRecord, to: Omit<CaptureInput, 'text'>): Promise<CaptureRecord | null> {
-    const { engine: e, uid } = ready()
-    let created: CaptureRecord | null = null
-    if (to.destination === 'postit') {
-      // A Post It has no title, so all the words become its note (SPEC §5 Orphans).
-      await addPostIt(toEditorHtml(textOf(from)), DEFAULT_POST_IT_COLOR)
-      await e.remove(from.table, from.row.id)
-    } else {
-      const { create, retire } = buildConversion(from, to, uid)
-      await e.save(create.table, create.row as never)
-      await e.remove(retire.table, retire.id)
-      created = create
-    }
-    if (from.table === 'inbox') {
-      await afterOrphanGone()
-      achieved({ kind: 'orphan' })
-    }
-    return created
+  /** Save a captured thought. Resolves once it is stored on this device, online or not, and counts the capture. */
+  async function capture(input: CaptureInput, now = new Date()): Promise<Captured> {
+    const filed = await fileAs(input, now)
+    await trophies.logActivity('capture', { type: input.destination })
+    // A Post It says so itself (its own First); everything else says a capture was saved.
+    if (input.destination !== 'postit') achieved({ kind: 'capture' })
+    return filed
+  }
+
+  /** File an Orphan as the kind chosen (SPEC §5 Orphans). It isn't counted as a capture: it was counted when captured. */
+  async function fileOrphan(id: string, choice: Omit<CaptureInput, 'text'>, now = new Date()): Promise<Captured | null> {
+    const { engine: e, local } = ready()
+    const orphan = await getRow(local, 'inbox', id)
+    if (!orphan) return null
+    // A Post It has no title, so all the words become its note.
+    const filed = await fileAs({ ...choice, text: choice.destination === 'postit' ? toEditorHtml(orphan.body) : orphan.body }, now)
+    await e.remove('inbox', id)
+    await afterOrphanGone()
+    achieved({ kind: 'orphan' })
+    return filed
   }
 
   /** Delete an orphan without filing it (SPEC §5 Orphans). Its Undo also takes back an emptied-Orphans count it caused. */
@@ -274,24 +301,6 @@ export const useBrainStore = defineStore('brain', () => {
   async function afterOrphanGone() {
     if (live(await ready().local.inbox.toArray()).length) return null
     return trophies.logActivity('orphans_cleared')
-  }
-
-  /** Add a task typed on the Tasks screen (source "manual", default priority Low). */
-  async function addTask(title: string, dueDate: string | null) {
-    const { engine: e, uid } = ready()
-    const trimmed = title.trim()
-    if (!trimmed) return null
-    const row: TaskRow = {
-      id: crypto.randomUUID(),
-      user_id: uid,
-      title: trimmed,
-      due_date: dueDate,
-      priority: DEFAULT_PRIORITY,
-      status: 'open',
-      source: 'manual',
-      deleted_at: null,
-    }
-    return e.save('tasks', row)
   }
 
   /** Mark a quest done (SPEC §5 Random Quest): it goes back to the list, and the completion is logged for stats. */
@@ -343,11 +352,11 @@ export const useBrainStore = defineStore('brain', () => {
 
   // ---------- Post Its (SPEC §5 Quick capture and Dashboard) ----------
   /** A new Post It goes in front of the others. Returns null when nothing was written. */
-  async function addPostIt(html: string, color: PostItColor) {
+  async function addPostIt(html: string, color: PostItColor, now = new Date()) {
     const { engine: e, uid, local } = ready()
     const body = normalizeBody(html)
     if (!body) return null
-    const row: PostItRow = { id: crypto.randomUUID(), user_id: uid, body, color, position: frontPosition(await local.post_its.toArray()), deleted_at: null }
+    const row: PostItRow = { id: crypto.randomUUID(), user_id: uid, body, color, position: frontPosition(await local.post_its.toArray()), created_at: now.toISOString(), deleted_at: null }
     const saved = await e.save('post_its', row)
     achieved({ kind: 'postit' })
     return saved
@@ -408,10 +417,10 @@ export const useBrainStore = defineStore('brain', () => {
     removeMany,
     // Capture, tasks and quests
     capture,
-    convert,
+    fileOrphan,
     removeOrphan,
-    addTask,
     ...tasks,
+    ...quests,
     finishQuest,
     unfinishQuest,
     // Habits and routines

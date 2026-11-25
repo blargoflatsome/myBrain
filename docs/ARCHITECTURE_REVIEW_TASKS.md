@@ -13,7 +13,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 
 | # | Candidate | Strength | Status |
 |---|---|---|---|
-| 1 | Capture files through each kind's own add action | Strong, real bug | Decided (DECISIONS 2026-11-24) |
+| 1 | Capture files through each kind's own add action | Strong, real bug | Built (branch `capture-through-adds`) |
 | 2 | "Do it" and "Done" complete, never toggle | Strong, suspected bug | Building (branch `complete-not-toggle`) |
 | 3 | Close brain's raw `save` (review 2, candidate 5) | Worth exploring | To do |
 | 4 | Device settings behind the server seam: push and profile saves | Strong, suspected bug | To do |

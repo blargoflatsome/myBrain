@@ -2,6 +2,7 @@
 // habit_logs is the source of truth; the cached streak numbers on a habit are recalculated from it.
 import type { HabitLogRow, HabitPauseRow, HabitRow } from '@/sync/types'
 import { addDays, onWeek, todayIn } from '@/tasks/days'
+import { clipTitle } from '@/lib/titles'
 
 /** 'paused': a scheduled day while Pause all streaks was on (SPEC §5 Habits); it neither extends nor breaks a streak. */
 export type DayStatus = 'not_scheduled' | 'completed' | 'missed' | 'open' | 'paused'
@@ -281,5 +282,23 @@ export function newHabit(title: string, userId: string, timeZone: string, now = 
     current_streak: 0,
     best_streak: 0,
     deleted_at: null,
+  }
+}
+
+/**
+ * What every saved habit keeps to (SPEC §5 Habits): a name of at most 500 characters, weekdays in order (every day
+ * when none are picked), a start no earlier than `earliestStart`, and a timer only with a reminder time.
+ */
+export function withHabitRules(habit: HabitRow, earliestStart: string): HabitRow {
+  return {
+    ...habit,
+    title: clipTitle(habit.title),
+    weekdays: habit.weekdays.length ? [...habit.weekdays].sort((a, b) => a - b) : [...ALL_WEEKDAYS],
+    start_date: habit.start_date && habit.start_date > earliestStart ? habit.start_date : earliestStart,
+    week_interval: habit.week_interval ?? 1,
+    monthly: !!habit.monthly,
+    notify_time: habit.notify_time || null,
+    timer_minutes: habit.notify_time && habit.timer_minutes ? habit.timer_minutes : null,
+    is_priority: !!habit.is_priority,
   }
 }

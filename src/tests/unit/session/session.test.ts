@@ -52,7 +52,7 @@ const deviceCopyExists = () => Dexie.exists(`my-brain-${uid}`)
 describe('SPEC §8 Sign out: nothing of mine stays on this device', () => {
   it('uploads what is waiting, then deletes my data and what the app remembered here, and signs out', async () => {
     const { session, brain } = await signedIn()
-    const t = await brain.addTask('Buy stamps', null)
+    const t = await brain.addTask({ title: 'Buy stamps', source: 'manual' })
     writeKey(REMEMBERED, 'dark')
 
     expect(await session.signOut()).toBe(0)
@@ -66,7 +66,7 @@ describe('SPEC §8 Sign out: nothing of mine stays on this device', () => {
   it('offline, changes that can’t upload hold it back until I say to throw them away', async () => {
     const { session, brain } = await signedIn()
     remote.online = false
-    await brain.addTask('Buy stamps', null)
+    await brain.addTask({ title: 'Buy stamps', source: 'manual' })
 
     expect(await session.signOut()).toBe(1)
     expect(fake.signedOut).toEqual([])
@@ -100,7 +100,7 @@ describe('SPEC §8 Delete my data on another device: this device clears its copy
 describe('SPEC §5 Account page, §8 Delete My Account', () => {
   it('when it fails, nothing is deleted and syncing carries on', async () => {
     const { session, brain } = await signedIn()
-    const t = await brain.addTask('Buy stamps', null)
+    const t = await brain.addTask({ title: 'Buy stamps', source: 'manual' })
     server.fails.delete_my_account = 'offline'
 
     expect(await session.deleteAccount()).toBe(false)

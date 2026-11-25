@@ -313,6 +313,16 @@ describe('SPEC §5 Celebrations and Trophies: what I finish is kept, whether or 
     await brain.trophiesIdle()
     expect(await kept(brain)).toMatchObject({ activity, badges: [badge] })
   })
+  it('an Orphan filed into the Vault earns the Vault First (SPEC §5 "save to the Vault"), as well as the Orphan one', async () => {
+    const brain = useBrainStore()
+    brain.start(UID, remote)
+    await firstSync(brain)
+    const bucket = await brain.createBucket('Places')
+    const orphan = await brain.capture({ destination: 'later', text: 'visit Lisbon' })
+    await brain.fileOrphan(orphan.id, { destination: 'vault', bucketId: bucket.id })
+    await brain.trophiesIdle()
+    expect((await kept(brain)).badges.sort()).toEqual(['first_orphan', 'first_vault'])
+  })
 })
 
 describe('SPEC §5 Trophies: earning levels', () => {

@@ -1,16 +1,23 @@
 // Reading and writing habits and their logs (SPEC §5 Habits).
 import type { HabitLogRow, HabitPauseRow, HabitRow } from '@/sync/types'
 import type { ActionContext } from '@/sync/actions'
-import { logIdFor, missedDaysToRecord, newHabit, pauseFrom, resumeAfter, streaks, toggleAction, wrongMisses } from '@/habits/rules'
+import { logIdFor, missedDaysToRecord, newHabit, pauseFrom, resumeAfter, streaks, toggleAction, withHabitRules, wrongMisses } from '@/habits/rules'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { live } from '@/sync/live'
 import { achieved } from '@/celebrate/bus'
 
+/** A new habit as Capture, Orphans or the habit editor gives it: a name, and any settings chosen (the rest are defaults). */
+export type HabitDraft = Partial<Omit<HabitRow, 'user_id' | 'current_streak' | 'best_streak' | 'deleted_at' | 'created_at'>> & { title: string }
+
 export function habitActions({ ready, habitsReady }: ActionContext) {
-  async function addHabit(title: string) {
+  /** Add a habit (SPEC §5 Habits): every day from today unless chosen otherwise. Returns null when it has no name. */
+  async function addHabit(draft: HabitDraft, now = new Date(), timeZone = deviceTimeZone()) {
     const { engine: e, uid } = ready()
-    if (!title.trim()) return null
-    return e.save('habits', newHabit(title, uid, deviceTimeZone()))
+    if (!draft.title.trim()) return null
+    const base = newHabit(draft.title, uid, timeZone, now, draft.id)
+    const chosen = Object.fromEntries(Object.entries(draft).filter(([, v]) => v !== undefined))
+    const row = withHabitRules({ ...base, ...chosen, id: base.id, user_id: uid, current_streak: 0, best_streak: 0, deleted_at: null, created_at: now.toISOString() }, base.start_date)
+    return e.save('habits', row)
   }
 
   /** Delete a habit; any routine step linked to it is removed too (SPEC §5 Routines). */

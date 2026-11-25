@@ -90,7 +90,6 @@ import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref, watch } from 'vue'
 import HabitEditor from '@/habits/components/HabitEditor.vue'
 import { useBrainStore } from '@/stores/brain'
-import { useAuthStore } from '@/stores/auth'
 import { useToday } from '@/composables/useToday'
 import { dayStatus, deadline, dueByMidnight, isScheduled, keptLately, newHabit, openPause, streaks, type DayStatus } from '@/habits/rules'
 import { addDays } from '@/tasks/days'
@@ -105,7 +104,6 @@ import CheckCircle from '@/components/CheckCircle.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const brain = useBrainStore()
-const auth = useAuthStore()
 const m = messages.habits
 const { today, timeZone } = useToday()
 
@@ -177,7 +175,7 @@ const editing = ref<HabitRow | null>(null)
 const isNew = ref(false)
 function startNew() {
   isNew.value = true
-  editing.value = newHabit('', auth.user?.id ?? '', timeZone.value)
+  editing.value = newHabit('', '', timeZone.value)
 }
 function edit(h: HabitRow) {
   isNew.value = false
@@ -198,7 +196,8 @@ watch(
   { immediate: true },
 )
 async function save(h: HabitRow) {
-  await brain.save('habits', h)
+  if (isNew.value) await brain.addHabit(h, new Date(), timeZone.value)
+  else await brain.save('habits', h)
   editing.value = null
 }
 async function remove(h: HabitRow) {

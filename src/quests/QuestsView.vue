@@ -118,8 +118,7 @@ import QuestEditor from '@/quests/components/QuestEditor.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
 import RowDelete from '@/components/RowDelete.vue'
-import { useAuthStore } from '@/stores/auth'
-import { DEFAULT_QUEST_ENERGY, DEFAULT_QUEST_TIME } from '@/capture/capture'
+import { blankQuest } from '@/quests/actions'
 import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
 import { acceptQuest, byEffort, ENERGY_LEVELS, markPicked, pickFromDraw, RECENT_PICKS, tasksInDraw, TIME_BUCKETS } from '@/quests/picker'
@@ -227,10 +226,9 @@ function edit(q: QuestRow) {
   editing.value = q
 }
 // SPEC §5 Random Quest: + New quest, starting as Ugh and 30 min like every new quest.
-const auth = useAuthStore()
 function startNew() {
   isNew.value = true
-  editing.value = { id: crypto.randomUUID(), user_id: auth.user?.id ?? '', title: '', details: null, energy_level: DEFAULT_QUEST_ENERGY, time_bucket: DEFAULT_QUEST_TIME, status: 'open', times_picked: 0, deleted_at: null }
+  editing.value = blankQuest()
 }
 // Opened with ?quest=<id> (from search): open that quest's editor.
 const route = useRoute()
@@ -247,7 +245,8 @@ watch(
   { immediate: true },
 )
 async function saveEdit(q: QuestRow) {
-  await brain.save('quests', q)
+  if (isNew.value) await brain.addQuest(q)
+  else await brain.save('quests', q)
   editing.value = null
 }
 async function remove(q: QuestRow) {

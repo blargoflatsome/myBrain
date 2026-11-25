@@ -4,7 +4,8 @@ import { safeNext } from '@/security/redirect'
 import { cleanHtml } from '@/journal/body'
 import { icsFile } from '@/events/ics'
 import { linkTarget } from '@/vault/rules'
-import { fitTitle, TITLE_MAX } from '@/capture/capture'
+import { fitTitle } from '@/capture/capture'
+import { TITLE_MAX } from '@/lib/titles'
 
 describe('Spec §8 Security: push goes only to real browser push services', () => {
   it.each([

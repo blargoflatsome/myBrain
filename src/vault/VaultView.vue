@@ -231,7 +231,7 @@ async function addItem() {
   if (!bucket.value || !title.trim()) return
   // Clear first, so the next item can be typed straight away without being lost.
   newItem.value = ''
-  await brain.addVaultItem(bucket.value.id, title)
+  await brain.addVaultItem(bucket.value.id, { title })
 }
 const editing = ref<VaultItemRow | null>(null)
 watch(

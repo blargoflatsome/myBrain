@@ -27,7 +27,7 @@ import type { TaskRow } from '@/sync/types'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { messages } from '@/messages'
 import { storedNotes } from '@/journal/body'
-import { reminderInPast, taskReminder } from '@/reminders/priority'
+import { checkedReminder } from '@/tasks/actions'
 
 const props = withDefaults(defineProps<{ task: TaskRow | null; isNew?: boolean }>(), { isNew: false })
 const emit = defineEmits<{ save: [TaskRow]; delete: [TaskRow]; close: [] }>()
@@ -57,9 +57,9 @@ watch(
 async function save() {
   if (!props.task || !title.value.trim()) return
   const due_date = dueDate.value || null
-  const reminder_time = taskReminder(priority.value, due_date, reminderTime.value)
+  const reminder_time = checkedReminder({ priority: priority.value, due_date, reminder_time: reminderTime.value }, props.isNew ? null : props.task)
   // SPEC §5 High-priority tasks: saving never sets a reminder off at once.
-  if (reminderInPast({ due_date, reminder_time }, props.isNew ? null : props.task)) {
+  if (reminder_time === 'past') {
     reminderError.value = messages.tasks.reminderPast
     return
   }

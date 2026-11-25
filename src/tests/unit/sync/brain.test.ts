@@ -29,12 +29,12 @@ describe('Spec §5 Quick capture: works offline; items are queued and synced lat
     brain.start(`u-${crypto.randomUUID()}`, remote)
 
     const rec = await brain.capture({ text: 'idea for a song', destination: 'later' })
-    expect(await brain.db!.inbox.get(rec.row.id)).toMatchObject({ body: 'idea for a song' })
+    expect(await brain.db!.inbox.get(rec.id)).toMatchObject({ body: 'idea for a song' })
     expect(remote.tables.inbox.size).toBe(0)
 
     remote.online = true
     window.dispatchEvent(new Event('online'))
-    await vi.waitFor(() => expect(remote.tables.inbox.get(rec.row.id)).toMatchObject({ body: 'idea for a song' }))
+    await vi.waitFor(() => expect(remote.tables.inbox.get(rec.id)).toMatchObject({ body: 'idea for a song' }))
   })
 })
 
@@ -43,10 +43,10 @@ describe('Spec §5: Decide later, then sort it when I have time', () => {
     const brain = useBrainStore()
     brain.start(`u-${crypto.randomUUID()}`, remote)
     const later = await brain.capture({ text: 'renew passport', destination: 'later' })
-    const task = await brain.convert(later, { destination: 'task' })
+    const task = await brain.fileOrphan(later.id, { destination: 'task' })
 
-    expect((await brain.db!.inbox.get(later.row.id))?.deleted_at).toBeTruthy()
-    expect(await brain.db!.tasks.get(task!.row.id)).toMatchObject({ title: 'renew passport', due_date: null })
+    expect((await brain.db!.inbox.get(later.id))?.deleted_at).toBeTruthy()
+    expect(await brain.db!.tasks.get(task!.id)).toMatchObject({ title: 'renew passport', due_date: null })
   })
 
   it('SPEC §5 Orphans: deleting the last orphan counts as emptying Orphans (Trophies), like filing it', async () => {
@@ -56,9 +56,9 @@ describe('Spec §5: Decide later, then sort it when I have time', () => {
     const two = await brain.capture({ text: 'second', destination: 'later' })
     const emptied = async () => (await brain.db!.activity_log.toArray()).filter((a) => a.kind === 'orphans_cleared' && !a.deleted_at).length
 
-    await brain.removeOrphan(one.row.id)
+    await brain.removeOrphan(one.id)
     expect(await emptied()).toBe(0)
-    await brain.removeOrphan(two.row.id)
+    await brain.removeOrphan(two.id)
     expect(await emptied()).toBe(1)
   })
 
@@ -68,11 +68,11 @@ describe('Spec §5: Decide later, then sort it when I have time', () => {
     const only = await brain.capture({ text: 'only one', destination: 'later' })
     const emptied = async () => (await brain.db!.activity_log.toArray()).filter((a) => a.kind === 'orphans_cleared' && !a.deleted_at).length
 
-    const undo = await brain.removeOrphan(only.row.id)
+    const undo = await brain.removeOrphan(only.id)
     await undo()
-    expect(await brain.db!.inbox.get(only.row.id)).toMatchObject({ body: 'only one', deleted_at: null })
+    expect(await brain.db!.inbox.get(only.id)).toMatchObject({ body: 'only one', deleted_at: null })
     expect(await emptied()).toBe(0)
-    await brain.removeOrphan(only.row.id)
+    await brain.removeOrphan(only.id)
     expect(await emptied()).toBe(1)
   })
 })

@@ -130,7 +130,7 @@ import NewButton from '@/components/NewButton.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
 import { addDays, daysBetween } from '@/tasks/days'
-import { cancelTask, clearDone, clearedForDay, DEFAULT_PRIORITY, moveTask, pickThree, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
+import { cancelTask, clearDone, clearedForDay, moveTask, pickThree, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
 import { messages } from '@/messages'
 import type { TaskRow } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
@@ -138,7 +138,7 @@ import UndoLine from '@/components/UndoLine.vue'
 import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { chip, primaryButton, selected, smallButton } from '@/ui/styles'
 import { readKey, writeKey } from '@/ui/storage'
-import { useAuthStore } from '@/stores/auth'
+import { blankTask } from '@/tasks/actions'
 
 const brain = useBrainStore()
 const m = messages.tasks
@@ -222,7 +222,7 @@ const addLabel = computed(() =>
 )
 const canAdd = computed(() => view.value === 'undated' || offset.value >= 0)
 async function add() {
-  await brain.addTask(newTitle.value, view.value === 'undated' ? null : day.value)
+  await brain.addTask({ title: newTitle.value, due_date: view.value === 'undated' ? null : day.value, source: 'manual' })
   newTitle.value = ''
 }
 
@@ -233,19 +233,9 @@ function edit(t: TaskRow) {
   editing.value = t
 }
 // SPEC §2 Adding looks alike: + New task opens the editor for the day (or Undated) I'm looking at.
-const auth = useAuthStore()
 function startNew() {
   isNew.value = true
-  editing.value = {
-    id: crypto.randomUUID(),
-    user_id: auth.user?.id ?? '',
-    title: '',
-    due_date: view.value === 'undated' ? null : offset.value < 0 ? today.value : day.value,
-    priority: DEFAULT_PRIORITY,
-    status: 'open',
-    source: 'manual',
-    deleted_at: null,
-  }
+  editing.value = blankTask(view.value === 'undated' ? null : offset.value < 0 ? today.value : day.value)
 }
 const route = useRoute()
 const router = useRouter()
@@ -266,7 +256,8 @@ watch(
   { immediate: true },
 )
 async function saveEdit(t: TaskRow) {
-  await brain.saveTask(t)
+  if (isNew.value) await brain.addTask({ ...t, source: 'manual' })
+  else await brain.saveTask(t)
   editing.value = null
 }
 // SPEC §5 Tasks: a task that keeps slipping moves to tomorrow or Undated in one tap, with Undo.

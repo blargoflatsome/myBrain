@@ -6,6 +6,11 @@ import { buildBucket } from '@/capture/capture'
 import { live } from '@/sync/live'
 import { achieved } from '@/celebrate/bus'
 import { ownsBucket } from '@/vault/sharing'
+import { clampRating } from '@/vault/rules'
+import { clipTitle } from '@/lib/titles'
+
+/** A new Vault item as Capture, Orphans or a bucket's add box gives it. */
+export type VaultItemDraft = Partial<Pick<VaultItemRow, 'notes' | 'rating' | 'link'>> & { title: string }
 
 export function vaultActions({ ready, onServer }: ActionContext) {
   async function createBucket(name: string) {
@@ -23,12 +28,24 @@ export function vaultActions({ ready, onServer }: ActionContext) {
     await e.remove('vault_buckets', id)
   }
 
-  async function addVaultItem(bucketId: string, title: string) {
+  /** Save something to the Vault (SPEC §5 The Vault). Returns null when it has no name. */
+  async function addVaultItem(bucketId: string, draft: VaultItemDraft, now = new Date()) {
     const { engine: e, uid } = ready()
-    const trimmed = title.trim()
-    if (!trimmed) return null
-    // created_at is set here too, so items keep the order they were added in before they reach the server.
-    const saved = await e.save('vault_items', { id: crypto.randomUUID(), user_id: uid, bucket_id: bucketId, title: trimmed, notes: null, rating: null, link: null, checked: false, created_at: new Date().toISOString(), deleted_at: null })
+    const title = clipTitle(draft.title)
+    if (!title) return null
+    const saved = await e.save('vault_items', {
+      id: crypto.randomUUID(),
+      user_id: uid,
+      bucket_id: bucketId,
+      title,
+      notes: draft.notes?.trim() || null,
+      rating: clampRating(draft.rating),
+      link: draft.link?.trim() || null,
+      checked: false,
+      // Set here too, so items keep the order they were added in before they reach the server.
+      created_at: now.toISOString(),
+      deleted_at: null,
+    })
     achieved({ kind: 'vault' })
     return saved
   }
