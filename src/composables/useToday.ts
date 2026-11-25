@@ -1,5 +1,5 @@
 import { onScopeDispose, ref } from 'vue'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/time/days'
 
 /**
  * Today's date in the device's current timezone (SPEC §5 Tasks). Re-checked every 30 seconds and whenever the

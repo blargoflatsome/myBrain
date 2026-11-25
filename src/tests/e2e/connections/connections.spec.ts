@@ -3,6 +3,7 @@ import { openAttendees } from '../support/events'
 import { FakeSupabase } from '../support/fakeSupabase'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -59,7 +60,7 @@ test.describe('Spec §10 Connections: ask, answer, remove', () => {
     const connections = page.getByTestId('account-group-people').getByTestId('account-connections')
     await connections.getByTestId('incoming-request').getByRole('button', { name: msg.connections.accept }).click()
     await expect.poll(() => rpc('answer_connection_request')[0]?.args).toMatchObject({ req: 'req-1', answer: 'accept' })
-    await expect(page).toHaveURL(/\/account$/)
+    await expectPath(page, '/account')
   })
 
   test('my connections and sent requests are listed; removing or blocking asks first and isn’t announced', async ({ page }) => {

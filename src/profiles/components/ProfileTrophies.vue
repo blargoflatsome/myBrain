@@ -17,7 +17,7 @@ import TrophyGroups from '@/trophies/components/TrophyGroups.vue'
 import TrophyDetailsDialog from '@/trophies/components/TrophyDetailsDialog.vue'
 import { trophyBoard } from '@/trophies/board'
 import { badgeRows, type ProfileBadge } from '@/profiles/rules'
-import { deviceTimeZone } from '@/tasks/days'
+import { deviceTimeZone } from '@/time/days'
 import { messages } from '@/messages'
 import { card } from '@/ui/styles'
 

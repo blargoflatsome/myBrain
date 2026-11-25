@@ -59,20 +59,16 @@
 </template>
 
 <script setup lang="ts">
-import { useProfileStore } from '@/stores/profile'
-import { isPushEndpoint } from '@/notifications/pushEndpoints'
-import { isInstalled, isIOS } from '@/ui/device'
+import { notSaved, useProfileStore } from '@/stores/profile'
 // SPEC §6: Web Push, quiet hours, and whether priority reminders ring during them.
 import TimeInput from '@/components/TimeInput.vue'
 import { onMounted, ref } from 'vue'
-import { supabase } from '@/lib/supabase'
+import { isPushOn, sendTestPush, turnPushOff, turnPushOn, type PushRefusal } from '@/notifications/push'
 import { messages } from '@/messages'
 import { checkbox, field, primaryButtonSmall, smallButton } from '@/ui/styles'
 
 const m = messages.notifications
-const VAPID = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined
 
-const supported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 const pushOn = ref(false)
 const pushError = ref('')
 const quietStart = ref('')
@@ -84,12 +80,6 @@ const eveningTime = ref('21:00')
 const loaded = ref(false)
 const notice = ref('')
 
-function base64UrlToBytes(b64: string) {
-  const pad = '='.repeat((4 - (b64.length % 4)) % 4)
-  const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'))
-  return Uint8Array.from(raw, (c) => c.charCodeAt(0))
-}
-
 onMounted(async () => {
   const data = await useProfileStore().load()
   if (data) {
@@ -100,63 +90,45 @@ onMounted(async () => {
     if (data.evening_reminder_time) eveningTime.value = data.evening_reminder_time.slice(0, 5)
     loaded.value = true
   }
-  if (supported) {
-    const reg = await navigator.serviceWorker.getRegistration()
-    pushOn.value = !!(await reg?.pushManager.getSubscription())
-  }
+  pushOn.value = await isPushOn()
 })
+
+const refusals: Record<PushRefusal, string> = {
+  unsupported: m.webPushUnsupported,
+  install: m.webPushIphone,
+  blocked: m.webPushBlocked,
+  offline: m.webPushOffline,
+  limit: m.webPushUnsupported,
+  failed: m.webPushUnsupported,
+}
 
 /** Turn notifications on or off for this device: one push subscription per device (SPEC §6). */
 async function togglePush() {
   pushError.value = ''
-  if (!supported || !VAPID) return (pushError.value = isIOS() && !isInstalled() ? m.webPushIphone : m.webPushUnsupported)
-  const reg = await navigator.serviceWorker.ready
-  const existing = await reg.pushManager.getSubscription()
-  if (existing) {
-    await supabase.from('push_subscriptions').delete().eq('endpoint', existing.endpoint)
-    await existing.unsubscribe()
+  if (pushOn.value) {
+    await turnPushOff()
     pushOn.value = false
     return
   }
-  const permission = await Notification.requestPermission()
-  if (permission !== 'granted') return (pushError.value = m.webPushBlocked)
-  const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: base64UrlToBytes(VAPID) })
-  const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
-  // Only real browser push services are kept (docs/SPEC.md §8); the sender refuses anything else anyway.
-  if (!isPushEndpoint(json.endpoint)) {
-    await sub.unsubscribe()
-    pushError.value = m.webPushUnsupported
-    return
-  }
-  const { error } = await supabase.from('push_subscriptions').upsert(
-    { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth, device_label: navigator.userAgent.slice(0, 120), last_seen: new Date().toISOString() },
-    { onConflict: 'endpoint' },
-  )
-  if (error) {
-    await sub.unsubscribe()
-    pushError.value = m.webPushUnsupported
-    return
-  }
-  pushOn.value = true
+  const refused = await turnPushOn()
+  if (refused) pushError.value = refusals[refused]
+  pushOn.value = !refused
 }
 
 async function save() {
   notice.value = ''
-  const ok = await useProfileStore().update({
+  const why = await useProfileStore().update({
     quiet_hours_start: quietStart.value || null,
     quiet_hours_end: quietEnd.value || null,
     quiet_hours_silence_priority: !priorityRings.value,
     evening_reminder_time: eveningOff.value || !eveningTime.value ? null : eveningTime.value,
   })
-  notice.value = ok ? m.saved : messages.profile.offline
+  notice.value = why ? notSaved(why, messages.profile.offline) : m.saved
 }
 
 async function test() {
   notice.value = ''
-  if (pushOn.value) {
-    const reg = await navigator.serviceWorker.ready
-    await reg.showNotification(m.testTitle, { body: m.testBody, icon: '/pwa-192x192.png', data: { url: '/' } })
-  }
+  await sendTestPush(m.testTitle, m.testBody)
   notice.value = m.testSent
 }
 

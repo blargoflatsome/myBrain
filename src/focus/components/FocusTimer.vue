@@ -64,10 +64,7 @@ import { useFocusStore } from '@/stores/focus'
 import { clock, remainingMs } from '@/focus/timer'
 import { dotPlace, glowing } from '@/focus/room'
 import { messages } from '@/messages'
-import { useBrainStore } from '@/stores/brain'
 import { useWakeLock } from '@/composables/useWakeLock'
-
-const brain = useBrainStore()
 
 const focus = useFocusStore()
 const m = messages.focus
@@ -95,7 +92,8 @@ function onClose() {
 
 function check() {
   now.value = Date.now()
-  if (focus.tick(now.value) && focus.state) partEnded()
+  const { ended, work } = focus.tick(now.value)
+  if (ended && focus.state) partEnded(work > 0)
 }
 const ticker = setInterval(check, 1000)
 const onVisible = () => {
@@ -113,16 +111,15 @@ const rippling = ref(false)
 const rippleKey = ref(0)
 
 // When a part ends: a soft chime, a short vibration, and a notification if I'm in another app.
-function partEnded() {
+function partEnded(workEnded: boolean) {
   const next = focus.state!.phase
   announcement.value = m.nowPhase[next]
-  if (focus.workEnded) {
+  if (workEnded) {
     focusedToday.value = Math.round(focus.focusToday() / 60_000)
     announcement.value = `${messages.celebrations.focusDone} ${m.nowPhase[next]}`
     rippling.value = true
     rippleKey.value++
     setTimeout(() => (rippling.value = false), 1500)
-    void brain.finishFocus(focus.workEnded, focus.workTogether)
   }
   chime()
   navigator.vibrate?.([200, 100, 200])

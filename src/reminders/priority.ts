@@ -1,8 +1,8 @@
 // Priority reminders in the app (SPEC §5 High-priority tasks and priority habits): which ones are due right now.
 // The server sends the notifications; the app shows the full-screen reminder while one is due.
 import type { HabitLogRow, HabitPauseRow, HabitRow, ReminderStateRow, TaskRow } from '@/sync/types'
-import { dayStatus, isScheduled, zonedTime } from '@/habits/rules'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { dayStatus, isScheduled } from '@/habits/rules'
+import { deviceTimeZone, todayIn, zonedTime } from '@/time/days'
 import { HIGH } from '@/tasks/rules'
 
 export const SNOOZE_MINUTES = 10

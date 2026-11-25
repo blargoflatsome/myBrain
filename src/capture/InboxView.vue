@@ -62,7 +62,7 @@ function skip() {
 const sortedAll = ref(false)
 async function file(item: InboxRow, choice: Omit<CaptureInput, 'text'>) {
   const last = queue.value.length === 1
-  await brain.convert({ table: 'inbox', row: item }, choice)
+  await brain.fileOrphan(item.id, choice)
   if (last) sortedAll.value = true
 }
 

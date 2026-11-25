@@ -1,11 +1,12 @@
 import { expect, test } from '@playwright/test'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 test.describe('Spec §8: Google sign-in through Supabase Auth', () => {
   test('SPEC §5 Home page: a signed-out visitor sees the home page at /, and app pages lead there', async ({ page }) => {
     await page.goto('/tasks')
-    await expect(page).toHaveURL(/\/$/)
+    await expectPath(page, '/')
     await expect(page.getByRole('heading', { name: msg.home.heading, level: 1 })).toBeVisible()
     await expect(page.getByTestId('home-feature').first()).toBeVisible()
   })
@@ -14,7 +15,7 @@ test.describe('Spec §8: Google sign-in through Supabase Auth', () => {
     await page.goto('/no-such-page')
     await expect(page.getByRole('heading', { name: msg.notFound.heading, level: 1 })).toBeVisible()
     await page.getByRole('link', { name: msg.notFound.home }).click()
-    await expect(page).toHaveURL(/\/$/)
+    await expectPath(page, '/')
   })
 
   // SPEC §5 Home page: Sign in (top) and Create a free account (opening section and the end) are both Google sign-in.

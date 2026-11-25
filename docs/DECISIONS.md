@@ -398,3 +398,86 @@ CI flaked on Android in the window focus tests (`a11y.spec.ts`; the Search windo
 - **Cheers offers are alerts under the bell**, like any other alert (count, banner), kept 1 day instead of 7, never taking focus. The web guidance on toasts agrees: don't steal focus for something that appears by itself, and don't show it behind an open window.
 - **Tests:** `toBeFocused` also needs the page to hold the browser window's focus, which isn't the rule; `expectFocused` (`e2e/support/focus.ts`) checks the focused element and, on failure, says what has focus. Also fixed on the way: Escape in a search box with text only emptied the box in Chromium; it now closes the window.
 - **No hotkey for the bell (yet):** there's no standard one. The bell is in the header landmark (screen readers jump there) and right after Skip to content; a shortcut would need a modifier and a way to turn it off (WCAG 2.1.4).
+
+## 2026-11-24 Capture files through each kind's own add (architecture review 3)
+Candidate 1 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Capture built its own task, Vault item, quest and habit rows beside each kind's add, so they drifted: a captured Vault item (and every task, typed or captured) had no `created_at` on the device, so it sorted wrongly offline; filing an Orphan into the Vault never earned the Vault First; habit rules and the timer and reminder checks were written two or three times. User's choices (all as recommended):
+- **Each kind owns its add** in its folder's `actions.ts` (new `tasks/actions.ts` and `quests/actions.ts`), with its defaults, `created_at` set on the device, its checks and its celebration. Capture and Orphans only pick which one to call; a Post It is just another kind (`addPostIt`, the only "empty Post It" check).
+- **Capture keeps splitting text** into a title and notes (`fitTitle`); each add trims and enforces the 500-character limit itself. `addTask` takes the source (`capture` or `manual`); one default priority.
+- **Filing an Orphan into the Vault earns the Vault First** (SPEC §5 "save to the Vault"); the `capture` + `vault_items` special case in `celebrate/rules.ts` goes.
+- **One set of habit rules** (start not before today for a new habit, sorted weekdays, a timer only with a reminder time) for adding and, with candidate 3, editing.
+- **Checks are pure functions in each kind's module** (timer needs a reminder time; a task reminder can't be in the past). Forms call them to show the message; adds return `null` when refused, and capture turns that into `CaptureError` with the reason.
+- **`brain.convert` becomes `fileOrphan(id, choice)`** (it was only ever used for Orphans); `buildConversion` goes. `capture` and `fileOrphan` return the new item's kind and id.
+- **+ New quest** opens the editor with blank fields and saves through `addQuest` (no draft row with `auth.user?.id` in the page).
+- **Tests:** one Vitest per kind, "captured equals added", plus filing an Orphan into the Vault earning its First. `fitTitle` tests stay; `buildCaptureRecord` row-shape tests go.
+- Edits (closing raw `save`) are candidate 3, its own branch after this one.
+- **As built:** adds take a draft with the row's own field names, so an editor's row goes straight in, keeping the id its tags were saved under. + New task and + New habit go through `addTask` and `addHabit` too, like + New quest; their blank drafts (`blankTask`, `blankQuest`, `newHabit` with no user) need no `auth.user`. The title limit lives in `src/lib/titles.ts`. Post Its and Orphans also get `created_at` on the device.
+- **Dropped from SPEC §5 (user):** "any item can later be converted to another type" (a Vault item into a task). It was never built (the old general `convert` had no button), so a later review shouldn't suggest building it back.
+
+## 2026-11-24 "Do it" and "Done" complete, never toggle (architecture review 3)
+Candidate 2 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Up next's habit and task buttons and the slide to complete a priority habit called toggles, so a second tap or a suggestion that hadn't refreshed yet undid the completion; `completeHabit` (never undoes) existed but wasn't used there. User's choices (all as recommended):
+- **Complete actions:** `completeHabit` and a new `completeTask` (`tasks/actions.ts`) do nothing when the item is already done. Up next and the slide use them; `priorityActions` takes them instead of `toggleHabit` and `saveTask`.
+- **The button stays enabled** while it works: the no-op check makes a double tap harmless, and disabling could drop keyboard focus.
+- **Tests:** completing twice leaves it done, for a habit and a task, through the actions Up next and the slide use.
+
+## 2026-11-24 Close brain's raw save (architecture review 3)
+Candidate 3 of `docs/ARCHITECTURE_REVIEW_TASKS.md` (review 2's candidate 5). Screens held rules through brain's generic `save` and `remove`: the Vault star and default, quest picking, availability rows built with `auth.user?.id`, the person-twin check; habit edits skipped the streak refresh; tags were saved by each editor (two without waiting); the availability ✕ dropped its Undo. User's choices (all as recommended):
+- **`save`, `remove`, `removeMany` and `restore` come off brain's interface** (types stop screens using them; no lint rule needed). Tests set up rows through named actions or the engine.
+- **Named actions in each kind's `actions.ts`**, new ones for availability and people in `src/events/`. Every named delete returns its Undo for the screen to offer.
+- **Removing an availability time or one-off day gets Undo in place** (SPEC §2), like any other single delete.
+- **`saveHabit`** applies the habit rules (keeping a start date already in the past) and refreshes the streak.
+- **Tags are saved with the item:** editors hand their tag names to the kind's add or save, which saves the item, then its tags, both awaited.
+- **Vault:** star or unstar a bucket (mine, or my own star on a shared one) and save bucket settings (one default) are actions by bucket id. **Quests:** pick and accept by id, reading the current row.
+- **`savePerson`** holds the "already saved with this email or phone" check and returns the twin; `savePeople` (inviting) keeps matching quietly; both use `contactKey`.
+- **Editing an empty Post It:** the board's own check goes; `savePostIt`'s "nothing written" answer shows the error.
+- **Tests:** one store test per moved rule with no test yet (shared-bucket star, habit edit refreshes its streak, availability Undo, person twin refused, tags saved after the item).
+
+## 2026-11-24 Device settings behind seams (architecture review 3)
+Candidate 4 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. The push toggle wrote `push_subscriptions` from the screen; `profile.update` wrote to Supabase directly and returned true or false, so six screens said "offline" for every failure; appearance and celebrations were each applied in two places, one before the save and one only after. The suspected stale push row turned out to heal itself: the sender drops endpoints the push service reports gone (404/410, `netlify/functions/send-push.mts`). User's choices (all as recommended):
+- **A push module** (`notifications/push.ts`): permission, the browser's subscription, the server row and the test notification, behind a push adapter (the browser in the app, a fake in tests). Turning off unsubscribes this device even offline; the sender cleans up the row. The row is still written directly (no new server functions), its failures given a reason like server errors.
+- **Profile writes go through the session adapter** (next to `readProfile`, with its fake), not `server.ts`, which only runs server functions.
+- **`profile.update` says why it failed** (`offline` or `failed`); screens show "offline" only when offline, and a plain "couldn't save" line otherwise (draft wording for the user).
+- **Settings apply on this device at once**, appearance and celebrations alike, from one place (the profile store, also when my profile loads); the save carries them to my other devices, and a failed save says so but keeps the device's choice.
+- **Tests:** the push rules through the fake adapter; a failed profile save gives its reason; the profile timezone kept in step with the device (listed in PROGRESS as having no test).
+
+## 2026-11-24 One way to show a list from the server (architecture review 3)
+Candidate 6 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Connections, Offsite connections' "has an account" check and an event's invitee list loaded once when opened (opened offline, they stayed empty after reconnecting) and read a failed load as empty; only Cheers reloaded on reconnect. The suspected Cheers over-count isn't real: `react_cheer` reuses my old reaction row and skips the tally, and the First is earned once. User's choices (all as recommended):
+- **`useServerList`** (`src/server/`), like `useRows` for my own rows: loads when online, reloads when the app comes back online and when asked, and says whether a list is loading, loaded, failed or offline. A list that loaded once keeps showing while a later reload fails.
+- **Failed isn't empty** (SPEC §7): a list that couldn't load says so calmly with Try again; offline keeps each screen's own offline line.
+- **Switching a Cheers reaction** is one function in `cheers/cheers.ts` (take back, then cheer); no change in behaviour.
+- **Tests:** Vitest through the fake server (loads online, reloads on reconnect, failed reads as failed); the existing browser tests cover the screens.
+
+## 2026-11-24 One module for item links (architecture review 3)
+Candidate 7 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Links to an item were built in Search, Up next, the Dashboard and SQL, and read by eight hand-written watch blocks. Two real bugs: event links from SQL (`/calendar?event=<id>`, seven places) open the event but leave the calendar on this month, and a `?date=` link does nothing when Calendar is already open. User's choices (all as recommended):
+- **`src/router/links.ts`** builds the link for any item and gives pages one "open the item this link names" helper (finds the live row, opens it, clears the link).
+- **Calendar:** an event link goes to the event's day as well as opening it; a date link moves the calendar even when it's already open.
+- **SQL links stay as they are**; the module reads their formats, pinned by a test.
+- **The route named `home` is renamed `tasks`** (its path `/tasks` is unchanged).
+- **Tests:** each kind's link built and read back to the same item, plus the SQL formats; the calendar browser test checks an event link with no date lands on the event's month.
+
+## 2026-11-24 Focus and Breathe finish themselves (architecture review 3)
+Candidate 8 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. The stores noticed a part ending, but the Focus and Breathe screens read short-lived store values (`workEnded`, `workTogether`) right after `tick` and called `brain.finishFocus` / `brain.finishBreathe` themselves. User's choices (all as recommended):
+- **The stores keep the finish:** `focus.tick` records today's minutes and the activity (with Focused together) and returns `{ ended, work }`; `breathe.tick` records a finished 5 minutes once. `workEnded` and `workTogether` are gone.
+- **Screens keep only what I see and hear:** chime, vibration, notification, ripple and announcement.
+- **Screens still drive the clock** (they need the time to draw it). Focus catches up on the parts that ended while it wasn't on screen, so nothing is lost; a store-owned timer was turned down.
+- **No change in behaviour, so no spec change.** Tests: Vitest on both stores with the real brain and a fake focus room (counted once, together, catch-up, skipped never counts; Breathe once, never paused or closed early).
+
+## 2026-11-24 One module for calendar days and clock times (architecture review 3)
+Candidate 5 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. No bug was found: the day maths was right everywhere, but a clock time in a zone was worked out three ways, the weekday of a date by hand in five places, and `zonedTime` and `weekdayOf` lived in the habit rules though events, routines, reminders and journal used them. User's choices (all as recommended):
+- **`src/time/days.ts`** holds the day and clock maths: what was `src/tasks/days.ts`, plus `weekdayOf` and `zonedTime` (from the habit rules), `localMoment` (from the trophy rules) and a new `clockIn` ("HH:MM" of a moment in a zone). Up next, Find a time and the trophies use it instead of their own formatters and weekday sums.
+- **Monthly repeats stay with their features**, as they differ on purpose (habits: last day of a short month; events: skip).
+- **Every import moved, no shim**; `src/tasks/days.ts` is gone.
+- **`ui/dates.ts`** reads the day and time of a moment through the module (device time zone, which SPEC §5 Tasks makes my time zone) instead of `getHours()`, and takes a time zone so tests can set one. No change in behaviour.
+- **Tests:** one Vitest table for clock times and weekdays across the clocks going back, midnight and zones ahead of and behind UTC, and a moment's day shown in my zone.
+
+## 2026-11-24 Typed date and time fields share their typed box (architecture review 3)
+Candidate 9 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. `DateInput` and `TimeInput` repeated the same steps (phone picker or typed box, typed text settling to the saved value, the emptied box), and had drifted: an emptied required time box saved "no time", where the date box keeps the saved day. No time field is required yet, so nothing broke. User's choices (all as recommended):
+- **A small composable, not one picker:** `src/composables/useTypedField.ts` holds the shared steps; each field keeps its own list or grid and keys, as they differ.
+- **An emptied box means none, unless the field is required:** then it goes back to the saved one (SPEC §5 Time fields and Date fields).
+- **Tests:** one Vitest table run against both fields (typed value used at once, not-a-value goes back, emptied optional gives none, emptied required keeps the saved one); the list and grid keys stay covered by the browser tests.
+
+## 2026-11-24 Retro: review per stacked branch, tests for review fixes, path checks
+From the retro of the architecture review 3 session.
+- **Review fixes get tests:** the merge review found two behaviours the refactors had dropped; they were fixed with no test, so nothing would catch them again. Each bug a review finds now gets a test that fails without the fix (CLAUDE.md).
+- **Stacked branches are reviewed one at a time:** nine branches were reviewed together as one 109-file diff at the end, after later steps had built on the breaks. Each stacked branch now gets `/code-review medium` on its own diff when committed; the merge review then checks the fixes.
+- **Review level:** `/code-review medium` once ran at high; if the header names another level, the agent says so.
+- **Two flakes were test bugs:** `toHaveURL(/\/habits$/)` also matches `/welcome?next=/habits`, so the phone step's test checked the save before it happened (fails 1 in 3 on main). The calm-ux Undo test clicked Tasks while Journal's page code was still loading, so it never left Tasks. `expectPath(page, path)` (`src/tests/e2e/support/nav.ts`) checks the path itself, and a lint rule refuses a `toHaveURL` regex ending in `$` that isn't anchored at the start.

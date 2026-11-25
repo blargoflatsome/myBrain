@@ -119,18 +119,18 @@
 </template>
 
 <script setup lang="ts">
+import { useOpenLinked } from '@/router/links'
 // SPEC §5 Tasks: daily list (with carry-over), scheduling for other days, and the Undated list.
 import { useRows } from '@/sync/useRows'
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import TaskItem from '@/tasks/components/TaskItem.vue'
 import TaskEditor from '@/tasks/components/TaskEditor.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
-import { addDays, daysBetween } from '@/tasks/days'
-import { cancelTask, clearDone, clearedForDay, DEFAULT_PRIORITY, moveTask, pickThree, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
+import { addDays, daysBetween } from '@/time/days'
+import { cancelTask, clearDone, clearedForDay, moveTask, pickThree, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
 import { messages } from '@/messages'
 import type { TaskRow } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
@@ -138,7 +138,7 @@ import UndoLine from '@/components/UndoLine.vue'
 import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { chip, primaryButton, selected, smallButton } from '@/ui/styles'
 import { readKey, writeKey } from '@/ui/storage'
-import { useAuthStore } from '@/stores/auth'
+import { blankTask } from '@/tasks/actions'
 
 const brain = useBrainStore()
 const m = messages.tasks
@@ -222,7 +222,7 @@ const addLabel = computed(() =>
 )
 const canAdd = computed(() => view.value === 'undated' || offset.value >= 0)
 async function add() {
-  await brain.addTask(newTitle.value, view.value === 'undated' ? null : day.value)
+  await brain.addTask({ title: newTitle.value, due_date: view.value === 'undated' ? null : day.value, source: 'manual' })
   newTitle.value = ''
 }
 
@@ -233,40 +233,21 @@ function edit(t: TaskRow) {
   editing.value = t
 }
 // SPEC §2 Adding looks alike: + New task opens the editor for the day (or Undated) I'm looking at.
-const auth = useAuthStore()
 function startNew() {
   isNew.value = true
-  editing.value = {
-    id: crypto.randomUUID(),
-    user_id: auth.user?.id ?? '',
-    title: '',
-    due_date: view.value === 'undated' ? null : offset.value < 0 ? today.value : day.value,
-    priority: DEFAULT_PRIORITY,
-    status: 'open',
-    source: 'manual',
-    deleted_at: null,
-  }
+  editing.value = blankTask(view.value === 'undated' ? null : offset.value < 0 ? today.value : day.value)
 }
-const route = useRoute()
-const router = useRouter()
-// Opened with ?task=<id> (from search or the calendar): show its day and open its editor.
-watch(
-  [() => route.query.task, all],
-  ([id]) => {
-    if (typeof id !== 'string') return
-    const task = all.value.find((t) => t.id === id && !t.deleted_at)
-    if (!task) return
-    if (task.due_date) {
-      view.value = 'day'
-      day.value = task.due_date < today.value && task.status === 'open' ? today.value : task.due_date
-    } else view.value = 'undated'
-    edit(task)
-    void router.replace({ query: {} })
-  },
-  { immediate: true },
-)
-async function saveEdit(t: TaskRow) {
-  await brain.saveTask(t)
+// Opened from a link (search or the calendar): show its day and open its editor.
+useOpenLinked('task', all, (task) => {
+  if (task.due_date) {
+    view.value = 'day'
+    day.value = task.due_date < today.value && task.status === 'open' ? today.value : task.due_date
+  } else view.value = 'undated'
+  edit(task)
+})
+async function saveEdit(t: TaskRow, tags: string[]) {
+  if (isNew.value) await brain.addTask({ ...t, source: 'manual', tags })
+  else await brain.saveTask(t, tags)
   editing.value = null
 }
 // SPEC §5 Tasks: a task that keeps slipping moves to tomorrow or Undated in one tap, with Undo.
@@ -278,7 +259,7 @@ async function move(t: TaskRow, dueDate: string | null) {
 
 async function remove(t: TaskRow) {
   const place = placeOf(t)
-  const putBack = await brain.remove('tasks', t.id)
+  const putBack = await brain.deleteTask(t.id)
   if (editing.value?.id === t.id) editing.value = null
   undoable.offer(messages.undo.deleted(t.title), putBack, place)
 }

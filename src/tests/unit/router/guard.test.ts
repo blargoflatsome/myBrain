@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { authRedirect } from '@/router/guard'
 
-const tasks = { name: 'home', meta: {} }
+const tasks = { name: 'tasks', meta: {} }
 const home = { name: 'dashboard', meta: { landing: true } }
 const privacy = { name: 'privacy', meta: { public: true, guest: true } }
 

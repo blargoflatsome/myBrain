@@ -1,7 +1,8 @@
 // Habit rules (SPEC §5 Habits): weekdays, timer deadlines, misses, and streaks.
 // habit_logs is the source of truth; the cached streak numbers on a habit are recalculated from it.
 import type { HabitLogRow, HabitPauseRow, HabitRow } from '@/sync/types'
-import { addDays, onWeek, todayIn } from '@/tasks/days'
+import { addDays, onWeek, todayIn, weekdayOf, zonedTime } from '@/time/days'
+import { clipTitle } from '@/lib/titles'
 
 /** 'paused': a scheduled day while Pause all streaks was on (SPEC §5 Habits); it neither extends nor breaks a streak. */
 export type DayStatus = 'not_scheduled' | 'completed' | 'missed' | 'open' | 'paused'
@@ -12,12 +13,6 @@ export function toggleWeekday(days: readonly number[], day: number): number[] {
   const has = days.includes(day)
   if (has && days.length === 1) return [...days]
   return has ? days.filter((d) => d !== day) : [...days, day].sort()
-}
-
-/** 0 = Sunday ... 6 = Saturday for a YYYY-MM-DD date. */
-export function weekdayOf(date: string): number {
-  const [y, m, d] = date.split('-').map(Number)
-  return new Date(Date.UTC(y!, m! - 1, d!)).getUTCDay()
 }
 
 export function isScheduled(habit: HabitRow, date: string): boolean {
@@ -31,45 +26,6 @@ export function onMonthDay(startDate: string, date: string): boolean {
   const [y, m, d] = date.split('-').map(Number)
   const lastDay = new Date(Date.UTC(y!, m!, 0)).getUTCDate()
   return d === Math.min(Number(startDate.slice(8, 10)), lastDay)
-}
-
-// Building an Intl.DateTimeFormat is slow, and streaks ask for offsets on many days, so one is kept per time zone.
-const offsetFormats = new Map<string, Intl.DateTimeFormat>()
-function offsetFormat(timeZone: string): Intl.DateTimeFormat {
-  let f = offsetFormats.get(timeZone)
-  if (!f) {
-    f = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      hourCycle: 'h23',
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-    })
-    offsetFormats.set(timeZone, f)
-  }
-  return f
-}
-
-/** Offset of a timezone from UTC at a moment, in milliseconds. */
-function offsetAt(utcMs: number, timeZone: string): number {
-  const parts = offsetFormat(timeZone).formatToParts(new Date(utcMs))
-  const get = (t: string) => Number(parts.find((p) => p.type === t)!.value)
-  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
-  return asUtc - Math.floor(utcMs / 1000) * 1000
-}
-
-/** The moment a local wall-clock time happens in a timezone (handles daylight saving). */
-export function zonedTime(date: string, time: string, timeZone: string): number {
-  const [y, m, d] = date.split('-').map(Number)
-  const [hh, mm] = time.split(':').map(Number)
-  const guess = Date.UTC(y!, m! - 1, d!, hh!, mm!)
-  let result = guess - offsetAt(guess, timeZone)
-  const second = guess - offsetAt(result, timeZone)
-  if (second !== result) result = second
-  return result
 }
 
 /** True when the day's deadline is simply midnight: no timer, or the day the habit was created. */
@@ -281,5 +237,23 @@ export function newHabit(title: string, userId: string, timeZone: string, now = 
     current_streak: 0,
     best_streak: 0,
     deleted_at: null,
+  }
+}
+
+/**
+ * What every saved habit keeps to (SPEC §5 Habits): a name of at most 500 characters, weekdays in order (every day
+ * when none are picked), a start no earlier than `earliestStart`, and a timer only with a reminder time.
+ */
+export function withHabitRules(habit: HabitRow, earliestStart: string): HabitRow {
+  return {
+    ...habit,
+    title: clipTitle(habit.title),
+    weekdays: habit.weekdays.length ? [...habit.weekdays].sort((a, b) => a - b) : [...ALL_WEEKDAYS],
+    start_date: habit.start_date && habit.start_date > earliestStart ? habit.start_date : earliestStart,
+    week_interval: habit.week_interval ?? 1,
+    monthly: !!habit.monthly,
+    notify_time: habit.notify_time || null,
+    timer_minutes: habit.notify_time && habit.timer_minutes ? habit.timer_minutes : null,
+    is_priority: !!habit.is_priority,
   }
 }

@@ -1,8 +1,7 @@
 // Availability (SPEC §5 Availability schedule): turn free/busy rows into busy times, find conflicts, suggest times.
 // Only times are ever handled here, never titles or details.
-import { zonedTime } from '@/habits/rules'
 import { occursOn } from '@/events/rules'
-import { addDays, daysBetween, todayIn } from '@/tasks/days'
+import { addDays, daysBetween, todayIn, weekdayOf, zonedTime } from '@/time/days'
 import type { AvailabilityExceptionRow, AvailabilityRuleRow, EventRepeat } from '@/sync/types'
 
 /** One row from the free_busy server function. */
@@ -71,7 +70,7 @@ export function personTimes(rows: FreeBusyRow[], from: string, to: string): Map<
     const mine = of(r.user_id)
     if (r.kind === 'rule' && r.weekday !== null && r.start_time && r.end_time) {
       for (let d = from; d <= to; d = addDays(d, 1)) {
-        if (new Date(`${d}T12:00:00Z`).getUTCDay() !== r.weekday) continue
+        if (weekdayOf(d) !== r.weekday) continue
         mine.busy.push({ start: zonedTime(d, hhmm(r.start_time), tz), end: zonedTime(d, hhmm(r.end_time), tz) })
       }
     } else if (r.kind === 'exception' && r.start_date) {
@@ -184,7 +183,7 @@ export function myUnavailable(
 ): LocalBlock[] {
   const out: LocalBlock[] = []
   for (let d = from; d <= to; d = addDays(d, 1)) {
-    const weekday = new Date(`${d}T12:00:00Z`).getUTCDay()
+    const weekday = weekdayOf(d)
     const span = (x: { start_time: string | null; end_time: string | null }) =>
       x.start_time && x.end_time ? { start: toMin(x.start_time), end: toMin(x.end_time) } : { start: 0, end: 24 * 60 }
     const busy = [

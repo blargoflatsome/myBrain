@@ -1,17 +1,21 @@
 // Reading and writing tags and the links between tags and items (SPEC §5 Global search and tags, Tags page).
 import type { TagRow, TaggedType } from '@/sync/types'
-import type { ActionContext } from '@/sync/actions'
+import type { ActionContext, Ready } from '@/sync/actions'
 import { moveLinks, renameOutcome, tagChanges } from '@/tags/rules'
 
+/**
+ * Set an item's tags by name: new tags are created, dropped ones are taken off the item (the tag itself stays).
+ * Each kind's add or save calls this after saving the item, so its tags are never saved without it.
+ */
+export async function saveItemTags(ready: () => Ready, type: TaggedType, itemId: string, names: string[]) {
+  const { engine: e, uid, local } = ready()
+  const changes = tagChanges(uid, type, itemId, names, await local.tags.toArray(), await local.item_tags.where('item_id').equals(itemId).toArray())
+  for (const tag of changes.newTags) await e.save('tags', tag)
+  for (const link of changes.add) await e.save('item_tags', link)
+  await e.removeMany('item_tags', changes.remove.map((l) => l.id))
+}
+
 export function tagActions({ ready }: ActionContext) {
-  /** Set an item's tags by name: new tags are created, dropped ones are taken off the item (the tag itself stays). */
-  async function saveTags(type: TaggedType, itemId: string, names: string[]) {
-    const { engine: e, uid, local } = ready()
-    const changes = tagChanges(uid, type, itemId, names, await local.tags.toArray(), await local.item_tags.where('item_id').equals(itemId).toArray())
-    for (const tag of changes.newTags) await e.save('tags', tag)
-    for (const link of changes.add) await e.save('item_tags', link)
-    await e.removeMany('item_tags', changes.remove.map((l) => l.id))
-  }
 
   // The Tags page: each change hands back its undo.
 
@@ -61,5 +65,5 @@ export function tagActions({ ready }: ActionContext) {
     }
   }
 
-  return { saveTags, mergeTags, renameTag, deleteTag }
+  return { mergeTags, renameTag, deleteTag }
 }

@@ -6,7 +6,7 @@ import { ref, watch } from 'vue'
 import { WORK_MS, catchUp, nextPart, pause, resume, skip, startFocus, type FocusState } from '@/focus/timer'
 import { checkIn, leave, type Room } from '@/focus/room'
 import { useBrainStore } from '@/stores/brain'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/time/days'
 import { readJson, writeJson } from '@/ui/storage'
 
 const KEY = 'focus-timer'
@@ -59,30 +59,31 @@ export const useFocusStore = defineStore('focus', () => {
   function skipPart() {
     if (state.value) state.value = skip(state.value, Date.now())
   }
-  /** Catch up to now; returns how many parts ended since the last check, and how many of them were work. */
-  function tick(now = Date.now()): number {
-    if (!state.value) return 0
+  /**
+   * Catch up to now. Work that ended by itself is kept here (today's minutes, and the activity for trophies, with
+   * Focused together when someone else was in the room); a skipped part never counts. Returns how many parts ended
+   * since the last check and how many of them were work, for the screen's chime and words.
+   */
+  function tick(now = Date.now()): { ended: number; work: number } {
+    if (!state.value) return { ended: 0, work: 0 }
     const { state: next, ended } = catchUp(state.value, now)
+    let work = 0
     if (ended) {
       let part = { phase: state.value.phase, round: state.value.round }
-      let work = 0
       for (let i = 0; i < ended; i++) {
         if (part.phase === 'work') work++
         part = nextPart(part.phase, part.round)
       }
-      if (work) addFocus(work * WORK_MS, now)
-      workEnded.value = work
-      workTogether.value = work > 0 && togetherThisPart
+      if (work) {
+        addFocus(work * WORK_MS, now)
+        void brain.finishFocus(work, togetherThisPart)
+      }
       endedByItself = true
       state.value = next
     }
-    return ended
+    return { ended, work }
   }
 
-  /** Work parts that ended at the last tick (a skipped part never counts). */
-  const workEnded = ref(0)
-  /** Whether someone else was in the focus room during the work that just ended (SPEC §5 Trophies Focused together). */
-  const workTogether = ref(false)
   /** Focus time finished today on this device. */
   function focusToday(now = Date.now()): number {
     return loadToday(todayIn(deviceTimeZone(), new Date(now)))
@@ -168,5 +169,5 @@ export const useFocusStore = defineStore('focus', () => {
     { immediate: true },
   )
 
-  return { state, minimized, open, stop, togglePause, skipPart, tick, workEnded, workTogether, focusToday, room }
+  return { state, minimized, open, stop, togglePause, skipPart, tick, focusToday, room }
 })

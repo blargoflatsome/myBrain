@@ -64,10 +64,11 @@
 </template>
 
 <script setup lang="ts">
+import { useOpenLinked } from '@/router/links'
 // SPEC §5 Routines: the list of routines, today's progress, and completion stats.
 import { useRows } from '@/sync/useRows'
-import { computed, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import RoutineEditor from '@/routines/components/RoutineEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
@@ -128,22 +129,10 @@ function edit(r: RoutineRow) {
   isNew.value = false
   editing.value = r
 }
-// Opened with ?routine=<id> (from search): open that routine's editor.
-const route = useRoute()
-const router = useRouter()
-watch(
-  [() => route.query.routine, routines],
-  ([id]) => {
-    if (typeof id !== 'string') return
-    const found = routines.value.find((x) => x.id === id && !x.deleted_at)
-    if (!found) return
-    edit(found)
-    void router.replace({ query: {} })
-  },
-  { immediate: true },
-)
-async function save(r: RoutineRow, s: { id?: string; title: string; habitId?: string | null }[]) {
-  await brain.saveRoutine(r, s)
+// Opened from a link (search): open its editor.
+useOpenLinked('routine', routines, edit)
+async function save(r: RoutineRow, s: { id?: string; title: string; habitId?: string | null }[], tags: string[]) {
+  await brain.saveRoutine(r, s, tags)
   editing.value = null
 }
 async function remove(r: RoutineRow) {

@@ -8,7 +8,7 @@ export type Achievement =
   | { kind: 'task'; task: TaskRow }
   | { kind: 'habit'; habit: HabitRow }
   | { kind: 'step'; finished: boolean }
-  | { kind: 'capture'; table: string }
+  | { kind: 'capture' }
   | { kind: 'journal' }
   | { kind: 'quest'; energy?: string | null }
   | { kind: 'vault' }

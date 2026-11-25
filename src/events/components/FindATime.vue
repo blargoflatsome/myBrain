@@ -40,7 +40,7 @@
 import { computed, ref } from 'vue'
 import type { Suggestion } from '@/events/availability'
 import type { SchedulingPerson, useScheduling } from '@/events/useScheduling'
-import { todayIn } from '@/tasks/days'
+import { clockIn, todayIn } from '@/time/days'
 import { useBrainStore } from '@/stores/brain'
 import { messages } from '@/messages'
 import { smallButton } from '@/ui/styles'
@@ -69,8 +69,7 @@ const nameOf = (id: string) => (id === brain.userId ? m.you : (props.people.find
 const whoLabel = (s: Suggestion) => (s.cantMake.length ? m.allBut(s.cantMake.map(nameOf).join(', ')) : m.allFree)
 
 function pick(s: Suggestion) {
-  const fmt = (ms: number) => new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(ms))
-  emit('pick', { date: todayIn(tz, new Date(s.start)), start: fmt(s.start), end: fmt(s.end) })
+  emit('pick', { date: todayIn(tz, new Date(s.start)), start: clockIn(s.start, tz), end: clockIn(s.end, tz) })
   open.value = false
 }
 </script>

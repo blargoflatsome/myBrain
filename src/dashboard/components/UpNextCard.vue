@@ -21,6 +21,8 @@
 </template>
 
 <script setup lang="ts">
+import { linkTo } from '@/router/links'
+import { clockIn } from '@/time/days'
 // SPEC §5 Dashboard Up next: the first thing worth doing now (see upNext.ts for the order). The main button does it
 // here where it can, otherwise opens the right page; Something else skips it for today, on this device.
 import { readDayData } from '@/journal/dayData'
@@ -35,7 +37,7 @@ import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { useNow } from '@/composables/useNow'
 import { useToday } from '@/composables/useToday'
 import { KEEP_GOING_DAYS, skippedToday, upNext, type Suggestion } from '@/dashboard/upNext'
-import { cancelTask, moveTask, toggleDone } from '@/tasks/rules'
+import { cancelTask, moveTask } from '@/tasks/rules'
 import { messages } from '@/messages'
 import { timeLabel } from '@/ui/dates'
 import { readJson, writeJson } from '@/ui/storage'
@@ -90,11 +92,7 @@ const title = computed(() => {
   if (s.kind === 'journal') return u.journalTitle
   return s.title
 })
-const clock = (ms: number) => {
-  const d = new Date(ms)
-  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: timeZone.value, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d)
-  return timeLabel(parts)
-}
+const clock = (ms: number) => timeLabel(clockIn(ms, timeZone.value))
 const reason = computed(() => {
   const s = current.value
   if (!s) return ''
@@ -140,20 +138,17 @@ async function doIt() {
     case 'priority_habit':
     case 'habit': {
       const habit = await findRow('habits', s.id)
-      if (habit) await brain.toggleHabit(habit)
+      if (habit) await brain.completeHabit(habit)
       return
     }
     case 'priority_task':
       return brain.completePriority({ kind: 'task', id: s.id, title: s.title, description: null, date: s.date })
-    case 'task': {
-      const task = await findRow('tasks', s.id)
-      if (task) await brain.saveTask(toggleDone(task))
-      return
-    }
+    case 'task':
+      return brain.completeTask(s.id)
     case 'routine':
       return router.push({ name: 'routine-run', params: { id: s.id } })
     case 'event':
-      return router.push({ name: 'calendar', query: { date: s.date, event: s.id } })
+      return router.push(linkTo({ kind: 'event', id: s.id, date: s.date }))
     case 'orphans':
       return router.push({ name: 'inbox' })
     case 'journal':

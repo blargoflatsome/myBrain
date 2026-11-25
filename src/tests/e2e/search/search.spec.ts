@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
 
@@ -37,7 +38,7 @@ test.describe('Spec §5 Global search and tags', () => {
     seedSearchable()
     await open(page, '/habits')
     const dialog = await openSearch(page)
-    await expect(page).toHaveURL(/\/habits$/)
+    await expectPath(page, '/habits')
     await dialog.getByRole('searchbox', { name: msg.search.placeholder }).fill('CAFE')
     await expect(dialog.getByTestId('results-task')).toContainText('Book café table')
     await expect(dialog.getByTestId('results-vault_item')).toContainText('Luigi’s')

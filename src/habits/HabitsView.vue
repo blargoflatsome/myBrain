@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { useOpenLinked } from '@/router/links'
 // SPEC §5 Habits: today's habits with their timer deadlines, streaks and best streaks.
 import { useRows, readRows } from '@/sync/useRows'
 import { useNow } from '@/composables/useNow'
@@ -90,14 +91,12 @@ import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref, watch } from 'vue'
 import HabitEditor from '@/habits/components/HabitEditor.vue'
 import { useBrainStore } from '@/stores/brain'
-import { useAuthStore } from '@/stores/auth'
 import { useToday } from '@/composables/useToday'
 import { dayStatus, deadline, dueByMidnight, isScheduled, keptLately, newHabit, openPause, streaks, type DayStatus } from '@/habits/rules'
-import { addDays } from '@/tasks/days'
+import { addDays } from '@/time/days'
 import { messages } from '@/messages'
 import { momentLabel } from '@/ui/dates'
 import type { HabitRow } from '@/sync/types'
-import { useRoute, useRouter } from 'vue-router'
 import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
 import RowDelete from '@/components/RowDelete.vue'
@@ -105,7 +104,6 @@ import CheckCircle from '@/components/CheckCircle.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 
 const brain = useBrainStore()
-const auth = useAuthStore()
 const m = messages.habits
 const { today, timeZone } = useToday()
 
@@ -177,28 +175,17 @@ const editing = ref<HabitRow | null>(null)
 const isNew = ref(false)
 function startNew() {
   isNew.value = true
-  editing.value = newHabit('', auth.user?.id ?? '', timeZone.value)
+  editing.value = newHabit('', '', timeZone.value)
 }
 function edit(h: HabitRow) {
   isNew.value = false
   editing.value = h
 }
-// Opened with ?habit=<id> (from search): open that habit's editor.
-const route = useRoute()
-const router = useRouter()
-watch(
-  [() => route.query.habit, habits],
-  ([id]) => {
-    if (typeof id !== 'string') return
-    const found = habits.value.find((x) => x.id === id && !x.deleted_at)
-    if (!found) return
-    edit(found)
-    void router.replace({ query: {} })
-  },
-  { immediate: true },
-)
-async function save(h: HabitRow) {
-  await brain.save('habits', h)
+// Opened from a link (search): open its editor.
+useOpenLinked('habit', habits, edit)
+async function save(h: HabitRow, tags: string[]) {
+  if (isNew.value) await brain.addHabit({ ...h, tags }, new Date(), timeZone.value)
+  else await brain.saveHabit(h, tags, new Date(), timeZone.value)
   editing.value = null
 }
 async function remove(h: HabitRow) {

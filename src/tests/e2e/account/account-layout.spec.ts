@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 test.describe('Spec §5 Account page: grouped into sections that open and close', () => {
   test('only Your profile starts open; the other groups sit beside it (none inside another), open with a tap and stay as I left them', async ({ page }) => {
@@ -65,7 +66,7 @@ test.describe('Spec §5 Account page: Sign out and Delete account', () => {
     expect(next).toBe('sign-out')
     expect(await signOut.evaluate((el) => el.nextElementSibling?.getAttribute('data-testid'))).toBe('delete-account')
     await signOut.getByRole('button', { name: msg.signOut.button }).click()
-    await expect(page).toHaveURL(/\/$/)
+    await expectPath(page, '/')
   })
 
   test('Spec §8 Sign out: nothing of mine stays on this device, and unsent changes are only dropped if I agree', async ({ page, context }) => {
@@ -90,12 +91,12 @@ test.describe('Spec §5 Account page: Sign out and Delete account', () => {
     const ask = page.getByRole('alertdialog', { name: msg.signOut.unsent.heading })
     await expect(ask).toContainText(msg.signOut.unsent.body(1))
     await ask.getByRole('button', { name: msg.signOut.unsent.keep }).click()
-    await expect(page).toHaveURL(/\/account$/)
+    await expectPath(page, '/account')
 
     // Back online, it uploads first, then signs out and deletes this device's copy and remembered settings.
     await context.setOffline(false)
     await page.getByTestId('sign-out').getByRole('button', { name: msg.signOut.button }).click()
-    await expect(page).toHaveURL(/\/$/)
+    await expectPath(page, '/')
     expect(server.written('inbox').at(-1)).toMatchObject({ body: 'idea on the subway' })
     await expect.poll(myDb).toBe(false)
     expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('my-brain:')))).toEqual([])

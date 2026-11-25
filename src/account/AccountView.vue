@@ -233,7 +233,7 @@
 <script setup lang="ts">
 // SPEC §5 Account page: display name and avatar, then settings. Streaks are on the Habits page.
 import { useRows } from '@/sync/useRows'
-import { useProfileStore } from '@/stores/profile'
+import { notSaved, useProfileStore } from '@/stores/profile'
 import AppIcon from '@/components/AppIcon.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -256,7 +256,7 @@ import ConnectionsPanel from '@/connections/components/ConnectionsPanel.vue'
 import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
 import { checkbox, confirmBox, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'
-import { appearance, APPEARANCES, setAppearance, type Appearance } from '@/ui/appearance'
+import { appearance, APPEARANCES, type Appearance } from '@/ui/appearance'
 import { openPause } from '@/habits/rules'
 import { useCelebrateStore } from '@/stores/celebrate'
 import { CELEBRATION_SETTINGS, parseSetting, type CelebrationSetting } from '@/celebrate/rules'
@@ -292,9 +292,9 @@ onMounted(async () => {
 async function save() {
   notice.value = ''
   saving.value = true
-  const ok = await profile.update({ display_name: displayName.value.trim() || null })
+  const why = await profile.update({ display_name: displayName.value.trim() || null })
   saving.value = false
-  notice.value = ok ? m.saved : m.offline
+  notice.value = why ? notSaved(why, m.offline) : m.saved
 }
 
 // SPEC §3 Appearance: applies at once on this device, and is saved to my profile for my other devices.
@@ -303,9 +303,8 @@ const appearanceChoice = ref<Appearance>(appearance.value)
 const appearanceNotice = ref('')
 async function saveAppearance() {
   appearanceNotice.value = ''
-  setAppearance(appearanceChoice.value)
-  const ok = await profile.update({ appearance: appearanceChoice.value })
-  appearanceNotice.value = ok ? m.saved : m.offline
+  const why = await profile.update({ appearance: appearanceChoice.value })
+  appearanceNotice.value = why ? notSaved(why, m.offline) : m.saved
 }
 
 // SPEC §5 Habits Pause streaks: kept as pause periods, synced like the rest of my habits.
@@ -325,17 +324,16 @@ const focusRoom = ref(true)
 const focusRoomNotice = ref('')
 async function saveFocusRoom() {
   focusRoomNotice.value = ''
-  const ok = await profile.update({ focus_room: focusRoom.value })
-  focusRoomNotice.value = ok ? m.saved : m.offline
+  const why = await profile.update({ focus_room: focusRoom.value })
+  focusRoomNotice.value = why ? notSaved(why, m.offline) : m.saved
 }
 
 // Celebrations has its own Save in Account Settings.
 const celebrationsNotice = ref('')
 async function saveCelebrations() {
   celebrationsNotice.value = ''
-  const ok = await profile.update({ celebrations: celebrations.value })
-  if (ok) celebrate.setSetting(celebrations.value)
-  celebrationsNotice.value = ok ? m.saved : m.offline
+  const why = await profile.update({ celebrations: celebrations.value })
+  celebrationsNotice.value = why ? notSaved(why, m.offline) : m.saved
 }
 
 

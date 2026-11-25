@@ -3,6 +3,7 @@
 import type { Session } from '@supabase/supabase-js'
 import type { Profile } from '@/stores/profile'
 import type { Remote } from '@/sync/types'
+import { ServerError } from '@/server/server'
 // Up front (it needs no keys): loaded on first use, it held up syncing by a download, and a failed download stopped it.
 import { supabaseRemote } from '@/sync/supabaseRemote'
 
@@ -16,6 +17,8 @@ export interface SessionAdapter {
   signOut(scope: 'global' | 'local'): Promise<void>
   /** My profile row, read fresh; null when it can't be read (offline). */
   readProfile(uid: string): Promise<Profile | null>
+  /** Save some fields of my profile row; throws a ServerError (offline or failed) when it doesn't go through. */
+  updateProfile(uid: string, fields: Partial<Omit<Profile, 'user_id'>>): Promise<void>
   /** Where this user's rows sync to. */
   remote(): Promise<Remote>
   /** Stop push notifications to this device. */
@@ -42,6 +45,11 @@ const supabaseSession: SessionAdapter = {
   async readProfile(uid) {
     const { data, error } = await (await client()).from('profiles').select('*').eq('user_id', uid).maybeSingle()
     return error || !data ? null : (data as Profile)
+  },
+  async updateProfile(uid, fields) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) throw new ServerError('offline', 'profiles: offline')
+    const { error } = await (await client()).from('profiles').update(fields).eq('user_id', uid)
+    if (error) throw new ServerError(typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'failed', `profiles: ${error.message}`)
   },
   async remote() {
     return supabaseRemote(await client())

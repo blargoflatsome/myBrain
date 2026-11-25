@@ -3,6 +3,7 @@ import { openAttendees } from '../support/events'
 import { FakeSupabase } from '../support/fakeSupabase'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -37,7 +38,7 @@ test.describe('Spec §5 Profiles', () => {
     server.rpcResults.connection_profile = bob()
     await open(page, '/connections')
     await page.getByRole('link', { name: m.openLabel('Bob Baker') }).click()
-    await expect(page).toHaveURL(new RegExp(`/people/${BOB}$`))
+    await expectPath(page, `/people/${BOB}`)
     await expect(page.getByTestId('profile-name')).toHaveText('Bob Baker')
     expect(rpc('connection_profile')[0]?.args).toEqual({ friend: BOB })
     // The same trophy cards and details window as the Dashboard's; only earned ones show, with no progress.

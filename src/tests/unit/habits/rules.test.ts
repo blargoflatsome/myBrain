@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { HabitLogRow, HabitPauseRow, HabitRow } from '@/sync/types'
-import { dayStatus, deadline, isScheduled, keptLately, pauseFrom, resumeAfter, logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, weekdayOf, wrongMisses, zonedTime } from '@/habits/rules'
+import { dayStatus, deadline, isScheduled, keptLately, pauseFrom, resumeAfter, logIdFor, missedDaysToRecord, newHabit, streaks, toggleAction, wrongMisses } from '@/habits/rules'
 
-import { addDays } from '@/tasks/days'
+import { addDays, weekdayOf, zonedTime } from '@/time/days'
 
 const NY = 'America/New_York'
 

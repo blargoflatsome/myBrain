@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { HabitLogRow, HabitRow } from '@/sync/types'
-import { onWeek } from '@/tasks/days'
+import { onWeek } from '@/time/days'
 import { isScheduled, streaks } from '@/habits/rules'
 import { occursOn } from '@/events/rules'
 import { icsFile } from '@/events/ics'

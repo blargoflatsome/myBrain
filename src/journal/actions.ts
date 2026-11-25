@@ -5,7 +5,7 @@ import type { LocalDb } from '@/sync/db'
 import { readDayData } from '@/journal/dayData'
 import { dayStats, emptyEntry, hadActivity, missingDays, statsUpdate, type DayData } from '@/journal/stats'
 import { normalizeBody, writingFacts } from '@/journal/body'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/time/days'
 import { achieved } from '@/celebrate/bus'
 
 type JournalFields = { tomorrow?: string; better_than_yesterday?: boolean | null }

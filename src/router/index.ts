@@ -18,7 +18,7 @@ declare module 'vue-router' {
 
 export const routes: RouteRecordRaw[] = [
   { path: '/', name: 'dashboard', component: HomeView, meta: { landing: true } },
-  { path: '/tasks', name: 'home', component: () => import('@/tasks/TasksView.vue') },
+  { path: '/tasks', name: 'tasks', component: () => import('@/tasks/TasksView.vue') },
   { path: '/capture', name: 'capture', component: () => import('@/capture/CaptureView.vue') },
   { path: '/routines', name: 'routines', component: () => import('@/routines/RoutinesView.vue') },
   { path: '/routines/:id/run', name: 'routine-run', component: () => import('@/routines/RoutineRunView.vue') },

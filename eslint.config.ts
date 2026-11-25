@@ -53,6 +53,8 @@ export default defineConfigWithVueTs(
         'error',
         { selector: "CallExpression[callee.property.name='waitForTimeout']", message: 'Wait for the result instead: expect(...).toBeVisible(), expect.poll(...).' },
         { selector: "NewExpression[callee.name='Promise'] CallExpression[callee.name='setTimeout']", message: 'Wait for the result instead: vi.waitFor(() => expect(...)).' },
+        // A regex ending in $ also matches /welcome?next=/habits, so the check passes before the page changes.
+        { selector: "CallExpression[callee.property.name='toHaveURL'] > Literal[regex.pattern=/\\$$/]:not([regex.pattern=/^\\^/])", message: "Check the path itself: expectPath(page, '/habits') from support/nav." },
       ],
     },
   },

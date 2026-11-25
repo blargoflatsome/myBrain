@@ -9,6 +9,9 @@ import type { TaskRow } from '@/sync/types'
 import { FakeRemote } from '@/tests/support/fakeRemote'
 import { FakeServer } from '@/tests/support/fakeServer'
 import { FakeSession } from '@/tests/support/fakeSession'
+import { useProfileStore } from '@/stores/profile'
+import { useCelebrateStore } from '@/stores/celebrate'
+import { deviceTimeZone } from '@/time/days'
 
 let remote: FakeRemote
 let server: FakeServer
@@ -52,7 +55,7 @@ const deviceCopyExists = () => Dexie.exists(`my-brain-${uid}`)
 describe('SPEC §8 Sign out: nothing of mine stays on this device', () => {
   it('uploads what is waiting, then deletes my data and what the app remembered here, and signs out', async () => {
     const { session, brain } = await signedIn()
-    const t = await brain.addTask('Buy stamps', null)
+    const t = await brain.addTask({ title: 'Buy stamps', source: 'manual' })
     writeKey(REMEMBERED, 'dark')
 
     expect(await session.signOut()).toBe(0)
@@ -66,7 +69,7 @@ describe('SPEC §8 Sign out: nothing of mine stays on this device', () => {
   it('offline, changes that can’t upload hold it back until I say to throw them away', async () => {
     const { session, brain } = await signedIn()
     remote.online = false
-    await brain.addTask('Buy stamps', null)
+    await brain.addTask({ title: 'Buy stamps', source: 'manual' })
 
     expect(await session.signOut()).toBe(1)
     expect(fake.signedOut).toEqual([])
@@ -100,7 +103,7 @@ describe('SPEC §8 Delete my data on another device: this device clears its copy
 describe('SPEC §5 Account page, §8 Delete My Account', () => {
   it('when it fails, nothing is deleted and syncing carries on', async () => {
     const { session, brain } = await signedIn()
-    const t = await brain.addTask('Buy stamps', null)
+    const t = await brain.addTask({ title: 'Buy stamps', source: 'manual' })
     server.fails.delete_my_account = 'offline'
 
     expect(await session.deleteAccount()).toBe(false)
@@ -136,5 +139,31 @@ describe('SPEC §7 Offline and sync: signing in opens my data and starts syncing
     document.dispatchEvent(new Event('visibilitychange'))
     await vi.waitFor(() => expect(brain.syncedCount).toBeGreaterThan(0))
     expect(brain.userId).toBe(uid)
+  })
+})
+
+describe('SPEC §5 Tasks: my profile’s time zone is kept in step with the device', () => {
+  it.each([
+    { profile: 'Pacific/Chatham', saved: [{ timezone: deviceTimeZone() }] },
+    { profile: deviceTimeZone(), saved: [] },
+  ])('signed in with $profile on my profile', async ({ profile, saved }) => {
+    fake.profile = { ...fake.profile, timezone: profile }
+    await signedIn()
+    await vi.waitFor(() => expect(fake.profileSaves).toEqual(saved))
+  })
+})
+
+describe('SPEC §3 Appearance, §5 Celebrations: settings on this device', () => {
+  it('my Celebrations setting comes with my profile when I sign in', async () => {
+    fake.profile = { ...fake.profile, celebrations: 'off' }
+    await signedIn()
+    await vi.waitFor(() => expect(useCelebrateStore().setting).toBe('off'))
+  })
+
+  it.each(['offline', 'failed'] as const)('a save that fails (%s) says why, and this device keeps the choice', async (why) => {
+    await signedIn()
+    fake.failProfileSaves = why
+    expect(await useProfileStore().update({ celebrations: 'gentle' })).toBe(why)
+    expect(useCelebrateStore().setting).toBe('gentle')
   })
 })

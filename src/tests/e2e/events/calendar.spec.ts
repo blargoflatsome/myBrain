@@ -104,5 +104,25 @@ test.describe('Spec §5 Calendar', { tag: '@phone' }, () => {
     await page.getByTestId('calendar-item').getByRole('button', { name: msg.calendar.view.edit }).click()
     await expect(page.getByRole('dialog', { name: msg.calendar.editor.heading }).getByLabel(msg.capture.titleLabel)).toHaveValue('Dentist')
   })
+
+  test('an alert’s link names only the event: it opens on the event’s own month; a link to another day moves an open calendar', async ({ page }) => {
+    seedCalendar()
+    server.seed('events', [
+      { id: 'e9', title: 'Holiday party', notes: null, start_date: '2026-12-18', start_time: '18:00:00', end_date: '2026-12-18', end_time: '21:00:00', repeat: 'never', reminder_minutes: null },
+    ])
+    await open(page, '/calendar?event=e9')
+    await expect(page.getByTestId('calendar-item').getByRole('heading', { name: 'Holiday party' })).toBeVisible()
+    await expect(page.getByTestId('calendar-title')).toContainText('December')
+
+    // A link to another day while the calendar is already open moves it there (here, a search result).
+    await page.keyboard.press('Escape')
+    const header = page.getByRole('banner').getByRole('button', { name: msg.nav.search })
+    if (await header.isVisible()) await header.click()
+    else await page.getByRole('navigation', { name: msg.nav.label }).getByRole('button', { name: msg.nav.search }).click()
+    const search = page.getByRole('dialog', { name: msg.nav.search })
+    await search.getByRole('searchbox', { name: msg.search.placeholder }).fill('Dentist')
+    await search.getByTestId('search-result').click()
+    await expect(page.getByTestId('calendar-title')).toContainText('November')
+  })
 })
 

@@ -3,7 +3,7 @@ import { fixedId, logIdFor } from '@/sync/ids'
 import type { BadgeRow, HabitLogRow, HabitRow, InboxRow, JournalEntryRow, PostItRow, QuestLogRow, RoutineRunRow, TaskRow, VaultItemRow } from '@/sync/types'
 import { dayStatus, isScheduled } from '@/habits/rules'
 import { tasksForDay } from '@/tasks/rules'
-import { addDays } from '@/tasks/days'
+import { addDays } from '@/time/days'
 import { live } from '@/sync/live'
 import { wroteIn } from '@/journal/body'
 import type { Achievement } from '@/celebrate/bus'
@@ -64,7 +64,7 @@ export function firstFor(a: Achievement): BadgeKind | null {
     case 'task': return 'first_task'
     case 'habit': return 'first_habit'
     case 'step': return a.finished ? 'first_routine' : null
-    case 'capture': return a.table === 'vault_items' ? 'first_vault' : null
+    case 'capture': return null
     case 'postit': return 'first_postit'
     case 'journal': return 'first_journal'
     case 'quest': return 'first_quest'

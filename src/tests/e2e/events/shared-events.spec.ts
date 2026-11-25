@@ -3,6 +3,7 @@ import { openAttendees } from '../support/events'
 import { FakeSupabase } from '../support/fakeSupabase'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -45,7 +46,7 @@ test.describe('Spec §5 Accounts and contact info', () => {
     await expect(page.getByRole('alert')).toContainText('doesn’t look like a phone number')
     await page.getByLabel(msg.welcome.phone).fill('+1 (555) 010-2222')
     await page.getByRole('button', { name: msg.welcome.save }).click()
-    await expect(page).toHaveURL(/\/habits$/)
+    await expectPath(page, '/habits')
     expect(server.written('profiles').at(-1)).toMatchObject({ phone: '+1 (555) 010-2222' })
   })
 
@@ -65,7 +66,7 @@ test.describe('Spec §5 Accounts and contact info', () => {
 })
 
 test.describe('Spec §10 Connections, scheduling: availability for connections', () => {
-  test('weekly unavailable times and one-off days are saved', async ({ page }) => {
+  test('weekly unavailable times and one-off days are saved, and one removed comes back with Undo', async ({ page }) => {
     await open(page, '/account')
     const card = page.getByTestId('availability')
     await card.getByRole('button', { name: msg.availability.addWeekly }).click()
@@ -82,6 +83,12 @@ test.describe('Spec §10 Connections, scheduling: availability for connections',
     await card.getByRole('button', { name: msg.invites.addContact, exact: true }).click()
     await expect(card.getByTestId('availability-exception')).toContainText(msg.calendar.editor.allDay)
     await expect.poll(() => server.written('availability_exceptions').at(-1)).toMatchObject({ date: '2026-11-20', start_time: null, kind: 'unavailable' })
+
+    // SPEC §2: removing one goes straight away, with Undo in place.
+    await card.getByTestId('availability-rule').getByRole('button').click()
+    await expect(card.getByTestId('availability-rule')).toHaveCount(0)
+    await card.getByTestId('undo-button').click()
+    await expect(card.getByTestId('availability-rule')).toContainText('Tue · 9:00 am – 5:00 pm')
   })
 })
 
@@ -281,7 +288,7 @@ test.describe('Spec §8: before anyone else uses the app', () => {
     expect(rpc('delete_my_data')[0]!.args).toEqual({
       parts: ['tasks', 'inbox', 'quests', 'vault', 'journal', 'habits', 'routines', 'tags', 'events', 'post_its', 'people', 'connections', 'cheers'],
     })
-    await expect(page).toHaveURL(/\/account$/)
+    await expectPath(page, '/account')
     await page.goto('/tasks')
     await expect(page.getByRole('button', { name: /^Pay rent/ })).toHaveCount(0)
   })

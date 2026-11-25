@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useBrainStore } from '@/stores/brain'
 import { FakeRemote } from '@/tests/support/fakeRemote'
+import { live } from '@/sync/live'
 
 let remote: FakeRemote
 
@@ -26,12 +27,12 @@ describe('Spec §5 Quick capture: works offline; items are queued and synced lat
     brain.start(`u-${crypto.randomUUID()}`, remote)
 
     const rec = await brain.capture({ text: 'idea for a song', destination: 'later' })
-    expect(await brain.db!.inbox.get(rec.row.id)).toMatchObject({ body: 'idea for a song' })
+    expect(await brain.db!.inbox.get(rec.id)).toMatchObject({ body: 'idea for a song' })
     expect(remote.tables.inbox.size).toBe(0)
 
     remote.online = true
     window.dispatchEvent(new Event('online'))
-    await vi.waitFor(() => expect(remote.tables.inbox.get(rec.row.id)).toMatchObject({ body: 'idea for a song' }))
+    await vi.waitFor(() => expect(remote.tables.inbox.get(rec.id)).toMatchObject({ body: 'idea for a song' }))
   })
 })
 
@@ -40,10 +41,10 @@ describe('Spec §5: Decide later, then sort it when I have time', () => {
     const brain = useBrainStore()
     brain.start(`u-${crypto.randomUUID()}`, remote)
     const later = await brain.capture({ text: 'renew passport', destination: 'later' })
-    const task = await brain.convert(later, { destination: 'task' })
+    const task = await brain.fileOrphan(later.id, { destination: 'task' })
 
-    expect((await brain.db!.inbox.get(later.row.id))?.deleted_at).toBeTruthy()
-    expect(await brain.db!.tasks.get(task!.row.id)).toMatchObject({ title: 'renew passport', due_date: null })
+    expect((await brain.db!.inbox.get(later.id))?.deleted_at).toBeTruthy()
+    expect(await brain.db!.tasks.get(task!.id)).toMatchObject({ title: 'renew passport', due_date: null })
   })
 
   it('SPEC §5 Orphans: deleting the last orphan counts as emptying Orphans (Trophies), like filing it', async () => {
@@ -53,9 +54,9 @@ describe('Spec §5: Decide later, then sort it when I have time', () => {
     const two = await brain.capture({ text: 'second', destination: 'later' })
     const emptied = async () => (await brain.db!.activity_log.toArray()).filter((a) => a.kind === 'orphans_cleared' && !a.deleted_at).length
 
-    await brain.removeOrphan(one.row.id)
+    await brain.removeOrphan(one.id)
     expect(await emptied()).toBe(0)
-    await brain.removeOrphan(two.row.id)
+    await brain.removeOrphan(two.id)
     expect(await emptied()).toBe(1)
   })
 
@@ -65,11 +66,11 @@ describe('Spec §5: Decide later, then sort it when I have time', () => {
     const only = await brain.capture({ text: 'only one', destination: 'later' })
     const emptied = async () => (await brain.db!.activity_log.toArray()).filter((a) => a.kind === 'orphans_cleared' && !a.deleted_at).length
 
-    const undo = await brain.removeOrphan(only.row.id)
+    const undo = await brain.removeOrphan(only.id)
     await undo()
-    expect(await brain.db!.inbox.get(only.row.id)).toMatchObject({ body: 'only one', deleted_at: null })
+    expect(await brain.db!.inbox.get(only.id)).toMatchObject({ body: 'only one', deleted_at: null })
     expect(await emptied()).toBe(0)
-    await brain.removeOrphan(only.row.id)
+    await brain.removeOrphan(only.id)
     expect(await emptied()).toBe(1)
   })
 })
@@ -158,5 +159,44 @@ describe('Spec §5 The Vault: bucket picker can create a new bucket', () => {
     const first = await brain.createBucket('Books')
     const second = await brain.createBucket('Shows')
     expect(second.position).toBe(first.position + 1)
+  })
+})
+
+describe('Spec §5 Dashboard Up next and priority reminders: "Do it" and slide to complete never undo', () => {
+  const now = new Date('2026-11-10T12:00:00Z')
+  type Brain = ReturnType<typeof useBrainStore>
+  // Up next's "Do it" and the slide, for each kind: a second tap (or a suggestion not yet refreshed) must leave it done.
+  const ways = {
+    habit: {
+      upNext: (b: Brain, id: string) => b.db!.habits.get(id).then((h) => b.completeHabit(h!, now)),
+      slide: (b: Brain, id: string) => b.completePriority({ kind: 'habit', id, title: 'Meds', description: null, date: '2026-11-10' }, now),
+    },
+    task: {
+      upNext: (b: Brain, id: string) => b.completeTask(id, now),
+      slide: (b: Brain, id: string) => b.completePriority({ kind: 'task', id, title: 'Stamps', description: null, date: '2026-11-10' }, now),
+    },
+  }
+  async function add(brain: Brain, kind: 'habit' | 'task') {
+    if (kind === 'habit') return (await brain.addHabit({ title: 'Meds', start_date: '2026-11-01' }, new Date('2026-11-01T12:00:00Z'), 'UTC'))!.id
+    return (await brain.addTask({ title: 'Stamps', due_date: '2026-11-10', priority: 3, source: 'manual' }, now))!.id
+  }
+  async function isDone(brain: Brain, kind: 'habit' | 'task', id: string) {
+    if (kind === 'task') return (await brain.db!.tasks.get(id))?.status === 'done'
+    return live(await brain.db!.habit_logs.where('habit_id').equals(id).toArray()).some((l) => l.status === 'completed')
+  }
+
+  it.each([
+    ['habit', 'upNext'],
+    ['habit', 'slide'],
+    ['task', 'upNext'],
+    ['task', 'slide'],
+  ] as const)('a %s completed twice through %s stays done', async (kind, way) => {
+    const brain = useBrainStore()
+    const uid = `u-${crypto.randomUUID()}`
+    brain.start(uid, remote)
+    const id = await add(brain, kind)
+    await ways[kind][way](brain, id)
+    await ways[kind][way](brain, id)
+    expect(await isDone(brain, kind, id)).toBe(true)
   })
 })

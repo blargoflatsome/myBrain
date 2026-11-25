@@ -114,16 +114,15 @@ import ChoiceChips from '@/components/ChoiceChips.vue'
 import PostItColors from '@/postits/components/PostItColors.vue'
 import QuestFields from '@/quests/components/QuestFields.vue'
 import TaskFields from '@/tasks/components/TaskFields.vue'
-import { reminderInPast, taskReminder } from '@/reminders/priority'
+import { checkedReminder } from '@/tasks/actions'
+import { DEFAULT_QUEST_ENERGY, DEFAULT_QUEST_TIME } from '@/quests/actions'
+import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import VaultItemFields from '@/vault/components/VaultItemFields.vue'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/time/days'
 import { DEFAULT_POST_IT_COLOR } from '@/postits/rules'
 import { plainText, storedNotes, textLines, toEditorHtml } from '@/journal/body'
 import { useSpeech } from '@/composables/useSpeech'
 import {
-  DEFAULT_QUEST_ENERGY,
-  DEFAULT_QUEST_TIME,
-  DEFAULT_TASK_PRIORITY,
   splitTitle,
   CaptureError,
   type CaptureInput,
@@ -156,7 +155,7 @@ const type = ref<Destination>('later')
 const title = ref('')
 const notes = ref('')
 const dueDate = ref('')
-const priority = ref(DEFAULT_TASK_PRIORITY)
+const priority = ref(DEFAULT_PRIORITY)
 const reminderTime = ref('')
 const reminderError = ref('')
 const energy = ref<EnergyLevel>(DEFAULT_QUEST_ENERGY)
@@ -241,7 +240,7 @@ function reset() {
   title.value = ''
   notes.value = ''
   dueDate.value = ''
-  priority.value = DEFAULT_TASK_PRIORITY
+  priority.value = DEFAULT_PRIORITY
   reminderTime.value = ''
   reminderError.value = ''
   energy.value = DEFAULT_QUEST_ENERGY
@@ -330,10 +329,6 @@ function savedMessage(input: CaptureInput) {
 }
 
 async function savePostIt() {
-  if (!plainText(postBody.value)) {
-    error.value = pm.emptyError
-    return
-  }
   saving.value = true
   try {
     try {
@@ -365,8 +360,8 @@ async function save() {
   }
   // SPEC §5 High-priority tasks: saving never sets a reminder off at once.
   reminderError.value = ''
-  const reminder = type.value === 'task' ? taskReminder(priority.value, dueDate.value || null, reminderTime.value) : null
-  if (reminderInPast({ due_date: dueDate.value || null, reminder_time: reminder }, null)) {
+  const reminder = type.value === 'task' ? checkedReminder({ priority: priority.value, due_date: dueDate.value, reminder_time: reminderTime.value }, null) : null
+  if (reminder === 'past') {
     reminderError.value = messages.tasks.reminderPast
     return
   }
@@ -393,11 +388,20 @@ async function save() {
         monthly: habitMonthly.value,
         startDate: habitStart.value,
         notifyTime: habitTime.value || null,
-        timerMinutes: habitTime.value ? habitTimer.value : null,
+        // A timer without a reminder time is dropped by the habit rules (SPEC §5 Habits).
+        timerMinutes: habitTimer.value,
         isPriority: habitPriority.value,
       },
     }
-    await brain.capture(input)
+    try {
+      await brain.capture(input)
+    } catch (err) {
+      // The reminder's minute can pass between the check above and the save.
+      if (!(err instanceof CaptureError) || err.reason === 'bucket' || err.reason === 'bucket-name') throw err
+      if (err.reason === 'reminder') reminderError.value = messages.tasks.reminderPast
+      else error.value = m.emptyError
+      return
+    }
     const message = savedMessage(input)
     reset()
     beforeHeard.value = null

@@ -1,6 +1,7 @@
 <template>
   <MoreOptions :title="m.people" :summary="m.attendeesSummary(invited.length, goingCount)" :start-open="invited.length + pending.length > 0" test-id="event-people">
     <p class="text-xs text-muted">{{ m.peopleHint }} {{ m.limit }}</p>
+    <ListFailed v-if="invitedList.state.value === 'failed'" @retry="loadInvited" />
 
     <ul v-if="invited.length" class="flex flex-col gap-1" :aria-label="m.invited">
       <li v-for="p in invited" :key="p.invite_id" class="flex items-center justify-between gap-2 text-sm" data-testid="invited-person">
@@ -62,6 +63,8 @@
 // SPEC §5 Shared events and invitations: invite people by typing an email or phone number, or from my people (the
 // Contacts window); see who's invited and their answers.
 import { computed, ref, watch } from 'vue'
+import { useServerList } from '@/server/useServerList'
+import ListFailed from '@/components/ListFailed.vue'
 import ContactsDialog from '@/events/components/ContactsDialog.vue'
 import MoreOptions from '@/components/MoreOptions.vue'
 import { contactKey, parseContact } from '@/events/contacts'
@@ -90,11 +93,10 @@ const c = messages.connections
 const brain = useBrainStore()
 
 // ---------- Already invited (from the server; names and answers) ----------
-const invited = ref<EventPerson[]>([])
-async function loadInvited() {
-  if (props.isNew || !brain.online) return
-  invited.value = await eventPeople(props.eventId).catch(() => [])
-}
+// SPEC §7 Lists from the server: loaded when online and again on coming back; a failed load says so.
+const invitedList = useServerList(() => eventPeople(props.eventId), [] as EventPerson[], { skip: () => props.isNew, follow: () => props.eventId })
+const invited = invitedList.value
+const loadInvited = invitedList.reload
 watch(invited, (list) => emit('invited', list))
 // SPEC §10 Scheduler: optional people don't hold up a suggested time; saved on the invitation straight away.
 async function setOptional(p: EventPerson, value: boolean) {
@@ -104,7 +106,6 @@ async function setOptional(p: EventPerson, value: boolean) {
 function setPendingOptional(i: number, value: boolean) {
   emit('update:modelValue', pending.value.map((x, j) => (j === i ? { ...x, optional: value } : x)))
 }
-watch(() => props.eventId, loadInvited, { immediate: true })
 async function remove(p: EventPerson) {
   contactError.value = ''
   try {

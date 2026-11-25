@@ -3,6 +3,7 @@ import { FakeSupabase, TEST_USER_ID } from '../support/fakeSupabase'
 import { isSafari } from '../support/devices'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -113,7 +114,7 @@ test.describe('Spec §5 Celebrations: finishing a set', () => {
     await expect(page.getByTestId('routine-progress')).toHaveAttribute('style', /width: 50%/)
     await page.getByRole('button', { name: msg.routines.run.completed }).click()
     await page.clock.runFor(700)
-    await expect(page).toHaveURL(/\/routines$/)
+    await expectPath(page, '/routines')
     await expect(message(page)).toHaveText(msg.celebrations.badgeEarned(msg.celebrations.badges.first_routine))
   })
 

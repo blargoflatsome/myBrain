@@ -81,7 +81,7 @@
           <RouterLink
             v-for="f in stats.favorites"
             :key="f.bucket.id"
-            :to="{ name: 'vault', query: { bucket: f.bucket.id } }"
+            :to="linkTo({ kind: 'bucket', bucket: f.bucket.id })"
             :class="[card, 'min-w-0 hover:border-accent']"
             data-testid="dash-favorite"
           >
@@ -101,6 +101,7 @@
 </template>
 
 <script setup lang="ts">
+import { linkTo } from '@/router/links'
 // SPEC §5 Dashboard: yesterday, days since your worst day, favorite buckets and Trophies. Updates live.
 import { readDayData } from '@/journal/dayData'
 import { useDeviceQuery } from '@/sync/useRows'
@@ -121,7 +122,7 @@ import { cancelTask, moveTask } from '@/tasks/rules'
 import UndoLine from '@/components/UndoLine.vue'
 import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import type { TaskRow } from '@/sync/types'
-import { addDays } from '@/tasks/days'
+import { addDays } from '@/time/days'
 import { messages } from '@/messages'
 import { card, smallButton, smallNumber } from '@/ui/styles'
 import TrophiesSection from '@/trophies/components/TrophiesSection.vue'

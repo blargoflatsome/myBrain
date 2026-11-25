@@ -3,6 +3,7 @@ import { openAttendees, openSchedule } from '../support/events'
 import { FakeSupabase } from '../support/fakeSupabase'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 // Spec §3: time-dependent behaviour runs on a controlled clock. New York, Tue Nov 10 2026, 9:00 am.
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -132,7 +133,7 @@ test.describe('Spec §10 Connections part 4: the guest page, signed out', () => 
     await page.getByRole('button', { name: msg.guest.yes }).click()
     await expect(prompt).toBeVisible()
     await prompt.getByRole('button', { name: msg.guest.signUpButton }).click()
-    await expect(page).toHaveURL(/\/$/)
+    await expectPath(page, '/')
     expect(await page.evaluate(() => sessionStorage.getItem('my-brain:after-sign-in'))).toBe('/rsvp/inv-carol/tok-carol')
   })
 })

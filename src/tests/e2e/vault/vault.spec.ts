@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
-import { goTo } from '../support/nav'
+import { goTo, expectPath } from '../support/nav'
 import { messages as msg } from '../../../messages'
 
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -201,6 +201,6 @@ test.describe('Spec §5 The Vault, Shared Vaults', () => {
     await expect(leave).toContainText(msg.vault.memberSettings.about('Alice Able'))
     await leave.getByRole('button', { name: msg.vault.memberSettings.leave }).click()
     await expect.poll(() => rpc('leave_vault_bucket')[0]?.args).toEqual({ bucket: 'b-shared' })
-    await expect(page).toHaveURL(/\/vault$/)
+    await expectPath(page, '/vault')
   })
 })

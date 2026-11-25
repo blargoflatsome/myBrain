@@ -1,7 +1,7 @@
 // Dashboard stats (SPEC §5 Dashboard): yesterday's summary and leftovers, days since your worst day and favorite buckets.
 // journalStreaks is also used by Trophies.
 import type { JournalEntryRow, JournalStats, TaskRow, VaultBucketRow, VaultItemRow } from '@/sync/types'
-import { addDays, daysBetween } from '@/tasks/days'
+import { addDays, daysBetween } from '@/time/days'
 import { live } from '@/sync/live'
 import { wroteIn } from '@/journal/body'
 

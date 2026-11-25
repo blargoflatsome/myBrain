@@ -40,7 +40,7 @@ import SlideToComplete from '@/reminders/components/SlideToComplete.vue'
 import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
 import { duePriorities, type DuePriority } from '@/reminders/priority'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/time/days'
 import { messages } from '@/messages'
 import { secondaryButton } from '@/ui/styles'
 

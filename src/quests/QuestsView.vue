@@ -109,20 +109,19 @@
 </template>
 
 <script setup lang="ts">
+import { useOpenLinked } from '@/router/links'
 // SPEC §5 Random Quest: pick a project from the bucket list when bored, filtered by time and energy.
 import { useRows } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, nextTick, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, nextTick, ref } from 'vue'
 import QuestEditor from '@/quests/components/QuestEditor.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
 import RowDelete from '@/components/RowDelete.vue'
-import { useAuthStore } from '@/stores/auth'
-import { DEFAULT_QUEST_ENERGY, DEFAULT_QUEST_TIME } from '@/capture/capture'
+import { blankQuest } from '@/quests/actions'
 import RichNotes from '@/components/RichNotes.vue'
 import { useBrainStore } from '@/stores/brain'
-import { acceptQuest, byEffort, ENERGY_LEVELS, markPicked, pickFromDraw, RECENT_PICKS, tasksInDraw, TIME_BUCKETS } from '@/quests/picker'
+import { byEffort, ENERGY_LEVELS, pickFromDraw, RECENT_PICKS, tasksInDraw, TIME_BUCKETS } from '@/quests/picker'
 import { moveTask, toggleDone } from '@/tasks/rules'
 import { useToday } from '@/composables/useToday'
 import UndoLine from '@/components/UndoLine.vue'
@@ -173,9 +172,8 @@ async function pick() {
     currentTaskId.value = choice.id
     return
   }
-  const quest = live.value.find((q) => q.id === choice.id)!
-  await brain.save('quests', markPicked(quest))
-  currentId.value = quest.id
+  await brain.pickQuest(choice.id)
+  currentId.value = choice.id
 }
 
 async function taskDone(t: TaskRow) {
@@ -189,7 +187,7 @@ async function doToday(t: TaskRow) {
 }
 
 async function accept(q: QuestRow) {
-  await brain.save('quests', acceptQuest(q))
+  await brain.acceptQuest(q.id)
   currentId.value = null
   notice.value = m.accepted
 }
@@ -199,7 +197,7 @@ const resultBox = ref<HTMLElement | null>(null)
 async function pickThis(q: QuestRow) {
   notice.value = ''
   currentTaskId.value = null
-  await brain.save('quests', markPicked(q))
+  await brain.pickQuest(q.id)
   currentId.value = q.id
   await nextTick()
   resultBox.value?.scrollIntoView({ block: 'nearest' })
@@ -227,32 +225,20 @@ function edit(q: QuestRow) {
   editing.value = q
 }
 // SPEC §5 Random Quest: + New quest, starting as Ugh and 30 min like every new quest.
-const auth = useAuthStore()
 function startNew() {
   isNew.value = true
-  editing.value = { id: crypto.randomUUID(), user_id: auth.user?.id ?? '', title: '', details: null, energy_level: DEFAULT_QUEST_ENERGY, time_bucket: DEFAULT_QUEST_TIME, status: 'open', times_picked: 0, deleted_at: null }
+  editing.value = blankQuest()
 }
-// Opened with ?quest=<id> (from search): open that quest's editor.
-const route = useRoute()
-const router = useRouter()
-watch(
-  [() => route.query.quest, all],
-  ([id]) => {
-    if (typeof id !== 'string') return
-    const quest = all.value.find((q) => q.id === id && !q.deleted_at)
-    if (!quest) return
-    edit(quest)
-    void router.replace({ query: {} })
-  },
-  { immediate: true },
-)
+// Opened from a link (search): open its editor.
+useOpenLinked('quest', all, edit)
 async function saveEdit(q: QuestRow) {
-  await brain.save('quests', q)
+  if (isNew.value) await brain.addQuest(q)
+  else await brain.saveQuest(q)
   editing.value = null
 }
 async function remove(q: QuestRow) {
   const place = { row: { id: q.id, in: pageItems.value }, list: 'all' }
-  const putBack = await brain.remove('quests', q.id)
+  const putBack = await brain.deleteQuest(q.id)
   if (currentId.value === q.id) currentId.value = null
   if (editing.value?.id === q.id) editing.value = null
   undoable.offer(messages.undo.deleted(q.title), putBack, place)

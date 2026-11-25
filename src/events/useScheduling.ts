@@ -3,8 +3,7 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import { findTimes, personTimes, statusAt, type Interval, type PersonTimes, type Status, type Suggestion } from '@/events/availability'
 import { freeBusy } from '@/events/sharing'
-import { zonedTime } from '@/habits/rules'
-import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
+import { addDays, deviceTimeZone, todayIn, zonedTime } from '@/time/days'
 import { useBrainStore } from '@/stores/brain'
 
 /** A connection on the event: already invited, or about to be. */

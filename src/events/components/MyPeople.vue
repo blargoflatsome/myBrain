@@ -46,12 +46,13 @@
 import { useRows } from '@/sync/useRows'
 import RowDelete from '@/components/RowDelete.vue'
 import CloseX from '@/components/CloseX.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useServerList } from '@/server/useServerList'
 import UndoLine from '@/components/UndoLine.vue'
 import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import PageControls from '@/components/PageControls.vue'
 import { usePagination } from '@/composables/usePagination'
-import { contactKey, isEmail, isPhone } from '@/events/contacts'
+import { isEmail, isPhone } from '@/events/contacts'
 import { personLabel, shownAs, sortPeople } from '@/events/people'
 import { peopleWithAccounts, requestConnection } from '@/connections/connections'
 import { messages } from '@/messages'
@@ -96,22 +97,19 @@ async function saveEdit() {
   if (e && !isEmail(e)) return (error.value = m.badEmail)
   if (ph && !isPhone(ph)) return (error.value = m.badPhone)
   if (!e && !ph) return (error.value = m.needOne)
-  const row = { ...editing.value, name: name.value.trim() || null, email: e || null, phone: ph || null }
   // Someone else already saved with this email or phone: say so instead of saving them twice.
-  const key = contactKey(row)
-  const twin = rows.value.find((p) => p.id !== row.id && contactKey(p) === key)
-  if (twin) return (error.value = m.alreadySaved(personLabel(twin)))
-  await brain.save('people', row)
-  if (adding.value) notice.value = m.addedNotice(personLabel(row))
+  const result = await brain.savePerson({ ...editing.value, name: name.value, email: e, phone: ph })
+  if ('twin' in result) return (error.value = m.alreadySaved(personLabel(result.twin)))
+  if (adding.value) notice.value = m.addedNotice(personLabel(result.saved))
   editor.value?.close()
 }
 
 // Saved people who have accounts show Connect (SPEC §10 Connections).
-const withAccounts = ref<Set<string>>(new Set())
-async function loadAccounts() {
-  if (brain.online) withAccounts.value = await peopleWithAccounts().catch(() => new Set<string>())
-}
-onMounted(loadAccounts)
+// Loaded when online and again on coming back (SPEC §7). If it can't load, Connect just doesn't show: the people
+// themselves are on this device.
+const accounts = useServerList(peopleWithAccounts, new Set<string>())
+const withAccounts = accounts.value
+const loadAccounts = accounts.reload
 async function connect(p: PersonRow) {
   if (!p.email) return
   await requestConnection(p.email)
@@ -124,6 +122,6 @@ const undoable = useUndoInPlace()
 const peopleShown = computed(() => undoable.placed(pageItems.value))
 async function askRemove(p: PersonRow) {
   const place = { row: { id: p.id, in: pageItems.value } }
-  undoable.offer(messages.undo.removed(personLabel(p)), await brain.remove('people', p.id), place)
+  undoable.offer(messages.undo.removed(personLabel(p)), await brain.removePerson(p.id), place)
 }
 </script>

@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
 
@@ -43,7 +44,7 @@ test.describe('Spec §5 Account page', () => {
     await dialog.getByLabel(msg.deleteData.typeLabel).fill('delete')
     await expect(confirm).toBeEnabled()
     await confirm.click()
-    await expect(page).toHaveURL(/\/\?deleted=1$/)
+    await expect(page).toHaveURL((url) => url.pathname === '/' && url.search === '?deleted=1')
     await expect(page.getByRole('status')).toHaveText(msg.signIn.deleted)
     // Nothing else is changed: the only other calls are reads (which saved people use My Brain, trophy counts, my connections).
     expect(server.rpcCalls.filter((c) => !READS.includes(c))).toEqual(['delete_my_account'])
@@ -58,7 +59,7 @@ test.describe('Spec §5 Account page', () => {
     const dialog = page.getByRole('dialog', { name: msg.profile.deleteConfirm.heading })
     await dialog.getByRole('button', { name: msg.profile.deleteConfirm.keep }).click()
     await expect(dialog).toBeHidden()
-    await expect(page).toHaveURL(/\/account$/)
+    await expectPath(page, '/account')
     expect(server.rpcCalls.filter((c) => !READS.includes(c))).toEqual([])
   })
 
@@ -70,7 +71,7 @@ test.describe('Spec §5 Account page', () => {
     await dialog.getByLabel(msg.deleteData.typeLabel).fill('DELETE')
     await dialog.getByRole('button', { name: msg.profile.deleteConfirm.confirm }).click()
     await expect(dialog.getByRole('alert')).toHaveText("Couldn't delete your account. Check your connection and try again.")
-    await expect(page).toHaveURL(/\/account$/)
+    await expectPath(page, '/account')
   })
 })
 

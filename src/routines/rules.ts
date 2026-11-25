@@ -1,7 +1,7 @@
 // Routine rules (SPEC §5 Routines): weekdays or run anytime, runs, habit steps, next step, and completion stats.
 import type { HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
-import { addDays, onWeek } from '@/tasks/days'
-import { isScheduled as habitScheduled, weekdayOf } from '@/habits/rules'
+import { addDays, onWeek, weekdayOf } from '@/time/days'
+import { isScheduled as habitScheduled } from '@/habits/rules'
 
 
 /** A run-anytime routine has no weekdays: no reminder, never missed, progress kept until finished. */

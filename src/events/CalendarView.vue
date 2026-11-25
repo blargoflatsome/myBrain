@@ -69,6 +69,7 @@
 </template>
 
 <script setup lang="ts">
+import { useOpenLinked } from '@/router/links'
 // SPEC §5 Calendar and reminders: month, week and day views of my dated tasks and events.
 // Tap a day or time (or "+ New event") to add an event; tap an item to open it.
 import { readTables } from '@/sync/db'
@@ -76,7 +77,7 @@ import { useRows, useDeviceQuery, readRows, findRow } from '@/sync/useRows'
 import { useProfileStore } from '@/stores/profile'
 import { computed, onMounted, ref, watch } from 'vue'
 import { isDark } from '@/ui/appearance'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import FullCalendar from '@fullcalendar/vue3'
 import classicTheme from '@fullcalendar/vue3/themes/classic'
 import dayGridPlugin from '@fullcalendar/vue3/daygrid'
@@ -100,7 +101,7 @@ import { takeStartWith } from '@/events/startWith'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
 import { calendarItems, newEvent, nextWholeHour, type CalendarItem } from '@/events/rules'
-import { addDays } from '@/tasks/days'
+import { addDays } from '@/time/days'
 import { messages } from '@/messages'
 import type { EventRow, TaskRow } from '@/sync/types'
 import UndoLine from '@/components/UndoLine.vue'
@@ -113,7 +114,6 @@ import { myUnavailable } from '@/events/availability'
 
 const brain = useBrainStore()
 const route = useRoute()
-const router = useRouter()
 const m = messages.calendar
 const { today } = useToday()
 
@@ -221,12 +221,12 @@ function editItem(item: CalendarView) {
     editing.value = item.row
   }
 }
-async function saveTask(t: TaskRow) {
-  await brain.saveTask(t)
+async function saveTask(t: TaskRow, tags: string[]) {
+  await brain.saveTask(t, tags)
   editingTask.value = null
 }
 async function deleteTask(t: TaskRow) {
-  const putBack = await brain.remove('tasks', t.id)
+  const putBack = await brain.deleteTask(t.id)
   editingTask.value = null
   undoable.offer(messages.undo.deleted(t.title), putBack)
 }
@@ -321,25 +321,23 @@ function cancelled(targets: ShareTarget[]) {
   }
 }
 async function deleteEvent(e: EventRow, confirmed = false) {
-  const putBack = await brain.remove('events', e.id)
+  const putBack = await brain.deleteEvent(e.id)
   editing.value = null
   // Without guests it went straight away, so it can come back (SPEC §2 Undo).
   if (!confirmed) undoable.offer(messages.undo.deleted(e.title), putBack)
 }
 
-// Opened with ?date= (a reminder or search) and maybe ?event= (search): go there and open the event.
-watch(
-  [() => route.query.event, events],
-  ([id]) => {
-    if (typeof id !== 'string' || editing.value || viewItem.value) return
-    const e = events.value.find((x) => x.id === id)
-    if (e) {
-      openEvent(e)
-      void router.replace({ query: { date: route.query.date } })
-    }
-  },
-  { immediate: true },
-)
+// Opened from a link: ?date= (a reminder or search) goes to that day, also when the calendar is already open, and
+// ?event= opens the event on its own day (alerts' links name only the event).
+useOpenLinked('event', events, (e) => {
+  // An event being edited stays open; one only being looked at gives way to the link.
+  if (editing.value) return
+  if (typeof route.query.date !== 'string') api()?.gotoDate(e.start_date)
+  openEvent(e)
+}, (query) => ({ date: query.date }))
+watch(() => route.query.date, (date) => {
+  if (typeof date === 'string') api()?.gotoDate(date)
+})
 onMounted(() => {
   if (typeof route.query.date === 'string') api()?.gotoDate(route.query.date)
   const person = takeStartWith()

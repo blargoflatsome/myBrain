@@ -1,9 +1,10 @@
 // Reading and writing routines, their steps and runs (SPEC §5 Routines).
 import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
+import { saveItemTags } from '@/tags/actions'
 import type { ActionContext } from '@/sync/actions'
 import { getRow } from '@/sync/db'
 import { activeSteps, completeSkipped, currentRun, habitDoneStepIds, recordStep, resumableRun, stepsForDay } from '@/routines/rules'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/time/days'
 import { achieved } from '@/celebrate/bus'
 
 export function routineActions({ ready }: ActionContext, completeHabit: (habit: HabitRow, now: Date) => Promise<void>) {
@@ -24,9 +25,11 @@ export function routineActions({ ready }: ActionContext, completeHabit: (habit: 
    * Save a routine and its ordered steps. Steps keep their ids so history stays attached; steps no longer in the
    * list are soft-deleted (their history is kept, SPEC §5 Routines).
    */
-  async function saveRoutine(routine: RoutineRow, steps: { id?: string; title: string; habitId?: string | null }[]) {
+  /** Save a routine and its steps; with `tags` (from the editor), its tags too, after it. */
+  async function saveRoutine(routine: RoutineRow, steps: { id?: string; title: string; habitId?: string | null }[], tags?: string[]) {
     const { engine: e, uid, local } = ready()
     await e.save('routines', { ...routine, user_id: uid })
+    if (tags) await saveItemTags(ready, 'routine', routine.id, tags)
     const existing = activeSteps(await local.routine_steps.where('routine_id').equals(routine.id).toArray(), routine.id)
     const keep = new Set<string>()
     const today = todayIn(deviceTimeZone())

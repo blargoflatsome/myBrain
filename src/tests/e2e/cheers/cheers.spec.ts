@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
+import { expectPath } from '../support/nav'
 
 const m = msg.cheers
 const NOW = new Date('2026-11-17T17:00:00Z')
@@ -180,7 +181,7 @@ test.describe('Spec §5 Cheers', () => {
     await expect.poll(() => server.written('notifications').at(-1)).toMatchObject({ kind: 'cheers_offer', title: m.offer.didIt, body: m.suggest.oldTask(4) })
     expect(await banner.evaluate((el) => el.contains(document.activeElement))).toBe(false)
     await banner.getByRole('button', { name: m.offer.didIt }).click()
-    await expect(page).toHaveURL(/\/cheers$/)
+    await expectPath(page, '/cheers')
     await expect(page.getByTestId('did-it-text')).toHaveValue(m.suggest.oldTask(4))
   })
 })

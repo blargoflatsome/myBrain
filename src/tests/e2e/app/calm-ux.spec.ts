@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
 import { expectFocused } from '../support/focus'
-import { goTo } from '../support/nav'
+import { expectPath, goTo } from '../support/nav'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
 
@@ -48,6 +48,8 @@ test.describe('Spec §2: one thing goes straight away, with Undo', () => {
     await page.clock.runFor(60_000)
     await expect(undoButton(page)).toBeVisible()
     await goTo(page, msg.nav.journal)
+    // Journal loads its page code on first visit; going on before it arrives would never leave Tasks.
+    await expectPath(page, '/journal')
     await goTo(page, msg.nav.home)
     await expect(page.getByRole('heading', { name: msg.nav.home, level: 1 })).toBeVisible()
     await expect(bar(page)).toHaveCount(0)
