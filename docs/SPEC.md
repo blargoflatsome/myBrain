@@ -667,11 +667,6 @@ Trophies give me things to work toward and a little dopamine for using the app. 
 - **Dropped (2026-11-24, user):** automatic email sending (with its domain and email service) and Home Assistant. Guests keep being messaged one at a time from my own apps (§5 Cancelling an event or attendance).
 - **Smartwatch:** start by forwarding notifications to the watch; native watch apps come later.
 
-- **More gamifying, worth more thought later (2026-11-18, user; don't build yet):**
-  - **Mystery drops:** now and then, finishing something drops a surprise unlock (a Post It colour, an app theme, a header icon).
-  - **Combo meter:** finishing 3 or more things within an hour builds a combo ("3× combo") that fades quietly; it rewards momentum and never punishes.
-  - **Monthly challenge:** one optional goal a month (for example, journal 10 days in November) with a trophy only that month can earn.
-
 ### iPhone (the installed web app, built 2026-11-08; nothing more planned, 2026-11-25, user)
 - **The app stays a web app on iPhone** (installed with Share → Add to Home Screen; iPhones never offer an install prompt). No App Store app.
 - **Tested on Safari's engine:** the browser tests also run as an iPhone (Playwright's WebKit "iPhone 14"), so every change is checked against Safari.
