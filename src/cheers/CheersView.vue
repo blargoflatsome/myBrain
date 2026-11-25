@@ -50,8 +50,8 @@
         <h2 id="feed-heading" class="sr-only">{{ m.heading }}</h2>
         <button type="button" :class="[smallButton, 'ml-auto']" :disabled="!brain.online || loading" data-testid="cheers-refresh" @click="refresh">{{ loading ? m.refreshing : m.refresh }}</button>
       </div>
-      <p v-if="loadFailed" class="text-sm text-danger" role="alert">{{ m.loadFailed }}</p>
-      <p v-else-if="loaded && !posts.length" class="text-muted" data-testid="cheers-empty">{{ m.empty }}</p>
+      <ListFailed v-if="feed.state.value === 'failed'" :message="m.loadFailed" @retry="load" />
+      <p v-else-if="feed.state.value === 'ready' && !posts.length" class="text-muted" data-testid="cheers-empty">{{ m.empty }}</p>
       <ul class="flex flex-col gap-3" data-testid="cheers-feed">
         <template v-for="{ key, row: p, line } in undoable.placed(posts)" :key="key">
           <UndoLine v-if="line" :line="line" @undo="(el) => undoable.run(line, el)" />
@@ -78,12 +78,14 @@
 <script setup lang="ts">
 // SPEC §5 Cheers: the anonymous 48-hour feed, I did it!, I'm stuck (with Breathe), reactions and Hide posts from this
 // person. Everything comes from the server; nothing here is kept on the device.
-import { computed, nextTick, onMounted, ref, useId, watch } from 'vue'
+import { computed, nextTick, ref, useId, watch } from 'vue'
+import { useServerList } from '@/server/useServerList'
+import ListFailed from '@/components/ListFailed.vue'
 import AppIcon from '@/components/AppIcon.vue'
 import MoreOptions from '@/components/MoreOptions.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import CheerPostCard from '@/cheers/components/CheerPostCard.vue'
-import { cheerFeed, cheerOn, hiddenPeople, hideAuthor, postCheer, shareCheer, showAgain, stuckCount, unreactCheer, type CheerPost, type HiddenPerson } from '@/cheers/cheers'
+import { cheerFeed, switchCheer, hiddenPeople, hideAuthor, postCheer, shareCheer, showAgain, stuckCount, unreactCheer, type CheerPost, type HiddenPerson } from '@/cheers/cheers'
 import { sayWhy } from '@/server/server'
 import { CHEERS_OFFER_ALERT, MAX_CHARS, pickOne, postText, type Reaction } from '@/cheers/rules'
 import { useNow } from '@/composables/useNow'
@@ -110,37 +112,22 @@ const hintId = useId()
 const countId = useId()
 const errorId = useId()
 
-const posts = ref<CheerPost[]>([])
+// SPEC §7 Lists from the server: the feed loads when I'm online and again when I come back.
+const feed = useServerList(cheerFeed, [] as CheerPost[])
+const posts = feed.value
 const loading = ref(false)
-const loaded = ref(false)
-const loadFailed = ref(false)
 async function load() {
-  if (!brain.online) return
   loading.value = true
   try {
-    posts.value = await cheerFeed()
-    loadFailed.value = false
-    loaded.value = true
-  } catch {
-    loadFailed.value = true
+    return await feed.reload()
   } finally {
     loading.value = false
   }
 }
-onMounted(() => {
-  void load()
-  void loadHidden()
-})
 // SPEC §2 Buttons answer every press: Refresh says it's working, then that the feed is up to date.
 async function refresh() {
-  await load()
-  if (!loadFailed.value) celebrate.say(m.refreshed)
+  if (await load()) celebrate.say(m.refreshed)
 }
-watch(() => brain.online, (on) => {
-  if (!on) return
-  void load()
-  void loadHidden()
-})
 
 // ---------- Posting ----------
 const box = ref<HTMLTextAreaElement | null>(null)
@@ -238,12 +225,8 @@ const reacting = ref<string | null>(null)
 async function react(post: CheerPost, reaction: Reaction) {
   reacting.value = post.id
   try {
-    // Tapping another icon switches: take the one I sent back first (SPEC §5 Cheers, Compact).
-    if (post.my_reaction) {
-      await unreactCheer(post.id)
-      post.my_reaction = null
-    }
-    await cheerOn(post.id, reaction)
+    // Tapping another icon switches (SPEC §5 Cheers, Compact).
+    await switchCheer(post.id, post.my_reaction ?? null, reaction)
     post.my_reaction = reaction
     // The smug line is only ever for the one cheering (SPEC §5 Cheers).
     celebrate.say(pickOne(m.afterReact))
@@ -283,17 +266,12 @@ async function hide(post: CheerPost) {
 }
 
 // ---------- Hidden people ----------
-const hidden = ref<HiddenPerson[]>([])
+// The list just doesn't show if it can't load; the feed says if Cheers can't load.
+const hiddenLoad = useServerList(hiddenPeople, [] as HiddenPerson[])
+const hidden = hiddenLoad.value
 const hiddenList = ref<HTMLElement | null>(null)
 const hiddenText = (h: HiddenPerson) => (h.post_kind ? postText(h.post_kind, h.post_body ?? '') : m.hiddenUnknown)
-async function loadHidden() {
-  if (!brain.online) return
-  try {
-    hidden.value = await hiddenPeople()
-  } catch {
-    // The list just doesn't show; the feed says if Cheers can't load.
-  }
-}
+const loadHidden = hiddenLoad.reload
 async function unhide(h: HiddenPerson) {
   const at = hidden.value.indexOf(h)
   try {

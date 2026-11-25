@@ -39,6 +39,14 @@ export async function cheerOn(post: string, reaction: Reaction) {
 }
 /** Take my reaction back, so I can pick again (SPEC §5 Cheers). */
 export const unreactCheer = (post: string) => call<void>('unreact_cheer', { post })
+/**
+ * Cheer with this icon (SPEC §5 Cheers, Compact): if I'd already sent another, it's taken back first, so tapping
+ * another icon switches. Switching never counts twice (the server keeps one reaction per person per post).
+ */
+export async function switchCheer(post: string, from: Reaction | null, to: Reaction) {
+  if (from) await unreactCheer(post)
+  return cheerOn(post, to)
+}
 /** Hide posts from this person; returns the hide's id, for Undo (null if there was nothing to hide). */
 export const hideAuthor = (post: string) => call<string | null>('block_cheer_author', { post })
 

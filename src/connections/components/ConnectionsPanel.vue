@@ -1,6 +1,7 @@
 <template>
   <div class="flex flex-col" :class="nested ? 'gap-5' : 'gap-6'">
     <p v-if="!brain.online" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ m.offline }}</p>
+    <ListFailed v-else-if="lists.state.value === 'failed'" @retry="load" />
     <section v-if="incoming.length" :class="part" aria-labelledby="incoming-heading">
       <component :is="h" id="incoming-heading" :class="partHeading">{{ m.incomingHeading }}</component>
       <ul class="flex flex-col gap-3">
@@ -111,7 +112,9 @@
 // SPEC §10 Connections: requests to answer (Accept, Decline, Block), my connections (remove or block), requests I sent,
 // then the ways to connect: exact email or phone (the answer never says whether they have an account), a code, a link.
 // SPEC §5 Account page, People group: the same part shows on the Connections page and in Account › People (nested).
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useServerList } from '@/server/useServerList'
+import ListFailed from '@/components/ListFailed.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import {
@@ -151,19 +154,19 @@ const partHeading = computed(() => (props.nested ? 'font-medium' : 'text-lg font
 const m = messages.connections
 const pm = messages.personProfile
 const brain = useBrainStore()
-const incoming = ref<IncomingRequest[]>([])
-const sent = ref<SentRequest[]>([])
-const connections = ref<Connection[]>([])
-const links = ref<ActiveLink[]>([])
-async function load() {
-  if (!brain.online) return
-  ;[incoming.value, sent.value, connections.value, links.value] = await Promise.all([
-    incomingRequests().catch(() => []),
-    sentRequests().catch(() => []),
-    myConnections().catch(() => []),
-    myLinks().catch(() => []),
-  ])
-}
+// SPEC §7 Lists from the server: loaded when online and again on coming back; a failed load says so.
+const lists = useServerList(
+  async () => {
+    const [incoming, sent, connections, links] = await Promise.all([incomingRequests(), sentRequests(), myConnections(), myLinks()])
+    return { incoming, sent, connections, links }
+  },
+  { incoming: [] as IncomingRequest[], sent: [] as SentRequest[], connections: [] as Connection[], links: [] as ActiveLink[] },
+)
+const incoming = computed(() => lists.value.value.incoming)
+const sent = computed(() => lists.value.value.sent)
+const connections = computed(() => lists.value.value.connections)
+const links = computed(() => lists.value.value.links)
+const load = lists.reload
 
 // ---------- Part 2: share a link or code; use someone's code ----------
 const fresh = ref<NewLink | null>(null)
@@ -222,7 +225,6 @@ async function useCode() {
   askStatus.value = m.accepted(name)
   await load()
 }
-onMounted(load)
 
 const contact = ref('')
 const askError = ref('')

@@ -438,3 +438,10 @@ Candidate 4 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. The push toggle wrote `push_
 - **`profile.update` says why it failed** (`offline` or `failed`); screens show "offline" only when offline, and a plain "couldn't save" line otherwise (draft wording for the user).
 - **Settings apply on this device at once**, appearance and celebrations alike, from one place (the profile store, also when my profile loads); the save carries them to my other devices, and a failed save says so but keeps the device's choice.
 - **Tests:** the push rules through the fake adapter; a failed profile save gives its reason; the profile timezone kept in step with the device (listed in PROGRESS as having no test).
+
+## 2026-11-24 One way to show a list from the server (architecture review 3)
+Candidate 6 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Connections, Offsite connections' "has an account" check and an event's invitee list loaded once when opened (opened offline, they stayed empty after reconnecting) and read a failed load as empty; only Cheers reloaded on reconnect. The suspected Cheers over-count isn't real: `react_cheer` reuses my old reaction row and skips the tally, and the First is earned once. User's choices (all as recommended):
+- **`useServerList`** (`src/server/`), like `useRows` for my own rows: loads when online, reloads when the app comes back online and when asked, and says whether a list is loading, loaded, failed or offline. A list that loaded once keeps showing while a later reload fails.
+- **Failed isn't empty** (SPEC §7): a list that couldn't load says so calmly with Try again; offline keeps each screen's own offline line.
+- **Switching a Cheers reaction** is one function in `cheers/cheers.ts` (take back, then cheer); no change in behaviour.
+- **Tests:** Vitest through the fake server (loads online, reloads on reconnect, failed reads as failed); the existing browser tests cover the screens.

@@ -1674,6 +1674,8 @@ export const messages = {
     name: 'Jordan Buermann',
     year: (year: number) => `© ${year}`,
   },
+  // A list from the server that couldn't load (SPEC §7). Draft wording for the user to check.
+  serverList: { failed: 'That didn’t load. Try again in a moment.', retry: 'Try again' },
   pages: { previous: 'Previous', next: 'Next', position: (page: number, count: number) => `Page ${page} of ${count}` },
   timeInput: { placeholder: 'Type a time, like 8:30 am', listLabel: 'Suggested times' },
   /** SPEC §5 Date fields. */

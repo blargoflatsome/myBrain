@@ -18,7 +18,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 | 3 | Close brain's raw `save` (review 2, candidate 5) | Worth exploring | Built (branch `close-raw-save`) |
 | 4 | Device settings behind the server seam: push and profile saves | Strong (suspected bug heals itself) | Built (branch `device-settings`) |
 | 5 | One module for calendar days and clock times | Worth exploring | To do |
-| 6 | One way to show a list that comes from the server | Worth exploring | To do |
+| 6 | One way to show a list that comes from the server | Worth exploring | Built (branch `server-lists`) |
 | 7 | One module for "open this item" links | Worth exploring, suspected bug | To do |
 | 8 | Focus and Breathe finish themselves | Worth exploring | To do |
 | 9 | Typed date and time fields share one picker module | Speculative | To do |

@@ -46,7 +46,8 @@
 import { useRows } from '@/sync/useRows'
 import RowDelete from '@/components/RowDelete.vue'
 import CloseX from '@/components/CloseX.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useServerList } from '@/server/useServerList'
 import UndoLine from '@/components/UndoLine.vue'
 import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import PageControls from '@/components/PageControls.vue'
@@ -104,11 +105,11 @@ async function saveEdit() {
 }
 
 // Saved people who have accounts show Connect (SPEC §10 Connections).
-const withAccounts = ref<Set<string>>(new Set())
-async function loadAccounts() {
-  if (brain.online) withAccounts.value = await peopleWithAccounts().catch(() => new Set<string>())
-}
-onMounted(loadAccounts)
+// Loaded when online and again on coming back (SPEC §7). If it can't load, Connect just doesn't show: the people
+// themselves are on this device.
+const accounts = useServerList(peopleWithAccounts, new Set<string>())
+const withAccounts = accounts.value
+const loadAccounts = accounts.reload
 async function connect(p: PersonRow) {
   if (!p.email) return
   await requestConnection(p.email)
