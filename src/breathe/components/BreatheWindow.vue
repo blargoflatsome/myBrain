@@ -39,15 +39,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onScopeDispose, ref, watch } from 'vue'
 import CloseX from '@/components/CloseX.vue'
-import { useBrainStore } from '@/stores/brain'
 import { breathAt, leftMs } from '@/breathe/breathe'
 import { clock } from '@/focus/timer'
 import { useBreatheStore } from '@/stores/breathe'
 import { useWakeLock } from '@/composables/useWakeLock'
 import { primaryButton, secondaryButton } from '@/ui/styles'
 import { messages } from '@/messages'
-
-const brain = useBrainStore()
 
 const breathe = useBreatheStore()
 const m = messages.breathe
@@ -90,8 +87,6 @@ watch(
       if (breathe.tick(now.value)) {
         announcement.value = m.done
         navigator.vibrate?.(200)
-        // Kept for its trophies (SPEC §5 Breathe): only a finished 5 minutes, never one stopped early.
-        void brain.finishBreathe()
       }
     }, 250)
   },

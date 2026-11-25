@@ -453,3 +453,10 @@ Candidate 7 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Links to an item were built 
 - **SQL links stay as they are**; the module reads their formats, pinned by a test.
 - **The route named `home` is renamed `tasks`** (its path `/tasks` is unchanged).
 - **Tests:** each kind's link built and read back to the same item, plus the SQL formats; the calendar browser test checks an event link with no date lands on the event's month.
+
+## 2026-11-24 Focus and Breathe finish themselves (architecture review 3)
+Candidate 8 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. The stores noticed a part ending, but the Focus and Breathe screens read short-lived store values (`workEnded`, `workTogether`) right after `tick` and called `brain.finishFocus` / `brain.finishBreathe` themselves. User's choices (all as recommended):
+- **The stores keep the finish:** `focus.tick` records today's minutes and the activity (with Focused together) and returns `{ ended, work }`; `breathe.tick` records a finished 5 minutes once. `workEnded` and `workTogether` are gone.
+- **Screens keep only what I see and hear:** chime, vibration, notification, ripple and announcement.
+- **Screens still drive the clock** (they need the time to draw it). Focus catches up on the parts that ended while it wasn't on screen, so nothing is lost; a store-owned timer was turned down.
+- **No change in behaviour, so no spec change.** Tests: Vitest on both stores with the real brain and a fake focus room (counted once, together, catch-up, skipped never counts; Breathe once, never paused or closed early).
