@@ -164,7 +164,6 @@ Matches the migrations as of 2026-11-24 (docs review). Planned tables that were 
       - "add learn the ukulele as a quest" → Quest (defaults Ugh, 30 min). "add a habit stretch every morning" → Habit "Stretch every morning" with the habit defaults (every day, starting today). "add a post it buy stamps" → Post It, yellow.
    - **Rules:** command words ("add", "to my tasks", "as a quest") are removed, the rest is kept as heard, trimmed, first letter capitalised. The destination is only matched at the **end** of the sentence (or just before a priority), so "add talk to mom to my tasks" is the task "Talk to mom". **Dates** apply to tasks only and must name a certain day, like date boxes (§5 Date fields); the date words leave the title, using today in the device's time zone. **Times** ("at 5pm") fill a time field where the type has one (a High task with a date: its Reminder time; a habit: its reminder time); otherwise they stay in the title. **Buckets** match by name ignoring case and plurals ("my", "the" ignored); my own buckets win a name tie with shared ones; a type word beats a bucket with the same name ("to my tasks" is always Tasks). A bucket name that doesn't exist leaves the whole sentence in the text box. Nothing heard is ever lost: anything not placed stays in the title or text box.
    - Completing things, routines and anything else by voice: not planned (2026-11-20, user: capture only).
-- Any item can later be converted to another type, for example a vault item into a task.
 
 ### Tasks
 - Daily list, plus the ability to schedule tasks for future days.
@@ -396,7 +395,7 @@ Matches the migrations as of 2026-11-24 (docs review). Planned tables that were 
 - **Time needed**: **30 min**, **2 hours**, **Half a day**, **A full day**. Choosing one offers quests that fit in that time or less.
 - A quest with no time or energy set (for example one made by quick capture) matches any filter.
 - **Tasks in the draw (2026-11-12, user: always):** open tasks due today (carried-over ones too) and Undated tasks are always in the draw alongside quests. Tasks have no energy or time, so they match any filter. A picked task shows **Done** (crosses it off), **Do it today** (Undated only; gives it today's date) and **Re-roll**. Picking a task doesn't change any quest numbers, and the last few tasks picked on the page are skipped like recent quests.
-- Quests are added through Capture or **+ New quest** on the Quests page (2026-11-12). Every new quest, including one filed from Orphans or converted from another item, starts as **Ugh** and **30 min** unless changed.
+- Quests are added through Capture or **+ New quest** on the Quests page (2026-11-12). Every new quest, including one filed from Orphans, starts as **Ugh** and **30 min** unless changed.
 - **Recently picked** means the last 3 quests picked. If every matching quest is recent, the least recently picked match is offered instead of nothing.
 - Accepting moves a quest to In progress, where it can be marked done; quests in progress are not offered by the picker (done ones are, since they're back in the list). Every pick counts toward `times_picked` and sets `last_picked_at`.
 

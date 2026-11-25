@@ -411,7 +411,7 @@ Candidate 1 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Capture built its own task, 
 - **Tests:** one Vitest per kind, "captured equals added", plus filing an Orphan into the Vault earning its First. `fitTitle` tests stay; `buildCaptureRecord` row-shape tests go.
 - Edits (closing raw `save`) are candidate 3, its own branch after this one.
 - **As built:** adds take a draft with the row's own field names, so an editor's row goes straight in, keeping the id its tags were saved under. + New task and + New habit go through `addTask` and `addHabit` too, like + New quest; their blank drafts (`blankTask`, `blankQuest`, `newHabit` with no user) need no `auth.user`. The title limit lives in `src/lib/titles.ts`. Post Its and Orphans also get `created_at` on the device.
-- **Not built, still in SPEC §5:** "any item can later be converted to another type" (a Vault item into a task). Nothing offered it; the old general `convert` had no button. When it's built it gets its own action on the same adds.
+- **Dropped from SPEC §5 (user):** "any item can later be converted to another type" (a Vault item into a task). It was never built (the old general `convert` had no button), so a later review shouldn't suggest building it back.
 
 ## 2026-11-24 "Do it" and "Done" complete, never toggle (architecture review 3)
 Candidate 2 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Up next's habit and task buttons and the slide to complete a priority habit called toggles, so a second tap or a suggestion that hadn't refreshed yet undid the completion; `completeHabit` (never undoes) existed but wasn't used there. User's choices (all as recommended):
