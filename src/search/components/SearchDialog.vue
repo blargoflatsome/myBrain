@@ -98,21 +98,23 @@ const chosenTags = ref<string[]>([])
 // Built only while the window is open: building it reads every searchable row, so keeping it up to date in the
 // background would redo that work after every save anywhere in the app.
 const docs = useDeviceQuery<SearchDoc[]>(
-  async (db) =>
+  async (db, me) =>
     store.isOpen
-      ? searchDocs(
-          await readTables(db, {
+      ? searchDocs({
+          me,
+          ...(await readTables(db, {
             tasks: 'tasks',
             vaultItems: 'vault_items',
             buckets: 'vault_buckets',
             journal: 'journal_entries',
             quests: 'quests',
             events: 'events',
+            invites: 'event_invites',
             habits: 'habits',
             routines: 'routines',
             itemTags: 'item_tags',
-          }),
-        )
+          })),
+        })
       : [],
   [],
   [() => store.isOpen],

@@ -37,6 +37,7 @@ import CloseX from '@/components/CloseX.vue'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
 import { eventPeople, whenText, type EventPerson, type ShareTarget } from '@/events/sharing'
+import { stillCounts } from '@/events/rules'
 import { sayWhy } from '@/server/server'
 import { messages } from '@/messages'
 import type { EventRow } from '@/sync/types'
@@ -61,7 +62,7 @@ watch(
     people.value = []
     dialog.value?.showModal()
     if (!brain.online) return (error.value = m.offline)
-    people.value = (await eventPeople(e.id).catch(() => [])).filter((p) => !p.is_me && p.response !== 'no' && p.response !== 'dropped')
+    people.value = (await eventPeople(e.id).catch(() => [])).filter((p) => !p.is_me && stillCounts(p.response))
     const data = await useProfileStore().load()
     template.value = (props.mode === 'cancel' ? data?.cancel_event_message : data?.cancel_dropout_message) ?? ''
   },

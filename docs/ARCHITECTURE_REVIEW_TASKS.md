@@ -13,7 +13,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 
 | # | Candidate | Strength | Status |
 |---|---|---|---|
-| 2 | One rule for "my place in this event" | Strong, real bug | Agreed (branch `event-place`) |
+| 2 | One rule for "my place in this event" | Strong, real bug | Built (branch `event-place`) |
 | 1 | Saving an event with invitees becomes one events action | Strong | Agreed |
 | 3 | One guest-messages module | Strong, small bug | Agreed |
 | 4 | A Capture draft module behind the form | Worth exploring | Agreed |
@@ -29,7 +29,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
   opening it shows the invite again, though SPEC §5 says a No removes it.
 - **Agreed:** one rule for my place (mine, pending, Maybe, Yes, No, dropped out, not shown) and one for "does this
   invitee still count" (pending, Maybe, Yes). No or dropped out hides the event everywhere on my side (calendar, Search,
-  Up next, profile page, links, which open nothing); done on the device, no migration; a new invite brings it back. Up
+  Up next, links, which open nothing); done on the device, no migration; a new invite brings it back. Up
   next keeps showing others' events only after Yes.
 
 ## 1. Saving an event with invitees becomes one events action

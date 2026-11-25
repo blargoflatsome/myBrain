@@ -100,7 +100,7 @@ import { sayWhy } from '@/server/server'
 import { takeStartWith } from '@/events/startWith'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
-import { calendarItems, newEvent, nextWholeHour, type CalendarItem } from '@/events/rules'
+import { calendarItems, myPlace, newEvent, nextWholeHour, shownToMe, stillCounts, type CalendarItem } from '@/events/rules'
 import { addDays } from '@/time/days'
 import { messages } from '@/messages'
 import type { EventRow, TaskRow } from '@/sync/types'
@@ -203,7 +203,7 @@ const viewingInvite = computed(() => (viewing.value ? (myInvites.value.find((i) 
 
 function openEvent(e: EventRow, date?: string) {
   // Someone else's event I was invited to opens with its answers; my own opens read-only, with Edit.
-  if (e.user_id && brain.userId && e.user_id !== brain.userId) {
+  if (myPlace(e, myInvites.value, brain.userId) !== 'mine') {
     viewing.value = e
     return
   }
@@ -253,7 +253,7 @@ const when = (x: EventRow) => [x.start_date, x.start_time?.slice(0, 5), x.end_da
 async function offerChangeNotice(before: EventRow | undefined, e: EventRow) {
   if (!before || when(before) === when(e)) return
   const invites = await readRows((db) => db.event_invites.where('event_id').equals(e.id).toArray())
-  if (!invites.some((i) => i.response !== 'no' && i.response !== 'dropped')) return
+  if (!invites.some((i) => stillCounts(i.response))) return
   changedEvent.value = e
   confirmNotify.value?.open()
 }
@@ -329,7 +329,9 @@ async function deleteEvent(e: EventRow, confirmed = false) {
 
 // Opened from a link: ?date= (a reminder or search) goes to that day, also when the calendar is already open, and
 // ?event= opens the event on its own day (alerts' links name only the event).
-useOpenLinked('event', events, (e) => {
+// A link to an event I said No to or dropped out of opens nothing (SPEC §5 Shared events).
+const shownEvents = computed(() => events.value.filter((e) => shownToMe(e, myInvites.value, brain.userId)))
+useOpenLinked('event', shownEvents, (e) => {
   // An event being edited stays open; one only being looked at gives way to the link.
   if (editing.value) return
   if (typeof route.query.date !== 'string') api()?.gotoDate(e.start_date)
