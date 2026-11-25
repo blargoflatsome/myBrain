@@ -27,7 +27,7 @@ All tests are in `src/tests/`, by kind, then by what they test:
 - `unit/<feature>/` — Vitest, rules and stores (most tests belong here)
 - `integration/` — Vitest against the dev database
 - `e2e/<feature>/` — Playwright, things only a real browser shows; helpers in `e2e/support/`
-- `db/` — SQL checks for row-level security and database rules (`npm run test:db`, the user runs it)
+- `db/` — SQL checks for row-level security and database rules (`npm run test:db`, against dev; every check rolls back)
 - `support/` — test-only helpers (like `fakeRemote.ts`), never in app code
 
 Name every test after the spec rule it proves: `describe('SPEC §5 Trophies: streaks', ...)`.
