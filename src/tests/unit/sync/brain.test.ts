@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useBrainStore } from '@/stores/brain'
 import { FakeRemote } from '@/tests/support/fakeRemote'
+import { newHabit } from '@/habits/rules'
+import { live } from '@/sync/live'
+import type { TaskRow } from '@/sync/types'
 
 let remote: FakeRemote
 
@@ -158,5 +161,45 @@ describe('Spec §5 The Vault: bucket picker can create a new bucket', () => {
     const first = await brain.createBucket('Books')
     const second = await brain.createBucket('Shows')
     expect(second.position).toBe(first.position + 1)
+  })
+})
+
+describe('Spec §5 Dashboard Up next and priority reminders: "Do it" and slide to complete never undo', () => {
+  const now = new Date('2026-11-10T12:00:00Z')
+  type Brain = ReturnType<typeof useBrainStore>
+  // Up next's "Do it" and the slide, for each kind: a second tap (or a suggestion not yet refreshed) must leave it done.
+  const ways = {
+    habit: {
+      upNext: (b: Brain, id: string) => b.db!.habits.get(id).then((h) => b.completeHabit(h!, now)),
+      slide: (b: Brain, id: string) => b.completePriority({ kind: 'habit', id, title: 'Meds', description: null, date: '2026-11-10' }, now),
+    },
+    task: {
+      upNext: (b: Brain, id: string) => b.completeTask(id, now),
+      slide: (b: Brain, id: string) => b.completePriority({ kind: 'task', id, title: 'Stamps', description: null, date: '2026-11-10' }, now),
+    },
+  }
+  async function add(brain: Brain, kind: 'habit' | 'task', uid: string) {
+    if (kind === 'habit') return (await brain.save('habits', newHabit('Meds', uid, 'UTC', new Date('2026-11-01T12:00:00Z')))).id
+    const row: TaskRow = { id: crypto.randomUUID(), user_id: uid, title: 'Stamps', due_date: '2026-11-10', priority: 3, status: 'open', source: 'manual', deleted_at: null }
+    return (await brain.save('tasks', row)).id
+  }
+  async function isDone(brain: Brain, kind: 'habit' | 'task', id: string) {
+    if (kind === 'task') return (await brain.db!.tasks.get(id))?.status === 'done'
+    return live(await brain.db!.habit_logs.where('habit_id').equals(id).toArray()).some((l) => l.status === 'completed')
+  }
+
+  it.each([
+    ['habit', 'upNext'],
+    ['habit', 'slide'],
+    ['task', 'upNext'],
+    ['task', 'slide'],
+  ] as const)('a %s completed twice through %s stays done', async (kind, way) => {
+    const brain = useBrainStore()
+    const uid = `u-${crypto.randomUUID()}`
+    brain.start(uid, remote)
+    const id = await add(brain, kind, uid)
+    await ways[kind][way](brain, id)
+    await ways[kind][way](brain, id)
+    expect(await isDone(brain, kind, id)).toBe(true)
   })
 })

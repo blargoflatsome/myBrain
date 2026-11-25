@@ -398,3 +398,21 @@ CI flaked on Android in the window focus tests (`a11y.spec.ts`; the Search windo
 - **Cheers offers are alerts under the bell**, like any other alert (count, banner), kept 1 day instead of 7, never taking focus. The web guidance on toasts agrees: don't steal focus for something that appears by itself, and don't show it behind an open window.
 - **Tests:** `toBeFocused` also needs the page to hold the browser window's focus, which isn't the rule; `expectFocused` (`e2e/support/focus.ts`) checks the focused element and, on failure, says what has focus. Also fixed on the way: Escape in a search box with text only emptied the box in Chromium; it now closes the window.
 - **No hotkey for the bell (yet):** there's no standard one. The bell is in the header landmark (screen readers jump there) and right after Skip to content; a shortcut would need a modifier and a way to turn it off (WCAG 2.1.4).
+
+## 2026-11-24 Capture files through each kind's own add (architecture review 3)
+Candidate 1 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Capture built its own task, Vault item, quest and habit rows beside each kind's add, so they drifted: a captured Vault item (and every task, typed or captured) had no `created_at` on the device, so it sorted wrongly offline; filing an Orphan into the Vault never earned the Vault First; habit rules and the timer and reminder checks were written two or three times. User's choices (all as recommended):
+- **Each kind owns its add** in its folder's `actions.ts` (new `tasks/actions.ts` and `quests/actions.ts`), with its defaults, `created_at` set on the device, its checks and its celebration. Capture and Orphans only pick which one to call; a Post It is just another kind (`addPostIt`, the only "empty Post It" check).
+- **Capture keeps splitting text** into a title and notes (`fitTitle`); each add trims and enforces the 500-character limit itself. `addTask` takes the source (`capture` or `manual`); one default priority.
+- **Filing an Orphan into the Vault earns the Vault First** (SPEC §5 "save to the Vault"); the `capture` + `vault_items` special case in `celebrate/rules.ts` goes.
+- **One set of habit rules** (start not before today for a new habit, sorted weekdays, a timer only with a reminder time) for adding and, with candidate 3, editing.
+- **Checks are pure functions in each kind's module** (timer needs a reminder time; a task reminder can't be in the past). Forms call them to show the message; adds return `null` when refused, and capture turns that into `CaptureError` with the reason.
+- **`brain.convert` becomes `fileOrphan(id, choice)`** (it was only ever used for Orphans); `buildConversion` goes. `capture` and `fileOrphan` return the new item's kind and id.
+- **+ New quest** opens the editor with blank fields and saves through `addQuest` (no draft row with `auth.user?.id` in the page).
+- **Tests:** one Vitest per kind, "captured equals added", plus filing an Orphan into the Vault earning its First. `fitTitle` tests stay; `buildCaptureRecord` row-shape tests go.
+- Edits (closing raw `save`) are candidate 3, its own branch after this one.
+
+## 2026-11-24 "Do it" and "Done" complete, never toggle (architecture review 3)
+Candidate 2 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Up next's habit and task buttons and the slide to complete a priority habit called toggles, so a second tap or a suggestion that hadn't refreshed yet undid the completion; `completeHabit` (never undoes) existed but wasn't used there. User's choices (all as recommended):
+- **Complete actions:** `completeHabit` and a new `completeTask` (`tasks/actions.ts`) do nothing when the item is already done. Up next and the slide use them; `priorityActions` takes them instead of `toggleHabit` and `saveTask`.
+- **The button stays enabled** while it works: the no-op check makes a double tap harmless, and disabling could drop keyboard focus.
+- **Tests:** completing twice leaves it done, for a habit and a task, through the actions Up next and the slide use.

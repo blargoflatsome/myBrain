@@ -35,7 +35,7 @@ import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { useNow } from '@/composables/useNow'
 import { useToday } from '@/composables/useToday'
 import { KEEP_GOING_DAYS, skippedToday, upNext, type Suggestion } from '@/dashboard/upNext'
-import { cancelTask, moveTask, toggleDone } from '@/tasks/rules'
+import { cancelTask, moveTask } from '@/tasks/rules'
 import { messages } from '@/messages'
 import { timeLabel } from '@/ui/dates'
 import { readJson, writeJson } from '@/ui/storage'
@@ -140,16 +140,13 @@ async function doIt() {
     case 'priority_habit':
     case 'habit': {
       const habit = await findRow('habits', s.id)
-      if (habit) await brain.toggleHabit(habit)
+      if (habit) await brain.completeHabit(habit)
       return
     }
     case 'priority_task':
       return brain.completePriority({ kind: 'task', id: s.id, title: s.title, description: null, date: s.date })
-    case 'task': {
-      const task = await findRow('tasks', s.id)
-      if (task) await brain.saveTask(toggleDone(task))
-      return
-    }
+    case 'task':
+      return brain.completeTask(s.id)
     case 'routine':
       return router.push({ name: 'routine-run', params: { id: s.id } })
     case 'event':

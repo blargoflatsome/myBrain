@@ -23,6 +23,7 @@ import { eventServerActions } from '@/events/actions'
 import { connectionActions } from '@/connections/actions'
 import { dropLostBuckets } from '@/vault/sharing'
 import { priorityActions } from '@/reminders/actions'
+import { taskActions } from '@/tasks/actions'
 import { deviceTimeZone, todayIn } from '@/tasks/days'
 import { DEFAULT_PRIORITY } from '@/tasks/rules'
 import { normalizeBody, toEditorHtml } from '@/journal/body'
@@ -213,7 +214,8 @@ export const useBrainStore = defineStore('brain', () => {
   const vault = vaultActions(ctx)
   const eventServer = eventServerActions(ctx)
   const connections = connectionActions(ctx)
-  const priority = priorityActions(ctx, habits.toggleHabit, saveTask)
+  const tasks = taskActions(ctx)
+  const priority = priorityActions(ctx, habits.completeHabit, tasks.completeTask)
 
   // ---------- Capture, tasks and quests (SPEC §5 Quick capture, Tasks, Random Quest) ----------
   /**
@@ -290,15 +292,6 @@ export const useBrainStore = defineStore('brain', () => {
       deleted_at: null,
     }
     return e.save('tasks', row)
-  }
-
-  async function saveTask(row: TaskRow) {
-    const { engine: e, local } = ready()
-    const before = await local.tasks.get(row.id)
-    const saved = await e.save('tasks', row)
-    // Crossed off just now (not a later edit of a task already done): celebrate it (SPEC §5 Celebrations).
-    if (row.status === 'done' && before?.status !== 'done') achieved({ kind: 'task', task: row })
-    return saved
   }
 
   /** Mark a quest done (SPEC §5 Random Quest): it goes back to the list, and the completion is logged for stats. */
@@ -418,7 +411,7 @@ export const useBrainStore = defineStore('brain', () => {
     convert,
     removeOrphan,
     addTask,
-    saveTask,
+    ...tasks,
     finishQuest,
     unfinishQuest,
     // Habits and routines

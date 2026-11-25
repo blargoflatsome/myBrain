@@ -1,27 +1,25 @@
 // What the priority reminder's slide, snooze and cancel write (SPEC §5 High-priority tasks and priority habits).
-import type { HabitRow, ReminderStateRow, TaskRow } from '@/sync/types'
+import type { HabitRow, ReminderStateRow } from '@/sync/types'
 import type { ActionContext } from '@/sync/actions'
 import { getRow } from '@/sync/db'
 import { cancelState, snoozeState, type DuePriority } from '@/reminders/priority'
-import { toggleDone } from '@/tasks/rules'
 
 type NextState = (item: DuePriority, existing: ReminderStateRow | undefined, uid: string, now: Date) => ReminderStateRow
 
 export function priorityActions(
   { ready }: ActionContext,
-  toggleHabit: (habit: HabitRow, now: Date) => Promise<unknown>,
-  saveTask: (task: TaskRow) => Promise<unknown>,
+  completeHabit: (habit: HabitRow, now: Date) => Promise<unknown>,
+  completeTask: (id: string, now: Date) => Promise<unknown>,
 ) {
-  /** Slide to complete: a priority habit is completed for the day; a High task is crossed off. */
+  /** Slide to complete: a priority habit is completed for the day; a High task is crossed off. Never undoes either. */
   async function completePriority(item: DuePriority, now = new Date()) {
     const { local } = ready()
     if (item.kind === 'habit') {
       const habit = await getRow(local, 'habits', item.id)
-      if (habit) await toggleHabit(habit, now)
+      if (habit) await completeHabit(habit, now)
       return
     }
-    const task = await getRow(local, 'tasks', item.id)
-    if (task && task.status === 'open') await saveTask(toggleDone(task, now))
+    await completeTask(item.id, now)
   }
 
   /** Save today's reminder state for an item, worked out from what it was. */
