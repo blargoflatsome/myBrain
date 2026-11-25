@@ -40,7 +40,7 @@ test.describe('Spec §5 The Vault', () => {
 
     await page.getByRole('button', { name: msg.vault.clearChecked }).click()
     await expect(page.getByTestId('vault-item')).toHaveText(['Eggs', 'Bread'])
-    await expect(page.getByTestId('undo-bar')).toContainText(msg.undo.clearedChecked(1))
+    await expect(page.getByTestId('undo-line')).toContainText(msg.undo.clearedChecked(1))
     await expect.poll(() => lastWrite('vault_items')).toMatchObject({ title: 'Milk', deleted_at: expect.any(String) })
   })
 

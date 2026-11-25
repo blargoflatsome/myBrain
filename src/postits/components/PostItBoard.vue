@@ -1,4 +1,6 @@
 <template>
+  <!-- SPEC §2 Undo in place: a deleted note leaves its Undo above the stack (also when it was the last one). -->
+  <UndoLine v-for="l in undoable.ownLines()" :key="l.key" :line="l" tag="p" class="mb-3" @undo="(el) => undoable.run(l, el)" />
   <section
     v-if="notes.length"
     class="flex flex-col items-center gap-3"
@@ -114,7 +116,8 @@
 import { useRows } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
 import { computed, defineAsyncComponent, nextTick, ref, watch } from 'vue'
-import { useUndoStore } from '@/stores/undo'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { untilShown } from '@/a11y/focus'
 import { useBrainStore } from '@/stores/brain'
 import { boardOrder } from '@/postits/rules'
@@ -229,17 +232,17 @@ async function focusAction(action: string) {
   document.querySelector<HTMLElement>(`[data-testid="dash-postits"] [data-action="${action}"]`)?.focus()
 }
 
-// ---------- Delete (with Undo, SPEC §2) ----------
-const undoBar = useUndoStore()
+// ---------- Delete (with Undo in place, SPEC §2) ----------
+const undoable = useUndoInPlace()
 async function deleteNote(n: PostItRow) {
   followId.value = null
   const putBack = await brain.remove('post_its', n.id)
-  undoBar.offer(m.removed, async () => {
+  undoable.offer(m.removed, async () => {
     followId.value = n.id
     await putBack()
   }, { focusAfter: noteShown })
 }
-/** Where keyboard focus lands once the Undo bar closes: the note now shown (the one brought back, after Undo). */
+/** Where keyboard focus lands after Undo: the note brought back, now shown. */
 async function noteShown() {
   await untilShown(() => !followId.value || current.value?.id === followId.value)
   await nextTick()

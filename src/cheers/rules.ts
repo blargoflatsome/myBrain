@@ -13,6 +13,9 @@ export const MAX_CHARS = 140
 export const FEED_HOURS = 48
 /** An I did it! offer comes at most this often, so it never nags (SPEC §5 Cheers). */
 export const OFFER_GAP_MS = 2 * 60 * 60 * 1000
+/** The alerts that offer to share: kept a day, not the usual 7 (src/notifications/useAlerts.ts). */
+export const CHEERS_OFFER_ALERT = 'cheers_offer'
+export const CHEERS_UNSTUCK_ALERT = 'cheers_unstuck'
 
 const m = messages.cheers
 

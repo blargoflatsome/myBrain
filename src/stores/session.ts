@@ -27,6 +27,8 @@ export const useSessionStore = defineStore('session', () => {
   const needsPhone = ref(false)
   let lastResetCheck = 0
   let begun = false
+  /** Whose data is open and syncing; a start that failed (a download that didn't arrive) is tried again on return. */
+  let startedFor: string | null = null
 
   /** SPEC §8 Delete my data: if it was done on another device, clear this device's copy and download again. */
   async function checkDataReset(): Promise<boolean> {
@@ -42,6 +44,7 @@ export const useSessionStore = defineStore('session', () => {
     const remote = await sessionAdapter().remote()
     if (auth.user?.id !== uid) return
     brain.start(uid, remote)
+    startedFor = uid
     lastResetCheck = Date.now()
     // One read of my profile, shared by every screen.
     const data = await profile.load()
@@ -63,13 +66,17 @@ export const useSessionStore = defineStore('session', () => {
       (uid) => {
         profile.follow(uid ?? null)
         needsPhone.value = false
+        startedFor = null
         if (!uid) return brain.stop()
         void signedIn(uid).catch((err: unknown) => console.error(err))
       },
       { immediate: true },
     )
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && Date.now() - lastResetCheck > RESET_CHECK_MS) void checkDataReset().catch(() => {})
+      if (document.visibilityState !== 'visible') return
+      const uid = auth.user?.id
+      if (uid && startedFor !== uid) return void signedIn(uid).catch((err: unknown) => console.error(err))
+      if (Date.now() - lastResetCheck > RESET_CHECK_MS) void checkDataReset().catch(() => {})
     })
   }
 

@@ -92,7 +92,7 @@ test.describe('Spec §5 Calendar', { tag: '@phone' }, () => {
     const dialog = page.getByRole('dialog', { name: msg.calendar.editor.heading })
     await expect(dialog.getByLabel(msg.capture.titleLabel)).toHaveValue('Standup')
     await dialog.getByRole('button', { name: msg.calendar.editor.delete }).click()
-    await expect(page.getByTestId('undo-bar')).toContainText(msg.undo.deleted('Standup'))
+    await expect(page.getByTestId('undo-line')).toContainText(msg.undo.deleted('Standup'))
     await expect.poll(() => lastWrite('events')).toMatchObject({ id: 'e2', deleted_at: expect.any(String) })
     await expect(page.locator('.cal-wrap').getByText('Standup')).toHaveCount(0)
   })

@@ -4,6 +4,11 @@ Older history moved out of `PROGRESS.md` on 2026-11-10 to keep session start-up 
 
 Newest first from here on, up to the next "Step 1" heading; below that, oldest first.
 
+## Undo in place; Cheers offers are alerts; window focus flake (merged via PR #109, branch `session-lifecycle`)
+- CI flaked on Android in the window focus tests: the Undo bar and a closing window fought over focus, and a trophy's "Share it in Cheers?" offer could take focus by itself. User chose **Undo in place** (SPEC §2; `src/composables/useUndoInPlace.ts`, `src/components/UndoLine.vue`, every former bar user) and Cheers offers as bell alerts kept 1 day (SPEC §5 Cheers, §6; `src/notifications/rules.ts`). A closing window leaves focus that already moved outside it (`restoreFocus`), and a line drawn behind a closing window waits for it (`focusWhenFree`). DECISIONS 2026-11-24 "Undo in place".
+- Also: Escape in a search box closes its window (not while typing with an input method); a session start that failed is tried again on coming back; `expectFocused` (`e2e/support/focus.ts`) replaces `toBeFocused` in `a11y.spec.ts`; the voice capture test waits for buckets before naming one; the slow iPhone axe test gets `test.slow()`. Help: Getting around (Undo where it was) and Cheers (offers under the bell).
+- Tests: `unit/undo/undo-in-place.test.ts` (placement, chained deletes, failed Undo), `unit/notifications/alerts.test.ts`, a session retry case, e2e Undo in place (calm-ux, a11y) and the alert offer (cheers). Focus tests 320/320 on Android. `/code-review medium`: 5 findings, all fixed. `npm run test:all` passed (Vitest 513, Playwright 839). No migration.
+
 ## One owner for the signed-in session (merged via PR, branch `session-lifecycle`)
 - Architecture review 2, candidate 4 (DECISIONS 2026-11-24 "One owner for the signed-in session"). `src/stores/session.ts` (begin, data-reset check, sign out, Delete My Account with rollback, Delete my data); `src/session/adapter.ts` (Supabase sign-in, profile row, sync Remote, push; fake in `tests/support/fakeSession.ts`); App.vue and AccountView only route; the two deletes use the server seam. Bug fixed: Delete My Account also clears what the app remembered on the device.
 - Tests: `unit/session/session.test.ts` (5, each red with its line broken). Code review found nothing. Full review passed before merge.

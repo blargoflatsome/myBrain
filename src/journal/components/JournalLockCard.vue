@@ -21,14 +21,17 @@
       <div class="flex flex-col gap-1">
         <h4 class="text-sm font-semibold">{{ m.passkeysHeading }}</h4>
         <p v-if="!state.passkeys.length" class="text-sm text-muted">{{ m.noPasskeys }}</p>
-        <ul v-else class="flex flex-col" data-testid="journal-passkeys">
-          <li v-for="p in state.passkeys" :key="p.id" class="flex items-center justify-between gap-2">
-            <span class="min-w-0">
-              <span class="block [overflow-wrap:anywhere]">{{ p.name }}</span>
-              <span v-if="p.created_at" class="block text-xs text-muted">{{ m.added(dayLabel(p.created_at.slice(0, 10))) }}</span>
-            </span>
-            <RowDelete :label="m.removePasskey(p.name)" @click="removePasskey(p)" />
-          </li>
+        <ul v-if="passkeysShown.length" class="flex flex-col" data-testid="journal-passkeys">
+          <template v-for="{ key, row: p, line } in passkeysShown" :key="key">
+            <UndoLine v-if="line" :line="line" in-box class="!pl-0" @undo="(el) => undoable.run(line, el)" />
+            <li v-else-if="p" class="flex items-center justify-between gap-2">
+              <span class="min-w-0">
+                <span class="block [overflow-wrap:anywhere]">{{ p.name }}</span>
+                <span v-if="p.created_at" class="block text-xs text-muted">{{ m.added(dayLabel(p.created_at.slice(0, 10))) }}</span>
+              </span>
+              <RowDelete :label="m.removePasskey(p.name)" @click="removePasskey(p)" />
+            </li>
+          </template>
         </ul>
       </div>
 
@@ -65,7 +68,8 @@ import JournalLockDialog from '@/journal/components/JournalLockDialog.vue'
 import { useJournalLock } from '@/journal/useJournalLock'
 import { passkeysSupported } from '@/journal/passkeys'
 import { useBrainStore } from '@/stores/brain'
-import { useUndoStore } from '@/stores/undo'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import type { JournalPasskeyRow } from '@/sync/types'
 import { dayLabel } from '@/ui/dates'
 import { messages } from '@/messages'
@@ -74,14 +78,17 @@ import { primaryButtonSmall, smallButton, warningOutline } from '@/ui/styles'
 const m = messages.journalLock
 const uid = useId()
 const brain = useBrainStore()
-const undo = useUndoStore()
+const undoable = useUndoInPlace()
 const { state } = useJournalLock()
 const canAddPasskey = computed(() => passkeysSupported())
 const lockDialog = ref<InstanceType<typeof JournalLockDialog> | null>(null)
 const confirmStartOver = ref<InstanceType<typeof TypeToConfirmDialog> | null>(null)
 
+// SPEC §5 Locking my journal: removing a passkey offers Undo in place (SPEC §2).
+const passkeysShown = computed(() => undoable.placed(state.value.passkeys))
 async function removePasskey(p: JournalPasskeyRow) {
-  undo.offer(messages.undo.removed(p.name), await brain.removeJournalPasskey(p.id))
+  const place = { row: { id: p.id, in: state.value.passkeys } }
+  undoable.offer(messages.undo.removed(p.name), await brain.removeJournalPasskey(p.id), place)
 }
 
 function startOver() {

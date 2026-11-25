@@ -54,8 +54,8 @@ for (const shot of SHOTS) {
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' })
     await page.clock.install({ time: NOW })
     await page.goto(shot.path)
-    // Pop-ups (celebrations, alert banners, the Undo bar and its Share it in Cheers? offer) would cover the picture.
-    await page.addStyleTag({ content: '[data-testid="celebration"], [data-testid="confetti-layer"], [data-testid="alert-banner"], [data-testid="undo-bar"] { display: none !important; }' })
+    // Pop-ups (celebrations, alert banners such as Share it in Cheers?) would cover the picture.
+    await page.addStyleTag({ content: '[data-testid="celebration"], [data-testid="confetti-layer"], [data-testid="alert-banner"] { display: none !important; }' })
     await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible()
     await shot.ready?.(page)
     if (shot.ring) await ring(page, shot.ring(page))

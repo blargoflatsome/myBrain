@@ -137,7 +137,7 @@ test.describe('Spec §5 Cheers', () => {
     await expect(page.getByTestId('stuck-others')).toHaveCount(0)
   })
 
-  test('Hide posts from this person works from the post, straight away, with Undo', async ({ page }) => {
+  test('Hide posts from this person works from the post, straight away, with Undo in its place', async ({ page }) => {
     server.rpcResults.block_cheer_author = 'h1'
     await page.goto('/cheers')
     await expect(feed(page).getByTestId('cheer-post')).toHaveCount(3)
@@ -169,12 +169,17 @@ test.describe('Spec §5 Cheers', () => {
     await expect(fold.getByTestId('show-again').first()).toBeFocused()
   })
 
-  test('finishing an old task offers "Share it in Cheers?", and Share fills I did it! with its age, not its title', async ({ page }) => {
+  test('finishing an old task offers "Share it in Cheers?" as an alert that takes no focus; opening it fills I did it! with its age, not its title', async ({ page }) => {
     server.seed('tasks', [{ id: 't-old', title: 'Call the bank about the loan', due_date: '2026-11-13', status: 'open', source: 'manual', created_at: '2026-11-10T00:00:00Z' }])
     await page.goto('/tasks')
-    await page.getByRole('button', { name: 'Cross off Call the bank about the loan' }).click()
-    await expect(page.getByTestId('undo-message')).toHaveText(m.offer.didIt)
-    await page.getByTestId('undo-button').click()
+    const crossOff = page.getByRole('button', { name: 'Cross off Call the bank about the loan' })
+    await crossOff.focus()
+    await page.keyboard.press('Enter')
+    const banner = page.getByTestId('alert-banner')
+    await expect(banner).toContainText(m.offer.didIt)
+    await expect.poll(() => server.written('notifications').at(-1)).toMatchObject({ kind: 'cheers_offer', title: m.offer.didIt, body: m.suggest.oldTask(4) })
+    expect(await banner.evaluate((el) => el.contains(document.activeElement))).toBe(false)
+    await banner.getByRole('button', { name: m.offer.didIt }).click()
     await expect(page).toHaveURL(/\/cheers$/)
     await expect(page.getByTestId('did-it-text')).toHaveValue(m.suggest.oldTask(4))
   })

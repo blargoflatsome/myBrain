@@ -82,8 +82,10 @@ test.describe('Spec §5 Random Quest', () => {
     await expect.poll(() => server.written('quests').at(-1)?.status).toBe('accepted')
 
     await page.getByRole('button', { name: 'Mark done: Learn three juggling tricks' }).click()
-    await expect(page.getByTestId('undo-bar')).toContainText(msg.undo.questDone('Learn three juggling tricks'))
-    await expect(page.getByRole('heading', { name: msg.quests.inProgress })).toHaveCount(0)
+    // SPEC §2 Undo in place: its In progress row becomes the Undo line.
+    const inProgress = page.locator('section').filter({ has: page.getByRole('heading', { name: msg.quests.inProgress }) })
+    await expect(inProgress.getByTestId('undo-line')).toContainText(msg.undo.questDone('Learn three juggling tricks'))
+    await expect(inProgress.getByRole('button', { name: 'Mark done: Learn three juggling tricks' })).toHaveCount(0)
     // Quests aren't one-time tasks: it's back in the list, and the completion is logged (SPEC §5 Random Quest).
     await expect.poll(() => server.written('quests').at(-1)?.status).toBe('open')
     await expect.poll(() => server.written('quest_logs').at(-1)).toMatchObject({ quest_id: 'q1' })
@@ -104,7 +106,7 @@ test.describe('Spec §5 Random Quest', () => {
 
     await page.getByRole('button', { name: /^Visit the planetarium/ }).click()
     await page.getByRole('button', { name: msg.quests.editor.delete }).click()
-    await expect(page.getByTestId('undo-bar')).toContainText(msg.undo.deleted('Visit the planetarium'))
+    await expect(page.getByTestId('undo-line')).toContainText(msg.undo.deleted('Visit the planetarium'))
     await expect(page.getByRole('button', { name: /^Visit the planetarium/ })).toHaveCount(0)
     await expect.poll(() => server.written('quests').at(-1)?.deleted_at).toBeTruthy()
   })

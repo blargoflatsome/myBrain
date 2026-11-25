@@ -2,6 +2,8 @@
   <!-- SPEC §5 Dashboard Up next: one suggestion at a time, never a list. -->
   <section :class="card" data-testid="up-next" aria-labelledby="up-next-heading">
     <h2 id="up-next-heading" class="text-sm font-semibold text-muted">{{ u.heading }}</h2>
+    <!-- SPEC §2 Undo in place: the next suggestion takes the moved task's place, so its Undo shows above it. -->
+    <UndoLine v-for="l in undoable.ownLines()" :key="l.key" :line="l" tag="p" @undo="(el) => undoable.run(l, el)" />
     <div class="flex min-w-0 flex-col gap-1" aria-live="polite">
       <p v-if="reason" class="text-sm text-muted" data-testid="up-next-reason">{{ reason }}</p>
       <p class="text-xl font-semibold break-words" data-testid="up-next-title">{{ title }}</p>
@@ -28,7 +30,8 @@ import { useRouter } from 'vue-router'
 import { readTables } from '@/sync/db'
 import { useBrainStore } from '@/stores/brain'
 import { useProfileStore } from '@/stores/profile'
-import { useUndoStore } from '@/stores/undo'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { useNow } from '@/composables/useNow'
 import { useToday } from '@/composables/useToday'
 import { KEEP_GOING_DAYS, skippedToday, upNext, type Suggestion } from '@/dashboard/upNext'
@@ -41,7 +44,7 @@ import { card, primaryButton, secondaryButton } from '@/ui/styles'
 const m = messages.dashboard
 const u = m.upNext
 const brain = useBrainStore()
-const undo = useUndoStore()
+const undoable = useUndoInPlace()
 const router = useRouter()
 const now = useNow()
 const { today, timeZone } = useToday()
@@ -167,12 +170,12 @@ async function moveStuck(dueDate: string | null) {
   const task = await stuckTask()
   if (!task) return
   await brain.saveTask(moveTask(task, dueDate))
-  undo.offer(dueDate ? messages.undo.movedToday(task.title) : messages.undo.movedUndated(task.title), () => brain.saveTask(task))
+  undoable.offer(dueDate ? messages.undo.movedToday(task.title) : messages.undo.movedUndated(task.title), () => brain.saveTask(task))
 }
 async function cancelStuck() {
   const task = await stuckTask()
   if (!task) return
   await brain.saveTask(cancelTask(task))
-  undo.offer(messages.undo.cancelled(task.title), () => brain.saveTask(task))
+  undoable.offer(messages.undo.cancelled(task.title), () => brain.saveTask(task))
 }
 </script>

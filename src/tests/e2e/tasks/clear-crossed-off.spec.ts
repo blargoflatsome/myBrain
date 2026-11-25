@@ -33,7 +33,7 @@ test.describe('Spec §5 Tasks: Clear crossed-off', () => {
     await open(page, '/tasks')
     await page.getByTestId('clear-done').click()
     await expect(page.getByTestId('task-title')).toHaveCount(0)
-    await expect(page.getByTestId('undo-bar')).toContainText(msg.undo.clearedTasks(2))
+    await expect(page.getByTestId('undo-line')).toContainText(msg.undo.clearedTasks(2))
     await expect(page.getByText(msg.tasks.allDone)).toBeVisible()
     await expect(page.getByTestId('clear-done')).toHaveCount(0)
     await expect.poll(() => server.written('tasks').length).toBe(2)

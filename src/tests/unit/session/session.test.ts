@@ -123,3 +123,18 @@ describe('SPEC §5 Account page, §8 Delete My Account', () => {
     expect(fake.signedOut).toEqual(['local'])
   })
 })
+
+describe('SPEC §7 Offline and sync: signing in opens my data and starts syncing', () => {
+  it('a start that failed (what it needed didn’t download) is tried again when I come back to the app', async () => {
+    const brain = useBrainStore()
+    vi.spyOn(fake, 'remote').mockRejectedValueOnce(new Error('Failed to fetch dynamically imported module'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    useSessionStore().begin()
+    fake.signIn(uid)
+    await vi.waitFor(() => expect(console.error).toHaveBeenCalled())
+    expect(brain.userId).not.toBe(uid)
+    document.dispatchEvent(new Event('visibilitychange'))
+    await vi.waitFor(() => expect(brain.syncedCount).toBeGreaterThan(0))
+    expect(brain.userId).toBe(uid)
+  })
+})

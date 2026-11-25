@@ -182,7 +182,7 @@ test.describe('Spec §5 Post It', () => {
     await expect(board(page).getByRole('button', { name: msg.postIts.edit })).toBeFocused()
   })
 
-  test('the X in the top right corner deletes it straight away, with the Undo bar; from the keyboard, Undo lands back on the note (SPEC §2)', async ({ page }) => {
+  test('the X in the top right corner deletes it straight away, with Undo in place; from the keyboard, Undo lands back on the note (SPEC §2)', async ({ page }) => {
     server.seed('post_its', [{ id: 'p1', body: '<p>Buy stamps</p>', color: 'yellow', position: 0 }])
     await open(page, '/')
     await board(page).getByRole('button', { name: msg.postIts.delete }).focus()

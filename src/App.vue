@@ -81,7 +81,6 @@
 
     <!-- SPEC §5: full-screen reminder for due priority habits and tasks, on every screen. -->
     <PriorityReminder v-if="showChrome" />
-    <UndoBar v-if="showChrome" />
     <FocusTimer v-if="showChrome" />
     <BreatheWindow v-if="showChrome" />
     <CelebrationLayer v-if="showChrome" />
@@ -94,7 +93,6 @@ import AppIcon from '@/components/AppIcon.vue'
 import { computed, ref, watch } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
-import UndoBar from '@/components/UndoBar.vue'
 import AlertBanner from '@/notifications/components/AlertBanner.vue'
 import BottomTabs from '@/components/BottomTabs.vue'
 import { MAIN_NAV, MORE_NAV, inMore } from '@/ui/nav'

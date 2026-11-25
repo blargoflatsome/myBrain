@@ -18,7 +18,8 @@ async function open(page: Page, time = NOW) {
   await page.goto('/tasks')
 }
 
-const item = (page: Page, title: string) => page.getByRole('listitem').filter({ hasText: title })
+// A task's row (not the Undo line a moved or deleted one leaves, SPEC §2 Undo in place).
+const item = (page: Page, title: string) => page.getByRole('listitem').filter({ hasText: title, hasNot: page.getByTestId('undo-button') })
 
 test.beforeEach(async ({ page }) => {
   server = new FakeSupabase()

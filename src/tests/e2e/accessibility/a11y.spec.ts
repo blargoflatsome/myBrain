@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { openAttendees } from '../support/events'
 import { FakeSupabase } from '../support/fakeSupabase'
 import { isPhone, isSafari } from '../support/devices'
+import { expectFocused } from '../support/focus'
 import { goTo } from '../support/nav'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
@@ -208,6 +209,8 @@ for (const scheme of ['light', 'dark'] as const) {
     })
 
     test('New habit, routine and event windows', async ({ page }) => {
+      // Three pages and three scans: about 26 seconds alone on iPhone (WebKit), too close to the usual 30.
+      test.slow()
       await page.goto('/habits')
       await expect(page.getByRole('heading', { name: msg.nav.habits, level: 1 })).toBeVisible()
       await page.getByRole('button', { name: msg.habits.add }).click()
@@ -244,14 +247,14 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'Event editor with Schedule and the date grid open')
     })
 
-    test('Vault item editor and the Undo bar', async ({ page }) => {
+    test('Vault item editor and an Undo line', async ({ page }) => {
       await page.goto('/vault?bucket=b1')
       await page.getByRole('button', { name: 'Open Dune' }).click()
       await scan(page, 'Vault item editor')
       await page.keyboard.press('Escape')
       await page.getByRole('button', { name: 'Delete Dune' }).click()
-      await expect(page.getByTestId('undo-bar').getByRole('button', { name: msg.undo.undo })).toBeVisible()
-      await scan(page, 'Undo bar')
+      await expect(page.getByTestId('undo-line').getByRole('button', { name: msg.undo.undo })).toBeVisible()
+      await scan(page, 'Undo line')
     })
 
     test('Post It being edited on the Dashboard', async ({ page }) => {
@@ -357,10 +360,10 @@ test.describe('Spec §2 WCAG 2.2 AA: by hand checks made automatic', () => {
     await expect(page.getByRole('heading', { name: msg.nav.journal, level: 1 })).toBeVisible()
     await page.keyboard.press('Tab')
     const skip = page.getByRole('link', { name: msg.skipToContent })
-    await expect(skip).toBeFocused()
+    await expectFocused(skip)
     await expect(skip).toBeVisible()
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('heading', { name: msg.nav.journal, level: 1 })).toBeFocused()
+    await expectFocused(page.getByRole('heading', { name: msg.nav.journal, level: 1 }))
   })
 
   test('focused controls show a visible focus ring (2.4.7)', async ({ page }) => {
@@ -426,7 +429,7 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
     await tabsStayInside(page, dialog)
     await page.keyboard.press('Escape')
     await expect(dialog).toBeHidden()
-    await expect(open).toBeFocused()
+    await expectFocused(open)
   })
 
   test('a confirmation over an editor traps Tab; closing each returns focus to what opened it', async ({ page }) => {
@@ -444,10 +447,10 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
     await expect(confirm).toBeVisible()
     await tabsStayInside(page, confirm, 6)
     await confirm.getByRole('button', { name: /Keep/ }).click()
-    await expect(del).toBeFocused()
+    await expectFocused(del)
     await page.keyboard.press('Escape')
     await expect(editor).toBeHidden()
-    await expect(openItem).toBeFocused()
+    await expectFocused(openItem)
   })
 
   test('the Search window traps Tab and gives focus back when closed', async ({ page }) => {
@@ -456,14 +459,29 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
     const open = page.getByRole('button', { name: /Search/ }).first()
     await expect(open).toBeVisible()
     await open.focus()
-    await expect(open).toBeFocused()
+    await expectFocused(open)
     await page.keyboard.press('Enter')
     const dialog = page.getByRole('dialog').filter({ has: page.getByRole('searchbox') })
     await expect(dialog).toBeVisible()
     await page.getByRole('searchbox').fill('a')
     await tabsStayInside(page, dialog)
+    // Escape from the box itself, with text in it: the browser's own Escape (clear the box) mustn't keep the window open.
+    await page.getByRole('searchbox').focus()
     await page.keyboard.press('Escape')
-    await expect(open).toBeFocused()
+    await expect(dialog).toBeHidden()
+    await expectFocused(open)
+  })
+
+  test('SPEC §2 Undo in place: deleted from its editor window by keyboard, focus lands on the Undo where the row was', async ({ page }) => {
+    await page.goto('/tasks')
+    const row = page.getByRole('button', { name: /^pay rent/ }).first()
+    await row.focus()
+    await page.keyboard.press('Enter')
+    const editor = page.getByRole('dialog')
+    await editor.getByRole('button', { name: msg.tasks.editor.delete }).focus()
+    await page.keyboard.press('Enter')
+    await expect(editor).toBeHidden()
+    await expectFocused(page.getByTestId('undo-button'))
   })
 
   test('full screen writing traps Tab', async ({ page }) => {
@@ -482,23 +500,23 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
     const toggle = capture.getByRole('toolbar', { name: `${msg.editor.toolbar}: ${msg.postIts.label}` }).getByRole('button', { name: msg.editor.fullScreen })
     const writing = capture.getByRole('textbox', { name: msg.postIts.label })
     await writing.click()
-    await expect(writing).toBeFocused()
+    await expectFocused(writing)
     await toggle.click()
     const full = page.getByRole('dialog', { name: msg.postIts.label })
     await expect(full).toBeVisible()
     const fullWriting = full.getByRole('textbox', { name: msg.postIts.label })
-    await expect(fullWriting).toBeFocused()
+    await expectFocused(fullWriting)
     await tabsStayInside(page, full, 12)
     // Escape straight after typing, so the writing has focus: the editor must not swallow it.
     await fullWriting.click()
-    await expect(fullWriting).toBeFocused()
+    await expectFocused(fullWriting)
     await page.keyboard.type('Milk')
     await page.keyboard.press('Escape')
     await expect(full).toBeHidden()
     await expect(capture).toBeVisible()
     await expect(writing).toHaveText('Milk')
     // Focus goes back to what had it before full screen: the writing.
-    await expect(writing).toBeFocused()
+    await expectFocused(writing)
   })
 
   test('on a phone the More panel traps Tab, and Escape closes it and returns focus to More', async ({ page }, info) => {
@@ -512,7 +530,7 @@ test.describe('Spec §2 Windows keep focus inside while open and give it back wh
     await tabsStayInside(page, sheet)
     await page.keyboard.press('Escape')
     await expect(sheet).toBeHidden()
-    await expect(more).toBeFocused()
+    await expectFocused(more)
   })
 })
 

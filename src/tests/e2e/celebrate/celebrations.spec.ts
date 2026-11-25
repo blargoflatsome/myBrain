@@ -141,8 +141,11 @@ test.describe('Spec §5 Celebrations: all habits done, the next day', () => {
     server.seed('habits', [habit(H1, 'Walk')])
     server.seed('habit_logs', [log(H1, '2026-11-09')])
     await open(page, '/')
-    await expect(page.getByTestId('alert-banner')).toContainText(msg.celebrations.perfectDayAlert.title)
-    await expect.poll(() => server.written('notifications').map((n) => n.kind)).toEqual(['perfect_day'])
+    // Under the bell (the trophy it earns may also offer "Share it in Cheers?", SPEC §5 Cheers).
+    await expect.poll(() => server.written('notifications').filter((n) => n.kind === 'perfect_day')).toHaveLength(1)
+    await page.getByTestId('alerts-bell').first().click()
+    await expect(page.getByTestId('alerts-list').getByTestId('alert')).toContainText([msg.celebrations.perfectDayAlert.title])
+    await page.keyboard.press('Escape')
     // Earlier history earns its badge quietly: no celebration for it.
     await expect.poll(() => server.written('badges').map((b) => String(b.kind)).filter((k) => k.startsWith('first_'))).toEqual(['first_habit'])
     await expect(page.getByText(msg.celebrations.badgeEarned(msg.celebrations.badges.first_habit))).toHaveCount(0)

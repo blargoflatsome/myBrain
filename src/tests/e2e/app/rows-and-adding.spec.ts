@@ -12,7 +12,7 @@ async function open(page: Page, path: string) {
   await page.clock.install({ time: NOW })
   await page.goto(path)
 }
-const bar = (page: Page) => page.getByTestId('undo-bar')
+const bar = (page: Page) => page.getByTestId('undo-line')
 
 test.beforeEach(async ({ page }) => {
   server = new FakeSupabase()

@@ -34,6 +34,29 @@ export function topModal(): HTMLDialogElement | null {
   return null
 }
 
+/** Sent on `document` when a window opens, and when one has closed and focus is back where it belongs. */
+export const WINDOWS_CHANGED = 'my-brain:windows-changed'
+
+/**
+ * Focus this now, or, when a window open on top doesn't hold it, once no window is open (an Undo line drawn on the
+ * page as its editor window closes). Returns a function that stops waiting.
+ */
+export function focusWhenFree(el: HTMLElement): () => void {
+  const top = topModal()
+  if (!top || top.contains(el)) {
+    el.focus()
+    return () => {}
+  }
+  const stop = () => document.removeEventListener(WINDOWS_CHANGED, onChange)
+  function onChange() {
+    if (topModal()) return
+    stop()
+    if (el.isConnected) el.focus()
+  }
+  document.addEventListener(WINDOWS_CHANGED, onChange)
+  return stop
+}
+
 /** Keep Tab inside the window on top: from the last item it wraps to the first, and back. */
 export function trapTab(event: KeyboardEvent) {
   if (event.key !== 'Tab' || event.defaultPrevented) return
@@ -58,11 +81,17 @@ export function trapTab(event: KeyboardEvent) {
   }
 }
 
-/** Put focus back where it was before a window opened; if that is gone, on the page's heading. */
-export function restoreFocus(opener: Element | null) {
+/**
+ * Put focus back where it was before a window opened; if that is gone, on the page's heading. Focus the page already
+ * moved somewhere outside the closed window stays there (the browser's own return to the opener, or the Undo line
+ * that took a row's place as its editor closed, SPEC §2 Undo in place).
+ */
+export function restoreFocus(opener: Element | null, closed?: HTMLDialogElement) {
   // Another window took over (one window replaced by the next): leave focus with it.
   const top = topModal()
   if (top && !(opener && top.contains(opener))) return
+  const active = document.activeElement
+  if (closed && active instanceof HTMLElement && active !== document.body && active.isConnected && !closed.contains(active)) return
   if (opener instanceof HTMLElement && opener.isConnected && opener.getClientRects().length > 0) {
     opener.focus()
     return
@@ -140,16 +169,36 @@ export function installModalFocus() {
     if (!this.hasAttribute('closedby')) this.setAttribute('closedby', 'any')
     showModal.call(this)
     opened.push(this)
+    document.dispatchEvent(new Event(WINDOWS_CHANGED))
     if (!nativeClosedBy) closeOnOutsideClick(this)
     this.addEventListener(
       'close',
       () => {
         const at = opened.indexOf(this)
         if (at >= 0) opened.splice(at, 1)
-        setTimeout(() => restoreFocus(opener))
+        setTimeout(() => {
+          restoreFocus(opener, this)
+          document.dispatchEvent(new Event(WINDOWS_CHANGED))
+        })
       },
       { once: true },
     )
   }
   document.addEventListener('keydown', trapTab)
+  document.addEventListener('keydown', escapeFromSearchBox)
+}
+
+/**
+ * SPEC §2 Windows: Escape closes the window, also from a search box. There the browser's own Escape only empties the
+ * box and the window stays open, so it's closed here instead, with the "cancel" first, as Escape and the backdrop do.
+ */
+function escapeFromSearchBox(event: KeyboardEvent) {
+  // An Escape that ends typing with an input method (Japanese, Chinese) belongs to the box, not the window.
+  if (event.key !== 'Escape' || event.defaultPrevented || event.isComposing) return
+  const box = event.target
+  if (!(box instanceof HTMLInputElement) || box.type !== 'search') return
+  const modal = topModal()
+  if (!modal?.contains(box)) return
+  event.preventDefault()
+  if (modal.dispatchEvent(new Event('cancel', { cancelable: true }))) modal.close()
 }

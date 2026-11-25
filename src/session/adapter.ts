@@ -3,6 +3,8 @@
 import type { Session } from '@supabase/supabase-js'
 import type { Profile } from '@/stores/profile'
 import type { Remote } from '@/sync/types'
+// Up front (it needs no keys): loaded on first use, it held up syncing by a download, and a failed download stopped it.
+import { supabaseRemote } from '@/sync/supabaseRemote'
 
 export interface SessionAdapter {
   /** The stored sign-in, if any. */
@@ -42,7 +44,6 @@ const supabaseSession: SessionAdapter = {
     return error || !data ? null : (data as Profile)
   },
   async remote() {
-    const { supabaseRemote } = await import('@/sync/supabaseRemote')
     return supabaseRemote(await client())
   },
   async forgetPush() {

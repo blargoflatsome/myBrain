@@ -66,20 +66,24 @@
     >
       {{ m.clearDone(doneInList) }}
     </button>
+    <!-- SPEC §2 Undo in place: Clear crossed-off leaves its Undo where the button was. -->
+    <UndoLine v-for="l in undoable.ownLines(listKey)" :key="l.key" :line="l" tag="p" @undo="(el) => undoable.run(l, el)" />
 
     <ul class="flex flex-col gap-2">
-      <TaskItem
-        v-for="t in shownTasks"
-        :key="t.id"
-        :task="t"
-        :today="today"
-        @toggle="brain.saveTask(toggleDone(t))"
-        @edit="edit(t)"
-        @delete="remove(t)"
-        @cancel="brain.saveTask(cancelTask(t))"
-        @tomorrow="move(t, addDays(today, 1))"
-        @undated="move(t, null)"
-      />
+      <template v-for="e in undoable.placed(shownTasks, listKey)" :key="e.key">
+        <UndoLine v-if="e.line" :line="e.line" @undo="(el) => undoable.run(e.line!, el)" />
+        <TaskItem
+          v-else
+          :task="e.row"
+          :today="today"
+          @toggle="brain.saveTask(toggleDone(e.row))"
+          @edit="edit(e.row)"
+          @delete="remove(e.row)"
+          @cancel="brain.saveTask(cancelTask(e.row))"
+          @tomorrow="move(e.row, addDays(today, 1))"
+          @undated="move(e.row, null)"
+        />
+      </template>
     </ul>
     <template v-if="picking && picked.rest.length">
       <button
@@ -93,18 +97,20 @@
         {{ showRest ? m.hideRest : m.showRest(picked.rest.length) }}
       </button>
       <ul v-show="showRest" id="tasks-rest" class="flex flex-col gap-2">
-        <TaskItem
-          v-for="t in picked.rest"
-          :key="t.id"
-          :task="t"
-          :today="today"
-          @toggle="brain.saveTask(toggleDone(t))"
-          @edit="edit(t)"
-          @delete="remove(t)"
-          @cancel="brain.saveTask(cancelTask(t))"
-          @tomorrow="move(t, addDays(today, 1))"
-          @undated="move(t, null)"
-        />
+        <template v-for="e in undoable.placed(picked.rest, `${listKey}:rest`)" :key="e.key">
+          <UndoLine v-if="e.line" :line="e.line" @undo="(el) => undoable.run(e.line!, el)" />
+          <TaskItem
+            v-else
+            :task="e.row"
+            :today="today"
+            @toggle="brain.saveTask(toggleDone(e.row))"
+            @edit="edit(e.row)"
+            @delete="remove(e.row)"
+            @cancel="brain.saveTask(cancelTask(e.row))"
+            @tomorrow="move(e.row, addDays(today, 1))"
+            @undated="move(e.row, null)"
+          />
+        </template>
       </ul>
     </template>
 
@@ -128,7 +134,8 @@ import { cancelTask, clearDone, clearedForDay, DEFAULT_PRIORITY, moveTask, pickT
 import { messages } from '@/messages'
 import type { TaskRow } from '@/sync/types'
 import { shortDay } from '@/ui/dates'
-import { useUndoStore } from '@/stores/undo'
+import UndoLine from '@/components/UndoLine.vue'
+import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { chip, primaryButton, selected, smallButton } from '@/ui/styles'
 import { readKey, writeKey } from '@/ui/storage'
 import { useAuthStore } from '@/stores/auth'
@@ -192,13 +199,21 @@ const showRest = ref(false)
 
 // SPEC §5 Tasks: "Clear crossed-off" hides done tasks from the list; they stay in history and stats.
 const doneInList = computed(() => list.value.filter((t) => t.status === 'done').length)
-const undo = useUndoStore()
+// SPEC §2 Undo in place: each day and tab keeps its own lines (Pick 3's folded rest is a list of its own).
+const undoable = useUndoInPlace()
+const listKey = computed(() => (view.value === 'undated' ? 'undated' : day.value))
+/** Where a task is shown right now, so its Undo line takes its place. */
+function placeOf(t: TaskRow) {
+  const rest = picking.value && picked.value.rest.some((r) => r.id === t.id)
+  return { row: { id: t.id, in: rest ? picked.value.rest : shownTasks.value }, list: rest ? `${listKey.value}:rest` : listKey.value }
+}
 async function clearCrossedOff() {
   const before = list.value.filter((t) => t.status === 'done' && !t.cleared_at)
+  const at = listKey.value
   for (const t of clearDone(list.value)) await brain.saveTask(t)
-  undo.offer(messages.undo.clearedTasks(before.length), async () => {
+  undoable.offer(messages.undo.clearedTasks(before.length), async () => {
     for (const t of before) await brain.saveTask({ ...t, cleared_at: null })
-  })
+  }, { list: at })
 }
 
 const newTitle = ref('')
@@ -256,14 +271,16 @@ async function saveEdit(t: TaskRow) {
 }
 // SPEC §5 Tasks: a task that keeps slipping moves to tomorrow or Undated in one tap, with Undo.
 async function move(t: TaskRow, dueDate: string | null) {
+  const place = placeOf(t)
   await brain.saveTask(moveTask(t, dueDate))
-  undo.offer(dueDate ? messages.undo.movedTomorrow(t.title) : messages.undo.movedUndated(t.title), () => brain.saveTask(t))
+  undoable.offer(dueDate ? messages.undo.movedTomorrow(t.title) : messages.undo.movedUndated(t.title), () => brain.saveTask(t), place)
 }
 
 async function remove(t: TaskRow) {
+  const place = placeOf(t)
   const putBack = await brain.remove('tasks', t.id)
   if (editing.value?.id === t.id) editing.value = null
-  undo.offer(messages.undo.deleted(t.title), putBack)
+  undoable.offer(messages.undo.deleted(t.title), putBack, place)
 }
 
 const tab = 'min-h-11 flex-1 rounded-xl px-3 text-sm font-medium'
