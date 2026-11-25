@@ -57,4 +57,15 @@ test.describe('Spec §5 Focus timer: Show me in the focus room', () => {
     await box.uncheck()
     await expect.poll(() => server.profile.focus_room).toBe(false)
   })
+
+  test('a change that did not save (offline) says so, and the box goes back to what my profile says', async ({ page, context }) => {
+    await page.goto('/account')
+    const box = page.getByTestId('focus-room-setting')
+    await expect(box).toBeChecked()
+    await context.setOffline(true)
+    await box.click()
+    await expect(page.getByTestId('focus-room-settings').getByRole('status')).toHaveText(msg.profile.offline)
+    await expect(box).toBeChecked()
+    expect(server.profile.focus_room).not.toBe(false)
+  })
 })

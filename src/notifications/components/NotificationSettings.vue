@@ -59,9 +59,9 @@
 </template>
 
 <script setup lang="ts">
+// SPEC §6: Web Push, quiet hours, and whether priority reminders ring during them.
 import { useProfileStore } from '@/stores/profile'
 import { useSettingSave } from '@/composables/useSettingSave'
-// SPEC §6: Web Push, quiet hours, and whether priority reminders ring during them.
 import TimeInput from '@/components/TimeInput.vue'
 import { onMounted, ref } from 'vue'
 import { isPushOn, sendTestPush, turnPushOff, turnPushOn, type PushRefusal } from '@/notifications/push'

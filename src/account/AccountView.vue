@@ -312,7 +312,11 @@ async function savePause(box: HTMLInputElement) {
 const fr = messages.focus.room
 const focusRoom = ref(true)
 const focusRoomSave = useSettingSave()
-const saveFocusRoom = () => focusRoomSave.saveProfile({ focus_room: focusRoom.value })
+async function saveFocusRoom() {
+  const chosen = focusRoom.value
+  // Not saved: the box goes back to what my profile says.
+  if (!(await focusRoomSave.saveProfile({ focus_room: chosen })) && focusRoom.value === chosen) focusRoom.value = !chosen
+}
 
 const celebrationsSave = useSettingSave()
 const saveCelebrations = () => celebrationsSave.saveProfile({ celebrations: celebrations.value })
