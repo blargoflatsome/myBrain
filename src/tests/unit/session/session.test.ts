@@ -11,7 +11,7 @@ import { FakeServer } from '@/tests/support/fakeServer'
 import { FakeSession } from '@/tests/support/fakeSession'
 import { useProfileStore } from '@/stores/profile'
 import { useCelebrateStore } from '@/stores/celebrate'
-import { deviceTimeZone } from '@/tasks/days'
+import { deviceTimeZone } from '@/time/days'
 
 let remote: FakeRemote
 let server: FakeServer

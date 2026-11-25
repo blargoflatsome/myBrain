@@ -4,7 +4,7 @@ import { saveItemTags } from '@/tags/actions'
 import type { ActionContext } from '@/sync/actions'
 import { getRow } from '@/sync/db'
 import { activeSteps, completeSkipped, currentRun, habitDoneStepIds, recordStep, resumableRun, stepsForDay } from '@/routines/rules'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/time/days'
 import { achieved } from '@/celebrate/bus'
 
 export function routineActions({ ready }: ActionContext, completeHabit: (habit: HabitRow, now: Date) => Promise<void>) {

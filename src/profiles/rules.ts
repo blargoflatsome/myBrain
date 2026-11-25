@@ -1,6 +1,6 @@
 // SPEC §5 Profiles: which of my events a connection can be invited to from their profile.
 import { occurrences } from '@/events/rules'
-import { addDays } from '@/tasks/days'
+import { addDays } from '@/time/days'
 import type { BadgeRow, EventInviteRow, EventRow } from '@/sync/types'
 
 /** The most people one event can have (SPEC §5 Shared events, the server's limit too). */

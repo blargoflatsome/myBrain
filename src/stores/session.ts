@@ -9,7 +9,7 @@ import { useBrainStore } from '@/stores/brain'
 import { useProfileStore } from '@/stores/profile'
 import { sessionAdapter } from '@/session/adapter'
 import { serverCall } from '@/server/server'
-import { deviceTimeZone } from '@/tasks/days'
+import { deviceTimeZone } from '@/time/days'
 import { clearAppKeys } from '@/ui/storage'
 
 /** Coming back to the app checks for Delete my data on another device at most this often. */

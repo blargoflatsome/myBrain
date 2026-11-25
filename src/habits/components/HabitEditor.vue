@@ -51,7 +51,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { field } from '@/ui/styles'
 import TagInput from '@/tags/components/TagInput.vue'
 import { useItemTags } from '@/tags/useItemTags'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/time/days'
 
 const props = defineProps<{ habit: HabitRow | null; isNew?: boolean }>()
 const emit = defineEmits<{ save: [HabitRow, string[]]; delete: [HabitRow]; close: [] }>()

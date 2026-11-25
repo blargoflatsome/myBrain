@@ -2,13 +2,13 @@
 // Pure rules: the Dashboard reads the rows, this decides; skipped suggestions are left out by the caller's list.
 import type { DayData } from '@/journal/stats'
 import type { EventInviteRow, EventRow, InboxRow, JournalEntryRow, TaskRow } from '@/sync/types'
-import { dayStatus, deadline, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
+import { dayStatus, deadline, isScheduled as habitScheduled, streaks } from '@/habits/rules'
 import { isAnytime, isScheduled as routineScheduled, runFor } from '@/routines/rules'
 import { remindsOn } from '@/reminders/priority'
 import { occursOn } from '@/events/rules'
 import { carryOverCount, tasksForDay } from '@/tasks/rules'
 import { wroteIn } from '@/journal/body'
-import { todayIn } from '@/tasks/days'
+import { todayIn, zonedTime } from '@/time/days'
 import { live } from '@/sync/live'
 
 /** "Soon" for habits and events (SPEC §5 Dashboard). */

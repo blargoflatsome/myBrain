@@ -1,8 +1,8 @@
 // Journal rules (SPEC §5 Journal): the day's stats, missed days written on my behalf, and when stats freeze.
 import type { HabitLogRow, HabitPauseRow, HabitRow, JournalEntryRow, JournalStats, QuestLogRow, QuestRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow } from '@/sync/types'
-import { dayStatus, isScheduled as habitScheduled, streaks, zonedTime } from '@/habits/rules'
+import { dayStatus, isScheduled as habitScheduled, streaks } from '@/habits/rules'
 import { activeSteps, isAnytime, isScheduled as routineScheduled, runFor, stepsForDay } from '@/routines/rules'
-import { addDays, dayOf } from '@/tasks/days'
+import { addDays, dayOf, zonedTime } from '@/time/days'
 import { live } from '@/sync/live'
 
 /** The tables a day's stats are worked out from, by the name `DayData` uses for each. */

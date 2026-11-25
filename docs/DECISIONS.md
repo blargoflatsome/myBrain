@@ -460,3 +460,11 @@ Candidate 8 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. The stores noticed a part en
 - **Screens keep only what I see and hear:** chime, vibration, notification, ripple and announcement.
 - **Screens still drive the clock** (they need the time to draw it). Focus catches up on the parts that ended while it wasn't on screen, so nothing is lost; a store-owned timer was turned down.
 - **No change in behaviour, so no spec change.** Tests: Vitest on both stores with the real brain and a fake focus room (counted once, together, catch-up, skipped never counts; Breathe once, never paused or closed early).
+
+## 2026-11-24 One module for calendar days and clock times (architecture review 3)
+Candidate 5 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. No bug was found: the day maths was right everywhere, but a clock time in a zone was worked out three ways, the weekday of a date by hand in five places, and `zonedTime` and `weekdayOf` lived in the habit rules though events, routines, reminders and journal used them. User's choices (all as recommended):
+- **`src/time/days.ts`** holds the day and clock maths: what was `src/tasks/days.ts`, plus `weekdayOf` and `zonedTime` (from the habit rules), `localMoment` (from the trophy rules) and a new `clockIn` ("HH:MM" of a moment in a zone). Up next, Find a time and the trophies use it instead of their own formatters and weekday sums.
+- **Monthly repeats stay with their features**, as they differ on purpose (habits: last day of a short month; events: skip).
+- **Every import moved, no shim**; `src/tasks/days.ts` is gone.
+- **`ui/dates.ts`** reads the day and time of a moment through the module (device time zone, which SPEC §5 Tasks makes my time zone) instead of `getHours()`, and takes a time zone so tests can set one. No change in behaviour.
+- **Tests:** one Vitest table for clock times and weekdays across the clocks going back, midnight and zones ahead of and behind UTC, and a moment's day shown in my zone.

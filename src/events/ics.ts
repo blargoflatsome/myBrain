@@ -1,6 +1,5 @@
 // Calendar files (.ics) for guests (SPEC §5 Shared events): "Add to my calendar" on the guest page.
-import { zonedTime } from '@/habits/rules'
-import { addDays } from '@/tasks/days'
+import { addDays, zonedTime } from '@/time/days'
 import { textLines } from '@/journal/body'
 import type { EventRepeat } from '@/sync/types'
 

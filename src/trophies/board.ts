@@ -3,7 +3,7 @@
 import type { BadgeRow } from '@/sync/types'
 import { BADGES } from '@/celebrate/rules'
 import { CATEGORIES, levelFor, TIERS, TROPHIES, type TrophyCategory, type TrophyUnit } from '@/trophies/definitions'
-import { dayOf } from '@/tasks/days'
+import { dayOf } from '@/time/days'
 import { live } from '@/sync/live'
 import { messages } from '@/messages'
 

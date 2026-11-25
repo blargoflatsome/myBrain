@@ -2,7 +2,7 @@
 import type { HabitLogRow, HabitPauseRow, HabitRow } from '@/sync/types'
 import type { ActionContext } from '@/sync/actions'
 import { logIdFor, missedDaysToRecord, newHabit, pauseFrom, resumeAfter, streaks, toggleAction, withHabitRules, wrongMisses } from '@/habits/rules'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/time/days'
 import { live } from '@/sync/live'
 import { achieved } from '@/celebrate/bus'
 import { saveItemTags } from '@/tags/actions'

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TaskRow } from '@/sync/types'
-import { addDays, daysBetween, todayIn } from '@/tasks/days'
+import { addDays, daysBetween, todayIn } from '@/time/days'
 import { cancelTask, carryOverCount, needsDecision, pickThree, priorityKey, tasksForDay, toggleDone, undatedTasks } from '@/tasks/rules'
 
 const NY = 'America/New_York'

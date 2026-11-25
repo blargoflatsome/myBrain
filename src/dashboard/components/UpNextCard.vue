@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
 import { linkTo } from '@/router/links'
+import { clockIn } from '@/time/days'
 // SPEC §5 Dashboard Up next: the first thing worth doing now (see upNext.ts for the order). The main button does it
 // here where it can, otherwise opens the right page; Something else skips it for today, on this device.
 import { readDayData } from '@/journal/dayData'
@@ -91,11 +92,7 @@ const title = computed(() => {
   if (s.kind === 'journal') return u.journalTitle
   return s.title
 })
-const clock = (ms: number) => {
-  const d = new Date(ms)
-  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: timeZone.value, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d)
-  return timeLabel(parts)
-}
+const clock = (ms: number) => timeLabel(clockIn(ms, timeZone.value))
 const reason = computed(() => {
   const s = current.value
   if (!s) return ''

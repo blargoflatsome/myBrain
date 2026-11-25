@@ -21,7 +21,7 @@ import { isScheduled as routineScheduled } from '@/routines/rules'
 import { journalStreaks } from '@/dashboard/stats'
 import { perfectDays } from '@/celebrate/rules'
 import { wordsIn, wroteIn } from '@/journal/body'
-import { addDays, daysBetween, todayIn } from '@/tasks/days'
+import { addDays, daysBetween, localMoment, todayIn, weekdayOf } from '@/time/days'
 import { live } from '@/sync/live'
 import { levelFor, TROPHIES, type Trophy, type TrophyId } from '@/trophies/definitions'
 
@@ -55,14 +55,6 @@ export interface CheerTally {
   firsts: number
   unstuck: number
   whileStuck: boolean
-}
-
-/** The local day and time of a moment, in my time zone. */
-export function localMoment(iso: string, timeZone: string): { date: string; hour: number; minute: number } {
-  const d = new Date(iso)
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone, hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(d)
-  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0)
-  return { date: todayIn(timeZone, d), hour: get('hour') % 24, minute: get('minute') }
 }
 
 /** The longest run of `true` over a list of days in order. */
@@ -193,7 +185,7 @@ export function trophyValues(h: TrophyHistory, now: Date, timeZone: string): Rec
   v.perfect_year = 0
   if (firstHabit) {
     // Weeks run Sunday to Saturday, like the calendar.
-    let sunday = addDays(firstHabit, -new Date(`${firstHabit}T00:00:00Z`).getUTCDay())
+    let sunday = addDays(firstHabit, -weekdayOf(firstHabit))
     for (; sunday <= today && !v.perfect_week; sunday = addDays(sunday, 7)) if (perfectPeriod(habits, done, sunday, addDays(sunday, 6), today)) v.perfect_week = 1
     for (let month = firstHabit.slice(0, 7); `${month}-01` <= today && !v.perfect_month; month = addMonth(month)) {
       if (perfectPeriod(habits, done, `${month}-01`, monthEnd(month), today)) v.perfect_month = 1
@@ -238,10 +230,10 @@ export function trophyValues(h: TrophyHistory, now: Date, timeZone: string): Rec
   ].map((iso) => localMoment(iso, timeZone))
   v.early_bird = doneMoments.some((m) => m.hour >= 4 && m.hour < 7) ? 1 : 0
   const taskDays = new Set(doneTasks.map((t) => localMoment(t.completed_at!, timeZone).date))
-  v.weekend_warrior = [...taskDays].some((d) => new Date(`${d}T00:00:00Z`).getUTCDay() === 6 && taskDays.has(addDays(d, 1))) ? 1 : 0
+  v.weekend_warrior = [...taskDays].some((d) => weekdayOf(d) === 6 && taskDays.has(addDays(d, 1))) ? 1 : 0
   const mondays = new Map<string, TaskRow[]>()
   for (const task of tasks) {
-    if (task.due_date && task.due_date <= today && task.status !== 'cancelled' && new Date(`${task.due_date}T00:00:00Z`).getUTCDay() === 1) {
+    if (task.due_date && task.due_date <= today && task.status !== 'cancelled' && weekdayOf(task.due_date) === 1) {
       mondays.set(task.due_date, [...(mondays.get(task.due_date) ?? []), task])
     }
   }

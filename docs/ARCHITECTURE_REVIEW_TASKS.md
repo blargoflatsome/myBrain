@@ -17,7 +17,7 @@ Words: **module** (anything with an interface and an implementation), **interfac
 | 2 | "Do it" and "Done" complete, never toggle | Strong, suspected bug | Built (branch `complete-not-toggle`) |
 | 3 | Close brain's raw `save` (review 2, candidate 5) | Worth exploring | Built (branch `close-raw-save`) |
 | 4 | Device settings behind the server seam: push and profile saves | Strong (suspected bug heals itself) | Built (branch `device-settings`) |
-| 5 | One module for calendar days and clock times | Worth exploring | To do |
+| 5 | One module for calendar days and clock times | Worth exploring | Built (branch `day-times`) |
 | 6 | One way to show a list that comes from the server | Worth exploring | Built (branch `server-lists`) |
 | 7 | One module for "open this item" links | Worth exploring, real bug | Built (branch `item-links`) |
 | 8 | Focus and Breathe finish themselves | Worth exploring | Built (branch `focus-finish`) |

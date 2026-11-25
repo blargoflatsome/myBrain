@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { zonedTime } from '@/time/days'
 import { findTimes, myUnavailable, personTimes, statusAt, type FreeBusyRow } from '@/events/availability'
-import { zonedTime } from '@/habits/rules'
 
 const TZ = 'America/New_York'
 const row = (extra: Partial<FreeBusyRow>): FreeBusyRow => ({

@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useSessionAdapter, type SessionAdapter } from '@/session/adapter'
 import type { Profile } from '@/stores/profile'
 import { useAuthStore } from '@/stores/auth'
-import { deviceTimeZone } from '@/tasks/days'
+import { deviceTimeZone } from '@/time/days'
 import { ServerError, type ServerReason } from '@/server/server'
 import type { FakeRemote } from './fakeRemote'
 

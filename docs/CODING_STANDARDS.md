@@ -49,7 +49,7 @@ file says *how* the code is written.
 | An editor window (heading, fields, Save, Close, Delete, ✕) | `src/components/EditorDialog.vue` |
 | Weekday chips | `src/components/WeekdayPicker.vue` |
 | Showing dates | `src/ui/dates.ts` (`dayLabel`, `timeLabel`, `dayTimeLabel`, `momentLabel`, `shortDay`, `shortDayWithYear`, `dateWithYear`) |
-| Day maths ("today", adding days, the day a moment fell on) | `src/tasks/days.ts` (`todayIn`, `addDays`, `dayOf`) |
+| Day and clock maths ("today", adding days, the day a moment fell on, the weekday of a date, a clock time in a zone) | `src/time/days.ts` (`todayIn`, `addDays`, `dayOf`, `weekdayOf`, `zonedTime`, `clockIn`, `localMoment`) |
 | Remembered on this device only | `src/ui/storage.ts` (`readKey`, `writeKey`, `readJson`, `writeJson`; never fails) |
 | "Are you sure?" before removing data | `src/components/ConfirmDialog.vue`; type DELETE first: `src/components/TypeToConfirmDialog.vue` |
 | Formatted text | `NotesEditor.vue` for notes fields, `RichTextEditor.vue` for the journal and Post Its; `cleanHtml()` to show |
@@ -70,7 +70,7 @@ than copying it.
 - Strict mode; no `any`. Row shapes come from `src/sync/types.ts`.
 - Prefer small named functions over long inline expressions in templates.
 - Dates are `YYYY-MM-DD` strings and times `HH:MM` strings in the user's own time zone; use the helpers in
-  `src/tasks/days.ts` for "today", adding days and so on. Never compare `Date` objects for calendar days.
+  `src/time/days.ts` for "today", adding days, weekdays and clock times. Never compare `Date` objects for calendar days.
 - Style: 2 spaces, single quotes, no semicolons, trailing commas (the existing code is the reference).
 
 ## 5. Comments

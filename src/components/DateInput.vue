@@ -99,7 +99,7 @@ import { computed, onScopeDispose, ref, useId, watch } from 'vue'
 import { addMonths, monthGrid } from '@/time/months'
 import { dateReader, loadDateReader } from '@/time/typedDate'
 import { readIsoDate } from '@/time/isoDate'
-import { addDays, deviceTimeZone, todayIn } from '@/tasks/days'
+import { addDays, deviceTimeZone, todayIn } from '@/time/days'
 import { dayLabel } from '@/ui/dates'
 import { messages } from '@/messages'
 

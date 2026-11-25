@@ -1,7 +1,6 @@
 // Event rules (SPEC §5 Calendar and reminders): repeats, occurrences in a date range, and what the calendar shows.
 import type { EventInviteRow, EventRepeat, EventRow, TaskRow } from '@/sync/types'
-import { weekdayOf } from '@/habits/rules'
-import { addDays, daysBetween } from '@/tasks/days'
+import { addDays, daysBetween, weekdayOf } from '@/time/days'
 
 export const REPEATS: EventRepeat[] = ['never', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'yearly']
 /** Reminder choices, in minutes before the start (null = none). All-day events count from 9:00 am. */

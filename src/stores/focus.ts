@@ -6,7 +6,7 @@ import { ref, watch } from 'vue'
 import { WORK_MS, catchUp, nextPart, pause, resume, skip, startFocus, type FocusState } from '@/focus/timer'
 import { checkIn, leave, type Room } from '@/focus/room'
 import { useBrainStore } from '@/stores/brain'
-import { deviceTimeZone, todayIn } from '@/tasks/days'
+import { deviceTimeZone, todayIn } from '@/time/days'
 import { readJson, writeJson } from '@/ui/storage'
 
 const KEY = 'focus-timer'

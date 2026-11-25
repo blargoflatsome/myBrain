@@ -1,6 +1,7 @@
 // SPEC §5 Dates and times: how a calendar day ("YYYY-MM-DD"), a time ("HH:MM") or a moment (an ISO timestamp) is
 // shown, the same way on every screen and the device's way. Days are read as UTC so they never shift with the zone.
 import { formatTime } from '@/time/parse'
+import { clockIn, dayOf, deviceTimeZone, todayIn } from '@/time/days'
 
 function format(date: string, options: Intl.DateTimeFormatOptions): string {
   const [y, m, d] = date.split('-').map(Number)
@@ -15,7 +16,7 @@ export const shortDayWithYear = (date: string) => format(date, { weekday: 'short
 export const dateWithYear = (date: string) => format(date, { month: 'short', day: 'numeric', year: 'numeric' })
 
 /** "Tue, Nov 10", with the year only when it isn't this year ("Tue, Jan 5, 2027"). */
-export function dayLabel(date: string, today: string = localToday()): string {
+export function dayLabel(date: string, today: string = todayIn(deviceTimeZone())): string {
   return date.slice(0, 4) === today.slice(0, 4) ? shortDay(date) : shortDayWithYear(date)
 }
 
@@ -29,15 +30,12 @@ export function dayTimeLabel(date: string, time?: string | null, today?: string)
 }
 
 /** When something happened: "8:30 am" if today, otherwise "Tue, Nov 10 · 8:30 am" (alerts, links, requests). */
-export function momentLabel(iso: string, now: Date = new Date()): string {
-  const d = new Date(iso)
-  const day = localDay(d)
-  const time = timeLabel(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`)
-  return day === localDay(now) ? time : `${dayLabel(day, localDay(now))} · ${time}`
+export function momentLabel(iso: string, now: Date = new Date(), timeZone = deviceTimeZone()): string {
+  const day = dayOf(iso, timeZone)
+  const today = todayIn(timeZone, now)
+  const time = timeLabel(clockIn(new Date(iso).getTime(), timeZone))
+  return day === today ? time : `${dayLabel(day, today)} · ${time}`
 }
 
 /** The day something happened: "Tue, Nov 10" (Cheers' Hidden people). */
-export const dayOfLabel = (iso: string, now: Date = new Date()) => dayLabel(localDay(new Date(iso)), localDay(now))
-
-const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-const localToday = () => localDay(new Date())
+export const dayOfLabel = (iso: string, now: Date = new Date(), timeZone = deviceTimeZone()) => dayLabel(dayOf(iso, timeZone), todayIn(timeZone, now))

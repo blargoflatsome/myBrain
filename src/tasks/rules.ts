@@ -1,6 +1,6 @@
 // Task rules (SPEC §5 Tasks): which tasks show on a day, carry-over, priority order.
 import type { TaskRow } from '@/sync/types'
-import { daysBetween, todayIn } from './days'
+import { daysBetween, todayIn } from '@/time/days'
 
 export const PRIORITIES = [
   { level: 3, key: 'high' },
