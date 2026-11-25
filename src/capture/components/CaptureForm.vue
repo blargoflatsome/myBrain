@@ -169,6 +169,7 @@ onMounted(async () => {
 
 // Choosing a type keeps what I typed (SPEC §5 Quick capture).
 function choose(d: Destination) {
+  if (d === type.value) return
   draft.choose(d)
   notice.value = ''
   error.value = ''
