@@ -65,6 +65,7 @@
 </template>
 
 <script setup lang="ts">
+import { linkTo } from '@/router/links'
 // SPEC §5 Global search and tags: search tasks, journal, The Vault, quests and events on this device; filter by tag;
 // tap a result to open it where it lives.
 import { readTables } from '@/sync/db'
@@ -157,13 +158,13 @@ function contextOf(doc: SearchDoc) {
 }
 
 const targets: Record<SearchType, (d: SearchDoc) => RouteLocationRaw> = {
-  task: (d) => ({ name: 'home', query: { task: d.id } }),
-  habit: (d) => ({ name: 'habits', query: { habit: d.id } }),
-  routine: (d) => ({ name: 'routines', query: { routine: d.id } }),
-  event: (d) => ({ name: 'calendar', query: { date: d.date ?? undefined, event: d.id } }),
-  journal_entry: (d) => ({ name: 'journal', query: { date: d.date ?? undefined } }),
-  vault_item: (d) => ({ name: 'vault', query: { bucket: d.bucketId, item: d.id } }),
-  quest: (d) => ({ name: 'quests', query: { quest: d.id } }),
+  task: (d) => linkTo({ kind: 'task', id: d.id }),
+  habit: (d) => linkTo({ kind: 'habit', id: d.id }),
+  routine: (d) => linkTo({ kind: 'routine', id: d.id }),
+  event: (d) => linkTo({ kind: 'event', id: d.id, date: d.date }),
+  journal_entry: (d) => linkTo({ kind: 'journal', date: d.date ?? '' }),
+  vault_item: (d) => linkTo({ kind: 'vault_item', id: d.id, bucket: d.bucketId ?? '' }),
+  quest: (d) => linkTo({ kind: 'quest', id: d.id }),
 }
 async function openResult(doc: SearchDoc) {
   store.close()

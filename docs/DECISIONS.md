@@ -445,3 +445,11 @@ Candidate 6 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Connections, Offsite connect
 - **Failed isn't empty** (SPEC §7): a list that couldn't load says so calmly with Try again; offline keeps each screen's own offline line.
 - **Switching a Cheers reaction** is one function in `cheers/cheers.ts` (take back, then cheer); no change in behaviour.
 - **Tests:** Vitest through the fake server (loads online, reloads on reconnect, failed reads as failed); the existing browser tests cover the screens.
+
+## 2026-11-24 One module for item links (architecture review 3)
+Candidate 7 of `docs/ARCHITECTURE_REVIEW_TASKS.md`. Links to an item were built in Search, Up next, the Dashboard and SQL, and read by eight hand-written watch blocks. Two real bugs: event links from SQL (`/calendar?event=<id>`, seven places) open the event but leave the calendar on this month, and a `?date=` link does nothing when Calendar is already open. User's choices (all as recommended):
+- **`src/router/links.ts`** builds the link for any item and gives pages one "open the item this link names" helper (finds the live row, opens it, clears the link).
+- **Calendar:** an event link goes to the event's day as well as opening it; a date link moves the calendar even when it's already open.
+- **SQL links stay as they are**; the module reads their formats, pinned by a test.
+- **The route named `home` is renamed `tasks`** (its path `/tasks` is unchanged).
+- **Tests:** each kind's link built and read back to the same item, plus the SQL formats; the calendar browser test checks an event link with no date lands on the event's month.

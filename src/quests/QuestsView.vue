@@ -109,11 +109,11 @@
 </template>
 
 <script setup lang="ts">
+import { useOpenLinked } from '@/router/links'
 // SPEC §5 Random Quest: pick a project from the bucket list when bored, filtered by time and energy.
 import { useRows } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, nextTick, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, nextTick, ref } from 'vue'
 import QuestEditor from '@/quests/components/QuestEditor.vue'
 import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
@@ -229,20 +229,8 @@ function startNew() {
   isNew.value = true
   editing.value = blankQuest()
 }
-// Opened with ?quest=<id> (from search): open that quest's editor.
-const route = useRoute()
-const router = useRouter()
-watch(
-  [() => route.query.quest, all],
-  ([id]) => {
-    if (typeof id !== 'string') return
-    const quest = all.value.find((q) => q.id === id && !q.deleted_at)
-    if (!quest) return
-    edit(quest)
-    void router.replace({ query: {} })
-  },
-  { immediate: true },
-)
+// Opened from a link (search): open its editor.
+useOpenLinked('quest', all, edit)
 async function saveEdit(q: QuestRow) {
   if (isNew.value) await brain.addQuest(q)
   else await brain.saveQuest(q)

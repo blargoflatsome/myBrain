@@ -119,6 +119,7 @@
 </template>
 
 <script setup lang="ts">
+import { useOpenLinked } from '@/router/links'
 // SPEC §5 The Vault: my buckets; inside one, its items with a quick add box, check-off, ratings and links.
 import { useRows } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
@@ -227,13 +228,10 @@ async function addItem() {
   await brain.addVaultItem(bucket.value.id, { title })
 }
 const editing = ref<VaultItemRow | null>(null)
-watch(
-  [() => route.query.item, items],
-  ([id]) => {
-    if (typeof id === 'string' && !editing.value) editing.value = items.value.find((i) => i.id === id) ?? null
-  },
-  { immediate: true },
-)
+// Opened from a link (search): open the item, staying in its bucket.
+useOpenLinked('vault_item', items, (i) => {
+  if (!editing.value) editing.value = i
+}, (query) => ({ bucket: query.bucket }))
 async function closeEditor() {
   editing.value = null
   if (route.query.item) await router.replace({ query: { bucket: bucketId.value ?? undefined } })

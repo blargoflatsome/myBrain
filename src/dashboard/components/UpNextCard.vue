@@ -21,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+import { linkTo } from '@/router/links'
 // SPEC §5 Dashboard Up next: the first thing worth doing now (see upNext.ts for the order). The main button does it
 // here where it can, otherwise opens the right page; Something else skips it for today, on this device.
 import { readDayData } from '@/journal/dayData'
@@ -150,7 +151,7 @@ async function doIt() {
     case 'routine':
       return router.push({ name: 'routine-run', params: { id: s.id } })
     case 'event':
-      return router.push({ name: 'calendar', query: { date: s.date, event: s.id } })
+      return router.push(linkTo({ kind: 'event', id: s.id, date: s.date }))
     case 'orphans':
       return router.push({ name: 'inbox' })
     case 'journal':

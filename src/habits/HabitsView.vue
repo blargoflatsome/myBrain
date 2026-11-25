@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { useOpenLinked } from '@/router/links'
 // SPEC §5 Habits: today's habits with their timer deadlines, streaks and best streaks.
 import { useRows, readRows } from '@/sync/useRows'
 import { useNow } from '@/composables/useNow'
@@ -96,7 +97,6 @@ import { addDays } from '@/tasks/days'
 import { messages } from '@/messages'
 import { momentLabel } from '@/ui/dates'
 import type { HabitRow } from '@/sync/types'
-import { useRoute, useRouter } from 'vue-router'
 import PageHeading from '@/components/PageHeading.vue'
 import NewButton from '@/components/NewButton.vue'
 import RowDelete from '@/components/RowDelete.vue'
@@ -181,20 +181,8 @@ function edit(h: HabitRow) {
   isNew.value = false
   editing.value = h
 }
-// Opened with ?habit=<id> (from search): open that habit's editor.
-const route = useRoute()
-const router = useRouter()
-watch(
-  [() => route.query.habit, habits],
-  ([id]) => {
-    if (typeof id !== 'string') return
-    const found = habits.value.find((x) => x.id === id && !x.deleted_at)
-    if (!found) return
-    edit(found)
-    void router.replace({ query: {} })
-  },
-  { immediate: true },
-)
+// Opened from a link (search): open its editor.
+useOpenLinked('habit', habits, edit)
 async function save(h: HabitRow, tags: string[]) {
   if (isNew.value) await brain.addHabit({ ...h, tags }, new Date(), timeZone.value)
   else await brain.saveHabit(h, tags, new Date(), timeZone.value)

@@ -119,10 +119,10 @@
 </template>
 
 <script setup lang="ts">
+import { useOpenLinked } from '@/router/links'
 // SPEC §5 Tasks: daily list (with carry-over), scheduling for other days, and the Undated list.
 import { useRows } from '@/sync/useRows'
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import TaskItem from '@/tasks/components/TaskItem.vue'
 import TaskEditor from '@/tasks/components/TaskEditor.vue'
 import PageHeading from '@/components/PageHeading.vue'
@@ -237,24 +237,14 @@ function startNew() {
   isNew.value = true
   editing.value = blankTask(view.value === 'undated' ? null : offset.value < 0 ? today.value : day.value)
 }
-const route = useRoute()
-const router = useRouter()
-// Opened with ?task=<id> (from search or the calendar): show its day and open its editor.
-watch(
-  [() => route.query.task, all],
-  ([id]) => {
-    if (typeof id !== 'string') return
-    const task = all.value.find((t) => t.id === id && !t.deleted_at)
-    if (!task) return
-    if (task.due_date) {
-      view.value = 'day'
-      day.value = task.due_date < today.value && task.status === 'open' ? today.value : task.due_date
-    } else view.value = 'undated'
-    edit(task)
-    void router.replace({ query: {} })
-  },
-  { immediate: true },
-)
+// Opened from a link (search or the calendar): show its day and open its editor.
+useOpenLinked('task', all, (task) => {
+  if (task.due_date) {
+    view.value = 'day'
+    day.value = task.due_date < today.value && task.status === 'open' ? today.value : task.due_date
+  } else view.value = 'undated'
+  edit(task)
+})
 async function saveEdit(t: TaskRow, tags: string[]) {
   if (isNew.value) await brain.addTask({ ...t, source: 'manual', tags })
   else await brain.saveTask(t, tags)
