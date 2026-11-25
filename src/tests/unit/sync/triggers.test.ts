@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { REALTIME_WAIT_MS, RETRY_MS, startSyncTriggers, type Surroundings } from '@/sync/triggers'
 import type { SyncTable } from '@/sync/types'
 
-// What the sync engine was asked to do, in order: the whole output of the triggers.
+// What the sync engine was asked to do, in order. The triggers save nothing themselves, so these asks are their
+// whole outcome, not a detail of how they work.
 let asked: string[]
 let pending: number
 let online: boolean[]

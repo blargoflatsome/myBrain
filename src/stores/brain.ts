@@ -170,7 +170,7 @@ export const useBrainStore = defineStore('brain', () => {
   const availability = availabilityActions(ctx)
   const priority = priorityActions(ctx, habits.completeHabit, tasks.completeTask)
   const postIts = postItActions(ctx)
-  const capture = captureActions(ctx, { ...tasks, ...vault, ...quests, ...habits, ...postIts, ...trophies })
+  const capture = captureActions(ctx, { addTask: tasks.addTask, addVaultItem: vault.addVaultItem, addQuest: quests.addQuest, addHabit: habits.addHabit, addPostIt: postIts.addPostIt, logActivity: trophies.logActivity })
   const alerts = alertActions(ctx)
   const focus = focusActions(ctx, trophies.logActivity)
   const breathe = breatheActions(ctx, trophies.logActivity)
