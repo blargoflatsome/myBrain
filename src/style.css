@@ -518,3 +518,9 @@ dialog::backdrop {
 .chalkboard [data-testid='postit-count'] { color: rgb(243 241 232 / 0.85); }
 .chalkboard [data-testid='postit-dots'] .bg-ink { background: #f3f1e8; }
 .chalkboard [data-testid='postit-dots'] .border-control { border-color: rgb(243 241 232 / 0.7); }
+
+/* SPEC §5 Forms, When a save is refused: the field with the problem gets a soft red border beside its message. Outside
+   any layer, so it wins over the border colour a field's utility classes give it. */
+:is(input, select, textarea)[aria-invalid='true'] {
+  border-color: var(--danger);
+}

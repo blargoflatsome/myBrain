@@ -9,7 +9,7 @@
     @delete="deleteNow"
     @close="emit('close')"
   >
-    <TitleField v-model="title" :label="m.editor.title" />
+    <TitleField v-model="title" :label="m.editor.title" :error="titleError" />
     <TaskFields v-model:due-date="dueDate" v-model:notes="notes" v-model:priority="priority" v-model:reminder-time="reminderTime" :reminder-error="reminderError" />
     <TagInput v-model="tags.names.value" />
   </EditorDialog>
@@ -20,6 +20,7 @@
 import EditorDialog from '@/components/EditorDialog.vue'
 import TaskFields from '@/tasks/components/TaskFields.vue'
 import TitleField from '@/components/TitleField.vue'
+import { useFieldError } from '@/composables/useFieldError'
 import { computed, ref, watch } from 'vue'
 import TagInput from '@/tags/components/TagInput.vue'
 import { useItemTags } from '@/tags/useItemTags'
@@ -39,7 +40,9 @@ const notes = ref('')
 const dueDate = ref('')
 const priority = ref<number>(DEFAULT_PRIORITY)
 const reminderTime = ref('')
-const reminderError = ref('')
+// SPEC §5 Forms: why Save was refused, beside the field it's about.
+const titleError = useFieldError()
+const reminderError = useFieldError()
 
 watch(
   () => props.task,
@@ -50,19 +53,18 @@ watch(
     dueDate.value = t.due_date ?? ''
     priority.value = t.priority ?? DEFAULT_PRIORITY
     reminderTime.value = t.reminder_time?.slice(0, 5) ?? ''
-    reminderError.value = ''
+    titleError.clear()
+    reminderError.clear()
   },
 )
 
 async function save() {
-  if (!props.task || !title.value.trim()) return
+  if (!props.task) return
+  if (!title.value.trim()) return titleError.refuse(messages.forms.titleNeeded)
   const due_date = dueDate.value || null
   const reminder_time = checkedReminder({ priority: priority.value, due_date, reminder_time: reminderTime.value }, props.isNew ? null : props.task)
   // SPEC §5 High-priority tasks: saving never sets a reminder off at once.
-  if (reminder_time === 'past') {
-    reminderError.value = messages.tasks.reminderPast
-    return
-  }
+  if (reminder_time === 'past') return reminderError.refuse(messages.tasks.reminderPast)
   emit('save', {
     ...props.task,
     title: title.value.trim(),

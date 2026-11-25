@@ -28,9 +28,10 @@
       <form v-if="editing" class="flex flex-col gap-3 p-5" novalidate @submit.prevent="saveEdit">
         <h3 class="text-lg font-semibold">{{ adding ? m.addHeading : m.editHeading }}</h3>
         <label :class="fieldLabel">{{ m.name }}<input v-model="name" maxlength="120" :class="field" autocomplete="off"></label>
-        <label :class="fieldLabel">{{ m.email }}<input v-model="email" type="email" maxlength="320" :class="field" autocomplete="off"></label>
-        <label :class="fieldLabel">{{ m.phone }}<input v-model="phone" type="tel" maxlength="40" :class="field" autocomplete="off"></label>
-        <p v-if="error" class="text-sm text-danger" role="alert" data-testid="person-error">{{ error }}</p>
+        <label :class="fieldLabel">{{ m.email }}<input v-model="email" v-field-error="emailError" type="email" maxlength="320" :class="field" autocomplete="off"></label>
+        <FieldError :of="emailError" data-testid="person-error" />
+        <label :class="fieldLabel">{{ m.phone }}<input v-model="phone" v-field-error="phoneError" type="tel" maxlength="40" :class="field" autocomplete="off"></label>
+        <FieldError :of="phoneError" data-testid="person-error" />
         <div class="flex gap-2">
           <button type="submit" class="flex-1" :class="primaryButton">{{ m.save }}</button>
           <button type="button" :class="secondaryButton" @click="editor?.close()">{{ m.cancel }}</button>
@@ -46,6 +47,8 @@
 import { useRows } from '@/sync/useRows'
 import RowDelete from '@/components/RowDelete.vue'
 import CloseX from '@/components/CloseX.vue'
+import FieldError from '@/components/FieldError.vue'
+import { useFieldError, vFieldError } from '@/composables/useFieldError'
 import { computed, ref } from 'vue'
 import { useServerList } from '@/server/useServerList'
 import UndoLine from '@/components/UndoLine.vue'
@@ -72,7 +75,9 @@ const editing = ref<PersonRow | null>(null)
 const name = ref('')
 const email = ref('')
 const phone = ref('')
-const error = ref('')
+// SPEC §5 Forms: why Save was refused, beside the box it's about.
+const emailError = useFieldError()
+const phoneError = useFieldError()
 // Adding uses the same form as editing, starting empty (SPEC §5 Calendar, my people).
 const adding = ref(false)
 const notice = ref('')
@@ -87,19 +92,21 @@ function startEdit(p: PersonRow) {
   name.value = p.name ?? ''
   email.value = p.email ?? ''
   phone.value = p.phone ?? ''
-  error.value = ''
+  emailError.clear()
+  phoneError.clear()
   editor.value?.showModal()
 }
 async function saveEdit() {
   if (!editing.value) return
   const e = email.value.trim().toLowerCase()
   const ph = phone.value.trim()
-  if (e && !isEmail(e)) return (error.value = m.badEmail)
-  if (ph && !isPhone(ph)) return (error.value = m.badPhone)
-  if (!e && !ph) return (error.value = m.needOne)
+  if (e && !isEmail(e)) return emailError.refuse(m.badEmail)
+  if (ph && !isPhone(ph)) return phoneError.refuse(m.badPhone)
+  if (!e && !ph) return emailError.refuse(m.needOne)
   // Someone else already saved with this email or phone: say so instead of saving them twice.
   const result = await brain.savePerson({ ...editing.value, name: name.value, email: e, phone: ph })
-  if ('twin' in result) return (error.value = m.alreadySaved(personLabel(result.twin)))
+  // The box they match on is the one to change.
+  if ('twin' in result) return (e && result.twin.email === e ? emailError : phoneError).refuse(m.alreadySaved(personLabel(result.twin)))
   if (adding.value) notice.value = m.addedNotice(personLabel(result.saved))
   editor.value?.close()
 }

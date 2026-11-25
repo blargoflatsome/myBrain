@@ -27,6 +27,9 @@ export const messages = {
     moreOptions: 'More details',
     reminders: 'Reminders',
     howOften: 'How often',
+    // SPEC §5 Forms, When a save is refused: every editor's title and name.
+    titleNeeded: 'Give it a title so future you knows what it is.',
+    nameNeeded: 'Give it a name so future you knows what it is.',
   },
   /** Dev-only sign-in for test accounts (local dev server only). */
   devSignIn: {
@@ -1484,7 +1487,6 @@ export const messages = {
       save: 'Save event',
       close: 'Close',
       delete: 'Delete event',
-      titleError: 'Give it a title so future you knows what it is.',
       endError: 'It needs to end after it starts.',
     },
     confirmDelete: {

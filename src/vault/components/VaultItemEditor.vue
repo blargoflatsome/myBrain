@@ -9,7 +9,7 @@
     @delete="deleteNow"
     @close="emit('close')"
   >
-    <TitleField v-model="title" :label="m.itemEditor.title" />
+    <TitleField v-model="title" :label="m.itemEditor.title" :error="titleError" />
     <VaultItemFields
       v-model:bucket-id="bucketId"
       v-model:new-bucket-name="newBucketName"
@@ -25,6 +25,7 @@
 // SPEC §5 The Vault: edit an item: title, then the shared Vault item fields (VaultItemFields). Delete asks first.
 import EditorDialog from '@/components/EditorDialog.vue'
 import TitleField from '@/components/TitleField.vue'
+import { useFieldError } from '@/composables/useFieldError'
 import VaultItemFields from '@/vault/components/VaultItemFields.vue'
 import { useBrainStore } from '@/stores/brain'
 import { ref, watch } from 'vue'
@@ -40,6 +41,8 @@ const m = messages.vault
 const brain = useBrainStore()
 const newBucketName = ref<string | null>(null)
 const title = ref('')
+// SPEC §5 Forms: an empty title is refused, beside the title box.
+const titleError = useFieldError()
 const notes = ref('')
 const rating = ref<number | null>(null)
 const link = ref('')
@@ -49,6 +52,7 @@ watch(
   () => props.item,
   (i) => {
     if (!i) return
+    titleError.clear()
     title.value = i.title
     notes.value = i.notes ?? ''
     newBucketName.value = null
@@ -59,7 +63,8 @@ watch(
 )
 
 async function save() {
-  if (!props.item || !title.value.trim()) return
+  if (!props.item) return
+  if (!title.value.trim()) return titleError.refuse(messages.forms.titleNeeded)
   // A new bucket chosen in the form is made when the item is saved (SPEC §5 Forms).
   if (newBucketName.value?.trim()) bucketId.value = (await brain.createBucket(newBucketName.value)).id
   emit('save', {

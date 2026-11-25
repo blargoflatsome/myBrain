@@ -171,4 +171,19 @@ test.describe('Spec §5 Tasks: scheduling and the Undated list', () => {
     await dialog.getByRole('button', { name: msg.capture.save }).click()
     await expect(page.getByTestId('task-title')).toHaveText(['second', 'first'])
   })
+
+  // SPEC §5 Forms, When a save is refused: every editor says why, in its own words (not the browser's pop-up).
+  for (const [what, typed] of [['empty', ''], ['only spaces', '   ']] as const) {
+    test(`a title that is ${what} is refused beside the title box`, async ({ page }) => {
+      server.seed('tasks', [task('a', 'first', '2026-11-10')])
+      await open(page)
+      await page.getByRole('button', { name: /^first/ }).click()
+      const dialog = page.getByRole('dialog', { name: msg.tasks.editor.heading })
+      const title = dialog.getByLabel(msg.tasks.editor.title)
+      await title.fill(typed)
+      await dialog.getByRole('button', { name: msg.capture.save }).click()
+      await expect(title).toHaveAccessibleDescription(msg.forms.titleNeeded)
+      expect(server.written('tasks')).toHaveLength(0)
+    })
+  }
 })

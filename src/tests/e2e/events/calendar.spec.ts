@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
 import { goTo } from '../support/nav'
+import { expectFocused } from '../support/focus'
 import { messages as msg } from '../../../messages'
 
 test.use({ timezoneId: 'America/New_York', locale: 'en-US' })
@@ -66,18 +67,28 @@ test.describe('Spec §5 Calendar', { tag: '@phone' }, () => {
     await expect(page.locator('.cal-wrap').getByText('Team lunch')).toBeVisible()
   })
 
-  test('an event needs a title and must end after it starts', async ({ page }) => {
+  // SPEC §5 Forms, When a save is refused: the field is marked, described by its message and focused.
+  test('an event needs a title and must end after it starts; the refused field says why', async ({ page }) => {
     await open(page, '/calendar')
     await page.getByRole('button', { name: msg.calendar.newEvent }).click()
     const dialog = page.getByRole('dialog', { name: msg.calendar.editor.newHeading })
+    const title = dialog.getByLabel(msg.capture.titleLabel)
+    await title.fill('   ')
     await dialog.getByRole('button', { name: msg.capture.save }).click()
-    await expect(dialog.getByRole('alert')).toHaveText(msg.calendar.editor.titleError)
-    await dialog.getByLabel(msg.capture.titleLabel).fill('Oops')
+    await expect(title).toHaveAccessibleDescription(msg.forms.titleNeeded)
+    await expect(title).toHaveAttribute('aria-invalid', 'true')
+    await expectFocused(title)
+    // Changing the field takes the mark away.
+    await title.fill('Oops')
+    await expect(title).toHaveAttribute('aria-invalid', 'false')
+    await expect(dialog.getByTestId('field-error')).toHaveCount(0)
     await dialog.getByRole('checkbox', { name: msg.availability.allDay }).uncheck()
     await dialog.getByLabel('Starts Time').fill('15:00')
-    await dialog.getByLabel('Ends Time').fill('14:00')
+    const end = dialog.getByLabel('Ends Time')
+    await end.fill('14:00')
     await dialog.getByRole('button', { name: msg.capture.save }).click()
-    await expect(dialog.getByRole('alert')).toHaveText(msg.calendar.editor.endError)
+    await expect(end).toHaveAccessibleDescription(msg.calendar.editor.endError)
+    await expectFocused(end)
     expect(server.written('events')).toHaveLength(0)
   })
 

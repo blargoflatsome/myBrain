@@ -7,9 +7,10 @@
     <form class="flex flex-col gap-4" @submit.prevent="save">
       <label :class="fieldLabel">
         {{ m.phone }}
-        <input v-model="phone" type="tel" autocomplete="tel" :class="fieldOnPage" @input="error = ''">
+        <input v-model="phone" v-field-error="phoneError" type="tel" autocomplete="tel" :class="fieldOnPage" @input="error = ''">
         <span class="text-xs">{{ m.phoneHint }}</span>
       </label>
+      <FieldError :of="phoneError" />
       <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
       <button type="submit" :class="primaryButton" :disabled="saving">{{ m.save }}</button>
     </form>
@@ -24,6 +25,8 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { isPhone } from '@/events/contacts'
 import { messages } from '@/messages'
+import FieldError from '@/components/FieldError.vue'
+import { useFieldError, vFieldError } from '@/composables/useFieldError'
 import { fieldLabel, fieldOnPage, primaryButton } from '@/ui/styles'
 
 const route = useRoute()
@@ -31,15 +34,14 @@ const router = useRouter()
 const m = messages.welcome
 
 const phone = ref('')
+// A number that isn't one is refused beside the box; a save that didn't go through is said out loud.
+const phoneError = useFieldError()
 const error = ref('')
 const saving = ref(false)
 
 async function save() {
   error.value = ''
-  if (!isPhone(phone.value)) {
-    error.value = m.phoneError
-    return
-  }
+  if (!isPhone(phone.value)) return phoneError.refuse(m.phoneError)
   saving.value = true
   const why = await useProfileStore().update({ phone: phone.value.trim() })
   saving.value = false

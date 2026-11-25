@@ -6,15 +6,15 @@
     :close-label="m.editor.close"
     :delete-label="isNew ? null : m.editor.delete"
     box-class="m-auto max-h-[92dvh] w-[min(100%-2rem,32rem)] rounded-2xl border border-line bg-surface p-0 text-ink backdrop:bg-black/40"
-    novalidate
     @save="save"
     @delete="askDelete"
     @close="emit('close')"
   >
     <label :class="fieldLabel">
       <span class="pb-2">{{ m.editor.title }}</span>
-      <input v-model="title" maxlength="500" :class="field" @input="error = ''">
+      <input v-model="title" v-field-error="titleError" maxlength="500" :class="field">
     </label>
+    <FieldError :of="titleError" />
     <NotesEditor v-model="notes" :label="m.editor.notes" test-id="event-notes" />
     <!-- SPEC §5 Calendar: when it happens, folded into Schedule (open for a new event; its summary says when). -->
     <MoreOptions :title="m.editor.schedule" :summary="scheduleSummary" :start-open="scheduleOpen" test-id="event-schedule">
@@ -29,8 +29,10 @@
       </fieldset>
       <fieldset class="grid grid-cols-2 gap-3">
         <legend class="mb-1 text-sm font-medium pb-3">{{ m.editor.end }}</legend>
-        <DateInput v-model="endDate" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.end} ${m.editor.date}`" required :input-class="field" />
-        <TimeInput v-if="!allDay" v-model="endTime" :label="m.editor.time" :aria-label="`${m.editor.end} ${m.editor.time}`" :input-class="field" />
+        <DateInput v-model="endDate" v-field-error="endDateError" :class="allDay ? 'col-span-2' : ''" :label="m.editor.date" :aria-label="`${m.editor.end} ${m.editor.date}`" required :input-class="field" />
+        <TimeInput v-if="!allDay" v-model="endTime" v-field-error="endTimeError" :label="m.editor.time" :aria-label="`${m.editor.end} ${m.editor.time}`" :input-class="field" />
+        <FieldError :of="endDateError" class="col-span-2" />
+        <FieldError :of="endTimeError" class="col-span-2" />
       </fieldset>
       <label :class="fieldLabel">
         <span class="pb-2">{{ m.editor.repeat }}</span>
@@ -69,7 +71,6 @@
       </label>
     </EventPeople>
     <p v-if="event?.cancelled_at" class="rounded-xl bg-bg p-3 text-sm" role="status">{{ messages.invites.cancelledNote }}</p>
-    <p v-if="error" class="text-sm text-danger" role="alert">{{ error }}</p>
     <template #actions>
       <button
         v-if="!isNew && event && !event.cancelled_at"
@@ -99,6 +100,8 @@ import { readRows } from '@/sync/useRows'
 import EditorDialog from '@/components/EditorDialog.vue'
 import TimeInput from '@/components/TimeInput.vue'
 import DateInput from '@/components/DateInput.vue'
+import FieldError from '@/components/FieldError.vue'
+import { useFieldError, vFieldError } from '@/composables/useFieldError'
 import MoreOptions from '@/components/MoreOptions.vue'
 import NotesEditor from '@/components/NotesEditor.vue'
 import { storedNotes } from '@/journal/body'
@@ -150,7 +153,10 @@ const scheduleSummary = computed(() => {
     : `${dayLabel(startDate.value)} · ${timeLabel(startTime.value)} – ${sameDay ? '' : `${dayLabel(endDate.value)} · `}${timeLabel(endTime.value)}`
   return repeat.value === 'never' ? when : `${when}, ${m.repeat[repeat.value].toLowerCase()}`
 })
-const error = ref('')
+// SPEC §5 Forms: why Save was refused, beside the field it's about.
+const titleError = useFieldError()
+const endDateError = useFieldError()
+const endTimeError = useFieldError()
 // People to invite when saving (SPEC §5 Shared events).
 const people = ref<PersonToInvite[]>([])
 // SPEC §10 Scheduler: Show me as. Null keeps the usual rule (timed events busy, all-day events free).
@@ -196,7 +202,7 @@ watch(
     invited.value = []
     notes.value = e.notes ?? ''
     scheduleOpen.value = props.isNew
-    error.value = ''
+    for (const f of [titleError, endDateError, endTimeError]) f.clear()
     people.value = props.isNew ? [...(props.withPeople ?? [])] : []
   },
 )
@@ -229,8 +235,9 @@ async function save() {
   if (!row) return
   const problem = eventProblem(row)
   if (problem) {
-    error.value = problem === 'title' ? m.editor.titleError : m.editor.endError
-    return
+    // The end date is the problem when it's before the start; otherwise it's the end time on the same day.
+    if (problem === 'title') return titleError.refuse(messages.forms.titleNeeded)
+    return (row.end_date < row.start_date ? endDateError : endTimeError).refuse(m.editor.endError)
   }
   emit('save', row, people.value)
 }

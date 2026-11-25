@@ -48,8 +48,9 @@
       <form class="flex flex-col gap-2" novalidate @submit.prevent="ask">
         <label :class="fieldLabel">
           {{ m.askLabel }}
-          <input v-model="contact" :class="field" autocomplete="off" maxlength="320">
+          <input v-model="contact" v-field-error="contactError" :class="field" autocomplete="off" maxlength="320">
         </label>
+        <FieldError :of="contactError" data-testid="ask-error" />
         <button type="submit" class="self-start" :class="primaryButtonSmall" :disabled="!brain.online">{{ m.send }}</button>
       </form>
       <p v-if="askError" class="text-sm text-danger" role="alert" data-testid="ask-error">{{ askError }}</p>
@@ -60,8 +61,9 @@
       <form class="flex flex-col gap-2" novalidate @submit.prevent="findCode">
         <label :class="fieldLabel">
           {{ m.codeLabel }}
-          <input v-model="code" :class="[field, 'uppercase tracking-widest']" autocomplete="off" maxlength="8">
+          <input v-model="code" v-field-error="codeFieldError" :class="[field, 'uppercase tracking-widest']" autocomplete="off" maxlength="8">
         </label>
+        <FieldError :of="codeFieldError" data-testid="code-error" />
         <button type="submit" :class="[smallButton, 'self-start']" :disabled="!brain.online">{{ m.findCode }}</button>
       </form>
       <div v-if="codeOwner" class="flex flex-wrap items-center gap-2" data-testid="code-owner">
@@ -112,6 +114,8 @@
 // SPEC §10 Connections: requests to answer (Accept, Decline, Block), my connections (remove or block), requests I sent,
 // then the ways to connect: exact email or phone (the answer never says whether they have an account), a code, a link.
 // SPEC §5 Account page, People group: the same part shows on the Connections page and in Account › People (nested).
+import FieldError from '@/components/FieldError.vue'
+import { useFieldError, vFieldError } from '@/composables/useFieldError'
 import { computed, ref } from 'vue'
 import { useServerList } from '@/server/useServerList'
 import ListFailed from '@/components/ListFailed.vue'
@@ -202,12 +206,15 @@ async function cancelOne(id: string) {
 const code = ref('')
 const codeOwner = ref<LinkOwner | null>(null)
 const codeError = ref('')
+// No one has that code: refused beside the box. A failed call stays a message of its own.
+const codeFieldError = useFieldError()
 async function findCode() {
   codeOwner.value = null
   codeError.value = ''
+  codeFieldError.clear()
   try {
     codeOwner.value = (await previewLink({ code: code.value }))[0] ?? null
-    if (!codeOwner.value) codeError.value = m.codeGone
+    if (!codeOwner.value) await codeFieldError.refuse(m.codeGone)
   } catch (e) {
     codeError.value = sayWhy(e, { offline: m.offline, limit: m.triesLimit, failed: m.failed })
   }
@@ -228,12 +235,14 @@ async function useCode() {
 
 const contact = ref('')
 const askError = ref('')
+// Not an email or phone number: refused beside the box. A failed request stays a message of its own.
+const contactError = useFieldError()
 const askStatus = ref('')
 async function ask() {
   askStatus.value = ''
-  const typed = contact.value.trim()
-  if (!isEmail(typed) && !isPhone(typed)) return (askError.value = m.askInvalid)
   askError.value = ''
+  const typed = contact.value.trim()
+  if (!isEmail(typed) && !isPhone(typed)) return contactError.refuse(m.askInvalid)
   try {
     await requestConnection(typed)
     // The same answer whatever was typed: it never says whether they have an account.

@@ -45,9 +45,10 @@
     <div class="flex flex-col gap-2" role="group" aria-labelledby="type-someone">
       <span id="type-someone" class="pb-2 text-sm font-medium">{{ m.typeSomeone }}</span>
       <div class="grid grid-cols-2 gap-2">
-        <label :class="fieldLabel"><span class="pb-2">{{ m.contact }}</span><input v-model="contact" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
+        <label :class="fieldLabel"><span class="pb-2">{{ m.contact }}</span><input v-model="contact" v-field-error="contactFieldError" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
         <label :class="fieldLabel"><span class="pb-2">{{ m.contactName }}</span><input v-model="contactName" :class="fieldCompact" autocomplete="off" @keydown.enter.prevent="addContact"></label>
       </div>
+      <FieldError :of="contactFieldError" data-testid="people-error" />
       <button type="button" :class="[smallButton, 'self-start']" @click="addContact">{{ m.addContact }}</button>
     </div>
     <p v-if="contactError" class="text-sm text-danger" role="alert" data-testid="people-error">{{ contactError }}</p>
@@ -74,6 +75,8 @@ import OptionalToggle from '@/events/components/OptionalToggle.vue'
 import PersonStatus from '@/events/components/PersonStatus.vue'
 import { eventPeople, inviteLink, shareHref, type EventPerson, type PersonToInvite } from '@/events/sharing'
 import { newLinkMessage } from '@/events/guestMessages'
+import FieldError from '@/components/FieldError.vue'
+import { useFieldError, vFieldError } from '@/composables/useFieldError'
 import type { Status } from '@/events/availability'
 import { useBrainStore } from '@/stores/brain'
 import { sayWhy } from '@/server/server'
@@ -149,9 +152,11 @@ const status = ref('')
 const contact = ref('')
 const contactName = ref('')
 const contactError = ref('')
+// Neither an email nor a phone number: refused beside the box (a failed server call is contactError).
+const contactFieldError = useFieldError()
 function addContact() {
   const parsed = parseContact(contact.value)
-  if (!parsed) return (contactError.value = m.contactError)
+  if (!parsed) return contactFieldError.refuse(m.contactError)
   contactError.value = ''
   const person = { ...parsed, name: contactName.value.trim() || undefined }
   add(person)

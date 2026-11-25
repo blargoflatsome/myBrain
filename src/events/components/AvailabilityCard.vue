@@ -24,8 +24,8 @@
           </select>
         </label>
         <TimeInput v-model="ruleFrom" :label="m.from" label-class="text-xs text-muted" :input-class="fieldCompact" />
-        <TimeInput v-model="ruleUntil" :label="m.until" label-class="text-xs text-muted" :input-class="fieldCompact" />
-        <p v-if="ruleError" class="col-span-3 text-sm text-danger" role="alert">{{ ruleError }}</p>
+        <TimeInput v-model="ruleUntil" v-field-error="ruleError" :label="m.until" label-class="text-xs text-muted" :input-class="fieldCompact" />
+        <FieldError :of="ruleError" class="col-span-3" />
         <button type="submit" class="col-span-3" :class="primaryButtonSmall">{{ m.add }}</button>
       </form>
       <div v-else-if="!addingWork" class="flex flex-wrap gap-2">
@@ -39,9 +39,9 @@
         <WeekdayPicker v-model="workDays" labelledby="work-days" />
         <div class="grid grid-cols-2 gap-2">
           <TimeInput v-model="workFrom" :label="m.from" label-class="text-xs text-muted" :input-class="fieldCompact" />
-          <TimeInput v-model="workUntil" :label="m.until" label-class="text-xs text-muted" :input-class="fieldCompact" />
+          <TimeInput v-model="workUntil" v-field-error="workError" :label="m.until" label-class="text-xs text-muted" :input-class="fieldCompact" />
         </div>
-        <p v-if="workError" class="text-sm text-danger" role="alert">{{ workError }}</p>
+        <FieldError :of="workError" />
         <button type="submit" :class="primaryButtonSmall">{{ m.addWorkHours }}</button>
       </form>
     </div>
@@ -75,10 +75,10 @@
         <label class="flex items-center gap-2 text-sm"><input v-model="exAllDay" type="checkbox" class="size-5 accent-[var(--accent)]">{{ m.allDay }}</label>
         <div v-if="!exAllDay" class="grid grid-cols-2 gap-2">
           <TimeInput v-model="exFrom" :label="m.from" label-class="text-xs text-muted" :input-class="fieldCompact" />
-          <TimeInput v-model="exUntil" :label="m.until" label-class="text-xs text-muted" :input-class="fieldCompact" />
+          <TimeInput v-model="exUntil" v-field-error="exError" :label="m.until" label-class="text-xs text-muted" :input-class="fieldCompact" />
         </div>
         <label class="flex flex-col gap-1 text-xs text-muted">{{ m.note }}<input v-model="exNote" :class="fieldCompact"></label>
-        <p v-if="exError" class="text-sm text-danger" role="alert">{{ exError }}</p>
+        <FieldError :of="exError" />
         <button type="submit" :class="primaryButtonSmall">{{ m.add }}</button>
       </form>
       <button v-else type="button" class="min-h-11 self-start rounded-xl border border-dashed border-line px-3 text-sm" @click="addingException = true">{{ m.addException }}</button>
@@ -88,6 +88,8 @@
 
 <script setup lang="ts">
 // SPEC §5 Availability schedule: weekly times I'm never free, and one-off days (unavailable, or available after all).
+import FieldError from '@/components/FieldError.vue'
+import { useFieldError, vFieldError } from '@/composables/useFieldError'
 import { useRows } from '@/sync/useRows'
 import TimeInput from '@/components/TimeInput.vue'
 import DateInput from '@/components/DateInput.vue'
@@ -134,10 +136,11 @@ const addingRule = ref(false)
 const ruleDay = ref(1)
 const ruleFrom = ref('09:00')
 const ruleUntil = ref('17:00')
-const ruleError = ref('')
+// SPEC §5 Forms: times that don't work are refused beside Until.
+const ruleError = useFieldError()
 async function addRule() {
-  if (!(await brain.addAvailability([ruleDay.value], ruleFrom.value, ruleUntil.value))) return (ruleError.value = m.timeError)
-  ruleError.value = ''
+  if (!(await brain.addAvailability([ruleDay.value], ruleFrom.value, ruleUntil.value))) return ruleError.refuse(m.timeError)
+  ruleError.clear()
   addingRule.value = false
 }
 
@@ -146,10 +149,10 @@ const addingWork = ref(false)
 const workDays = ref([1, 2, 3, 4, 5])
 const workFrom = ref('09:00')
 const workUntil = ref('17:00')
-const workError = ref('')
+const workError = useFieldError()
 async function addWorkHours() {
-  if (!(await brain.addAvailability(workDays.value, workFrom.value, workUntil.value))) return (workError.value = m.timeError)
-  workError.value = ''
+  if (!(await brain.addAvailability(workDays.value, workFrom.value, workUntil.value))) return workError.refuse(m.timeError)
+  workError.clear()
   addingWork.value = false
 }
 // ---------- One-off days ----------
@@ -160,7 +163,7 @@ const exFrom = ref('09:00')
 const exUntil = ref('17:00')
 const exKind = ref<'unavailable' | 'available'>('unavailable')
 const exNote = ref('')
-const exError = ref('')
+const exError = useFieldError()
 async function addException() {
   const added = await brain.addAvailabilityDay({
     date: exDate.value,
@@ -169,8 +172,8 @@ async function addException() {
     kind: exKind.value,
     note: exNote.value,
   })
-  if (!added) return (exError.value = m.timeError)
-  exError.value = ''
+  if (!added) return exError.refuse(m.timeError)
+  exError.clear()
   exNote.value = ''
   addingException.value = false
 }

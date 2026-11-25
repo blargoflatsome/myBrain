@@ -12,8 +12,9 @@
   >
     <label :class="fieldLabel">
       <span class="pb-2">{{ m.bucketEditor.name }}</span>
-      <input v-model="name" maxlength="200" required :class="field">
+      <input v-model="name" v-field-error="nameError" maxlength="200" required :class="field">
     </label>
+    <FieldError :of="nameError" />
     <label class="flex items-center justify-between gap-4">
       <span>
         <span class="font-medium">{{ m.bucketEditor.checkable }}</span>
@@ -49,6 +50,8 @@
 // SPEC §5 The Vault: rename a bucket, choose whether its items can be checked off, make it my default bucket, show it
 // on my profile (Shared Vaults), or delete it (with its items).
 import EditorDialog from '@/components/EditorDialog.vue'
+import FieldError from '@/components/FieldError.vue'
+import { useFieldError, vFieldError } from '@/composables/useFieldError'
 import { ref, watch } from 'vue'
 import { messages } from '@/messages'
 import type { VaultBucketRow, VaultShareRow } from '@/sync/types'
@@ -63,6 +66,8 @@ const m = messages.vault
 
 const confirmDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 const name = ref('')
+// SPEC §5 Forms: an empty name is refused, beside the name box.
+const nameError = useFieldError()
 const checkable = ref(false)
 const onProfile = ref(false)
 const isDefault = ref(false)
@@ -72,6 +77,7 @@ watch(
   (b) => {
     if (!b) return
     name.value = b.name
+    nameError.clear()
     checkable.value = !!b.checkable
     onProfile.value = !!b.on_profile
     isDefault.value = !!b.is_default
@@ -79,7 +85,8 @@ watch(
 )
 
 function save() {
-  if (!props.bucket || !name.value.trim()) return
+  if (!props.bucket) return
+  if (!name.value.trim()) return nameError.refuse(messages.forms.nameNeeded)
   emit('save', { ...props.bucket, name: name.value.trim(), checkable: checkable.value, on_profile: onProfile.value, is_default: isDefault.value })
 }
 function confirmDelete() {
