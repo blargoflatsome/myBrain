@@ -264,7 +264,7 @@ async function saveEvent(e: EventRow, people: PersonToInvite[] = []) {
   inviteError.value = ''
   inviteNotice.value = ''
   if (saved.offerChangeNotice) {
-    changedEvent.value = e
+    changedEvent.value = saved.event
     confirmNotify.value?.open()
   }
   if (saved.inviteFailed) {

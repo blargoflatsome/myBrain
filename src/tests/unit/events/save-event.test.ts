@@ -53,13 +53,16 @@ describe('SPEC §10 Connections: changing the date or time offers to let invitee
     const saved = await brain.saveEventWithPeople({ ...event, ...change })
 
     expect(saved.offerChangeNotice).toBe(offered)
+    expect(saved.event).toMatchObject(change)
   })
 
   it('letting them know uploads my change first, so the server writes the new time into the messages', async () => {
     const event = party()
     const brain = await signedInWith(event, [invite(event, 'yes')])
     remote.online = false
-    await brain.saveEventWithPeople({ ...event, start_time: '18:00', end_time: '19:00' })
+    const saved = await brain.saveEventWithPeople({ ...event, title: '  Board games ', start_time: '18:00', end_time: '19:00' })
+    // The notice is about the event as saved (code review: it once used the title as typed).
+    expect(saved.event.title).toBe('Board games')
     // The upload tried at once failed: the change waits on this device.
     await vi.waitFor(() => expect(brain.status.state).toBe('offline'))
     remote.online = true
@@ -69,7 +72,7 @@ describe('SPEC §10 Connections: changing the date or time offers to let invitee
       return [{ invite_id: 'i1', name: 'Carol', email: 'carol@example.com', phone: null, body: 'Moved to 6 pm' }]
     }
 
-    const targets = await brain.tellEventChanged(event)
+    const targets = await brain.tellEventChanged(saved.event)
 
     expect(timeOnServer).toBe('18:00')
     expect(targets).toMatchObject([{ inviteId: 'i1', email: 'carol@example.com', body: 'Moved to 6 pm' }])

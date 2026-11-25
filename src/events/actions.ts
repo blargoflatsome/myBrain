@@ -18,6 +18,8 @@ export interface Invited {
 
 /** What saving an event gives back for the screen to show. */
 export interface EventSaved extends Invited {
+  /** The event as saved (title trimmed). */
+  event: EventRow
   /** Its date or time changed and someone invited still counts: offer to let them know (SPEC §10 Connections). */
   offerChangeNotice: boolean
   /** Why no one was invited; the event and the people I typed are saved either way. */
@@ -72,7 +74,7 @@ export function eventActions({ ready, onServer }: ActionContext, deps: EventDeps
     const saved = await saveEvent(row)
     const changed = !!before && !before.deleted_at && when(before) !== when(saved)
     const invites = changed ? live(await local.event_invites.where('event_id').equals(row.id).toArray()) : []
-    const result: EventSaved = { toMessage: [], inApp: 0, offerChangeNotice: invites.some((i) => stillCounts(i.response)), inviteFailed: null }
+    const result: EventSaved = { event: saved, toMessage: [], inApp: 0, offerChangeNotice: invites.some((i) => stillCounts(i.response)), inviteFailed: null }
     await deps.savePeople(people)
     if (!people.length) return result
     try {
