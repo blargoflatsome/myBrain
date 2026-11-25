@@ -36,7 +36,8 @@ import { useProfileStore } from '@/stores/profile'
 import CloseX from '@/components/CloseX.vue'
 import { computed, ref, watch } from 'vue'
 import { useBrainStore } from '@/stores/brain'
-import { eventPeople, whenText, type EventPerson, type ShareTarget } from '@/events/sharing'
+import { eventPeople, type EventPerson, type ShareTarget } from '@/events/sharing'
+import { fillMessage } from '@/events/guestMessages'
 import { stillCounts } from '@/events/rules'
 import { sayWhy } from '@/server/server'
 import { messages } from '@/messages'
@@ -68,18 +69,8 @@ watch(
   },
 )
 
-const preview = computed(() => {
-  const e = props.event
-  if (!e) return ''
-  const [date, time] = whenText(e).split(' at ')
-  // An all-day event has no time: "on Saturday, November 7", not "at all day".
-  const text = e.start_time ? template.value : template.value.replaceAll(' at {{time}}', '')
-  return text
-    .replaceAll('{{name}}', people.value[0]?.name || 'there')
-    .replaceAll('{{event}}', e.title)
-    .replaceAll('{{date}}', date ?? '')
-    .replaceAll('{{time}}', time ?? 'all day')
-})
+// The first person's copy, filled in as the server fills each one.
+const preview = computed(() => (props.event ? fillMessage(template.value, people.value[0]?.name, props.event) : ''))
 
 async function confirm() {
   const e = props.event
@@ -90,10 +81,7 @@ async function confirm() {
   try {
     let targets: ShareTarget[] = []
     if (props.mode === 'cancel') {
-      const rows = await brain.cancelEvent(e.id)
-      targets = rows
-        .filter((r) => r.email || r.phone)
-        .map((r) => ({ inviteId: r.invite_id, name: r.name, email: r.email, phone: r.phone, subject: `${e.title} is cancelled`, body: r.body }))
+      targets = await brain.cancelEvent(e)
     } else {
       await brain.dropOut(e.id)
     }

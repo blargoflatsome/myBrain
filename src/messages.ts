@@ -580,7 +580,6 @@ export const messages = {
     newLink: 'New link',
     newLinkLabel: (name: string) => `Send ${name} a new link`,
     newLinkReady: (name: string) => `New link for ${name} is ready. Their old link no longer works.`,
-    newLinkBody: (link: string) => `Here’s your new link for my invitation: ${link}`,
     sendNewLink: 'Send it',
     letEveryoneKnow: {
       heading: 'Let everyone know?',
@@ -784,6 +783,19 @@ export const messages = {
     done: 'All done',
     finished: 'Everyone has been messaged.',
     close: 'Close',
+  },
+  guestMessages: {
+    // Messages to guests are written from me to them, not in the "past you" voice (src/events/guestMessages.ts).
+    // The subject lines only show in an email; a text gets the body alone.
+    invitedSubject: (host: string, event: string) => `${host} invited you to ${event}`,
+    invitedBody: (host: string, guest: string, event: string, when: string, link: string) =>
+      `Hi ${guest}! ${host} invited you to ${event} on ${when}. Can you make it? Answer here: ${link}`,
+    changedSubject: (event: string) => `${event} has changed`,
+    cancelledSubject: (event: string) => `${event} is cancelled`,
+    newLinkSubject: 'Your new invitation link',
+    newLinkBody: (link: string) => `Here’s your new link for my invitation: ${link}`,
+    /** An event's date and time together, e.g. "Friday, November 20 at 7:00 pm". */
+    when: (date: string, time: string) => `${date} at ${time}`,
   },
   cancelEvent: {
     button: 'Cancel and notify',

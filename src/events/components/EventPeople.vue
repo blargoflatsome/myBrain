@@ -73,6 +73,7 @@ import type { Connection } from '@/connections/connections'
 import OptionalToggle from '@/events/components/OptionalToggle.vue'
 import PersonStatus from '@/events/components/PersonStatus.vue'
 import { eventPeople, inviteLink, shareHref, type EventPerson, type PersonToInvite } from '@/events/sharing'
+import { newLinkMessage } from '@/events/guestMessages'
 import type { Status } from '@/events/availability'
 import { useBrainStore } from '@/stores/brain'
 import { sayWhy } from '@/server/server'
@@ -127,8 +128,7 @@ async function newLink(p: EventPerson) {
     return (contactError.value = sayWhy(err, { offline: m.answerOffline, limit: m.answerFailed, failed: m.answerFailed }))
   }
   const link = inviteLink(p.invite_id, token)
-  const body = c.newLinkBody(link)
-  fresh.value = { name: p.name || p.email || p.phone || '', link, href: shareHref({ email: p.email, phone: p.phone, subject: body, body }) }
+  fresh.value = { name: p.name || p.email || p.phone || '', link, href: shareHref({ email: p.email, phone: p.phone, ...newLinkMessage(link) }) }
 }
 
 // ---------- Adding people ----------

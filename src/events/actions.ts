@@ -4,8 +4,8 @@
 import { removeWithUndo, type ActionContext } from '@/sync/actions'
 import { live } from '@/sync/live'
 import type { EventRow } from '@/sync/types'
-import { inviteLink, inviteMessage, type NewInvite, type PersonToInvite, type Recipient, type ShareTarget } from '@/events/sharing'
-import type { ChangeRecipient } from '@/connections/connections'
+import { inviteLink, type NewInvite, type PersonToInvite, type Recipient, type ShareTarget } from '@/events/sharing'
+import { invitationTargets, recipientTargets } from '@/events/guestMessages'
 import { stillCounts } from '@/events/rules'
 import { reasonOf, ServerError, type ServerReason } from '@/server/server'
 import { achieved } from '@/celebrate/bus'
@@ -57,10 +57,7 @@ export function eventActions({ ready, onServer }: ActionContext, deps: EventDeps
    */
   async function inviteToEvent(event: EventRow, people: PersonToInvite[]): Promise<Invited> {
     const created = await invitePeople(event.id, people)
-    const host = await deps.hostName()
-    const toMessage = created
-      .filter((c) => c.token && (c.email || c.phone))
-      .map((c) => ({ inviteId: c.invite_id, name: c.name, email: c.email, phone: c.phone, ...inviteMessage(host, c.name, event, inviteLink(c.invite_id, c.token!)) }))
+    const toMessage = invitationTargets(await deps.hostName(), event, created, inviteLink)
     return { toMessage, inApp: created.length - toMessage.length }
   }
 
@@ -88,12 +85,15 @@ export function eventActions({ ready, onServer }: ActionContext, deps: EventDeps
   /** Tell everyone who still counts that my event's date or time changed; returns the guests to message (SPEC §10). */
   async function tellEventChanged(event: EventRow): Promise<ShareTarget[]> {
     // My saved change goes up first, so the server writes the new date and time into the messages.
-    const recipients = (await onServer<ChangeRecipient[] | null>('event_changed', { event: event.id }, ['event_invites'])) ?? []
-    return recipients.map((r) => ({ inviteId: r.invite_id, name: r.name, email: r.email, phone: r.phone, subject: `${event.title} has changed`, body: r.body }))
+    const recipients = (await onServer<Recipient[] | null>('event_changed', { event: event.id }, ['event_invites'])) ?? []
+    return recipientTargets(recipients, 'changed', event)
   }
 
-  /** Cancel my event; returns everyone to message about it. */
-  const cancelEvent = async (event: string): Promise<Recipient[]> => (await onServer<Recipient[] | null>('cancel_event', { event }, ['events', 'event_invites'])) ?? []
+  /** Cancel my event; returns the guests to message about it (app users are told in the app). */
+  async function cancelEvent(event: EventRow): Promise<ShareTarget[]> {
+    const recipients = (await onServer<Recipient[] | null>('cancel_event', { event: event.id }, ['events', 'event_invites'])) ?? []
+    return recipientTargets(recipients, 'cancelled', event)
+  }
 
   return {
     saveEvent,

@@ -78,11 +78,3 @@ export const setEventVisibility = (invite: string, show: boolean) => call<void>(
 export type ClaimStatus = 'none' | 'match' | 'ask' | 'claimed'
 export const guestClaimStatus = async (invite: string, token: string) => ((await call<string | null>('guest_claim_status', { invite, token })) ?? 'none') as ClaimStatus
 export const claimGuestInvite = (invite: string, token: string) => call<boolean>('claim_guest_invite', { invite, token })
-export interface ChangeRecipient {
-  invite_id: string
-  name: string | null
-  email: string | null
-  phone: string | null
-  body: string
-}
-export const eventChanged = (event: string) => list<ChangeRecipient>('event_changed', { event })

@@ -70,7 +70,7 @@ describe('SPEC §7 Things only the server can do: my copy is brought up to date 
       return []
     }
 
-    await brain.cancelEvent(event.id)
+    await brain.cancelEvent(event)
 
     expect((await brain.db!.events.get(event.id))?.cancelled_at).toBe('2026-11-24T12:00:00Z')
   })

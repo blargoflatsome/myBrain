@@ -1,7 +1,6 @@
 // Shared events (SPEC §5 Shared events, Cancelling): calls to the server functions, answer links, and the
 // one-at-a-time sharing flow (messaging app or email app) until automatic texts and emails exist.
 import type { FreeBusyRow } from '@/events/availability'
-import { formatTime } from '@/time/parse'
 import { serverCall as call, serverList as list } from '@/server/server'
 import { isIOS } from '@/ui/device'
 import type { EventRow, InviteResponse } from '@/sync/types'
@@ -84,22 +83,6 @@ export const guestOptOut = (invite: string, token: string) => call<void>('guest_
 /** A guest's private answer link. */
 export function inviteLink(inviteId: string, token: string, origin: string = window.location.origin): string {
   return `${origin}/rsvp/${inviteId}/${token}`
-}
-
-/** When an event is, in words, e.g. "Friday, November 20 at 7:00 pm". */
-export function whenText(e: Pick<EventRow, 'start_date' | 'start_time'>): string {
-  const [y, m, d] = e.start_date.split('-').map(Number)
-  const date = new Date(Date.UTC(y!, m! - 1, d!)).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' })
-  if (!e.start_time) return date
-  return `${date} at ${formatTime(e.start_time, true)}`
-}
-
-/** The invitation I send a guest myself (written from me to them, not in the "past you" voice). */
-export function inviteMessage(host: string, guest: string | null, e: Pick<EventRow, 'title' | 'start_date' | 'start_time'>, link: string): { subject: string; body: string } {
-  return {
-    subject: `${host} invited you to ${e.title}`,
-    body: `Hi ${guest?.trim() || 'there'}! ${host} invited you to ${e.title} on ${whenText(e)}. Can you make it? Answer here: ${link}`,
-  }
 }
 
 /** Open my messaging app (texts) or email app with one person's message ready. */
