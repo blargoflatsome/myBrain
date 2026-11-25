@@ -4,10 +4,11 @@
 import { defineStore, getActivePinia } from 'pinia'
 import Dexie from 'dexie'
 import { ref, shallowRef } from 'vue'
-import { getRow, LocalDb } from '@/sync/db'
+import { LocalDb } from '@/sync/db'
 import { SyncEngine } from '@/sync/engine'
-import type { PostItColor, PostItRow, QuestRow, Remote, SyncStatus, SyncTable } from '@/sync/types'
-import { onServerWith, removeWithUndo, type ActionContext, type Undo } from '@/sync/actions'
+import type { Remote, SyncStatus, SyncTable } from '@/sync/types'
+import { onServerWith, type ActionContext } from '@/sync/actions'
+import { background, startSyncTriggers } from '@/sync/triggers'
 import { habitActions } from '@/habits/actions'
 import { routineActions } from '@/routines/actions'
 import { journalActions } from '@/journal/actions'
@@ -17,7 +18,6 @@ import { lockingRemote } from '@/journal/lockingRemote'
 import { tagActions } from '@/tags/actions'
 import { trophyActions } from '@/trophies/actions'
 import { trophyKeeper } from '@/trophies/keeper'
-import { WORK_MS } from '@/focus/timer'
 import { vaultActions } from '@/vault/actions'
 import { eventActions } from '@/events/actions'
 import { connectionActions } from '@/connections/actions'
@@ -27,31 +27,13 @@ import { taskActions } from '@/tasks/actions'
 import { questActions } from '@/quests/actions'
 import { peopleActions } from '@/events/peopleActions'
 import { availabilityActions } from '@/events/availabilityActions'
-import { deviceTimeZone, todayIn } from '@/time/days'
-import { normalizeBody, toEditorHtml } from '@/journal/body'
-import { DEFAULT_POST_IT_COLOR, frontPosition } from '@/postits/rules'
-import { live } from '@/sync/live'
-import { finishQuest as finishedQuest } from '@/quests/picker'
-import { CaptureError, fitTitle, type CaptureInput, type Captured } from '@/capture/capture'
-import { achieved } from '@/celebrate/bus'
+import { captureActions } from '@/capture/actions'
+import { postItActions } from '@/postits/actions'
+import { alertActions } from '@/notifications/actions'
+import { focusActions } from '@/focus/actions'
+import { breatheActions } from '@/breathe/actions'
 import { useProfileStore } from '@/stores/profile'
 import { messages } from '@/messages'
-
-/** Run sync work in the background. A store closed by sign-out mid-sync is expected and ignored. */
-function background(work: Promise<unknown> | undefined) {
-  work?.catch((err: unknown) => {
-    if ((err as { name?: string })?.name === 'DatabaseClosedError') return
-    console.error(err)
-  })
-}
-
-/** How often queued changes are retried while the app is open (SPEC §7). */
-const RETRY_MS = 30_000
-/**
- * How long a table waits after a Realtime change before downloading. Each of my own saves comes back as a change too,
- * so several saves in a row (writing in the journal) download once, not once each.
- */
-const REALTIME_WAIT_MS = 500
 
 export const useBrainStore = defineStore('brain', () => {
   const db = shallowRef<LocalDb | null>(null)
@@ -97,48 +79,13 @@ export const useBrainStore = defineStore('brain', () => {
       await markReady()
       syncedCount.value++
     }
-    // Coming back online catches up, and counts as a finished download (a first sync may have started offline).
-    const goOnline = () => {
-      online.value = true
-      background(engine.value?.sync().then(synced))
-    }
-    const goOffline = () => {
-      online.value = false
-      background(engine.value?.flush())
-    }
-    // SPEC §7: coming back to the app catches up (Realtime misses changes while a device sleeps), and leaving it
-    // uploads anything queued, because a phone may stop a hidden app before it gets another chance.
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') background(engine.value?.sync())
-      else background(engine.value?.flush())
-    }
-    const onPageHide = () => background(engine.value?.flush())
-    // A dropped request (weak signal) does not fire the browser's "online" event, so queued changes are retried
-    // every 30 seconds while the app is open, instead of waiting for the next app start.
-    const retry = setInterval(() => {
-      if (status.value.pending > 0 && document.visibilityState === 'visible') background(engine.value?.sync())
-    }, RETRY_MS)
-    window.addEventListener('online', goOnline)
-    window.addEventListener('offline', goOffline)
-    document.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('pagehide', onPageHide)
-    const waiting = new Map<SyncTable, ReturnType<typeof setTimeout>>()
-    const unsubscribe = remote.subscribe((table) => {
-      clearTimeout(waiting.get(table))
-      waiting.set(table, setTimeout(() => {
-        waiting.delete(table)
-        background(engine.value?.pull([table]))
-      }, REALTIME_WAIT_MS))
+    cleanup = startSyncTriggers({
+      engine: engine.value,
+      remote,
+      onlineChanged: (now) => (online.value = now),
+      // Coming back online counts as a finished download (a first sync may have started offline).
+      caughtUp: synced,
     })
-    cleanup = () => {
-      waiting.forEach((t) => clearTimeout(t))
-      window.removeEventListener('online', goOnline)
-      window.removeEventListener('offline', goOffline)
-      document.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('pagehide', onPageHide)
-      clearInterval(retry)
-      unsubscribe()
-    }
     habitsReady.value = false
     badgesReady.value = false
     background(markReady())
@@ -203,7 +150,7 @@ export const useBrainStore = defineStore('brain', () => {
     if (!engine.value || !userId.value || !db.value) throw new Error('Not signed in')
     return { engine: engine.value, uid: userId.value, local: db.value }
   }
-  const ctx: ActionContext = { ready, habitsReady, badgesReady, onServer: onServerWith(ready) }
+  const ctx: ActionContext = { ready, signedIn: () => !!engine.value, habitsReady, badgesReady, onServer: onServerWith(ready) }
   const habits = habitActions(ctx)
   const routines = routineActions(ctx, habits.completeHabit)
   const journal = journalActions(ctx)
@@ -222,166 +169,11 @@ export const useBrainStore = defineStore('brain', () => {
   const events = eventActions(ctx, { savePeople: people.savePeople, hostName: async () => (await useProfileStore().load())?.display_name || messages.invites.someHost })
   const availability = availabilityActions(ctx)
   const priority = priorityActions(ctx, habits.completeHabit, tasks.completeTask)
-
-  // ---------- Capture, tasks and quests (SPEC §5 Quick capture, Tasks, Random Quest) ----------
-  /**
-   * File a thought as the kind chosen, through that kind's own add, so every way in gets the same defaults, checks and
-   * celebration (SPEC §5 Quick capture). A Post It's text is its formatted note. Throws CaptureError when refused.
-   */
-  async function fileAs(input: CaptureInput, now: Date): Promise<Captured> {
-    if (input.destination === 'postit') {
-      const row = await addPostIt(input.text, input.color ?? DEFAULT_POST_IT_COLOR, now)
-      if (!row) throw new CaptureError('empty')
-      return { table: 'post_its', id: row.id }
-    }
-    if (!input.text.trim()) throw new CaptureError('empty')
-    if (input.destination === 'later') {
-      const { engine: e, uid } = ready()
-      const row = await e.save('inbox', { id: crypto.randomUUID(), user_id: uid, body: input.text.trim(), created_at: now.toISOString(), deleted_at: null })
-      return { table: 'inbox', id: row.id }
-    }
-    // A title is one line; anything after the first line (or past 500 characters) moves into the notes.
-    const { title, notes } = fitTitle(input.text, input.notes)
-    switch (input.destination) {
-      case 'task': {
-        const row = await tasks.addTask({ title, notes, due_date: input.dueDate, priority: input.priority, reminder_time: input.reminderTime, source: 'capture' }, now)
-        if (!row) throw new CaptureError('reminder')
-        return { table: 'tasks', id: row.id }
-      }
-      case 'vault': {
-        if (!input.bucketId) throw new CaptureError('bucket')
-        const row = await vault.addVaultItem(input.bucketId, { title, notes, rating: input.rating, link: input.link }, now)
-        return { table: 'vault_items', id: row!.id }
-      }
-      case 'quest': {
-        const row = await quests.addQuest({ title, details: notes, energy_level: input.energy, time_bucket: input.time }, now)
-        return { table: 'quests', id: row!.id }
-      }
-      case 'habit': {
-        const h = input.habit
-        const row = await habits.addHabit(
-          h
-            ? { title, weekdays: h.weekdays, week_interval: h.weekInterval, monthly: !!h.monthly, start_date: h.startDate ?? undefined, notify_time: h.notifyTime, timer_minutes: h.timerMinutes, is_priority: h.isPriority }
-            : { title },
-          now,
-        )
-        return { table: 'habits', id: row!.id }
-      }
-    }
-  }
-
-  /** Save a captured thought. Resolves once it is stored on this device, online or not, and counts the capture. */
-  async function capture(input: CaptureInput, now = new Date()): Promise<Captured> {
-    const filed = await fileAs(input, now)
-    await trophies.logActivity('capture', { type: input.destination })
-    // A Post It says so itself (its own First); everything else says a capture was saved.
-    if (input.destination !== 'postit') achieved({ kind: 'capture' })
-    return filed
-  }
-
-  /** File an Orphan as the kind chosen (SPEC §5 Orphans). It isn't counted as a capture: it was counted when captured. */
-  async function fileOrphan(id: string, choice: Omit<CaptureInput, 'text'>, now = new Date()): Promise<Captured | null> {
-    const { engine: e, local } = ready()
-    const orphan = await getRow(local, 'inbox', id)
-    if (!orphan) return null
-    // A Post It has no title, so all the words become its note.
-    const filed = await fileAs({ ...choice, text: choice.destination === 'postit' ? toEditorHtml(orphan.body) : orphan.body }, now)
-    await e.remove('inbox', id)
-    await afterOrphanGone()
-    achieved({ kind: 'orphan' })
-    return filed
-  }
-
-  /** Delete an orphan without filing it (SPEC §5 Orphans). Its Undo also takes back an emptied-Orphans count it caused. */
-  async function removeOrphan(id: string): Promise<Undo> {
-    const putBack = await remove('inbox', id)
-    const logged = await afterOrphanGone()
-    return async () => {
-      await putBack()
-      if (logged) await remove('activity_log', logged)
-    }
-  }
-
-  // Emptying the Orphans list counts toward a trophy (SPEC §5 Trophies). Returns the count's row, if it made one.
-  async function afterOrphanGone() {
-    if (live(await ready().local.inbox.toArray()).length) return null
-    return trophies.logActivity('orphans_cleared')
-  }
-
-  /** Mark a quest done (SPEC §5 Random Quest): it goes back to the list, and the completion is logged for stats. */
-  async function finishQuest(quest: QuestRow, now = new Date(), timeZone = deviceTimeZone()) {
-    const { engine: e, uid } = ready()
-    const done = finishedQuest(quest, now)
-    const logId = crypto.randomUUID()
-    await e.save('quest_logs', { id: logId, user_id: uid, quest_id: quest.id, date: todayIn(timeZone, now), completed_at: now.toISOString(), deleted_at: null })
-    await e.save('quests', done)
-    achieved({ kind: 'quest', energy: quest.energy_level ?? null })
-    return logId
-  }
-
-  /** Undo marking a quest done: the quest goes back as it was and its completion is taken off the log. */
-  async function unfinishQuest(before: QuestRow, logId: string) {
-    const { engine: e } = ready()
-    await e.remove('quest_logs', logId)
-    await e.save('quests', before)
-  }
-
-  // ---------- In-app alerts (SPEC §6) ----------
-  async function clearNotification(id: string) {
-    await ready().engine.remove('notifications', id)
-  }
-  /** Clear all alerts still showing. */
-  async function clearNotifications() {
-    const { engine: e, local } = ready()
-    await e.removeMany('notifications', live(await local.notifications.toArray()).map((n) => n.id))
-  }
-  /** Tapping an alert counts it as seen, on every device. */
-  async function markNotificationRead(id: string) {
-    await ready().engine.patch('notifications', id, (n) => (n.read_at ? {} : { read_at: new Date().toISOString() }))
-  }
-
-  // ---------- Focus and Breathe (SPEC §5 Focus timer, Breathe) ----------
-  /** Finished Focus work sessions (and whether anyone else was in the focus room), counted toward trophies. */
-  async function finishFocus(sessions: number, together = false) {
-    // A timer can still run out after signing out: nothing to keep then.
-    if (!engine.value) return
-    for (let i = 0; i < sessions; i++) await trophies.logActivity('focus', { minutes: WORK_MS / 60_000, ...(together ? { together: true } : {}) })
-    achieved({ kind: 'focus', sessions, together })
-  }
-  /** A finished Breathe, counted toward trophies. */
-  async function finishBreathe() {
-    if (!engine.value) return
-    await trophies.logActivity('breathe')
-    achieved({ kind: 'breathe' })
-  }
-
-  // ---------- Post Its (SPEC §5 Quick capture and Dashboard) ----------
-  /** A new Post It goes in front of the others. Returns null when nothing was written. */
-  async function addPostIt(html: string, color: PostItColor, now = new Date()) {
-    const { engine: e, uid, local } = ready()
-    const body = normalizeBody(html)
-    if (!body) return null
-    const row: PostItRow = { id: crypto.randomUUID(), user_id: uid, body, color, position: frontPosition(await local.post_its.toArray()), created_at: now.toISOString(), deleted_at: null }
-    const saved = await e.save('post_its', row)
-    achieved({ kind: 'postit' })
-    return saved
-  }
-  async function savePostIt(row: PostItRow) {
-    const body = normalizeBody(row.body)
-    if (!body) return null
-    return ready().engine.save('post_its', { ...row, body })
-  }
-  /** Delete a Post It. Returns its Undo (SPEC §2). */
-  const deletePostIt = (id: string) => remove('post_its', id)
-  /** Delete a row (soft, so the deletion syncs). Returns its Undo (SPEC §2): deletes are soft, so it comes back with everything it had. */
-  async function remove(table: SyncTable, id: string): Promise<Undo> {
-    return removeMany(table, [id])
-  }
-
-  /** Delete several rows at once (clearing a list), with one Undo for them all. */
-  async function removeMany(table: SyncTable, ids: readonly string[]): Promise<Undo> {
-    return removeWithUndo(ready, table, ids)
-  }
+  const postIts = postItActions(ctx)
+  const capture = captureActions(ctx, { ...tasks, ...vault, ...quests, ...habits, ...postIts, ...trophies })
+  const alerts = alertActions(ctx)
+  const focus = focusActions(ctx, trophies.logActivity)
+  const breathe = breatheActions(ctx, trophies.logActivity)
 
   return {
     // Signed-in state and syncing
@@ -399,13 +191,9 @@ export const useBrainStore = defineStore('brain', () => {
     forgetDevice,
     syncNow,
     // Capture, tasks and quests
-    capture,
-    fileOrphan,
-    removeOrphan,
+    ...capture,
     ...tasks,
     ...quests,
-    finishQuest,
-    unfinishQuest,
     // Habits and routines
     ...habits,
     ...routines,
@@ -426,15 +214,11 @@ export const useBrainStore = defineStore('brain', () => {
     recheckTrophies: keeper.recheckTrophies,
     catchUpTrophies: keeper.catchUp,
     trophiesIdle: keeper.idle,
-    finishFocus,
-    finishBreathe,
+    ...focus,
+    ...breathe,
     // Alerts, Post Its, people and events
-    clearNotification,
-    clearNotifications,
-    markNotificationRead,
-    addPostIt,
-    savePostIt,
-    deletePostIt,
+    ...alerts,
+    ...postIts,
     ...people,
     ...availability,
     // My events, and the server calls that change them, my invitations and connections (online only)
