@@ -4,6 +4,7 @@
   // The site the TV page comes from. To try another one (a deploy preview), change it here and in config.xml.
   var SITE = 'https://myadhdbrain.netlify.app'
   var RETRY_MS = 30000
+  var HUNG_MS = 120000
 
   var frame = document.getElementById('page')
   var ready = false
@@ -29,12 +30,16 @@
   }
 
   // Loads the TV page. If it finished loading without saying it's ready (My Brain was out of reach), tries again
-  // 30 seconds later; a page still loading on a slow network is left to finish. An error screen may dim as usual.
+  // 30 seconds later; a page still loading on a slow network is left to finish (up to 2 minutes). An error screen may dim as usual.
   function load() {
     ready = false
     keepAwake(false)
-    clearTimeout(retry)
     frame.src = SITE + '/tv/'
+    // A load that hangs (no page and no error) is tried again after 2 minutes.
+    clearTimeout(retry)
+    retry = setTimeout(function () {
+      if (!ready) load()
+    }, HUNG_MS)
   }
   function retryUnlessReady() {
     clearTimeout(retry)
