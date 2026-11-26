@@ -244,7 +244,7 @@ test.describe('SPEC §9 Routines', () => {
 })
 
 test.describe('SPEC §9 Go on a Quest', () => {
-  const hike = { id: 'q1', title: 'Go for a hike', details: '<p>Bring water</p>', energy_level: 'fun', time_bucket: '2h', status: 'open', times_picked: 0, last_picked_at: null, completed_at: null, deleted_at: null }
+  const hike = { id: 'q1', title: 'Go for a hike', details: '<p>Bring water</p><p><a href="https://example.com/trail">The trail</a></p>', energy_level: 'fun', time_bucket: '2h', status: 'open', times_picked: 0, last_picked_at: null, completed_at: null, deleted_at: null }
   test.beforeEach(async ({ page }) => {
     await pairedTv(page)
     server.rpcResults.tv_check = true
@@ -264,6 +264,9 @@ test.describe('SPEC §9 Go on a Quest', () => {
     await expect(page.getByTestId('tv-quest-result')).toContainText('Bring water')
     await expect(page.getByTestId('tv-quest-accept')).toBeFocused()
     expect(calls('tv_save_quest')[0]!.args).toMatchObject({ device_key: 'old-key', quest_id: 'q1', action: 'pick' })
+    // A link in the details can't be reached: opening it would take the TV out of My Brain.
+    await press(page, 'ArrowUp')
+    await expect(page.getByTestId('tv-quest-result').getByRole('link')).not.toBeFocused()
 
     await page.getByTestId('tv-quest-done').focus()
     await press(page, 'Enter')
@@ -305,5 +308,15 @@ test.describe('SPEC §9 Go on a Quest', () => {
       { task_id: 't1', action: 'done', today: TODAY },
     ])
     expect(calls('tv_save_quest')).toHaveLength(0)
+  })
+
+  test('a press refused because the TV was unpaired sends it back to pairing', async ({ page }) => {
+    server.rpcErrors.tv_quest_draw = '28000'
+    server.rpcResults.tv_pair_start = [{ code: 'Q7KM2P', secret: 'secret', expires_at: new Date(NOW.getTime() + 10 * 60_000).toISOString() }]
+    server.rpcResults.tv_pair_poll = [{ status: 'waiting', device_key: null }]
+    await page.goto('/tv/')
+    await page.getByTestId('tv-quest-open').focus()
+    await press(page, 'Enter', 'Enter')
+    await expect(page.getByTestId('tv-unpaired')).toBeVisible()
   })
 })

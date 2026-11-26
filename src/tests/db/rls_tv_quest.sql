@@ -53,6 +53,8 @@ begin
 
   -- Undo puts it back as it was, and takes the completion off the log.
   perform public.tv_save_quest('alice-tv-key', paint, 'undo_done', null, log_id, 'accepted', null);
+  -- Pressed again (its first answer lost), it succeeds without changing anything.
+  perform public.tv_save_quest('alice-tv-key', paint, 'undo_done', null, log_id, 'accepted', null);
   reset role;
   if (select status from public.quests where id = paint) <> 'accepted'
      or exists (select 1 from public.quest_logs where quest_id = paint and deleted_at is null) then

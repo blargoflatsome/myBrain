@@ -110,7 +110,7 @@ function closeRoutine() {
 }
 
 // Go on a Quest (SPEC §9): kept here, so the popup is still open when the TV wakes from the night screen.
-const quest = useTvQuest(savedKey, () => today.value, () => timeZone.value)
+const quest = useTvQuest(savedKey, () => today.value, () => timeZone.value, () => toPairing())
 function closeQuest() {
   quest.close()
   void nextTick(() => (document.querySelector('[data-testid="tv-quest-open"]') as HTMLElement | null)?.focus())
@@ -167,7 +167,10 @@ function toPairing() {
 function reachable(): HTMLElement[] {
   // The dashboard stays on the page, hidden, under a routine.
   const scope = document.querySelector('[role="dialog"]') ?? document
-  return (Array.prototype.slice.call(scope.querySelectorAll('button:not([disabled]), a[href]')) as HTMLElement[]).filter((c) => c.offsetParent !== null)
+  // A link in a quest's notes isn't reachable: opening it would take the TV out of My Brain (SPEC §9 Go on a Quest).
+  return (Array.prototype.slice.call(scope.querySelectorAll('button:not([disabled]), a[href]')) as HTMLElement[]).filter(
+    (c) => c.offsetParent !== null && !(c.tagName === 'A' && c.closest('.tv-quest-notes')),
+  )
 }
 
 // The remote has arrows, not Tab: an arrow moves focus to the nearest control that way (Remote control).

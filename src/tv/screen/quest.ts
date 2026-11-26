@@ -5,6 +5,7 @@ import { ref } from 'vue'
 import type { EnergyLevel, QuestRow, TaskRow, TimeBucket } from '@/sync/types'
 import { markPicked, pickFromDraw, RECENT_PICKS, tasksInDraw, type Picked, type QuestFilter } from '@/quests/picker'
 import { serverCall } from '@/server/server'
+import { isUnpaired } from '@/tv/screen/tvServer'
 import { messages } from '@/messages'
 
 export interface QuestDraw {
@@ -27,7 +28,8 @@ export interface QuestLine {
 
 const m = messages.quests
 
-export function useTvQuest(deviceKey: () => string | null, today: () => string, timeZone: () => string) {
+/** `onUnpaired`: a press refused because the TV was unpaired sends it back to pairing, like the snapshot does. */
+export function useTvQuest(deviceKey: () => string | null, today: () => string, timeZone: () => string, onUnpaired: () => void) {
   const open = ref(false)
   const energy = ref<EnergyLevel | null>(null)
   const time = ref<TimeBucket | null>(null)
@@ -50,7 +52,8 @@ export function useTvQuest(deviceKey: () => string | null, today: () => string, 
     try {
       await how()
       trouble.value = false
-    } catch {
+    } catch (err) {
+      if (isUnpaired(err)) return onUnpaired()
       trouble.value = true
     } finally {
       busy.value = false
