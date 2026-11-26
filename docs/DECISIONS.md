@@ -532,3 +532,9 @@ The fourth `/improve-codebase-architecture` pass (`docs/ARCHITECTURE_REVIEW_TASK
 - **Why its own build (Claude):** the TV's 2019 engine (about Chrome 63) can't run the main app's Tailwind 4 styles. A page served from the site, opened by a thin installed launcher, keeps updates to normal deploys.
 - **Then (user):** all of it stays in this repo, with the launcher in its own self-contained `tv-launcher/` folder, separate from the website. Idle after 15 minutes; an open routine or Focus timer counts as active use and halts the idle timer.
 - **Open:** sharing with friends.
+
+## 2026-11-26 TV app: access and build steps
+- **Access (user, Claude's recommendation):** the paired TV gets a device key and only TV server functions (one read, a short list of allowed writes), not a normal Supabase sign-in narrowed by extra table rules. The limit holds by construction, existing policies stay untouched and no signing secret is added. Cost: no Realtime, so the TV refreshes every 30 seconds, on waking and after its own actions.
+- **Rejected:** a real sign-in for the TV with restrictive policies on every table (instant updates and the app's sync code, but one mistake widens access, and minting the sign-in leaned on a magic-link workaround that may not work while production is Google-only).
+- **Merging (user):** stacked branches, one per step, merged as one PR (one production deploy).
+- **Claude's calls:** 6-character codes without look-alikes, 10 minutes each, 10 approval tries a day per account; the server keeps only a SHA-256 fingerprint of the device key; Unpair is straight away with Undo in place (§2), and the TV keeps trying its old key every 30 seconds so Undo works. `tv_*` functions may run as `anon` because they check the device key, like the guest-link functions.

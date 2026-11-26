@@ -70,6 +70,10 @@
   to = "/index.html"
   status = 200
 [[redirects]]
+  from = "/pair"
+  to = "/index.html"
+  status = 200
+[[redirects]]
   from = "/connect/:token"
   to = "/index.html"
   status = 200

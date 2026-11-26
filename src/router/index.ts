@@ -31,6 +31,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/help', name: 'help', component: () => import('@/help/HelpView.vue') },
   { path: '/connections', name: 'connections', component: () => import('@/connections/ConnectionsView.vue') },
   { path: '/people/:id', name: 'person', component: () => import('@/profiles/ProfileView.vue') },
+  { path: '/pair', name: 'pair', component: () => import('@/tv/PairView.vue'), meta: { returnAfterSignIn: true } },
   { path: '/connect/:token', name: 'connect', component: () => import('@/connections/ConnectLinkView.vue'), meta: { returnAfterSignIn: true } },
   // The page was called Profile before; old links still work.
   { path: '/profile', redirect: '/account' },

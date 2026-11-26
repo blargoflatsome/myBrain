@@ -125,6 +125,10 @@
       <MyPeople />
     </AccountGroup>
 
+    <AccountGroup id="devices" :title="g.devicesTitle" :summary="g.devices">
+      <PairedDevices />
+    </AccountGroup>
+
 
 
     <AccountGroup id="data" :title="messages.dataExport.heading" :summary="g.data">
@@ -254,6 +258,7 @@ import NotificationSettings from '@/notifications/components/NotificationSetting
 import EventSettings from '@/events/components/EventSettings.vue'
 import MyPeople from '@/events/components/MyPeople.vue'
 import ConnectionsPanel from '@/connections/components/ConnectionsPanel.vue'
+import PairedDevices from '@/tv/components/PairedDevices.vue'
 import AvailabilityCard from '@/events/components/AvailabilityCard.vue'
 import { downloadMyData } from '@/account/export'
 import { checkbox, confirmBox, field, fieldLabel, primaryButtonSmall, smallButton } from '@/ui/styles'

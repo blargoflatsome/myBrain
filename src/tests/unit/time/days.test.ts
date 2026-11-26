@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clockIn, localMoment, weekdayOf } from '@/time/days'
+import { clockIn, hourOf, localMoment, weekdayOf } from '@/time/days'
 import { momentLabel } from '@/ui/dates'
 
 const NY = 'America/New_York' // behind UTC; clocks went back at 2 am on 2026-11-01
@@ -35,5 +35,22 @@ describe('SPEC §5 Tasks: the day and the clock are read in my time zone', () =>
     const lastNightInNY = '2026-11-10T03:00:00Z'
     expect(momentLabel(lastNightInNY, now, 'UTC')).not.toMatch(/Nov/)
     expect(momentLabel(lastNightInNY, now, NY)).toMatch(/Nov.*9 · 10:00/)
+  })
+})
+
+describe('SPEC §9 TV app: clock times read right on the older engine of the TV', () => {
+  const parts = (hour: string, dayPeriod?: string) =>
+    [{ type: 'hour', value: hour }, { type: 'literal', value: ':' }, { type: 'minute', value: '05' }, ...(dayPeriod ? [{ type: 'dayPeriod', value: dayPeriod }] : [])] as Intl.DateTimeFormatPart[]
+
+  it('an engine that ignores the 24-hour setting answers in 12-hour time, and the hour still reads 24-hour', () => {
+    expect(hourOf(parts('1', 'PM'))).toBe(13)
+    expect(hourOf(parts('12', 'AM'))).toBe(0)
+    expect(hourOf(parts('12', 'PM'))).toBe(12)
+    expect(hourOf(parts('9', 'AM'))).toBe(9)
+  })
+
+  it('a 24-hour answer is kept, with midnight written as 24 read as 0', () => {
+    expect(hourOf(parts('13'))).toBe(13)
+    expect(hourOf(parts('24'))).toBe(0)
   })
 })

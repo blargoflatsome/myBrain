@@ -47,6 +47,8 @@ ${LONG_WORD}`, due_date: day, priority: 2, status: 'open', source: 'manual', cre
     { id: 'nt2', kind: 'event_message', item_id: null, title: LONG_LINE, body: `${PARAGRAPH} ${LONG_WORD}`, url: '/calendar', local_date: day, sent_at: '2026-11-10T14:00:00Z' },
   ])
   // Cheers (SPEC §5 Cheers): a pasted link and a long line as posts, and my own post with its counts.
+  server.rpcResults.tv_pair_start = [{ code: 'Q7KM2P', secret: 'secret', expires_at: '2026-11-10T14:10:00Z' }]
+  server.rpcResults.tv_pair_poll = [{ status: 'waiting', device_key: null }]
   server.rpcResults.cheer_feed = [
     { id: 'c1', kind: 'did_it', body: LONG_WORD, created_at: '2026-11-10T13:00:00Z', mine: false, my_reaction: null, got_this: null, proud: null, strength: null, celebrate: null },
     { id: 'c2', kind: 'did_it', body: LONG_LINE, created_at: '2026-11-10T12:00:00Z', mine: true, my_reaction: null, got_this: 3, proud: 1, strength: 0, celebrate: 2 },
@@ -138,6 +140,8 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Capture page', '/capture', (p) => expect(p.getByRole('heading', { name: msg.capture.typeHeading })).toBeVisible()],
   ['Privacy', '/privacy', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
   ['Terms', '/terms', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
+  ['Pair your TV', '/pair?code=Q7KM2P', (p) => expect(p.getByTestId('pair-code')).toBeVisible()],
+  ['TV pairing', '/tv/', (p) => expect(p.getByTestId('tv-code')).toBeVisible()],
   ['Page not found', '/no-such-page', (p) => expect(p.getByRole('heading', { name: msg.notFound.heading, level: 1 })).toBeVisible()],
 ]
 

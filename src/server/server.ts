@@ -10,6 +10,8 @@ export class ServerError extends Error {
   constructor(
     readonly reason: ServerReason,
     message: string = reason,
+    /** The server's own error code, when it answered (the TV's "not paired" is 28000, SPEC §9). */
+    readonly code?: string,
   ) {
     super(message)
     this.name = 'ServerError'
@@ -24,7 +26,7 @@ export interface ServerAdapter {
 }
 
 /** The server's code for "a limit was reached" (SPEC §7): every limit raises it. */
-const LIMIT_CODE = 'P0429'
+export const LIMIT_CODE = 'P0429'
 
 const supabaseAdapter: ServerAdapter = {
   online: () => typeof navigator === 'undefined' || navigator.onLine,
@@ -34,7 +36,7 @@ const supabaseAdapter: ServerAdapter = {
     const { data, error } = await supabase.rpc(fn, args)
     if (!error) return data
     const reason: ServerReason = error.code === LIMIT_CODE ? 'limit' : !supabaseAdapter.online() ? 'offline' : 'failed'
-    throw new ServerError(reason, `${fn}: ${error.message}`)
+    throw new ServerError(reason, `${fn}: ${error.message}`, error.code)
   },
 }
 

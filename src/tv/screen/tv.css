@@ -1,0 +1,139 @@
+/*
+ * SPEC §9 TV app: plain CSS for the TV's engine (about Chrome 63), so no Tailwind, no flex `gap`, no `inset`, no
+ * `aspect-ratio`. A "10-foot" layout: large text, focus that shows from across the room. Colours follow the main app's
+ * calm dark palette; the night screen is muted black and greys only.
+ */
+:root {
+  --bg: #1c2230;
+  --surface: #262d3d;
+  --line: #3a4356;
+  --text: #e9e6df;
+  --muted: #b3b0a8;
+  --accent: #8fb3e8;
+  --night-bg: #000;
+  --night-text: #6b6b6b;
+}
+
+html {
+  font-size: 28px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+#tv {
+  min-height: 100vh;
+}
+
+*:focus {
+  outline: 0.2rem solid var(--accent);
+  outline-offset: 0.2rem;
+}
+
+.tv-heading {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.tv-status,
+.tv-pairing {
+  margin: 0;
+  padding: 3rem 4rem;
+}
+
+.tv-pairing > * + * {
+  margin-top: 1rem;
+}
+
+.tv-lead {
+  max-width: 36rem;
+  font-size: 1.2rem;
+}
+
+.tv-muted {
+  color: var(--muted);
+}
+
+.tv-note {
+  max-width: 36rem;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface);
+}
+
+.tv-code {
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: 4rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+
+.tv-dashboard {
+  padding: 1.5rem 2.5rem;
+}
+
+.tv-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.tv-clock {
+  margin: 0;
+  font-size: 1.6rem;
+  color: var(--muted);
+}
+
+.tv-idle {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--night-bg);
+  color: var(--night-text);
+}
+
+.tv-idle-clock {
+  margin: 0;
+  font-size: 7rem;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+}
+
+/* WCAG 1.4.10: the page also reflows at 320 px (text enlarged, or opened on a phone). No clamp() on the TV's engine. */
+@media (max-width: 900px) {
+  html {
+    font-size: 16px;
+  }
+
+  .tv-status,
+  .tv-pairing,
+  .tv-dashboard {
+    padding: 1.5rem 1rem;
+  }
+
+  .tv-code {
+    font-size: 2.5rem;
+    letter-spacing: 0.15em;
+  }
+
+  .tv-idle-clock {
+    font-size: 4rem;
+  }
+}
+
+.tv-pairing,
+.tv-note,
+.tv-lead {
+  overflow-wrap: break-word;
+}

@@ -10,7 +10,7 @@ self.addEventListener('activate', () => self.clients.claim())
 
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//] }))
+registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html'), { denylist: [/^\/api\//, /^\/tv\//] }))
 
 interface PushPayload {
   title: string

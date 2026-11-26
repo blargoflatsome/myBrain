@@ -44,6 +44,10 @@
   X-Robots-Tag: noindex, nofollow
 /connect/*
   X-Robots-Tag: noindex, nofollow
+/pair
+  X-Robots-Tag: noindex, nofollow
+/tv/*
+  X-Robots-Tag: noindex, nofollow
 /profile
   X-Robots-Tag: noindex, nofollow
 /quests
