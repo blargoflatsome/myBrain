@@ -1,24 +1,25 @@
 # My Brain — Claude Code rules
 
-**Start every session by reading [PROGRESS.md](PROGRESS.md), [docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md) (how code is written), and sections 1–3 of [docs/SPEC.md](docs/SPEC.md) (the source of truth). Then read only the spec sections the task touches (`grep -n '^#' docs/SPEC.md` lists them). Don't read the whole spec, [docs/DECISIONS.md](docs/DECISIONS.md) or [docs/PROGRESS_ARCHIVE.md](docs/PROGRESS_ARCHIVE.md) unless the task needs them; search them instead.**
+**Start each session with [PROGRESS.md](PROGRESS.md) only. Then read just what the task touches:**
+- **[docs/SPEC.md](docs/SPEC.md)** (the source of truth): `grep -n '^#' docs/SPEC.md` lists sections; read the ones the task covers. Any screen work also reads §2 Guiding principles (calm design, accessibility, Undo in place, voice).
+- **[docs/CODING_STANDARDS.md](docs/CODING_STANDARDS.md)** (how code is written): before writing code, read §3 Where code goes plus the sections for the kind of work (`grep -n '^#' docs/CODING_STANDARDS.md`).
+- [docs/DECISIONS.md](docs/DECISIONS.md) and [docs/PROGRESS_ARCHIVE.md](docs/PROGRESS_ARCHIVE.md) are large: search them, never read them whole.
 
-## Key rules (full list: SPEC "How to work")
+## Key rules (full list: SPEC §1 How to work)
 - Spec first: propose spec changes and get the user's OK before building something new or different. Update `docs/SPEC.md` in the same change as the code.
 - Don't guess: if the spec is silent or unclear, ask, then write the answer into the spec (and log it at the end of `docs/DECISIONS.md`).
-- **Tests:** every feature gets Vitest and/or Playwright tests named after the spec rule they prove. **Follow the `writing-tests` skill** (`.claude/skills/writing-tests/SKILL.md`) for every new, changed or failing test: answer its three questions first, read wording from `messages.ts`, don't pin styling, test as low as possible. Text people type is tested long too: a long sentence, a paragraph and an unbroken string like a pasted link (samples in `src/tests/e2e/accessibility/a11y.spec.ts`, checked at 320 px). Mock the clock for anything time-dependent. Run `npm run test:quick` after each change. **Stacked branches** (several build steps merged as one PR): run `/code-review medium` on each branch's own diff (`git diff <branch below>...<branch>`) as it's committed, so a break is found before the next step builds on it. **Only when the user says to merge:** `/code-review medium` on the branch (if its header names another level, tell the user), fix what it finds, each bug with a test that fails without the fix, then `npm run test:all` (plus `npm run test:db` when migrations changed); if it passes, merge with `gh pr merge --auto --merge`, which lands only once CI passes (main requires it). Tell the user what was tested. No screenshots unless the user asks.
-- Update `PROGRESS.md` at the end of each session; keep it short by moving older merged sections to `docs/PROGRESS_ARCHIVE.md`.
-- **Help and the home page are updated at merge time** (SPEC §5 Home page and Help): when the user says to merge, any change to what a page does or how it's used updates its Help section (`/help`), the signed-out home page if it's a main feature, and reruns `npm run docs:images` for affected pictures, in the same branch.
+- **Tests:** named after the spec rule they prove. Follow the `writing-tests` skill for every new, changed or failing test. Text people type is tested long (long sentence, paragraph, pasted link; samples in `src/tests/e2e/accessibility/a11y.spec.ts`, at 320 px). Mock the clock for anything time-dependent. Run `npm run test:quick` after each change; never the full suite or screenshots unasked.
+- **Stacked branches** (several steps, one PR): `/code-review medium` on each branch's own diff (`git diff <branch below>...<branch>`) as it's committed.
+- **Only when the user says to merge:** `/code-review medium` on the branch (tell the user if its header names another level), fix what it finds (each bug with a test that fails without the fix), update Help (`/help`), the signed-out home page for main features and `npm run docs:images` for affected pictures (SPEC §5 Home page and Help), apply migrations to prod (`npx supabase db push --remote=lcpmvpjjvdkzebbpbymy --yes`, read its output), then `npm run test:all` (plus `npm run test:db` when migrations changed); if it passes, `gh pr merge --auto --merge` (lands once CI passes). Tell the user what was tested.
+- Update `PROGRESS.md` at the end of each session; keep it short by moving merged sections to `docs/PROGRESS_ARCHIVE.md`.
 - Secrets live only in `.env.local` (gitignored) and Netlify env vars. Only the Supabase anon key may reach the browser. Ask for each credential when first needed.
-- Every table: `id, user_id, created_at, updated_at (server-set), deleted_at`, with RLS.
-- **Database work:** for migrations, tables, RLS policies, indexes and server functions, use the `supabase-postgres-best-practices` skill (`.claude/skills/supabase-postgres-best-practices`, from supabase/agent-skills) with CODING_STANDARDS §9; where they differ, ours wins.
-- All user-facing wording in the "past you" voice, kept in one messages file.
-- **Reuse, never copy** (CODING_STANDARDS §6 Forms and page parts): before writing a field, choice, button or row, find the shared component; each item type has one `*Fields.vue` used by Capture, its editor and Orphans. Lint enforces it.
-- Accessibility: WCAG 2.2 Level AA everywhere (SPEC §2, CODING_STANDARDS §7). New pages and windows get an axe check in `src/tests/e2e/accessibility/a11y.spec.ts`; review by hand what axe can't check.
-- **Modern web guidance:** for front-end HTML, CSS and browser JS work, use the `modern-web-guidance` skill (`.claude/skills/modern-web-guidance`, from GoogleChrome/modern-web-guidance) before writing ad-hoc solutions. **Browser support:** Baseline Widely available (the app must work on iPhone Safari and Android Chrome); a newer feature only with the guide's fallback. Keep its "Modern Web Guidance" note in replies to a line or two.
-- **Grilling a plan:** `/grill-with-docs` (`.claude/skills/grill-with-docs`, with `grilling` and `domain-modeling`, from mattpocock/skills) interviews the user about a plan in rounds. Only the user starts it. Here, resolved terms go to `GLOSSARY.md` at the root, but decisions go where ours always go, not `docs/adr/`: agreed behaviour into `docs/SPEC.md`, the why at the end of `docs/DECISIONS.md`.
-- **Architecture review:** `/improve-codebase-architecture` (with `codebase-design`, `grilling` and `domain-modeling`, from mattpocock/skills) finds shallow modules to deepen, writes an HTML report to the temp folder, then grills the one the user picks. Only the user starts it. Its "ADRs" are `docs/DECISIONS.md` here (read before suggesting, record rejections there); a refactor it leads to follows the usual rules (spec first, own branch, tests).
-- **Retrospective:** `/retro` (with `writing-for-agents`, from mattpocock/skills) suggests changes to the agent's setup after a session. Only the user starts it. Here its "AGENTS.md" is this file plus the memory folder, and `CODING_STANDARDS.md` is `docs/CODING_STANDARDS.md`. It suggests; change nothing until the user picks.
-- Work on a branch per build step; merge to main once per step (Netlify free plan ≈ 20 production deploys/month).
+- Every table: `id, user_id, created_at, updated_at (server-set), deleted_at`, with RLS. Database work uses the `supabase-postgres-best-practices` skill with CODING_STANDARDS §9 (ours wins).
+- Wording lives in `src/messages.ts`, in the "past you" voice (SPEC §2 Voice). Keep the user's joke lines; write no jokes yourself.
+- **Reuse, never copy** (CODING_STANDARDS §6): find the shared component before writing a field, choice, button or row; each item type has one `*Fields.vue`. Lint enforces it.
+- Accessibility: WCAG 2.2 AA (CODING_STANDARDS §7). New pages and windows get an axe check in `a11y.spec.ts`; review by hand what axe can't.
+- Front-end HTML/CSS/browser JS: use the `modern-web-guidance` skill first. Baseline Widely available (iPhone Safari, Android Chrome); newer features only with its fallback. Keep its note in replies to a line.
+- User-started skills only: `/grill-with-docs` (terms to `GLOSSARY.md`; decisions to SPEC and DECISIONS, not `docs/adr/`), `/improve-codebase-architecture` (its ADRs are `docs/DECISIONS.md`), `/retro` (its AGENTS.md is this file plus memory; suggest only).
+- Branch per build step; merge to main once per step (Netlify free plan ≈ 20 production deploys/month).
 - Confirm before anything that removes data or affects other users.
 
 ## Credit in the footer (keep it)
@@ -29,15 +30,11 @@ The footer credit "Conceived of by Jordan Buermann © <this year>" (`src/compone
 - Changing its look or position is fine as long as the credit and link stay visible on every page.
 
 ## Commands
-- `npm run dev` — dev server
-- `npm run build` — type-check and build to `dist/`
-- `npm run lint` / `npm run typecheck`
-- `npm test` — Vitest (`src/tests/unit/` and `src/tests/integration/`)
-- `npm run test:e2e` — Playwright (`src/tests/e2e/`, desktop + phones; builds and serves on :4173)
-- `npm run test:quick` — quick checks while coding: lint (warnings fail), types, Vitest, and the browser tests on desktop only (~3 min)
-- `npm run test:e2e:quick` — just the desktop browser tests; add a file name to run one (`npm run test:e2e:quick -- quests`)
-- `npm run test:all` — the full pre-merge review, everything CI runs: lint, types, Vitest, all browser tests on desktop, and the phone-sensitive ones (listed files + `@phone` tag) on Android and iPhone. Tag new tests that depend on screen size, touch or the browser engine with `{ tag: '@phone' }`.
-- `npm run test:db` — SQL rule checks (RLS, `src/tests/db/`) against dev; prints ✔/✘ per file. Run it after applying a migration to dev, and at merge when migrations changed; it changes nothing (every check rolls back).
-- `npm run dev:accounts` — create or reset the dev-only test accounts (Dev Alice, Bob, Carol); password saved to `.env.local`, never printed.
-- `npm run test:flows` — walk the connection and sharing flows against the real dev backend as the test accounts; prints ✔/✘ per step.
-- `npx supabase db push --remote` — apply new migrations to the linked dev project (no Docker, so no local stack)
+- `npm run dev` / `npm run build` / `npm run lint` / `npm run typecheck`
+- `npm test` — Vitest (`src/tests/unit/`, `src/tests/integration/`)
+- `npm run test:quick` — lint (warnings fail), types, Vitest, desktop browser tests (~3 min)
+- `npm run test:e2e:quick -- <file>` — one desktop browser test file
+- `npm run test:all` — everything CI runs, incl. Android and iPhone for listed files and `@phone`-tagged tests (tag tests that depend on screen size, touch or engine)
+- `npm run test:db` — SQL rule checks against dev (rolls back); after a dev migration and at merge
+- `npm run dev:accounts` / `npm run test:flows` — dev test accounts (Alice, Bob, Carol) and the sharing flows against dev
+- `npx supabase db push --remote --yes` — apply migrations to dev (no Docker)
