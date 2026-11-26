@@ -162,6 +162,8 @@ test.describe('SPEC §9 Up next on the night screen', () => {
     server.rpcResults.tv_check = true
     server.rpcResults.tv_snapshot = tvSnapshot({ tasks: [task('Buy stamps')] })
     await page.goto('/tv/')
+    // As a person waits for the highlight: an arrow pressed before focus is placed only focuses the first button.
+    await expect(page.getByTestId('tv-month-prev')).toBeFocused()
     await press(page, 'ArrowRight', 'Enter')
     await expect(page.getByTestId('tv-month-name')).toHaveText('December 2026')
 

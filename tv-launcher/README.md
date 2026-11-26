@@ -34,8 +34,14 @@ computer on the same network.
    C:\tizen-studio\tools\ide\bin\tizen.bat package -t wgt -s mybrain -- tv-launcher
    ```
 
+   The TV's installer fails on the space in the package's name (`My Brain.wgt`), so rename it first:
+
    ```powershell
-   C:\tizen-studio\tools\ide\bin\tizen.bat install -n "My Brain.wgt" -- tv-launcher
+   Move-Item -Force "tv-launcher\My Brain.wgt" tv-launcher\MyBrain.wgt
+   ```
+
+   ```powershell
+   C:\tizen-studio\tools\ide\bin\tizen.bat install -n MyBrain.wgt -- tv-launcher
    ```
 
 5. **Pair:** open **My Brain** from the TV's Apps, then scan the QR code with your phone (or type the code on
