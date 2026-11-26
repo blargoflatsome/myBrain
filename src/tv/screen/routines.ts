@@ -53,6 +53,7 @@ export function resumeSave(routine: RoutineRow, f: TvRoutineFacts, stepId: strin
   return { runs: [], step_logs: [log], habit_log: habitLogFor(f, step?.habit_id, date, now, timeZone) }
 }
 
+/** Saves a press. Only the function's own parameters are sent: the server refuses a call with any other. */
 export function saveRoutineStep(deviceKey: string | null, save: RoutineSave) {
-  return serverCall<null>('tv_save_routine_step', { device_key: deviceKey, ...save })
+  return serverCall<null>('tv_save_routine_step', { device_key: deviceKey, runs: save.runs, step_logs: save.step_logs, habit_log: save.habit_log })
 }

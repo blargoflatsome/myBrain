@@ -29,3 +29,34 @@ export function latestFunctions() {
   }
   return latest
 }
+
+/** The input parameters a function's definition names, in order, each with whether it has a default (so callers may
+ *  leave it out). The browser tests' stand-in server checks every call against these, as the real server does. */
+export function functionParams(sql) {
+  const open = sql.indexOf('(')
+  let depth = 0
+  let end = open
+  for (; end < sql.length; end++) {
+    if (sql[end] === '(') depth++
+    else if (sql[end] === ')' && --depth === 0) break
+  }
+  const parts = []
+  let current = ''
+  depth = 0
+  for (const ch of sql.slice(open + 1, end)) {
+    if (ch === '(') depth++
+    if (ch === ')') depth--
+    if (ch === ',' && depth === 0) {
+      parts.push(current)
+      current = ''
+    } else current += ch
+  }
+  parts.push(current)
+  return parts
+    .map((p) => p.trim().split(/\s+/))
+    .filter((words) => words[0] && !/^out$/i.test(words[0]))
+    .map((words) => {
+      const named = /^(in|inout)$/i.test(words[0]) ? words.slice(1) : words
+      return { name: named[0], optional: named.some((w) => /^default$/i.test(w) || w === '=') }
+    })
+}

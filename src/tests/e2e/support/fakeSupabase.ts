@@ -2,6 +2,7 @@
 import type { Page, Request } from '@playwright/test'
 import { loadEnv } from 'vite'
 import { logPage } from './debug'
+import { functionParams, latestFunctions } from '../../../../scripts/sql-functions.mjs'
 
 const env = loadEnv('production', process.cwd(), 'VITE_')
 const supabaseUrl = env.VITE_SUPABASE_URL || 'http://localhost:54321'
@@ -10,6 +11,20 @@ const storageKey = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token
 export const TEST_USER_ID = '11111111-1111-4111-8111-111111111111'
 
 type Row = Record<string, unknown> & { id: string }
+
+// The real server's functions and their parameters (supabase/migrations), read once.
+let signatures: Map<string, { name: string; optional: boolean }[]> | null = null
+/** Why the real server would refuse this call (an unknown function, or a parameter it doesn't take or needs), or null.
+ *  The real server matches parameters by name exactly, so an extra one is refused, not ignored. */
+export function rpcProblem(fn: string, args: Record<string, unknown>): string | null {
+  if (!signatures) signatures = new Map([...latestFunctions()].map(([name, f]) => [name, functionParams(f.sql)]))
+  const params = signatures.get(fn)
+  if (!params) return `no server function ${fn}`
+  const extra = Object.keys(args).filter((k) => !params.some((p) => p.name === k))
+  const missing = params.filter((p) => !p.optional && !(p.name in args)).map((p) => p.name)
+  if (!extra.length && !missing.length) return null
+  return `${fn} would be refused: ${extra.length ? `takes no ${extra.join(', ')}` : ''}${extra.length && missing.length ? '; ' : ''}${missing.length ? `needs ${missing.join(', ')}` : ''}`
+}
 
 function fakeJwt() {
   const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
@@ -154,6 +169,12 @@ export class FakeSupabase {
       this.rpcCalls.push(table)
       const args = (req.postDataJSON() ?? {}) as Record<string, unknown>
       this.rpcArgs.push({ name: table, args })
+      const problem = rpcProblem(table, args)
+      if (problem) {
+        this.rpcProblems.push(problem)
+        console.error(`FakeSupabase: ${problem}`)
+        return { status: 404, json: { code: 'PGRST202', message: problem } }
+      }
       const code = this.rpcErrors[table]
       if (code) return { status: 400, json: { code, message: code } }
       const result = this.rpcResults[table]
@@ -178,6 +199,8 @@ export class FakeSupabase {
   failRpc = false
   /** Each database function call with its arguments. */
   rpcArgs: { name: string; args: Record<string, unknown> }[] = []
+  /** Calls the real server would refuse (see rpcProblem). */
+  rpcProblems: string[] = []
   /** What a database function returns: a value, or a function of its arguments. Unset = no content. */
   rpcResults: Record<string, unknown> = {}
   /** Make a database function fail with this Postgres error code (for example 28000, a TV that isn't paired). */
