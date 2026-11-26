@@ -10,7 +10,7 @@
     </div>
     <p v-if="!rows.length" class="tv-muted" data-testid="tv-day-empty">{{ allDone ? m.dayAllDone : m.dayEmpty }}</p>
     <ul v-else class="tv-day-list">
-      <li v-for="row in page.rows" :key="row.kind + row.id" class="tv-day-row" :class="`tv-day-${row.kind}`" data-testid="tv-day-row">
+      <li v-for="row in page.rows" :key="row.kind + row.id" class="tv-day-row" data-testid="tv-day-row">
         <span class="tv-day-title">{{ row.title }}</span>
       </li>
     </ul>

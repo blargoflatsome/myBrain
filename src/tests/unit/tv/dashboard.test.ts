@@ -116,6 +116,7 @@ describe('SPEC §9 Your Day: what’s left of today, titles only: events, then t
     ['everything planned is done: all done', { tasks: [task('Done', { status: 'done', completed_at: `${TODAY}T15:00:00Z` })], habits: [habit('Walk')], habitLogs: [done('Walk')] }, true],
     ['only an event that has ended: all done', { events: [event('Over', { start_time: '07:00', end_time: '08:00' })] }, true],
     ['nothing planned at all: not all done', {}, false],
+    ['only a habit past its timer: not all done', { habits: [habit('Walk', { notify_time: '08:00', timer_minutes: 30 })] }, false],
     ['something left: not all done', { tasks: [task('Open')] }, false],
   ])('%s', (_what, extra, allDone) => {
     expect(day(extra as Partial<DayData>).allDone).toBe(allDone)

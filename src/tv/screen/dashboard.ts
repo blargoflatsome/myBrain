@@ -134,7 +134,8 @@ export function yourDay(data: DayData, today: string, now: Date, timeZone: strin
   const habits = data.habits
     .filter((h) => !h.deleted_at)
     .map((h) => ({ h, status: dayStatus(h, today, data.habitLogs, now, timeZone, data.habitPauses) }))
-    .filter((x) => x.status !== 'not_scheduled')
+    // Open or done today; a paused habit, or one past its timer, isn't part of today's plan.
+    .filter((x) => x.status === 'open' || x.status === 'completed')
     .sort((a, b) => (a.h.created_at || '').localeCompare(b.h.created_at || ''))
   const rows = events
     .filter((x) => !x.ended)
