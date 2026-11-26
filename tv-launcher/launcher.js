@@ -28,11 +28,15 @@
     }
   }
 
-  // Loads the TV page; until it says it's ready (My Brain was out of reach), tries again every 30 seconds.
+  // Loads the TV page. If it finished loading without saying it's ready (My Brain was out of reach), tries again
+  // 30 seconds later; a page still loading on a slow network is left to finish.
   function load() {
     ready = false
     keepAwake(false)
+    clearTimeout(retry)
     frame.src = SITE + '/tv/'
+  }
+  function retryUnlessReady() {
     clearTimeout(retry)
     retry = setTimeout(function () {
       if (!ready) load()
@@ -64,7 +68,10 @@
   window.addEventListener('online', function () {
     if (!ready) load()
   })
-  frame.addEventListener('load', focusPage)
+  frame.addEventListener('load', function () {
+    focusPage()
+    if (!ready) retryUnlessReady()
+  })
   window.addEventListener('focus', focusPage)
   document.addEventListener('keydown', focusPage)
 
