@@ -214,6 +214,19 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
     })
 
+    test('TV Focus timer full screen, also at 320 px', async ({ page }) => {
+      await pairedTv(page)
+      server.rpcResults.tv_check = true
+      server.rpcResults.tv_snapshot = tvSnapshot()
+      server.rpcResults.tv_focus_room = { dots: [{ id: 'abc12345', s: 600 }], together: true }
+      await page.goto('/tv/')
+      await page.getByTestId('tv-focus-open').click()
+      await expect(page.getByTestId('tv-focus-dot')).toHaveCount(1)
+      await scan(page, 'TV Focus timer')
+      await page.setViewportSize({ width: 320, height: 640 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+    })
+
     test('Invite to event window on a profile', async ({ page }) => {
       await page.goto(`/people/${FRIEND}`)
       await page.getByRole('button', { name: msg.personProfile.invite }).click()

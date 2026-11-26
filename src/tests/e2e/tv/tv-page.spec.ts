@@ -324,3 +324,38 @@ test.describe('SPEC §9 Go on a Quest', () => {
     await expect(page.getByTestId('tv-unpaired')).toBeVisible()
   })
 })
+
+test.describe('SPEC §9 Focus timer', () => {
+  test('opens full screen from the strip and joins the room with the TV key; a finished work part is kept; Back minimizes it to the strip', async ({ page }) => {
+    await pairedTv(page)
+    server.rpcResults.tv_check = true
+    server.rpcResults.tv_snapshot = tvSnapshot()
+    server.rpcResults.tv_focus_room = { dots: [{ id: 'abc12345', s: 600 }], together: true }
+    await page.goto('/tv/')
+    await page.getByTestId('tv-focus-open').focus()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-focus-pause')).toBeFocused()
+    await expect(page.getByTestId('tv-focus-time')).toHaveText('25:00')
+    await expect(page.getByTestId('tv-focus-dot')).toHaveCount(1)
+    expect(calls('tv_focus_room')[0]!.args).toMatchObject({ device_key: 'old-key', p_phase: 'work' })
+
+    // A whole work part with the timer showing: the night screen stays off, and the session is kept for trophies.
+    await page.clock.runFor(25 * 60_000 + 1_000)
+    await expect(page.getByTestId('tv-focus-phase')).toHaveText(msg.focus.phase.short)
+    await expect.poll(() => calls('tv_log_focus').length).toBe(1)
+    expect(calls('tv_log_focus')[0]!.args).toMatchObject({ device_key: 'old-key', together: true })
+
+    await press(page, 'Escape')
+    await expect(page.getByTestId('tv-dashboard')).toBeVisible()
+    await expect(page.getByTestId('tv-focus-open')).toBeFocused()
+    // Its part and time left, whichever second it is now.
+    const label = (await page.getByTestId('tv-focus-open').getAttribute('aria-label')) ?? ''
+    expect(label).toBe(msg.focus.openPill(msg.focus.phaseShort.short, /\d\d:\d\d/.exec(label)?.[0] ?? ''))
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-focus-phase')).toHaveText(msg.focus.phase.short)
+    await page.getByTestId('tv-focus-close').focus()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-focus-open')).toHaveText(msg.focus.heading)
+    await expect.poll(() => calls('tv_focus_leave').length).toBe(1)
+  })
+})

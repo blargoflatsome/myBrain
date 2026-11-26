@@ -3,20 +3,15 @@
 // part changes.
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { WORK_MS, catchUp, nextPart, pause, resume, skip, startFocus, type FocusState } from '@/focus/timer'
-import { checkIn, leave, type Room } from '@/focus/room'
+import { WORK_MS, catchUp, pause, resume, skip, startFocus, workPartsEnded, type FocusState } from '@/focus/timer'
+import { checkIn, leave } from '@/focus/room'
+import { useRoomCheckIns } from '@/focus/roomCheckIns'
 import { useBrainStore } from '@/stores/brain'
 import { deviceTimeZone, todayIn } from '@/time/days'
 import { readJson, writeJson } from '@/ui/storage'
 
 const KEY = 'focus-timer'
 const TODAY_KEY = 'my-brain:focus-today'
-const CHECK_IN_MS = 60_000
-/**
- * Parts that end by themselves check in after a random wait of up to this long, so many timers started together
- * don't all check in in the same second (the dots are a minute old anyway). Things I do check in at once.
- */
-const SPREAD_MS = 20_000
 
 /** Focus time finished today on this device (SPEC §5 Celebrations), in ms. */
 function loadToday(day: string): number {
@@ -29,8 +24,6 @@ function load(): { state: FocusState | null; minimized: boolean } {
   // A timer saved while waiting for a wave (before waves were removed, 2026-11-17) isn't running.
   return saved?.state && ['work', 'short', 'long'].includes(saved.state.phase) ? saved : { state: null, minimized: false }
 }
-
-const emptyRoom = (): Room => ({ dots: [], together: false })
 
 export const useFocusStore = defineStore('focus', () => {
   const brain = useBrainStore()
@@ -67,18 +60,13 @@ export const useFocusStore = defineStore('focus', () => {
   function tick(now = Date.now()): { ended: number; work: number } {
     if (!state.value) return { ended: 0, work: 0 }
     const { state: next, ended } = catchUp(state.value, now)
-    let work = 0
+    const work = workPartsEnded(state.value, ended)
     if (ended) {
-      let part = { phase: state.value.phase, round: state.value.round }
-      for (let i = 0; i < ended; i++) {
-        if (part.phase === 'work') work++
-        part = nextPart(part.phase, part.round)
-      }
       if (work) {
         addFocus(work * WORK_MS, now)
-        void brain.finishFocus(work, togetherThisPart)
+        void brain.finishFocus(work, checkIns.together())
       }
-      endedByItself = true
+      checkIns.endingByItself()
       state.value = next
     }
     return { ended, work }
@@ -94,72 +82,10 @@ export const useFocusStore = defineStore('focus', () => {
   }
 
   // ---------- The quiet room ----------
-  /** The others in the room, as anonymous dots. Empty when offline: never faked. */
-  const room = ref<Room>(emptyRoom())
-  let togetherThisPart = false
-  let inRoom = false
-  let endedByItself = false
-  let spread: ReturnType<typeof setTimeout> | null = null
+  const checkIns = useRoomCheckIns(state, { canAsk: () => brain.online && !!brain.userId, checkIn, leave })
+  const room = checkIns.room
+  const report = checkIns.report
 
-  const canAsk = () => brain.online && !!brain.userId
-  async function ask(part: { phase: FocusState['phase']; endsAt: number }) {
-    if (!canAsk()) {
-      room.value = emptyRoom()
-      return
-    }
-    try {
-      const answer = await checkIn(part)
-      room.value = answer
-      inRoom = true
-      if (answer.together && state.value?.phase === 'work') togetherThisPart = true
-    } catch {
-      room.value = emptyRoom()
-    }
-  }
-  /** Check in with the current part; a paused or stopped timer leaves the room. */
-  function report() {
-    const s = state.value
-    if (s && s.endsAt !== null) return ask({ phase: s.phase, endsAt: s.endsAt })
-    if (inRoom && canAsk()) {
-      inRoom = false
-      void leave().catch(() => {})
-    }
-    room.value = emptyRoom()
-  }
-
-  // A new part, a pause or a stop is sent at once; otherwise once a minute while the timer runs.
-  watch(
-    () => [state.value?.phase, state.value?.endsAt, state.value?.round],
-    ([phase], [before]) => {
-      if (phase !== before) togetherThisPart = false
-      if (spread) clearTimeout(spread)
-      spread = null
-      if (endedByItself && state.value) {
-        endedByItself = false
-        spread = setTimeout(() => {
-          spread = null
-          void report()
-        }, Math.random() * SPREAD_MS)
-        return
-      }
-      endedByItself = false
-      void report()
-    },
-  )
-  let ticker: ReturnType<typeof setInterval> | null = null
-  watch(
-    () => !!state.value,
-    (running) => {
-      if (running && !ticker) ticker = setInterval(() => {
-          if (state.value?.endsAt != null) void report()
-        }, CHECK_IN_MS)
-      if (!running && ticker) {
-        clearInterval(ticker)
-        ticker = null
-      }
-    },
-    { immediate: true },
-  )
   // A timer still running from before a reload checks in once the app knows who I am.
   watch(
     () => brain.userId,

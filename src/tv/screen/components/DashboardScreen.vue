@@ -11,8 +11,19 @@
     </div>
     <div class="tv-strip">
       <RoutinesStrip :rows="routineRows" @open="(id) => emit('open-routine', id)" />
-      <div class="tv-panel tv-quest-panel">
-        <button type="button" class="tv-button tv-quest-open" data-testid="tv-quest-open" @click="emit('quest')">{{ m.questHeading }}</button>
+      <div class="tv-panel tv-strip-actions">
+        <button type="button" class="tv-button tv-strip-action" data-testid="tv-quest-open" @click="emit('quest')">{{ m.questHeading }}</button>
+        <!-- SPEC §9 Focus timer: while it runs minimized, this button shows its part and time and opens it again. -->
+        <button
+          type="button"
+          class="tv-button tv-strip-action"
+          :aria-label="focusPill ? focus.openPill(focusPill.phase, focusPill.time) : undefined"
+          data-testid="tv-focus-open"
+          @click="emit('focus')"
+        >
+          <span v-if="focusPill" aria-hidden="true">{{ focusPill.phase }} · {{ focusPill.time }}</span>
+          <template v-else>{{ focus.heading }}</template>
+        </button>
       </div>
     </div>
   </main>
@@ -20,7 +31,7 @@
 
 <script setup lang="ts">
 // SPEC §9 TV app, The dashboard: the Monthly calendar on the left two thirds and Your Day on the right (Layout).
-// Routines and Go on a Quest share the strip along the bottom.
+// Routines, Go on a Quest and the Focus timer share the strip along the bottom.
 import { computed } from 'vue'
 import MonthCalendar from '@/tv/screen/components/MonthCalendar.vue'
 import YourDay from '@/tv/screen/components/YourDay.vue'
@@ -40,8 +51,11 @@ const props = defineProps<{
   dayRows: DayRow[]
   routineRows: RoutineToday[]
   trouble: boolean
+  /** A Focus timer running minimized: its part and time left. */
+  focusPill: { phase: string; time: string } | null
 }>()
-const emit = defineEmits<{ move: [by: number]; 'open-routine': [id: string]; quest: [] }>()
+const emit = defineEmits<{ move: [by: number]; 'open-routine': [id: string]; quest: []; focus: [] }>()
 const m = messages.tv
+const focus = messages.focus
 const clock = computed(() => timeLabel(clockIn(props.now.getTime(), props.timeZone)))
 </script>

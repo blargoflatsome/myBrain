@@ -641,19 +641,6 @@ body {
 }
 
 /* SPEC §9 Go on a Quest: its button shares the strip with Routines; the picker opens in a popup over the dashboard. */
-.tv-quest-panel {
-  display: flex;
-  flex: none;
-  align-items: center;
-  margin-left: 1rem;
-}
-
-.tv-quest-open {
-  min-height: 3.2rem;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
 .tv-overlay {
   position: fixed;
   top: 0;
@@ -791,4 +778,131 @@ body {
 
 .tv-undo-line .tv-button {
   flex: none;
+}
+
+/* The strip's buttons beside Routines: Go on a Quest and the Focus timer, one above the other. */
+.tv-strip-actions {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 1rem;
+}
+
+.tv-strip-action {
+  min-height: 2.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tv-strip-action + .tv-strip-action {
+  margin-top: 0.6rem;
+}
+
+/* SPEC §9 Focus timer: full screen, black, with only the time and what to do now. */
+.tv-focus {
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: #000;
+  color: #fff;
+  overflow: hidden;
+}
+
+.tv-focus .tv-button {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: #000;
+  color: #fff;
+}
+
+.tv-focus .tv-button:focus {
+  border-color: #fff;
+  background: #fff;
+  color: #000;
+}
+
+.tv-focus-room {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.tv-focus-dot {
+  position: absolute;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin: -0.2rem 0 0 -0.2rem;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.2;
+  transition: opacity 1s, box-shadow 1s;
+}
+
+.tv-focus-dot-glow {
+  opacity: 0.7;
+  box-shadow: 0 0 0.5rem 0.2rem rgba(255, 255, 255, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-focus-dot {
+    transition: none;
+  }
+}
+
+.tv-focus-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+}
+
+.tv-focus-phase,
+.tv-focus-time,
+.tv-focus-round,
+.tv-focus-buttons {
+  position: relative;
+  margin: 0;
+}
+
+.tv-focus-phase {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.tv-focus-time {
+  font-size: 9rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-focus-round {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tv-focus-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.tv-focus-button {
+  min-height: 3rem;
+  margin: 0 0.5rem 0.5rem;
+  padding: 0.2rem 1.4rem;
+  font-weight: 700;
+}
+
+@media (max-width: 40rem) {
+  .tv-focus-time {
+    font-size: 5rem;
+  }
 }

@@ -63,6 +63,7 @@ import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useFocusStore } from '@/stores/focus'
 import { clock, remainingMs } from '@/focus/timer'
 import { dotPlace, glowing } from '@/focus/room'
+import { chime } from '@/focus/chime'
 import { messages } from '@/messages'
 import { useWakeLock } from '@/composables/useWakeLock'
 
@@ -127,25 +128,6 @@ function partEnded(workEnded: boolean) {
     void navigator.serviceWorker?.ready.then((reg) => reg.showNotification(m.heading, { body: m.notify[next], tag: 'focus-timer' })).catch(() => {})
   }
 }
-function chime() {
-  try {
-    const audio = new AudioContext()
-    for (const [i, freq] of [660, 880].entries()) {
-      const tone = audio.createOscillator()
-      const gain = audio.createGain()
-      tone.frequency.value = freq
-      gain.gain.setValueAtTime(0.0001, audio.currentTime + i * 0.25)
-      gain.gain.exponentialRampToValueAtTime(0.2, audio.currentTime + i * 0.25 + 0.02)
-      gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + i * 0.25 + 0.4)
-      tone.connect(gain).connect(audio.destination)
-      tone.start(audio.currentTime + i * 0.25)
-      tone.stop(audio.currentTime + i * 0.25 + 0.45)
-    }
-  } catch {
-    // No sound available: the vibration and the screen still show it.
-  }
-}
-
 // Keep the screen awake while the full-screen timer is showing.
 useWakeLock(() => showing.value)
 // Ask once, when the timer starts, so a notification can arrive while I'm in another app.

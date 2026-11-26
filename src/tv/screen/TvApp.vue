@@ -3,8 +3,9 @@
   <p v-else-if="state === 'starting'" class="tv-status" role="status">{{ m.connecting }}</p>
   <PairingScreen v-else-if="state === 'pairing'" :unpaired="wasUnpaired" @paired="onPaired" />
   <template v-else>
+    <FocusScreen v-if="focus.showing.value" :focus="focus" />
     <RoutineRunScreen
-      v-if="openRoutine && snapshot"
+      v-else-if="openRoutine && snapshot"
       :routine="openRoutine"
       :facts="routineFacts!"
       :today="today"
@@ -15,7 +16,7 @@
     />
     <!-- Hidden, not removed, under a routine: Back finds the strip on the page it was on. -->
     <DashboardScreen
-      v-show="!(openRoutine && snapshot)"
+      v-show="!focus.showing.value && !(openRoutine && snapshot)"
       :now="now"
       :time-zone="timeZone"
       :today="today"
@@ -24,11 +25,13 @@
       :day-rows="dayRows"
       :routine-rows="routineRows"
       :trouble="trouble"
+      :focus-pill="focusPill"
       @move="moveMonth"
       @open-routine="(id) => (openRoutineId = id)"
       @quest="quest.show()"
+      @focus="focus.open()"
     />
-    <QuestPopup v-if="quest.open.value && !openRoutine" :quest="quest" @close="closeQuest" />
+    <QuestPopup v-if="quest.open.value && !openRoutine && !focus.showing.value" :quest="quest" @close="closeQuest" />
   </template>
 </template>
 
@@ -42,6 +45,8 @@ import PairingScreen from '@/tv/screen/components/PairingScreen.vue'
 import DashboardScreen from '@/tv/screen/components/DashboardScreen.vue'
 import RoutineRunScreen from '@/tv/screen/components/RoutineRunScreen.vue'
 import QuestPopup from '@/tv/screen/components/QuestPopup.vue'
+import FocusScreen from '@/tv/screen/components/FocusScreen.vue'
+import { useTvFocus } from '@/tv/screen/focus'
 import { useTvQuest } from '@/tv/screen/quest'
 import { routineToday } from '@/routines/listing'
 import type { TvRoutineFacts } from '@/tv/screen/routines'
@@ -116,6 +121,19 @@ function closeQuest() {
   void nextTick(() => (document.querySelector('[data-testid="tv-quest-open"]') as HTMLElement | null)?.focus())
 }
 
+// The Focus timer (SPEC §9): on the TV only; minimized, the strip's button shows it.
+const focus = useTvFocus(savedKey)
+const focusPill = computed(() =>
+  focus.state.value && focus.minimized.value ? { phase: messages.focus.phaseShort[focus.state.value.phase], time: focus.time.value } : null,
+)
+// Minimized or stopped (✕), focus goes back to the strip's Focus timer button.
+watch(
+  () => focus.showing.value,
+  (shows, was) => {
+    if (was && !shows) void nextTick(() => (document.querySelector('[data-testid="tv-focus-open"]') as HTMLElement | null)?.focus())
+  },
+)
+
 const upNextNow = computed(() => {
   const s = snapshot.value
   return s ? (upNextFrom(s.facts, now.value, timeZone.value, s.journalTime)[0] ?? null) : null
@@ -157,6 +175,8 @@ watch(idle, (dimmed) => {
 function toPairing() {
   openRoutineId.value = null
   quest.close()
+  // Unpaired, the TV isn't mine any more: its timer stops (and leaves the room).
+  focus.stop()
   wasUnpaired.value = true
   state.value = 'pairing'
   snapshot.value = null
@@ -197,6 +217,10 @@ function onKey(e: KeyboardEvent) {
   }
   const button = buttonOf(e)
   if (e.key === 'Tab' && quest.open.value) return trapTab(e)
+  if (button === 'back' && focus.showing.value) {
+    e.preventDefault()
+    return focus.minimize()
+  }
   if (button === 'back' && quest.open.value && !openRoutine.value) {
     e.preventDefault()
     return closeQuest()
