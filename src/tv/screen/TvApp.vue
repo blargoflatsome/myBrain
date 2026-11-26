@@ -22,7 +22,7 @@
       :today="today"
       :month="month"
       :items="items"
-      :day-rows="dayRows"
+      :day="day"
       :routine-rows="routineRows"
       :trouble="trouble"
       :focus-pill="focusPill"
@@ -48,7 +48,7 @@ import QuestPopup from '@/tv/screen/components/QuestPopup.vue'
 import FocusScreen from '@/tv/screen/components/FocusScreen.vue'
 import { useTvFocus } from '@/tv/screen/focus'
 import { useTvQuest } from '@/tv/screen/quest'
-import { routineToday } from '@/routines/listing'
+import { routineToday, scheduledFirst } from '@/routines/listing'
 import type { TvRoutineFacts } from '@/tv/screen/routines'
 import { useNow } from '@/composables/useNow'
 import { IDLE_HOLD, isIdle } from '@/tv/screen/idle'
@@ -96,7 +96,12 @@ const items = computed(() => {
   const { from, to } = monthRange(month.value)
   return monthItems(snapshot.value.facts, from, to)
 })
-const dayRows = computed(() => (snapshot.value ? yourDay(snapshot.value.facts, today.value, timeZone.value) : []))
+const day = computed(() => {
+  const s = snapshot.value
+  if (!s) return { rows: [], allDone: false }
+  const f = s.facts
+  return yourDay({ ...f, habitPauses: f.habitPauses ?? [] }, today.value, now.value, timeZone.value)
+})
 // Routines (SPEC §9 Routines): the strip's rows, and the one open full screen.
 const routineFacts = computed<TvRoutineFacts | null>(() => {
   const s = snapshot.value
@@ -106,7 +111,7 @@ const routineFacts = computed<TvRoutineFacts | null>(() => {
 })
 const routineRows = computed(() => {
   const f = routineFacts.value
-  return f && snapshot.value ? snapshot.value.facts.routines.map((r) => routineToday(r, f, today.value)) : []
+  return f && snapshot.value ? scheduledFirst(snapshot.value.facts.routines.map((r) => routineToday(r, f, today.value))) : []
 })
 const openRoutineId = ref<string | null>(null)
 // A routine deleted on my phone while open here closes at the next refresh.

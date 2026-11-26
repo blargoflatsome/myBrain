@@ -19,7 +19,7 @@
           {{ m.completed }}
         </button>
       </div>
-      <button v-if="resuming && routine && isAnytime(routine)" type="button" class="tv-button tv-run-again" data-testid="tv-start-again" @click="startAgain = true">
+      <button v-if="resuming" type="button" class="tv-button tv-run-again" data-testid="tv-start-again" @click="startAgain = true">
         {{ m.startAgain }}
       </button>
     </section>
@@ -34,7 +34,7 @@
 // run as on my phone. While it's open the night screen is held off; finishing, or Back, returns to the dashboard.
 import { computed, inject, nextTick, onMounted, onScopeDispose, ref } from 'vue'
 import { useRoutineRun } from '@/routines/useRoutineRun'
-import { activeSteps, isAnytime } from '@/routines/rules'
+import { activeSteps } from '@/routines/rules'
 import { IDLE_HOLD } from '@/tv/screen/idle'
 import { resumeSave, saveRoutineStep, stepSave, type RoutineSave, type TvRoutineFacts } from '@/tv/screen/routines'
 import type { RoutineRow } from '@/sync/types'

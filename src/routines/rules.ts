@@ -59,19 +59,38 @@ export function runStepLogIdFor(runId: string, stepId: string): string {
   return `${runId.slice(0, 24)}${stepId.slice(24)}`
 }
 
-export function runFor(runs: RoutineRunRow[], routineId: string, date: string): RoutineRunRow | undefined {
-  return runs.find((r) => r.routine_id === routineId && r.date === date && !r.deleted_at)
+/** A routine's runs on a day (a day can have several: Start again, SPEC §5 Any routine can run any time). */
+export function runsOn(runs: RoutineRunRow[], routineId: string, date: string): RoutineRunRow[] {
+  return runs.filter((r) => r.routine_id === routineId && r.date === date && !r.deleted_at)
+}
+
+/** Whether a routine was finished on a day, by any of that day's runs (the day counts once). */
+export function finishedOn(runs: RoutineRunRow[], routineId: string, date: string): boolean {
+  return runsOn(runs, routineId, date).some((r) => !!r.finished_at)
+}
+
+/** The runs that count now: a scheduled routine's from today; a run-anytime routine's from any day. */
+function liveRuns(routine: RoutineRow, runs: RoutineRunRow[], date: string): RoutineRunRow[] {
+  return runs.filter((r) => r.routine_id === routine.id && !r.deleted_at && (isAnytime(routine) || r.date === date))
 }
 
 /**
- * The run in progress: today's run for a scheduled routine; for a run-anytime routine, the latest run not yet
- * finished, whatever day it started (progress carries over until the last step).
+ * The run in progress, the latest not yet finished: for a scheduled routine, one started today; for a run-anytime
+ * routine, whatever day it started (progress carries over until the last step).
  */
 export function currentRun(routine: RoutineRow, runs: RoutineRunRow[], date: string): RoutineRunRow | undefined {
-  if (!isAnytime(routine)) return runFor(runs, routine.id, date)
-  return runs
-    .filter((r) => r.routine_id === routine.id && !r.deleted_at && !r.finished_at)
+  return liveRuns(routine, runs, date)
+    .filter((r) => !r.finished_at)
     .sort((a, b) => b.started_at.localeCompare(a.started_at))[0]
+}
+
+/**
+ * Whether a new run takes the day's fixed id: a scheduled routine's first run of the day, so the same run made on two
+ * devices is one (SPEC §7). Later runs that day (Start again) and run-anytime runs get their own ids.
+ */
+export function takesDayId(routine: RoutineRow, runs: RoutineRunRow[], date: string): boolean {
+  const id = runIdFor(routine.id, date)
+  return !isAnytime(routine) && !runs.some((r) => r.id === id)
 }
 
 function logsOf(logs: RoutineStepLogRow[], runId: string | undefined) {
@@ -114,17 +133,13 @@ export function runState(
 }
 
 /**
- * The finished run whose skipped steps Resume goes back to (SPEC §5 Routines): today's run for a scheduled routine;
- * for a run-anytime routine, its latest finished run while no newer run is open.
+ * The finished run whose skipped steps Resume goes back to (SPEC §5 Routines): the latest finished run (for a
+ * scheduled routine, today's) while no newer run is open.
  */
 export function resumableRun(routine: RoutineRow, runs: RoutineRunRow[], date: string): RoutineRunRow | undefined {
-  if (!isAnytime(routine)) {
-    const run = runFor(runs, routine.id, date)
-    return run?.finished_at ? run : undefined
-  }
   if (currentRun(routine, runs, date)) return undefined
-  return runs
-    .filter((r) => r.routine_id === routine.id && !r.deleted_at && r.finished_at)
+  return liveRuns(routine, runs, date)
+    .filter((r) => r.finished_at)
     .sort((a, b) => b.finished_at!.localeCompare(a.finished_at!))[0]
 }
 
@@ -169,17 +184,20 @@ export function recordStep(
   now: Date = new Date(),
   habitDone: Set<string> = new Set(),
   newId: () => string = () => crypto.randomUUID(),
+  /** A new run takes the day's fixed id (see takesDayId); otherwise it gets its own. */
+  dayId = !isAnytime(routine),
 ): StepAction | null {
   const state = runState(steps, run, logs, habitDone)
   if (!state.current) return null
   const at = now.toISOString()
-  const anytime = isAnytime(routine)
   const newRun: RoutineRunRow | null = run
     ? null
-    : { id: anytime ? newId() : runIdFor(routine.id, date), user_id: userId, routine_id: routine.id, date, started_at: at, finished_at: null, deleted_at: null }
+    : { id: dayId ? runIdFor(routine.id, date) : newId(), user_id: userId, routine_id: routine.id, date, started_at: at, finished_at: null, deleted_at: null }
   const theRun = run ?? newRun!
+  // A day's fixed-id run has fixed-id logs too; any other run's logs are named after the run.
+  const dayRun = theRun.id === runIdFor(routine.id, theRun.date)
   const logFor = (step: RoutineStepRow, s: 'completed' | 'skipped'): RoutineStepLogRow => ({
-    id: anytime ? runStepLogIdFor(theRun.id, step.id) : stepLogIdFor(step.id, date),
+    id: dayRun ? stepLogIdFor(step.id, theRun.date) : runStepLogIdFor(theRun.id, step.id),
     user_id: userId,
     run_id: theRun.id,
     step_id: step.id,
@@ -247,23 +265,23 @@ export function routineStats(
     return { completed: finished.length, possible: finished.length, steps: perStep }
   }
 
-  const todayRun = runFor(runs, routine.id, today)
-  const lastDay = todayRun?.finished_at ? today : addDays(today, -1)
+  // Only scheduled days count, each once however many runs it had; runs on other days don't change the stats.
+  const lastDay = finishedOn(runs, routine.id, today) ? today : addDays(today, -1)
   let completed = 0
   let possible = 0
   for (let date = routine.start_date; date <= lastDay; date = addDays(date, 1)) {
     if (!isScheduled(routine, date)) continue
     possible++
-    const run = runFor(runs, routine.id, date)
-    if (run?.finished_at) completed++
-    const dayLogs = logsOf(logs, run?.id)
+    const dayRuns = runsOn(runs, routine.id, date)
+    if (dayRuns.some((r) => r.finished_at)) completed++
+    const dayLogs = dayRuns.flatMap((r) => logsOf(logs, r.id))
     const dayIds = new Set(stepsForDay(steps, habits, date).map((s) => s.id))
     for (const s of perStep) {
       if (date < s.step.start_date || !dayIds.has(s.step.id)) continue
       s.possible++
-      const log = dayLogs.find((l) => l.step_id === s.step.id)
-      if (log?.status === 'completed') s.completed++
-      else if (log?.status === 'skipped') s.skipped++
+      const stepLogs = dayLogs.filter((l) => l.step_id === s.step.id)
+      if (stepLogs.some((l) => l.status === 'completed')) s.completed++
+      else if (stepLogs.some((l) => l.status === 'skipped')) s.skipped++
     }
   }
   return { completed, possible, steps: perStep }

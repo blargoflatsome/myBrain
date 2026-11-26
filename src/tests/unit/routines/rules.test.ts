@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
-import { activeSteps, completeSkipped, isScheduled, percent, recordStep, resumableRun, routineStats, runFor, runIdFor, runState, skippedSteps, stepLogIdFor } from '@/routines/rules'
+import { activeSteps, completeSkipped, currentRun, finishedOn, isScheduled, percent, recordStep, resumableRun, routineStats, runIdFor, runState, skippedSteps, stepLogIdFor, takesDayId } from '@/routines/rules'
+import { routineButton, routineStatusText, routineToday, scheduledFirst } from '@/routines/listing'
+import { messages } from '@/messages'
 
 const RID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
 const routine: RoutineRow = { id: RID, title: 'Morning', weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', deleted_at: null }
@@ -18,7 +20,7 @@ const steps = [step(1, 'Wake up by 7am'), step(2, 'Brush teeth'), step(3, 'Showe
 /** Play a whole day through recordStep, the way the run screen does. */
 function play(date: string, actions: ('completed' | 'skipped')[], runs: RoutineRunRow[], logs: RoutineStepLogRow[]) {
   for (const status of actions) {
-    const action = recordStep(routine, steps, runFor(runs, RID, date), logs, status, date, 'u1')!
+    const action = recordStep(routine, steps, currentRun(routine, runs, date), logs, status, date, 'u1', undefined, undefined, undefined, takesDayId(routine, runs, date))!
     if (action.run) runs.push(action.run)
     logs.push(action.log)
     if (action.finish) runs.splice(runs.findIndex((r) => r.id === action.finish!.id), 1, action.finish)
@@ -145,5 +147,72 @@ describe('Spec §7: one run per routine per day across devices', () => {
   it('runs and step logs get fixed ids for the day', () => {
     expect(runIdFor(RID, '2026-11-10')).toBe('aaaaaaaa-bbbb-4ccc-8ddd-202611100000')
     expect(stepLogIdFor(steps[0]!.id, '2026-11-10')).toBe('00000001-0000-4000-8000-202611100000')
+  })
+})
+
+describe('Spec §5 Routines: any routine can run any time', () => {
+  // 2026-11-10 is a Tuesday; a routine scheduled on Mondays only.
+  const mondays: RoutineRow = { ...routine, weekdays: [1] }
+  const playOn = (r: RoutineRow, date: string, actions: ('completed' | 'skipped')[], runs: RoutineRunRow[], logs: RoutineStepLogRow[]) => {
+    for (const status of actions) {
+      const action = recordStep(r, steps, currentRun(r, runs, date), logs, status, date, 'u1', undefined, undefined, undefined, takesDayId(r, runs, date))!
+      if (action.run) runs.push(action.run)
+      logs.push(...action.logs)
+      if (action.finish) runs.splice(runs.findIndex((x) => x.id === action.finish!.id), 1, action.finish)
+    }
+  }
+
+  it('a scheduled routine runs on a day it isn\'t scheduled, and that run leaves its stats alone', () => {
+    const runs: RoutineRunRow[] = []
+    const logs: RoutineStepLogRow[] = []
+    const before = routineStats(mondays, steps, runs, logs, '2026-11-10')
+    playOn(mondays, '2026-11-10', ['completed', 'completed', 'completed'], runs, logs)
+    expect(finishedOn(runs, RID, '2026-11-10')).toBe(true)
+    expect(routineStats(mondays, steps, runs, logs, '2026-11-10')).toEqual(before)
+  })
+
+  it('after finishing, Start again is a fresh run with its own id; the day still counts once', () => {
+    const runs: RoutineRunRow[] = []
+    const logs: RoutineStepLogRow[] = []
+    playOn(routine, '2026-11-10', ['completed', 'skipped', 'completed'], runs, logs)
+    expect(currentRun(routine, runs, '2026-11-10')).toBeUndefined()
+    playOn(routine, '2026-11-10', ['completed', 'completed', 'completed'], runs, logs)
+    expect(runs.map((r) => r.id === runIdFor(RID, '2026-11-10'))).toEqual([true, false])
+    expect(new Set(logs.map((l) => l.id)).size).toBe(logs.length)
+    const stats = routineStats(routine, steps, runs, logs, '2026-11-10')
+    expect({ completed: stats.completed, possible: stats.possible, brushTeeth: stats.steps[1] }).toMatchObject({ completed: 1, possible: 10, brushTeeth: { completed: 1, skipped: 0, possible: 10 } })
+  })
+
+  it('a scheduled routine\'s unfinished run doesn\'t carry over to the next day', () => {
+    const runs: RoutineRunRow[] = []
+    const logs: RoutineStepLogRow[] = []
+    playOn(routine, '2026-11-10', ['completed'], runs, logs)
+    expect(currentRun(routine, runs, '2026-11-11')).toBeUndefined()
+  })
+
+  it.each([
+    ['not scheduled today: Start', mondays, [], 'start', 'notToday'],
+    ['scheduled, not started: Start', routine, [], 'start', 'notStarted'],
+    ['partway: Continue', routine, ['completed'], 'continue', null],
+    ['done today with skips: Resume', routine, ['completed', 'skipped', 'completed'], 'resume', null],
+    ['done today: Start again', routine, ['completed', 'completed', 'completed'], 'startAgain', 'doneToday'],
+    ['off day, done: Start again', mondays, ['completed', 'completed', 'completed'], 'startAgain', 'doneToday'],
+  ] as const)('%s', (_what, r, actions, button, status) => {
+    const runs: RoutineRunRow[] = []
+    const logs: RoutineStepLogRow[] = []
+    playOn(r, '2026-11-10', [...actions], runs, logs)
+    const row = routineToday(r, { steps, runs, logs, habits: [], habitLogs: [] }, '2026-11-10')
+    const m = messages.routines
+    expect(routineButton(row)).toBe(button === 'startAgain' ? m.run.startAgain : m[button])
+    if (status) expect(routineStatusText(row)).toBe(m[status])
+  })
+
+  it('a routine with no steps has nothing to start', () => {
+    expect(routineButton(routineToday(routine, { steps: [], runs: [], logs: [], habits: [], habitLogs: [] }, '2026-11-10'))).toBeNull()
+  })
+
+  it('lists scheduled routines first, then run-anytime ones, each in its order', () => {
+    const rows = [{ routine: { ...routine, id: 'a', weekdays: null } }, { routine: { ...routine, id: 'b' } }, { routine: { ...routine, id: 'c', weekdays: null } }, { routine: { ...routine, id: 'd' } }]
+    expect(scheduledFirst(rows).map((r) => r.routine.id)).toEqual(['b', 'd', 'a', 'c'])
   })
 })

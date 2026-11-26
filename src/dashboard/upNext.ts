@@ -3,7 +3,7 @@
 import type { DayData } from '@/journal/stats'
 import type { EventInviteRow, EventRow, InboxRow, JournalEntryRow, TaskRow } from '@/sync/types'
 import { dayStatus, deadline, isScheduled as habitScheduled, streaks } from '@/habits/rules'
-import { isAnytime, isScheduled as routineScheduled, runFor } from '@/routines/rules'
+import { finishedOn, isAnytime, isScheduled as routineScheduled, runsOn } from '@/routines/rules'
 import { remindsOn } from '@/reminders/priority'
 import { myPlace, occursOn } from '@/events/rules'
 import { carryOverCount, tasksForDay } from '@/tasks/rules'
@@ -98,9 +98,8 @@ export function upNextFrom(data: UpNextFacts, now: Date, timeZone: string, journ
   for (const r of live(data.routines)) {
     if (isAnytime(r) || !routineScheduled(r, today)) continue
     if (r.notify_time && at < zonedTime(today, r.notify_time, timeZone)) continue
-    const run = runFor(data.routineRuns, r.id, today)
-    if (run?.finished_at) continue
-    out.push({ key: `routine:${r.id}`, kind: 'routine', id: r.id, title: r.title, started: !!run })
+    if (finishedOn(data.routineRuns, r.id, today)) continue
+    out.push({ key: `routine:${r.id}`, kind: 'routine', id: r.id, title: r.title, started: runsOn(data.routineRuns, r.id, today).length > 0 })
   }
 
   // 4. Events starting in the next 2 hours: mine, or ones I said Yes to.

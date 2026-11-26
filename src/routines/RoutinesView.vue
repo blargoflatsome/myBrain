@@ -73,7 +73,7 @@ import RoutineEditor from '@/routines/components/RoutineEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
 import { activeSteps, habitOf, percent, routineStats } from '@/routines/rules'
-import { routineButton, routineStatusText, routineToday } from '@/routines/listing'
+import { routineButton, routineStatusText, routineToday, scheduledFirst } from '@/routines/listing'
 import { messages } from '@/messages'
 import type { RoutineRow } from '@/sync/types'
 import { primaryButton } from '@/ui/styles'
@@ -95,10 +95,10 @@ const habits = useRows('habits')
 const habitLogs = useRows('habit_logs')
 
 const rows = computed(() =>
-  routines.value.map((r) => {
+  scheduledFirst(routines.value.map((r) => {
     const day = routineToday(r, { steps: steps.value, runs: runs.value, logs: logs.value, habits: habits.value, habitLogs: habitLogs.value }, today.value)
     return { ...day, stats: routineStats(r, steps.value, runs.value, logs.value, today.value, habits.value) }
-  }),
+  })),
 )
 
 const expanded = ref<string | null>(null)

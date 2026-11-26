@@ -204,11 +204,13 @@ test.describe('Spec §5 Routines: list and stats', () => {
     await expect(titles.nth(2)).toHaveValue('Stretch')
   })
 
-  test('a weekdays-only routine shows "Not today" on Saturday and offers no Start', async ({ page }) => {
+  test('a weekdays-only routine says "Not today" on Saturday but still starts (any routine can run any time)', async ({ page }) => {
     seedMorning({ weekdays: [1, 2, 3, 4, 5], start_date: '2026-11-02' })
     await open(page, '/routines', new Date('2026-11-14T15:00:00Z'))
     await expect(page.getByTestId('routine-status')).toHaveText(msg.routines.notToday)
-    await expect(page.getByRole('link', { name: msg.routines.start })).toHaveCount(0)
+    await page.getByRole('link', { name: msg.routines.start }).click()
+    await page.getByRole('button', { name: msg.routines.run.skip }).click()
+    await expect.poll(() => server.written('routine_runs').at(-1)).toMatchObject({ date: '2026-11-14', finished_at: null })
   })
 
   test('a routine can be deleted after confirming', async ({ page }) => {

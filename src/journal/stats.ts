@@ -1,7 +1,7 @@
 // Journal rules (SPEC §5 Journal): the day's stats, missed days written on my behalf, and when stats freeze.
 import type { HabitLogRow, HabitPauseRow, HabitRow, JournalEntryRow, JournalStats, QuestLogRow, QuestRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow } from '@/sync/types'
 import { dayStatus, isScheduled as habitScheduled, streaks } from '@/habits/rules'
-import { activeSteps, isAnytime, isScheduled as routineScheduled, runFor, stepsForDay } from '@/routines/rules'
+import { activeSteps, isAnytime, isScheduled as routineScheduled, runsOn, stepsForDay } from '@/routines/rules'
 import { addDays, dayOf, zonedTime } from '@/time/days'
 import { live } from '@/sync/live'
 
@@ -89,9 +89,10 @@ export function dayStats(data: DayData, date: string, now: Date, timeZone: strin
         return done ? { id: r.id, title: r.title, done: Math.min(done, steps.length), total: steps.length } : null
       }
       if (!routineScheduled(r, date)) return null
-      const run = runFor(data.routineRuns, r.id, date)
+      // The day's runs together (Start again can make several); each step counts once.
+      const runIds = new Set(runsOn(data.routineRuns, r.id, date).map((x) => x.id))
       const ids = new Set(steps.map((x) => x.id))
-      const done = run ? stepLogs.filter((l) => l.run_id === run.id && l.status === 'completed' && ids.has(l.step_id)).length : 0
+      const done = new Set(stepLogs.filter((l) => runIds.has(l.run_id) && l.status === 'completed' && ids.has(l.step_id)).map((l) => l.step_id)).size
       return { id: r.id, title: r.title, done: Math.min(done, steps.length), total: steps.length }
     })
     .filter((r): r is JournalStats['routines'][number] => !!r)
