@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import type { EventInviteRow, EventRow, HabitLogRow, TaskRow } from '@/sync/types'
-import { addMonths, monthItems, monthRange, monthWeeks, pageOf, yourDay, type CalendarData } from '@/tv/screen/dashboard'
+import type { EventInviteRow, EventRow, HabitLogRow, HabitRow, TaskRow } from '@/sync/types'
+import { addMonths, monthItems, monthRange, monthWeeks, pageOf, yourDay, type CalendarData, type DayData } from '@/tv/screen/dashboard'
 import { nextFocus, type Box } from '@/tv/screen/spatial'
 import { snapshotLoader, type SnapshotAnswer } from '@/tv/screen/snapshot'
 import { useServerAdapter } from '@/server/server'
@@ -58,42 +58,67 @@ describe('SPEC §9 Monthly calendar: each day shows its events, then its tasks',
   })
 })
 
-describe('SPEC §9 Your Day: today’s events in time order, then today’s tasks', () => {
-  it('only my events and Yes ones, not cancelled; tasks carried over are in, done ones crossed off at the end', () => {
-    const rows = yourDay(
-      data({
-        events: [
-          event('Late', { start_time: '18:00', end_time: '19:00' }),
-          event('Early', { start_time: '07:00', end_time: '08:00' }),
-          event('Said yes', { user_id: 'sam', start_time: '12:00' }),
-          event('Said maybe', { user_id: 'sam' }),
-          event('Cancelled', { cancelled_at: `${TODAY}T01:00:00Z` }),
-          event('Weekly', { start_date: '2026-11-19', end_date: '2026-11-19', repeat: 'weekly', start_time: '20:00', end_time: '21:00' }),
-          event('Long', { start_date: '2026-11-25', end_date: '2026-11-27', start_time: null, end_time: null }),
-        ],
-        invites: [invite('Said yes', 'yes'), invite('Said maybe', 'maybe')],
-        tasks: [
-          task('Done', { status: 'done', completed_at: `${TODAY}T15:00:00Z` }),
-          task('Old', { due_date: '2026-11-20' }),
-          task('Tomorrow', { due_date: '2026-11-27' }),
-        ],
-      }),
-      TODAY,
-      TZ,
-    )
-    expect(rows.map((r) => r.title)).toEqual(['Long', 'Early', 'Said yes', 'Late', 'Weekly', 'Old', 'Done'])
-    expect(rows.find((r) => r.title === 'Old')).toMatchObject({ carriedOver: true, done: false })
-    expect(rows.find((r) => r.title === 'Done')).toMatchObject({ done: true })
+describe('SPEC §9 Your Day: what’s left of today, titles only: events, then tasks, then habits', () => {
+  // 2:30 pm in New York on TODAY (a Thursday).
+  const NOW = new Date('2026-11-26T19:30:00Z')
+  const habit = (id: string, extra: Partial<HabitRow> = {}): HabitRow => ({
+    id, title: id, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', created_at: `2026-11-01T00:00:00Z`, deleted_at: null, ...extra,
+  })
+  const done = (habitId: string): HabitLogRow => ({ id: `l-${habitId}`, habit_id: habitId, date: TODAY, status: 'completed', completed_at: `${TODAY}T12:00:00Z`, deleted_at: null })
+  const day = (extra: Partial<DayData>) => yourDay({ ...data({}), habits: [], habitLogs: [], habitPauses: [], ...extra }, TODAY, NOW, TZ)
+
+  it('my events and Yes ones not yet over in time order, then open tasks (carried over too), then habits not done', () => {
+    const { rows } = day({
+      events: [
+        event('Late', { start_time: '18:00', end_time: '19:00' }),
+        event('Over', { start_time: '07:00', end_time: '08:00' }),
+        event('Now', { start_time: '14:00', end_time: '15:00' }),
+        event('Said yes', { user_id: 'sam', start_time: '16:00', end_time: '17:00' }),
+        event('Said maybe', { user_id: 'sam', start_time: '16:00', end_time: '17:00' }),
+        event('Cancelled', { cancelled_at: `${TODAY}T01:00:00Z`, start_time: '18:00', end_time: '19:00' }),
+        event('Long', { start_date: '2026-11-25', end_date: '2026-11-27', start_time: null, end_time: null }),
+      ],
+      invites: [invite('Said yes', 'yes'), invite('Said maybe', 'maybe')],
+      tasks: [task('Done', { status: 'done', completed_at: `${TODAY}T15:00:00Z` }), task('Old', { due_date: '2026-11-20' }), task('Tomorrow', { due_date: '2026-11-27' })],
+      habits: [habit('Walk'), habit('Stretched', { created_at: '2026-10-01T00:00:00Z' }), habit('Weekends', { weekdays: [0, 6] }), habit('Read', { created_at: '2026-11-02T00:00:00Z' })],
+      habitLogs: [done('Stretched')],
+    })
+    expect(rows).toEqual([
+      { kind: 'event', id: 'Long', title: 'Long' },
+      { kind: 'event', id: 'Now', title: 'Now' },
+      { kind: 'event', id: 'Said yes', title: 'Said yes' },
+      { kind: 'event', id: 'Late', title: 'Late' },
+      { kind: 'task', id: 'Old', title: 'Old' },
+      { kind: 'habit', id: 'Walk', title: 'Walk' },
+      { kind: 'habit', id: 'Read', title: 'Read' },
+    ])
   })
 
   it.each([
-    ['starts and ends today: its times', '2026-11-26', '2026-11-26', '09:00', '10:00'],
-    ['began yesterday, ends today: until its end', '2026-11-25', '2026-11-26', null, '10:00'],
-    ['began yesterday, ends tomorrow: all day', '2026-11-25', '2026-11-27', null, null],
-    ['starts today, ends tomorrow: from its start', '2026-11-26', '2026-11-27', '09:00', null],
-  ])('a timed event that %s', (_what, start_date, end_date, start, end) => {
-    const [row] = yourDay(data({ events: [event('Trip', { start_date, end_date })] }), TODAY, TZ)
-    expect(row).toMatchObject({ start, end })
+    ['ended at its end time', { start_time: '13:00', end_time: '14:30' }, false],
+    ['still on until its end time', { start_time: '13:00', end_time: '14:31' }, true],
+    ['with no end time, gone once it starts', { start_time: '14:00', end_time: null }, false],
+    ['all day, there until midnight', { start_time: null, end_time: null }, true],
+    ['began yesterday and ends tomorrow', { start_date: '2026-11-25', end_date: '2026-11-27', start_time: '09:00', end_time: '10:00' }, true],
+    ['began yesterday and ended this morning', { start_date: '2026-11-25', end_date: TODAY, start_time: '20:00', end_time: '09:00' }, false],
+  ])('an event %s', (_what, extra, shown) => {
+    expect(day({ events: [event('Trip', extra as Partial<EventRow>)] }).rows.length).toBe(shown ? 1 : 0)
+  })
+
+  it.each([
+    ['a paused habit is left out', { habitPauses: [{ id: 'p', start_date: '2026-11-20', end_date: null, deleted_at: null }] }],
+    ['a habit past its timer is left out', { habits: [habit('Walk', { notify_time: '08:00', timer_minutes: 30 })] }],
+  ])('%s', (_what, extra) => {
+    expect(day({ habits: [habit('Walk')], ...extra }).rows).toEqual([])
+  })
+
+  it.each([
+    ['everything planned is done: all done', { tasks: [task('Done', { status: 'done', completed_at: `${TODAY}T15:00:00Z` })], habits: [habit('Walk')], habitLogs: [done('Walk')] }, true],
+    ['only an event that has ended: all done', { events: [event('Over', { start_time: '07:00', end_time: '08:00' })] }, true],
+    ['nothing planned at all: not all done', {}, false],
+    ['something left: not all done', { tasks: [task('Open')] }, false],
+  ])('%s', (_what, extra, allDone) => {
+    expect(day(extra as Partial<DayData>).allDone).toBe(allDone)
   })
 
   it.each([

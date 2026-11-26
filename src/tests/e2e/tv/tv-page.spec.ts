@@ -116,7 +116,7 @@ test.describe('SPEC §9 The dashboard: the Monthly calendar and Your Day', () =>
   })
 
   test('shows this month and today from the snapshot, and the remote moves through months and back', async ({ page }) => {
-    server.rpcResults.tv_snapshot = tvSnapshot({ tasks: [task('Buy stamps')], events: [event('Gym')] })
+    server.rpcResults.tv_snapshot = tvSnapshot({ tasks: [task('Buy stamps')], events: [event('Gym', { start_time: '22:30', end_time: '23:00' })] })
     await page.goto('/tv/')
     await expect(page.getByTestId('tv-month-name')).toHaveText('November 2026')
     await expect(page.getByTestId(`tv-day-${TODAY}`).getByTestId('tv-cell-item')).toHaveText([/Gym/, /Buy stamps/])
@@ -133,7 +133,7 @@ test.describe('SPEC §9 The dashboard: the Monthly calendar and Your Day', () =>
   })
 
   test('Your Day turns pages with the remote, so a long day stays inside its box', async ({ page }) => {
-    server.rpcResults.tv_snapshot = tvSnapshot({ tasks: Array.from({ length: 9 }, (_, i) => task(`Task ${i + 1}`, { created_at: `2026-11-0${i + 1}T00:00:00Z` })) })
+    server.rpcResults.tv_snapshot = tvSnapshot({ tasks: Array.from({ length: 6 }, (_, i) => task(`Task ${i + 1}`, { created_at: `2026-11-0${i + 1}T00:00:00Z` })) })
     await page.goto('/tv/')
     await expect(page.getByTestId('tv-day-page')).toHaveText(msg.tv.page(1, 2))
     await page.getByTestId('tv-day-next').focus()
@@ -386,5 +386,17 @@ test.describe('SPEC §9 Focus timer', () => {
     await press(page, 'Enter')
     await expect(page.getByTestId('tv-focus-open')).toHaveText(msg.focus.heading)
     await expect.poll(() => calls('tv_focus_leave').length).toBe(1)
+  })
+})
+
+test.describe('SPEC §9 Layout: the TV’s clock is 12-hour whatever the TV’s own setting', () => {
+  test.use({ locale: 'en-GB' })
+
+  test('a TV set to 24-hour time still shows am or pm', async ({ page }) => {
+    await pairedTv(page)
+    server.rpcResults.tv_check = true
+    server.rpcResults.tv_snapshot = tvSnapshot()
+    await page.goto('/tv/')
+    await expect(page.getByTestId('tv-clock')).toHaveText('10:00 pm')
   })
 })

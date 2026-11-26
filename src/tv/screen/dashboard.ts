@@ -1,12 +1,13 @@
 // SPEC §9 TV app, The dashboard: the Monthly calendar's weeks and Your Day, worked out from what tv_snapshot returns.
-// Pure rules, built on the main app's (§5 Calendar and reminders, §5 Tasks), so the TV shows the same things.
-import type { EventInviteRow, EventRow, TaskRow } from '@/sync/types'
+// Pure rules, built on the main app's (§5 Calendar and reminders, §5 Tasks, §5 Habits), so the TV shows the same things.
+import type { EventInviteRow, EventRow, HabitLogRow, HabitPauseRow, HabitRow, TaskRow } from '@/sync/types'
 import { calendarItems, myPlace, occursOn } from '@/events/rules'
 import { tasksForDay } from '@/tasks/rules'
-import { addDays, daysBetween, weekdayOf } from '@/time/days'
+import { dayStatus } from '@/habits/rules'
+import { addDays, clockIn, daysBetween, weekdayOf } from '@/time/days'
 
-/** Rows in Your Day's box per page. */
-export const DAY_PAGE_SIZE = 7
+/** Rows in Your Day's box per page (the top half of the right column, SPEC §9 Layout). */
+export const DAY_PAGE_SIZE = 4
 /** Routines the bottom strip shows at once (SPEC §9 Routines). */
 export const ROUTINE_PAGE_SIZE = 3
 /** Items a calendar day shows before "+2 more". */
@@ -94,35 +95,55 @@ export function monthItems(data: CalendarData, from: string, to: string): Record
   return byDay
 }
 
-export type DayRow =
-  | { kind: 'event'; id: string; title: string; start: string | null; end: string | null }
-  | { kind: 'task'; id: string; title: string; priority: number; done: boolean; carriedOver: boolean }
+export interface DayRow {
+  kind: 'event' | 'task' | 'habit'
+  id: string
+  title: string
+}
+
+export interface DayData extends CalendarData {
+  habits: HabitRow[]
+  habitLogs: HabitLogRow[]
+  habitPauses: HabitPauseRow[]
+}
 
 /**
- * Your Day (SPEC §9): today's events (mine and ones I said Yes to; not cancelled), all-day ones first then by time,
- * then today's tasks in the Tasks page order, carried-over ones included and done ones crossed off at the end.
+ * Your Day (SPEC §9): what's left of today, titles only. Today's events (mine and ones I said Yes to; not cancelled)
+ * that haven't ended, all-day ones first then by time; then today's open tasks in the Tasks page order, carried-over
+ * ones included; then the habits due today and not done (the Habits page's own day status). `allDone` is true when
+ * something was planned for today and nothing is left.
  */
-export function yourDay(data: CalendarData, today: string, timeZone: string): DayRow[] {
+export function yourDay(data: DayData, today: string, now: Date, timeZone: string): { rows: DayRow[]; allDone: boolean } {
   const going = (e: EventRow) => {
     const place = myPlace(e, data.invites, data.me)
     return place === 'mine' || place === 'yes'
   }
+  const clock = clockIn(now.getTime(), timeZone)
   const events = data.events
     .filter((e) => !e.deleted_at && !e.cancelled_at && going(e))
     .map((e) => ({ e, from: startedOn(e, today) }))
     .filter((x): x is { e: EventRow; from: string } => x.from !== null)
-    .map(({ e, from }): DayRow => {
-      // A timed event that began on an earlier day shows "until" its end time on its last day, and as all day between.
-      const ends = addDays(from, daysBetween(e.start_date, e.end_date))
+    .map(({ e, from }) => {
+      // A timed event ends at its end time on its last day (its start time when it has none); all day, at midnight.
+      const lastDay = addDays(from, daysBetween(e.start_date, e.end_date))
       const start = from === today ? hhmm(e.start_time) : null
-      const end = ends === today ? hhmm(e.end_time) : null
-      return { kind: 'event', id: e.id, title: e.title, start, end }
+      const end = lastDay === today ? hhmm(e.end_time) || start : null
+      return { row: { kind: 'event', id: e.id, title: e.title } as DayRow, start, ended: !!end && end <= clock }
     })
-    .sort((a, b) => sortTime(a) - sortTime(b))
-  const tasks = tasksForDay(data.tasks, today, today, timeZone).map(
-    (t): DayRow => ({ kind: 'task', id: t.id, title: t.title, priority: t.priority ?? 1, done: t.status === 'done', carriedOver: t.status === 'open' && t.due_date! < today }),
-  )
-  return events.concat(tasks)
+  const tasks = tasksForDay(data.tasks, today, today, timeZone)
+  const habits = data.habits
+    .filter((h) => !h.deleted_at)
+    .map((h) => ({ h, status: dayStatus(h, today, data.habitLogs, now, timeZone, data.habitPauses) }))
+    .filter((x) => x.status !== 'not_scheduled')
+    .sort((a, b) => (a.h.created_at || '').localeCompare(b.h.created_at || ''))
+  const rows = events
+    .filter((x) => !x.ended)
+    .sort((a, b) => minutes(a.start) - minutes(b.start))
+    .map((x) => x.row)
+    .concat(tasks.filter((t) => t.status === 'open').map((t): DayRow => ({ kind: 'task', id: t.id, title: t.title })))
+    .concat(habits.filter((x) => x.status === 'open').map(({ h }): DayRow => ({ kind: 'habit', id: h.id, title: h.title })))
+  const planned = events.length + tasks.length + habits.length
+  return { rows, allDone: planned > 0 && rows.length === 0 }
 }
 
 const hhmm = (time: string | null) => (time ? time.slice(0, 5) : null)
@@ -135,10 +156,7 @@ function startedOn(e: EventRow, day: string): string | null {
 }
 
 /** All-day first (and events going on since an earlier day), then by start time. */
-function sortTime(row: DayRow): number {
-  if (row.kind !== 'event' || !row.start) return -1
-  return Number(row.start.slice(0, 2)) * 60 + Number(row.start.slice(3, 5))
-}
+const minutes = (start: string | null) => (start ? Number(start.slice(0, 2)) * 60 + Number(start.slice(3, 5)) : -1)
 
 /** One page of a list, with how many pages there are (at least one). */
 export function pageOf<T>(rows: T[], page: number, size: number): { rows: T[]; page: number; pages: number } {

@@ -90,6 +90,11 @@ body {
   justify-content: space-between;
 }
 
+/* SPEC §9: "am" or "pm" in small letters after the time. */
+.tv-ampm {
+  font-size: 0.45em;
+}
+
 .tv-clock {
   margin: 0;
   font-size: 1.6rem;
@@ -150,8 +155,54 @@ body {
 }
 
 .tv-col-side {
+  display: flex;
   flex: 1 1 0;
+  flex-direction: column;
   min-width: 0;
+}
+
+.tv-col-side > * + * {
+  margin-top: 1rem;
+}
+
+/* SPEC §9 Layout: on a TV-sized screen everything fits one screen with no scrolling. The calendar takes the full height
+   on the left; Your Day and Routines share the right column's height, with the two buttons under them. Smaller screens
+   (and zoomed text) stack and scroll. */
+@media (min-width: 1800px) and (min-height: 1000px) {
+  .tv-dashboard {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .tv-columns {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  .tv-month {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-height: 0;
+  }
+
+  .tv-month .tv-grid {
+    flex: 1 1 0;
+    height: 100%;
+  }
+
+  .tv-day,
+  .tv-routines {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-height: 0;
+    overflow: hidden;
+  }
 }
 
 .tv-panel {
@@ -294,66 +345,38 @@ body {
   color: var(--muted);
 }
 
-.tv-item-done .tv-day-title,
 .tv-cell-item.tv-item-done {
   color: var(--muted);
   text-decoration: line-through;
 }
 
 .tv-day-list {
-  margin: 0.6rem 0 0;
+  margin: 0.4rem 0 0;
   padding: 0;
   list-style: none;
 }
 
+/* Titles only, one line each (a long one ends in "…" and a pasted link can't widen the box). A thin mark on the left
+   tells events from tasks and habits. */
 .tv-day-row {
-  display: flex;
-  align-items: flex-start;
-  padding: 0.35rem 0;
+  padding: 0.25rem 0 0.25rem 0.6rem;
   border-bottom: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
 }
 
-.tv-day-when {
-  flex: 0 0 5.6rem;
-  margin-right: 0.6rem;
-  color: var(--muted);
-  font-size: 0.75rem;
-  line-height: 1.9;
+.tv-day-task {
+  border-left-color: var(--muted);
 }
 
-.tv-day-check {
-  flex: 0 0 auto;
-  width: 1rem;
-  height: 1rem;
-  margin: 0.25rem 0.8rem 0 0;
-  border: 2px solid var(--muted);
-  border-radius: 50%;
+.tv-day-habit {
+  border-left-color: var(--done);
 }
 
-.tv-day-checked {
-  border-color: var(--done);
-  background: var(--done);
-}
-
-.tv-day-text {
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-/* Long titles keep to two lines, and a pasted link breaks, so the box never grows. */
 .tv-day-title {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  word-wrap: break-word;
-  word-break: break-word;
-}
-
-.tv-day-note {
   display: block;
-  color: var(--muted);
-  font-size: 0.7rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .tv-pager {
@@ -367,17 +390,7 @@ body {
   margin: 0 1rem;
 }
 
-/* SPEC §9 Layout: Routines (and, next, Go on a Quest) share a strip along the bottom. */
-.tv-strip {
-  display: flex;
-  margin-top: 1rem;
-}
-
-.tv-routines {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
+/* SPEC §9 Routines (and Your Day's heading): three at a time, one under another, each on one line. */
 .tv-routines-bar {
   display: flex;
   align-items: center;
@@ -389,48 +402,49 @@ body {
 }
 
 .tv-routine-list {
-  display: flex;
-  margin: 0.6rem 0 0;
+  margin: 0.4rem 0 0;
   padding: 0;
   list-style: none;
 }
 
-.tv-routine-item {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
 .tv-routine-item + .tv-routine-item {
-  margin-left: 0.8rem;
+  margin-top: 0.5rem;
 }
 
 .tv-routine {
-  display: block;
+  display: flex;
+  align-items: baseline;
   box-sizing: border-box;
   width: 100%;
-  padding: 0.4rem 0.8rem;
+  padding: 0.3rem 0.8rem;
   text-align: left;
 }
 
 .tv-routine-title,
 .tv-routine-status,
 .tv-routine-action {
-  display: block;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .tv-routine-title {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 700;
 }
 
 .tv-routine-status {
-  font-size: 0.8rem;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: 0.6rem;
+  font-size: 0.75rem;
 }
 
 .tv-routine-action {
-  font-size: 0.8rem;
+  flex: none;
+  margin-left: 0.6rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 
@@ -780,23 +794,24 @@ body {
   flex: none;
 }
 
-/* The strip's buttons beside Routines: Go on a Quest and the Focus timer, one above the other. */
-.tv-strip-actions {
+/* The bar under Routines: Go on a Quest and the Focus timer, side by side. */
+.tv-actions {
   display: flex;
   flex: none;
-  flex-direction: column;
-  justify-content: center;
-  margin-left: 1rem;
 }
 
-.tv-strip-action {
-  min-height: 2.8rem;
+.tv-action {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 2.6rem;
+  overflow: hidden;
   font-weight: 700;
   white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.tv-strip-action + .tv-strip-action {
-  margin-top: 0.6rem;
+.tv-action + .tv-action {
+  margin-left: 1rem;
 }
 
 /* SPEC §9 Focus timer: full screen, black, with only the time and what to do now. */

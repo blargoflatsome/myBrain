@@ -22,7 +22,7 @@
       :today="today"
       :month="month"
       :items="items"
-      :day-rows="dayRows"
+      :day="day"
       :routine-rows="routineRows"
       :trouble="trouble"
       :focus-pill="focusPill"
@@ -96,7 +96,12 @@ const items = computed(() => {
   const { from, to } = monthRange(month.value)
   return monthItems(snapshot.value.facts, from, to)
 })
-const dayRows = computed(() => (snapshot.value ? yourDay(snapshot.value.facts, today.value, timeZone.value) : []))
+const day = computed(() => {
+  const s = snapshot.value
+  if (!s) return { rows: [], allDone: false }
+  const f = s.facts
+  return yourDay({ ...f, habitPauses: f.habitPauses ?? [] }, today.value, now.value, timeZone.value)
+})
 // Routines (SPEC §9 Routines): the strip's rows, and the one open full screen.
 const routineFacts = computed<TvRoutineFacts | null>(() => {
   const s = snapshot.value

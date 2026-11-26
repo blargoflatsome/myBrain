@@ -1756,12 +1756,10 @@ export const messages = {
     notAnswered: 'Not answered yet',
     dayHeading: 'Your Day',
     dayEmpty: "Past you didn't plan anything for today.",
-    allDay: 'All day',
-    timeRange: (start: string, end: string) => `${start} – ${end}`,
-    until: (time: string) => `Until ${time}`,
+    // The user's line (2026-11-26): everything planned for today is done.
+    dayAllDone: 'You did good today, get some rest',
     /** A note for screen readers after an item's title ("Buy stamps, Done"). */
     heardAfter: (note: string) => `, ${note}`,
-    carriedOver: 'From an earlier day',
     page: (page: number, pages: number) => `${page} of ${pages}`,
     previousPage: 'Previous page',
     nextPage: 'Next page',
