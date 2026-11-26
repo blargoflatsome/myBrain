@@ -23,6 +23,7 @@ test.describe('SPEC §9 Signing in by pairing', () => {
     server.rpcResults.tv_check = true
     await page.goto('/tv/')
     await expect(page.getByTestId('tv-code')).toHaveText('Q7K M2P')
+    await expect(page.getByTestId('tv-qr')).toBeVisible()
     await page.clock.runFor(3_000)
     await expect.poll(() => calls('tv_pair_poll').length).toBeGreaterThan(0)
     expect(calls('tv_pair_poll')[0]!.args).toEqual({ secret: 's'.repeat(64) })

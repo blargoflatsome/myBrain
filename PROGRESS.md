@@ -7,7 +7,8 @@ Current state only. Update at the end of every session; when work merges, move i
 
 ## In progress
 - **TV app (SPEC §9), stacked branches, one PR at the end (2026-11-26).** Spec on `ccr-0b2a886e-0u40iq`; step 1 on `tv-pairing`, built on it: the pairing migration `20261126010000_tv_pairing.sql` (on dev, `test:db` passes; **not on prod yet**), Paired devices on the Account page and `/pair`, and the TV page at `/tv/` (its own Chrome 63 build, pairing screen, night screen after 15 min). Shared fix: `hourOf` in `src/time/days.ts` reads 12-hour answers from engines without `hourCycle`.
-  - Waiting on the user: OK to add a QR code library (pairing works by typing the code without it).
+  - QR code added (`qrcode-generator` 2.0.4, user OK'd). Check on the TV that a phone camera reads it.
+  - Open from the step 1 review: should an unpaired TV's bright pairing screen also dim at night?
   - Next: step 2 (Your Day, the Monthly calendar, Up next on the night screen) through a `tv_snapshot` function; then Routines, Quest, Focus, `tv-launcher/`.
   - Can't be checked here: the real TV (Tizen 5.0). The user tries `/tv/` on it from a deploy preview.
   - Open (SPEC §12): whether friends can use it.

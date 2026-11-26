@@ -110,6 +110,29 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* No flex gap on the TV's engine, so the QR code keeps its distance with a margin. */
+.tv-pair-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.tv-pair-text {
+  flex: 1 1 20rem;
+  margin-right: 2rem;
+}
+
+.tv-pair-text > * + * {
+  margin-top: 1rem;
+}
+
+.tv-qr {
+  display: block;
+  width: 12rem;
+  height: 12rem;
+  margin-top: 1rem;
+}
+
 /* WCAG 1.4.10: the page also reflows at 320 px (text enlarged, or opened on a phone). No clamp() on the TV's engine. */
 @media (max-width: 900px) {
   html {
@@ -129,6 +152,15 @@ body {
 
   .tv-idle-clock {
     font-size: 4rem;
+  }
+
+  .tv-pair-text {
+    margin-right: 0;
+  }
+
+  .tv-qr {
+    width: 10rem;
+    height: 10rem;
   }
 }
 
