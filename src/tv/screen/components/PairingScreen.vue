@@ -3,7 +3,11 @@
     <h1 class="tv-heading">{{ m.pairHeading }}</h1>
     <p v-if="unpaired" class="tv-note" data-testid="tv-unpaired">{{ m.unpaired }}</p>
     <p class="tv-lead">{{ m.pairSteps }}</p>
-    <p v-if="code" class="tv-code" :aria-label="`${m.codeLabel}: ${code.code.split('').join(' ')}`" data-testid="tv-code">{{ spacedCode(code.code) }}</p>
+    <p v-if="code" class="tv-code">
+      <span aria-hidden="true" data-testid="tv-code">{{ spacedCode(code.code) }}</span>
+      <!-- Read letter by letter: as shown, a screen reader says it as two made-up words. -->
+      <span class="tv-sr-only">{{ m.codeLabel }}: {{ code.code.split('').join(' ') }}</span>
+    </p>
     <p v-if="code" class="tv-muted">{{ m.pairAddress(address) }}</p>
     <p v-if="code" class="tv-muted">{{ m.newCodeHint }}</p>
     <p v-if="trouble" class="tv-note" role="status">{{ m.offline }}</p>
@@ -31,10 +35,14 @@ let stopped = false
 
 async function newCode() {
   try {
-    code.value = await startPairing()
+    const next = await startPairing()
+    // Paired (or closed) while asking: nothing more to show or check.
+    if (stopped) return
+    code.value = next
     trouble.value = false
     schedule(POLL_MS)
   } catch {
+    if (stopped) return
     trouble.value = true
     pollTimer = setTimeout(() => void newCode(), RETRY_MS)
   }

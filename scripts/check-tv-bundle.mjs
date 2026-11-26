@@ -6,6 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { parse } from 'acorn'
 
 const dir = 'dist/tv/assets'
+const NEWER_REGEX = /\(\?<(?![=!])|\\[pP]\{/
 const scripts = readdirSync(dir).filter((f) => f.endsWith('.js'))
 if (!scripts.length) {
   console.error('TV bundle: no script in dist/tv/assets. Build it first: vite build --config vite.tv.config.ts')
@@ -15,7 +16,15 @@ let failed = false
 for (const f of scripts) {
   const code = readFileSync(`${dir}/${f}`, 'utf8')
   try {
-    parse(code, { ecmaVersion: 2018, sourceType: 'module' })
+    parse(code, {
+      ecmaVersion: 2018,
+      sourceType: 'module',
+      // ES2018 regular expressions Chrome 63 can't read (named groups and Unicode property escapes came in Chrome 64).
+      onToken: (t) => {
+        if (t.type.label !== 'regexp') return
+        if (NEWER_REGEX.test(t.value.pattern)) throw Object.assign(new SyntaxError(`newer regular expression /${t.value.pattern}/`), { pos: t.start })
+      },
+    })
   } catch (err) {
     failed = true
     const at = err.pos ?? 0

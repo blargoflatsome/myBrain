@@ -107,6 +107,19 @@ begin
   exception when sqlstate 'P0429' then null;
   end;
 
+  -- One caller can't use up every code (5 waiting at once from one address); another address still gets one.
+  execute 'set local role anon';
+  perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
+  perform set_config('request.headers', '{"cf-connecting-ip": "203.0.113.7"}', true);
+  begin
+    for i in 1..6 loop perform public.tv_pair_start(); end loop;
+    raise exception 'FAIL: Spec §9: one caller may have at most 5 TV codes waiting';
+  exception when sqlstate 'P0429' then null;
+  end;
+  perform set_config('request.headers', '{"cf-connecting-ip": "203.0.113.8"}', true);
+  select * into p2 from public.tv_pair_start();
+  if p2.code is null then raise exception 'FAIL: Spec §9: a full caller does not block other TVs'; end if;
+
   raise exception 'PASS: all TV pairing checks passed (test data rolled back)';
 end
 $$;
