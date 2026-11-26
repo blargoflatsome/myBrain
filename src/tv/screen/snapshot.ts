@@ -2,7 +2,7 @@
 // on waking from the night screen and when the month changes. Habit logs come in full once, then only the ones changed
 // since, kept here between calls (What it reads).
 import { serverCall } from '@/server/server'
-import type { EventInviteRow, EventRow, HabitLogRow, HabitPauseRow, HabitRow, RoutineRow, RoutineRunRow, TaskRow } from '@/sync/types'
+import type { EventInviteRow, EventRow, HabitLogRow, HabitPauseRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow, TaskRow } from '@/sync/types'
 import type { UpNextFacts } from '@/dashboard/upNext'
 
 export const REFRESH_MS = 30_000
@@ -20,6 +20,8 @@ export interface SnapshotAnswer {
   habit_pauses: HabitPauseRow[]
   routines: RoutineRow[]
   routine_runs: RoutineRunRow[]
+  routine_steps: RoutineStepRow[]
+  routine_step_logs: RoutineStepLogRow[]
   orphans: number
   wrote_today: boolean
   journal_time: string | null
@@ -27,6 +29,9 @@ export interface SnapshotAnswer {
 
 export interface Snapshot {
   facts: UpNextFacts
+  /** My routines' steps, and the logs of the runs in `facts.routineRuns` (SPEC §9 Routines). */
+  routineSteps: RoutineStepRow[]
+  stepLogs: RoutineStepLogRow[]
   journalTime: string | null
 }
 
@@ -56,6 +61,8 @@ export function snapshotLoader(key: () => string | null) {
         orphans: a.orphans,
         wroteToday: a.wrote_today,
       },
+      routineSteps: a.routine_steps,
+      stepLogs: a.routine_step_logs,
       journalTime: a.journal_time,
     }
   }

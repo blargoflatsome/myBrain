@@ -10,17 +10,17 @@
         <div class="-mr-2 flex items-start gap-1">
           <button type="button" class="min-w-0 flex-1 text-left" @click="edit(row.routine)">
             <h2 class="text-lg font-semibold break-words">{{ row.routine.title }}</h2>
-            <p class="text-sm text-muted" data-testid="routine-status">{{ statusText(row) }}</p>
+            <p class="text-sm text-muted" data-testid="routine-status">{{ routineStatusText(row) }}</p>
           </button>
           <RowDelete :label="m.deleteLabel(row.routine.title)" @click="askDelete(row.routine)" />
         </div>
 
         <RouterLink
-          v-if="row.scheduled && row.steps.length && (!row.state.finished || row.skipped)"
+          v-if="routineButton(row)"
           :to="`/routines/${row.routine.id}/run`"
           class="flex items-center justify-center" :class="primaryButton"
         >
-          {{ row.skipped ? m.resume : row.state.started ? m.continue : m.start }}
+          {{ routineButton(row) }}
         </RouterLink>
 
         <button
@@ -72,7 +72,8 @@ import { RouterLink } from 'vue-router'
 import RoutineEditor from '@/routines/components/RoutineEditor.vue'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
-import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, isScheduled, percent, resumableRun, routineStats, runState, skippedSteps, stepsForDay } from '@/routines/rules'
+import { activeSteps, habitOf, percent, routineStats } from '@/routines/rules'
+import { routineButton, routineStatusText, routineToday } from '@/routines/listing'
 import { messages } from '@/messages'
 import type { RoutineRow } from '@/sync/types'
 import { primaryButton } from '@/ui/styles'
@@ -95,26 +96,10 @@ const habitLogs = useRows('habit_logs')
 
 const rows = computed(() =>
   routines.value.map((r) => {
-    const s = stepsForDay(activeSteps(steps.value, r.id), habits.value, today.value)
-    const habitDone = habitDoneStepIds(s, habitLogs.value, today.value)
-    const state = runState(s, currentRun(r, runs.value, today.value), logs.value, habitDone)
-    // Steps skipped in a finished run: the row offers Resume to do just those (SPEC §5 Routines).
-    const skipped = skippedSteps(s, resumableRun(r, runs.value, today.value), logs.value, habitDone).length
-    const stats = routineStats(r, steps.value, runs.value, logs.value, today.value, habits.value)
-    const anytime = isAnytime(r)
-    // A run-anytime routine can always be started (SPEC §5 Routines).
-    return { routine: r, steps: s, state, skipped, stats, anytime, scheduled: anytime || isScheduled(r, today.value) }
+    const day = routineToday(r, { steps: steps.value, runs: runs.value, logs: logs.value, habits: habits.value, habitLogs: habitLogs.value }, today.value)
+    return { ...day, stats: routineStats(r, steps.value, runs.value, logs.value, today.value, habits.value) }
   }),
 )
-
-function statusText(row: (typeof rows.value)[number]) {
-  if (!row.steps.length) return m.noSteps
-  if (row.anytime) return row.state.started ? m.progress(row.state.done, row.state.total) : row.skipped ? m.finishedSkipped(row.skipped) : m.anytime
-  if (!row.scheduled) return m.notToday
-  if (row.state.finished) return row.skipped ? m.doneSkipped(row.skipped) : m.doneToday
-  if (row.state.started) return m.progress(row.state.done, row.state.total)
-  return m.notStarted
-}
 
 const expanded = ref<string | null>(null)
 const editing = ref<RoutineRow | null>(null)

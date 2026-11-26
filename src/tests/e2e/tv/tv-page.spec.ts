@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { FakeSupabase } from '../support/fakeSupabase'
-import { pairedTv, tvSnapshot } from '../support/tv'
+import { pairedTv, tvRoutine, tvSnapshot } from '../support/tv'
 import { messages as msg } from '../../../messages'
 
 // SPEC §9 TV app: the page the TV launcher opens, at /tv/. Time-dependent, so on a controlled clock.
@@ -189,5 +189,39 @@ test.describe('SPEC §9 Up next on the night screen', () => {
     await page.clock.runFor(1_000)
     await press(page, 'Enter')
     await expect(page.getByTestId('tv-month-name')).toHaveText('December 2026')
+  })
+})
+
+test.describe('SPEC §9 Routines', () => {
+  test('a routine runs full screen from the strip: Completed is saved, the next step shows, and Back returns to the strip', async ({ page }) => {
+    await pairedTv(page)
+    server.rpcResults.tv_check = true
+    const { routine, steps } = tvRoutine('Morning', ['Brush teeth', 'Shower'])
+    server.rpcResults.tv_snapshot = tvSnapshot({ routines: [routine], routine_steps: steps })
+    // What the server now holds after the press, read back by the TV.
+    server.rpcResults.tv_save_routine_step = (args: { runs: unknown[]; step_logs: unknown[] }) => {
+      server.rpcResults.tv_snapshot = tvSnapshot({ routines: [routine], routine_steps: steps, routine_runs: args.runs, routine_step_logs: args.step_logs })
+      return null
+    }
+    await page.goto('/tv/')
+    await page.getByTestId('tv-routine').focus()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-current-step')).toHaveText('Brush teeth')
+    await expect(page.getByTestId('tv-completed')).toBeFocused()
+
+    await press(page, 'Enter')
+    await page.clock.runFor(600) // the cross-out
+    await expect(page.getByTestId('tv-current-step')).toHaveText('Shower')
+    expect(calls('tv_save_routine_step')[0]!.args).toMatchObject({
+      device_key: 'old-key',
+      runs: [{ routine_id: 'r1', date: TODAY, finished_at: null }],
+      step_logs: [{ step_id: 'r1-s1', status: 'completed' }],
+      habit_log: null,
+    })
+
+    await press(page, 'Escape')
+    await expect(page.getByTestId('tv-dashboard')).toBeVisible()
+    await expect(page.getByTestId('tv-routine')).toBeFocused()
+    await expect(page.getByTestId('tv-routine')).toContainText(msg.routines.progress(1, 2))
   })
 })

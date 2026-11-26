@@ -5,7 +5,7 @@ import { FakeSupabase } from '../support/fakeSupabase'
 import { isPhone, isSafari } from '../support/devices'
 import { expectFocused } from '../support/focus'
 import { goTo } from '../support/nav'
-import { pairedTv, tvSnapshot } from '../support/tv'
+import { pairedTv, tvRoutine, tvSnapshot } from '../support/tv'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
 
@@ -171,6 +171,8 @@ for (const scheme of ['light', 'dark'] as const) {
       server.rpcResults.tv_snapshot = tvSnapshot({
         tasks: [LONG_LINE, LONG_WORD, PARAGRAPH, 'done'].map((title, i) => ({ id: `t${i}`, title, due_date: day, status: i === 3 ? 'done' : 'open', completed_at: i === 3 ? '2026-11-10T20:00:00Z' : null, priority: 1, source: 'manual', deleted_at: null })),
         events: [{ id: 'e1', title: LONG_WORD, user_id: 'me', start_date: day, end_date: day, start_time: '21:00', end_time: '22:00', repeat: 'never', reminder_minutes: null, deleted_at: null }],
+        routines: [tvRoutine(LONG_WORD, ['Step']).routine],
+        routine_steps: tvRoutine(LONG_WORD, ['Step']).steps,
       })
       await page.goto('/tv/')
       await expect(page.getByTestId('tv-day-row').first()).toBeVisible()
@@ -181,6 +183,20 @@ for (const scheme of ['light', 'dark'] as const) {
       await expect(page.getByTestId('tv-idle-next-title')).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
       await scan(page, 'TV night screen')
+    })
+
+    test('TV routine full screen, with a long title and step, also at 320 px', async ({ page }) => {
+      await pairedTv(page)
+      server.rpcResults.tv_check = true
+      const { routine, steps } = tvRoutine(LONG_WORD, [PARAGRAPH, LONG_LINE])
+      server.rpcResults.tv_snapshot = tvSnapshot({ routines: [routine], routine_steps: steps })
+      await page.goto('/tv/')
+      await expect(page.getByTestId('tv-routine')).toBeVisible()
+      await page.getByTestId('tv-routine').click()
+      await expect(page.getByTestId('tv-current-step')).toBeVisible()
+      await scan(page, 'TV routine')
+      await page.setViewportSize({ width: 320, height: 640 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
     })
 
     test('Invite to event window on a profile', async ({ page }) => {

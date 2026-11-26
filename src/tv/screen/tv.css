@@ -226,7 +226,7 @@ body {
 }
 
 .tv-grid td {
-  height: 4.6rem;
+  height: 3.7rem;
   padding: 0.2rem 0.3rem;
   border: 1px solid var(--line);
   vertical-align: top;
@@ -367,6 +367,162 @@ body {
   margin: 0 1rem;
 }
 
+/* SPEC §9 Layout: Routines (and, next, Go on a Quest) share a strip along the bottom. */
+.tv-strip {
+  display: flex;
+  margin-top: 1rem;
+}
+
+.tv-routines {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.tv-routines-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tv-routines-pager {
+  margin-top: 0;
+}
+
+.tv-routine-list {
+  display: flex;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-routine-item {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.tv-routine-item + .tv-routine-item {
+  margin-left: 0.8rem;
+}
+
+.tv-routine {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.4rem 0.8rem;
+  text-align: left;
+}
+
+.tv-routine-title,
+.tv-routine-status,
+.tv-routine-action {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tv-routine-title {
+  font-weight: 700;
+}
+
+.tv-routine-status {
+  font-size: 0.8rem;
+}
+
+.tv-routine-action {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* SPEC §9 Routines: a routine full screen, one step at a time. */
+.tv-run {
+  padding: 1.5rem 2.5rem;
+}
+
+/* min-width: 0 and break-word (Chrome 63 has no overflow-wrap: anywhere), so a pasted link breaks inside the bar. */
+.tv-run .tv-heading {
+  min-width: 0;
+  margin-right: 1rem;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.tv-run .tv-bar .tv-button {
+  flex: none;
+}
+
+.tv-run-step {
+  max-width: 44rem;
+  margin: 2rem auto 0;
+  padding: 1.5rem 2rem;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.tv-run-track {
+  height: 0.4rem;
+  margin-top: 0.4rem;
+  border-radius: 0.2rem;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.tv-run-bar {
+  height: 100%;
+  background: var(--done);
+  transition: width 500ms ease-out;
+}
+
+.tv-run-title {
+  margin: 1.2rem 0 0.4rem;
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.tv-run-buttons {
+  display: flex;
+  margin-top: 1.5rem;
+}
+
+.tv-run-button {
+  flex: 1 1 0;
+  min-height: 3.2rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.tv-run-button + .tv-run-button {
+  margin-left: 1rem;
+}
+
+.tv-run-again {
+  margin-top: 1rem;
+}
+
+/* Completed: a strikethrough draws across the step, then it fades and the next step appears (SPEC §5 Routines). */
+.tv-cross-out {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 55%;
+  background-repeat: no-repeat;
+  background-size: 0 3px;
+  transition: background-size 400ms ease-out, opacity 200ms 400ms;
+}
+
+.tv-cross-out.tv-crossing {
+  background-size: 100% 3px;
+  opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-cross-out,
+  .tv-run-bar {
+    transition: none;
+  }
+}
+
 /* Centred in a column, it would grow to a pasted link's width; a set width lets the link break instead. */
 .tv-idle-next {
   box-sizing: border-box;
@@ -401,7 +557,8 @@ body {
 
   .tv-status,
   .tv-pairing,
-  .tv-dashboard {
+  .tv-dashboard,
+  .tv-run {
     padding: 1.5rem 1rem;
   }
 
@@ -429,6 +586,22 @@ body {
 
   .tv-col-wide {
     margin: 0 0 1rem;
+  }
+
+  .tv-routine-list {
+    display: block;
+  }
+
+  .tv-routine-item + .tv-routine-item {
+    margin: 0.5rem 0 0;
+  }
+
+  .tv-run-step {
+    padding: 1rem;
+  }
+
+  .tv-run-title {
+    font-size: 1.6rem;
   }
 
   .tv-panel {

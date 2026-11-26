@@ -2,6 +2,16 @@
   <IdleScreen v-if="idle" :now="now" :time-zone="timeZone" :next="upNextNow" :loaded="!!snapshot" />
   <p v-else-if="state === 'starting'" class="tv-status" role="status">{{ m.connecting }}</p>
   <PairingScreen v-else-if="state === 'pairing'" :unpaired="wasUnpaired" @paired="onPaired" />
+  <RoutineRunScreen
+    v-else-if="openRoutine && snapshot"
+    :routine="openRoutine"
+    :facts="routineFacts!"
+    :today="today"
+    :time-zone="timeZone"
+    :device-key="savedKey"
+    :refresh="refresh"
+    @close="closeRoutine"
+  />
   <DashboardScreen
     v-else
     :now="now"
@@ -10,8 +20,10 @@
     :month="month"
     :items="items"
     :day-rows="dayRows"
+    :routine-rows="routineRows"
     :trouble="trouble"
     @move="moveMonth"
+    @open-routine="(id) => (openRoutineId = id)"
   />
 </template>
 
@@ -23,6 +35,9 @@ import { computed, nextTick, onMounted, onScopeDispose, provide, ref, watch } fr
 import IdleScreen from '@/tv/screen/components/IdleScreen.vue'
 import PairingScreen from '@/tv/screen/components/PairingScreen.vue'
 import DashboardScreen from '@/tv/screen/components/DashboardScreen.vue'
+import RoutineRunScreen from '@/tv/screen/components/RoutineRunScreen.vue'
+import { routineToday } from '@/routines/listing'
+import type { TvRoutineFacts } from '@/tv/screen/routines'
 import { useNow } from '@/composables/useNow'
 import { IDLE_HOLD, isIdle } from '@/tv/screen/idle'
 import { checkKey, savedKey } from '@/tv/screen/pairing'
@@ -67,6 +82,26 @@ const items = computed(() => {
   return monthItems(snapshot.value.facts, from, to)
 })
 const dayRows = computed(() => (snapshot.value ? yourDay(snapshot.value.facts, today.value, timeZone.value) : []))
+// Routines (SPEC §9 Routines): the strip's rows, and the one open full screen.
+const routineFacts = computed<TvRoutineFacts | null>(() => {
+  const s = snapshot.value
+  if (!s) return null
+  const f = s.facts
+  return { me: f.me ?? '', steps: s.routineSteps, runs: f.routineRuns, logs: s.stepLogs, habits: f.habits, habitLogs: f.habitLogs, habitPauses: f.habitPauses ?? [] }
+})
+const routineRows = computed(() => {
+  const f = routineFacts.value
+  return f && snapshot.value ? snapshot.value.facts.routines.map((r) => routineToday(r, f, today.value)) : []
+})
+const openRoutineId = ref<string | null>(null)
+// A routine deleted on my phone while open here closes at the next refresh.
+const openRoutine = computed(() => (openRoutineId.value && snapshot.value?.facts.routines.find((r) => r.id === openRoutineId.value)) || null)
+function closeRoutine() {
+  const id = openRoutineId.value
+  openRoutineId.value = null
+  void nextTick(() => (document.querySelector(`[data-routine="${id}"]`) as HTMLElement | null ?? document.querySelector('button') as HTMLElement | null)?.focus())
+}
+
 const upNextNow = computed(() => {
   const s = snapshot.value
   return s ? (upNextFrom(s.facts, now.value, timeZone.value, s.journalTime)[0] ?? null) : null
@@ -106,6 +141,7 @@ watch(idle, (dimmed) => {
 })
 
 function toPairing() {
+  openRoutineId.value = null
   wasUnpaired.value = true
   state.value = 'pairing'
   snapshot.value = null
@@ -135,6 +171,10 @@ function onKey(e: KeyboardEvent) {
     return
   }
   const button = buttonOf(e)
+  if (button === 'back' && openRoutineId.value) {
+    e.preventDefault()
+    return closeRoutine()
+  }
   if (button === 'up' || button === 'down' || button === 'left' || button === 'right') {
     e.preventDefault()
     moveFocus(button)

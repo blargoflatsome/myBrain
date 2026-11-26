@@ -137,7 +137,7 @@ describe('SPEC §9 What it reads: habit logs come in full once, then only the ch
       online: () => true,
       call: async (_fn, args) => {
         asked.push(args)
-        const base: SnapshotAnswer = { me: 'me', now: '', tasks: [], events: [], invites: [], habits: [], habit_logs: [], habit_pauses: [], routines: [], routine_runs: [], orphans: 0, wrote_today: false, journal_time: null }
+        const base: SnapshotAnswer = { me: 'me', now: '', tasks: [], events: [], invites: [], habits: [], habit_logs: [], habit_pauses: [], routines: [], routine_runs: [], routine_steps: [], routine_step_logs: [], orphans: 0, wrote_today: false, journal_time: null }
         return { ...base, ...answers.shift() }
       },
     })

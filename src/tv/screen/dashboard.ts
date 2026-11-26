@@ -7,6 +7,8 @@ import { addDays, daysBetween, weekdayOf } from '@/time/days'
 
 /** Rows in Your Day's box per page. */
 export const DAY_PAGE_SIZE = 7
+/** Routines the bottom strip shows at once (SPEC §9 Routines). */
+export const ROUTINE_PAGE_SIZE = 3
 /** Items a calendar day shows before "+2 more". */
 export const CELL_ITEMS = 3
 

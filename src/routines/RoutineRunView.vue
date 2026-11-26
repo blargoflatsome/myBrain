@@ -32,7 +32,7 @@
         </button>
       </section>
 
-      <div v-else-if="state.finished" class="flex items-center gap-4 rounded-2xl bg-surface p-6" role="status" data-testid="routine-finished">
+      <div v-else-if="finished" class="flex items-center gap-4 rounded-2xl bg-surface p-6" role="status" data-testid="routine-finished">
         <!-- SPEC §5 Celebrations: the steps fold into one ticked badge. -->
         <span class="celebrate-fold flex size-14 shrink-0 items-center justify-center rounded-full bg-done text-bg" aria-hidden="true"><AppIcon name="check" size="size-8" /></span>
         <span class="text-lg font-medium">{{ m.run.finished }}</span>
@@ -44,19 +44,17 @@
 </template>
 
 <script setup lang="ts">
-// SPEC §5 Routines: one step at a time. Skip moves on at once; Completed crosses the step out first. Finishing goes
-// back to the Routines page; a finished run with skipped steps resumes here with just those steps.
+// SPEC §5 Routines: one step at a time (the steps themselves run in useRoutineRun, shared with the TV).
 // A routine's reminder notification opens this screen directly (/routines/<id>/run).
 import { useRows, useRow } from '@/sync/useRows'
 import AppIcon from '@/components/AppIcon.vue'
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
-import { activeSteps, currentRun, habitDoneStepIds, habitOf, isAnytime, resumableRun, runState, skippedSteps, stepsForDay } from '@/routines/rules'
+import { activeSteps, isAnytime } from '@/routines/rules'
+import { useRoutineRun } from '@/routines/useRoutineRun'
 import { messages } from '@/messages'
-
-const CROSS_OUT_MS = 600
 
 const brain = useBrainStore()
 const route = useRoute()
@@ -71,69 +69,21 @@ const routineSteps = useRows((db) => db.routine_steps.where('routine_id').equals
 const steps = computed(() => activeSteps(routineSteps.value, id.value))
 const runs = useRows((db) => db.routine_runs.where('routine_id').equals(id.value).toArray(), [id])
 const logs = useRows('routine_step_logs')
-
 const habits = useRows('habits')
 const habitLogs = useRows('habit_logs')
 
-// Today's steps: habit steps only on days their habit is scheduled; habits already done count as passed.
-const daySteps = computed(() => stepsForDay(steps.value, habits.value, today.value))
-const run = computed(() => (routine.value ? currentRun(routine.value, runs.value, today.value) : undefined))
-const habitDone = computed(() => habitDoneStepIds(daySteps.value, habitLogs.value, today.value))
-const state = computed(() => runState(daySteps.value, run.value, logs.value, habitDone.value))
-
-// "Start again" on a run-anytime routine with skips starts a fresh run instead of resuming (SPEC §5 Routines).
-const startAgain = ref(false)
-
-// Resume (SPEC §5 Routines): a finished run with skipped steps goes back over just those. Steps skipped again or
-// completed on this visit leave the queue; when it's empty, back to the Routines page.
-const leaving = ref(false)
-const resumeRun = computed(() => (routine.value && !startAgain.value ? resumableRun(routine.value, runs.value, today.value) : undefined))
-const skipped = computed(() => skippedSteps(daySteps.value, resumeRun.value, logs.value, habitDone.value))
-const handled = ref<string[]>([])
-const resumeQueue = computed(() => skipped.value.filter((s) => !handled.value.includes(s.id)))
-const resuming = computed(() => !leaving.value && resumeQueue.value.length > 0)
-
-const step = computed(() => (leaving.value ? null : resuming.value ? resumeQueue.value[0]! : state.value.current))
-const currentHabit = computed(() => (step.value ? habitOf(step.value, habits.value) : undefined))
-const stepTitle = computed(() => currentHabit.value?.title ?? step.value?.title ?? '')
-const resumeTotal = computed(() => handled.value.length + resumeQueue.value.length)
-const stepOfText = computed(() =>
-  resuming.value ? m.run.skippedOf(handled.value.length + 1, resumeTotal.value) : m.run.stepOf(state.value.index, state.value.total),
-)
-const progress = computed(() => {
-  if (resuming.value) return (handled.value.length / resumeTotal.value) * 100
-  return state.value.total ? (state.value.done / state.value.total) * 100 : 0
+const { step, currentHabit, stepTitle, stepOfText, progress, finished, resuming, crossing, busy, act, startAgain } = useRoutineRun({
+  routine,
+  steps,
+  runs,
+  logs,
+  habits,
+  habitLogs,
+  today,
+  record: (r, status) => brain.recordRoutineStep(r, status),
+  completeSkipped: (r, stepId) => brain.completeSkippedStep(r, stepId),
+  leave: () => void router.push('/routines'),
 })
-const crossing = ref(false)
-const busy = ref(false)
-
-async function act(status: 'completed' | 'skipped') {
-  const shown = step.value
-  if (!routine.value || busy.value || !shown) return
-  busy.value = true
-  try {
-    if (status === 'completed') {
-      crossing.value = true
-      await new Promise((r) => setTimeout(r, CROSS_OUT_MS))
-    }
-    if (resuming.value) {
-      if (status === 'completed') await brain.completeSkippedStep(routine.value, shown.id)
-      handled.value = [...handled.value, shown.id]
-      if (!resumeQueue.value.length) leave()
-    } else {
-      const action = await brain.recordRoutineStep(routine.value, status)
-      if (action?.finish) leave()
-    }
-  } finally {
-    crossing.value = false
-    busy.value = false
-  }
-}
-
-function leave() {
-  leaving.value = true
-  void router.push('/routines')
-}
 </script>
 
 <style scoped>
