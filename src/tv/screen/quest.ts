@@ -1,5 +1,6 @@
 // SPEC §9 TV app, Go on a Quest: the §5 Random Quest picker on the TV. Each Pick or Re-roll reads the draw fresh
-// (tv_quest_draw), picks with the shared picker rules, and saves the pick; the outcomes are the TV's other quest
+// (tv_quest_draw: quests, and tasks without their notes), picks with the shared picker rules, and saves a quest's
+// pick or reads a picked task in full (tv_draw_task); the outcomes are the TV's other quest
 // writes. Kept for the TV page's life, so the popup (and the last few tasks picked) survive the night screen.
 import { ref } from 'vue'
 import type { EnergyLevel, QuestRow, TaskRow, TimeBucket } from '@/sync/types'
@@ -72,7 +73,9 @@ export function useTvQuest(deviceKey: () => string | null, today: () => string, 
       }
       if (choice.kind === 'task') {
         recentTasks = recentTasks.filter((id) => id !== choice.id).concat(choice.id).slice(-RECENT_PICKS)
-        shown.value = { kind: 'task', task: draw.tasks.find((t) => t.id === choice.id)! }
+        // The draw has titles only; the picked task is read in full, with its notes (null if it just went).
+        const full = await serverCall<TaskRow | null>('tv_draw_task', { device_key: deviceKey(), task_id: choice.id })
+        shown.value = { kind: 'task', task: full ?? draw.tasks.find((t) => t.id === choice.id)! }
         return
       }
       const quest = draw.quests.find((q) => q.id === choice.id)!

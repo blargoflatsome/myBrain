@@ -291,12 +291,16 @@ test.describe('SPEC §9 Go on a Quest', () => {
   })
 
   test('a task can come up in the draw: Do it today dates it, Done crosses it off', async ({ page }) => {
-    const stamps = { id: 't1', title: 'Buy stamps', notes: null, due_date: null, status: 'open', source: 'manual', created_at: '2026-11-20T10:00:00Z', deleted_at: null }
+    const stamps = { id: 't1', title: 'Buy stamps', due_date: null, status: 'open', source: 'manual', created_at: '2026-11-20T10:00:00Z', deleted_at: null }
+    // The draw has no notes; the picked task is read in full to show them.
     server.rpcResults.tv_quest_draw = { quests: [], tasks: [stamps] }
+    server.rpcResults.tv_draw_task = { ...stamps, notes: '<p>The post office closes at 5</p>' }
     await page.goto('/tv/')
     await page.getByTestId('tv-quest-open').focus()
     await press(page, 'Enter', 'Enter')
     await expect(page.getByTestId('tv-quest-title')).toHaveText(stamps.title)
+    await expect(page.getByTestId('tv-quest-task')).toContainText('The post office closes at 5')
+    expect(calls('tv_draw_task')[0]!.args).toEqual({ device_key: 'old-key', task_id: 't1' })
     await page.getByTestId('tv-quest-today').focus()
     await press(page, 'Enter')
     await expect(page.getByTestId('tv-quest-today')).toHaveCount(0)

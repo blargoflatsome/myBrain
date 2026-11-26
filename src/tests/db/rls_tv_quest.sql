@@ -22,10 +22,10 @@ begin
     (hike,  alice, 'Go for a hike', 'Bring water', 'open'),
     (paint, alice, 'Paint the fence', null, 'accepted'),
     (bobs,  bob,   'Bob''s quest', null, 'open');
-  insert into public.tasks (id, user_id, title, due_date, status) values
-    (stamps,   alice, 'Buy stamps', null, 'open'),
-    (later,    alice, 'Next week', today + 7, 'open'),
-    (bob_task, bob,   'Bob''s task', null, 'open');
+  insert into public.tasks (id, user_id, title, notes, due_date, status) values
+    (stamps,   alice, 'Buy stamps', 'Post office closes at 5', null, 'open'),
+    (later,    alice, 'Next week', null, today + 7, 'open'),
+    (bob_task, bob,   'Bob''s task', null, null, 'open');
 
   execute 'set local role anon';
   perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
@@ -35,6 +35,14 @@ begin
   end if;
   if jsonb_array_length(draw->'tasks') <> 1 or (draw->'tasks'->0->>'id')::uuid <> stamps then
     raise exception 'FAIL: Spec §9: the draw gets my tasks that can be in it (today''s and Undated), not next week''s';
+  end if;
+  if draw::text like '%Post office%' then
+    raise exception 'FAIL: Spec §9: the draw sends tasks without their notes';
+  end if;
+  if public.tv_draw_task('alice-tv-key', stamps)->>'notes' <> 'Post office closes at 5'
+     or public.tv_draw_task('alice-tv-key', bob_task) is not null
+     or public.tv_draw_task('alice-tv-key', later) is not null then
+    raise exception 'FAIL: Spec §9: a picked task is read in full, only my own one that can be in the draw';
   end if;
 
   -- Picked, then done: counted, logged once (even pressed twice), and back in the list.
