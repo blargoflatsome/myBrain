@@ -1,0 +1,72 @@
+// My Brain's TV launcher (docs/SPEC.md §9 The launcher). It fills the screen with the TV page from the site and makes
+// Samsung's TV calls for it, which the page can't make itself. Plain old JavaScript: the TV's engine is about Chrome 63.
+;(function () {
+  // The site the TV page comes from. To try another one (a deploy preview), change it here and in config.xml.
+  var SITE = 'https://myadhdbrain.netlify.app'
+  var RETRY_MS = 30000
+
+  var frame = document.getElementById('page')
+  var ready = false
+  var retry = null
+
+  function keepAwake(on) {
+    try {
+      var common = window.webapis && window.webapis.appcommon
+      var states = common && common.AppCommonScreenSaverState
+      if (states) common.setScreenSaver(on ? states.SCREEN_SAVER_OFF : states.SCREEN_SAVER_ON)
+    } catch (e) {
+      // Not allowed: the TV dims as usual.
+    }
+    try {
+      var power = window.tizen && window.tizen.power
+      if (power) {
+        if (on) power.request('SCREEN', 'SCREEN_NORMAL')
+        else power.release('SCREEN')
+      }
+    } catch (e) {
+      // Not allowed: the TV dims as usual.
+    }
+  }
+
+  // Loads the TV page; until it says it's ready (My Brain was out of reach), tries again every 30 seconds.
+  function load() {
+    ready = false
+    keepAwake(false)
+    frame.src = SITE + '/tv/'
+    clearTimeout(retry)
+    retry = setTimeout(function () {
+      if (!ready) load()
+    }, RETRY_MS)
+  }
+
+  // The remote's keys go to whichever page has focus: keep it on the TV page.
+  function focusPage() {
+    try {
+      frame.contentWindow.focus()
+    } catch (e) {
+      frame.focus()
+    }
+  }
+
+  // Only the TV page, from the site, in this frame, may ask. The shapes match src/tv/screen/launcher.ts.
+  window.addEventListener('message', function (event) {
+    if (event.origin !== SITE || event.source !== frame.contentWindow) return
+    var data = event.data || {}
+    if (data.myBrainTv === 'ready') {
+      ready = true
+      clearTimeout(retry)
+      focusPage()
+    } else if (data.myBrainTv === 'keep-awake') {
+      keepAwake(data.on === true)
+    }
+  })
+
+  window.addEventListener('online', function () {
+    if (!ready) load()
+  })
+  frame.addEventListener('load', focusPage)
+  window.addEventListener('focus', focusPage)
+  document.addEventListener('keydown', focusPage)
+
+  load()
+})()

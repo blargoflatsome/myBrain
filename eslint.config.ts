@@ -2,7 +2,7 @@ import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescri
 import pluginVue from 'eslint-plugin-vue'
 
 export default defineConfigWithVueTs(
-  { ignores: ['dist/**', 'coverage/**', 'playwright-report/**', 'test-results/**', '.netlify/**'] },
+  { ignores: ['dist/**', 'coverage/**', 'playwright-report/**', 'test-results/**', '.netlify/**', 'tv-launcher/**'] },
   pluginVue.configs['flat/recommended'],
   vueTsConfigs.recommended,
   {

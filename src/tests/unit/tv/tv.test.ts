@@ -4,6 +4,7 @@ import { buttonOf } from '@/tv/screen/remote'
 import { isUnpaired, tvServerAdapter } from '@/tv/screen/tvServer'
 import { ServerError, serverCall, useServerAdapter } from '@/server/server'
 import { cleanCode } from '@/tv/devices'
+import { keepTvAwake } from '@/tv/screen/awake'
 
 const MIN = 60_000
 
@@ -66,5 +67,22 @@ describe('SPEC §9 TV app, Access: the TV’s server calls', () => {
 describe('SPEC §9 Pairing: the code is read the way the TV shows it', () => {
   it.each([['abc def', 'ABCDEF'], ['ab-cd-ef', 'ABCDEF'], [' Q7KM2P ', 'Q7KM2P']])('%s → %s', (typed, code) => {
     expect(cleanCode(typed)).toBe(code)
+  })
+})
+
+describe('SPEC §9 TV app, The launcher: the TV page asks it to keep the TV awake', () => {
+  it.each([true, false])('in the launcher’s frame, keep awake %s is sent to the launcher', (on) => {
+    const sent: unknown[] = []
+    const page = { parent: { postMessage: (message: unknown) => sent.push(message) } }
+    keepTvAwake(on, page)
+    expect(sent).toEqual([{ myBrainTv: 'keep-awake', on }])
+  })
+
+  it('outside a frame nothing is sent', () => {
+    const sent: unknown[] = []
+    const page: { parent?: unknown } = {}
+    page.parent = Object.assign(page, { postMessage: (message: unknown) => sent.push(message) })
+    keepTvAwake(true, page as Parameters<typeof keepTvAwake>[1])
+    expect(sent).toEqual([])
   })
 })
