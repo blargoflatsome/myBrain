@@ -519,7 +519,7 @@ Finishing something should feel good. Each celebration plays right after my acti
   - **Journal saved:** a soft glow around the writing and a small "saved" stamp.
 - **Bigger, finishing a set:**
   - **Last task of the day:** crossing off the last open task due today gives a bigger confetti burst across the screen and a "list cleared" message on the Tasks page.
-  - **Routine finished:** when every step is done, a bigger confetti burst as it goes back to the Routines page (opening a finished day's run shows the steps folded into one ticked badge beside the finished message). While it runs, a progress bar under "Step 2 of 5" moves forward with each step done.
+  - **Routine finished:** when every step is done, a bigger confetti burst as it goes back to the Routines page (opening a routine finished today starts a fresh run, §5 Any routine can run any time). While it runs, a progress bar under "Step 2 of 5" moves forward with each step done.
   - **Focus session finished:** when a work part ends (not skipped), a soft ripple on the timer screen and the total focus time finished today on this device (the chime stays as it is).
   - **Orphans cleared:** filing or deleting the last orphan shows a friendly "all sorted" empty state.
   - **All habits done today:** completing the last scheduled habit of the day gives the biggest confetti. The **next day**, the first time I open the app, I get a congratulations alert (bell and banner, §6 In-app alerts); it isn't pushed and works offline. Yesterday is checked when the app opens and again once that visit's download finishes, so habits ticked on another device count. It counts as a **perfect day**.
