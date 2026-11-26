@@ -48,7 +48,7 @@ import QuestPopup from '@/tv/screen/components/QuestPopup.vue'
 import FocusScreen from '@/tv/screen/components/FocusScreen.vue'
 import { useTvFocus } from '@/tv/screen/focus'
 import { useTvQuest } from '@/tv/screen/quest'
-import { routineToday } from '@/routines/listing'
+import { routineToday, scheduledFirst } from '@/routines/listing'
 import type { TvRoutineFacts } from '@/tv/screen/routines'
 import { useNow } from '@/composables/useNow'
 import { IDLE_HOLD, isIdle } from '@/tv/screen/idle'
@@ -111,7 +111,7 @@ const routineFacts = computed<TvRoutineFacts | null>(() => {
 })
 const routineRows = computed(() => {
   const f = routineFacts.value
-  return f && snapshot.value ? snapshot.value.facts.routines.map((r) => routineToday(r, f, today.value)) : []
+  return f && snapshot.value ? scheduledFirst(snapshot.value.facts.routines.map((r) => routineToday(r, f, today.value))) : []
 })
 const openRoutineId = ref<string | null>(null)
 // A routine deleted on my phone while open here closes at the next refresh.

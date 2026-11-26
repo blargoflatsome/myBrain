@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import type { EventInviteRow, EventRow, HabitLogRow, HabitRow, TaskRow } from '@/sync/types'
+import type { EventInviteRow, EventRow, HabitLogRow, HabitRow, RoutineRow, RoutineRunRow, TaskRow } from '@/sync/types'
 import { addMonths, monthItems, monthRange, monthWeeks, pageOf, yourDay, type CalendarData, type DayData } from '@/tv/screen/dashboard'
 import { nextFocus, type Box } from '@/tv/screen/spatial'
 import { snapshotLoader, type SnapshotAnswer } from '@/tv/screen/snapshot'
@@ -65,7 +65,7 @@ describe('SPEC §9 Your Day: what’s left of today, titles only: events, then t
     id, title: id, weekdays: [0, 1, 2, 3, 4, 5, 6], start_date: '2026-11-01', created_at: `2026-11-01T00:00:00Z`, deleted_at: null, ...extra,
   })
   const done = (habitId: string): HabitLogRow => ({ id: `l-${habitId}`, habit_id: habitId, date: TODAY, status: 'completed', completed_at: `${TODAY}T12:00:00Z`, deleted_at: null })
-  const day = (extra: Partial<DayData>) => yourDay({ ...data({}), habits: [], habitLogs: [], habitPauses: [], ...extra }, TODAY, NOW, TZ)
+  const day = (extra: Partial<DayData>) => yourDay({ ...data({}), habits: [], habitLogs: [], habitPauses: [], routines: [], routineRuns: [], ...extra }, TODAY, NOW, TZ)
 
   it('my events and Yes ones not yet over in time order, then open tasks (carried over too), then habits not done', () => {
     const { rows } = day({
@@ -92,6 +92,19 @@ describe('SPEC §9 Your Day: what’s left of today, titles only: events, then t
       { kind: 'habit', id: 'Walk', title: 'Walk' },
       { kind: 'habit', id: 'Read', title: 'Read' },
     ])
+  })
+
+  it('routines scheduled today and not finished come after tasks, before habits; a finished one leaves', () => {
+    const routine = (id: string, weekdays: number[] | null): RoutineRow => ({ id, title: id, weekdays, start_date: '2026-11-01', deleted_at: null })
+    const finished: RoutineRunRow = { id: 'run', user_id: 'me', routine_id: 'Done', date: TODAY, started_at: `${TODAY}T12:00:00Z`, finished_at: `${TODAY}T12:10:00Z`, deleted_at: null }
+    const result = day({
+      tasks: [task('Task')],
+      habits: [habit('Habit')],
+      routines: [routine('Morning', [0, 1, 2, 3, 4, 5, 6]), routine('Done', [0, 1, 2, 3, 4, 5, 6]), routine('Mondays', [1]), routine('Anytime', null)],
+      routineRuns: [finished],
+    })
+    expect(result.rows.map((r) => `${r.kind}:${r.title}`)).toEqual(['task:Task', 'routine:Morning', 'habit:Habit'])
+    expect(day({ routines: [routine('Done', [0, 1, 2, 3, 4, 5, 6])], routineRuns: [finished] }).allDone).toBe(true)
   })
 
   it.each([

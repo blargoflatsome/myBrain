@@ -3,7 +3,7 @@ import type { HabitRow, RoutineRow, RoutineStepRow } from '@/sync/types'
 import { saveItemTags } from '@/tags/actions'
 import type { ActionContext } from '@/sync/actions'
 import { getRow } from '@/sync/db'
-import { activeSteps, completeSkipped, currentRun, habitDoneStepIds, recordStep, resumableRun, stepsForDay } from '@/routines/rules'
+import { activeSteps, completeSkipped, currentRun, habitDoneStepIds, recordStep, resumableRun, stepsForDay, takesDayId } from '@/routines/rules'
 import { deviceTimeZone, todayIn } from '@/time/days'
 import { achieved } from '@/celebrate/bus'
 
@@ -62,7 +62,7 @@ export function routineActions({ ready }: ActionContext, completeHabit: (habit: 
     const run = currentRun(routine, runs, date)
     const logs = run ? await local.routine_step_logs.where('run_id').equals(run.id).toArray() : []
     const habitDone = habitDoneStepIds(steps, await local.habit_logs.toArray(), date)
-    const action = recordStep(routine, steps, run, logs, status, date, uid, now, habitDone)
+    const action = recordStep(routine, steps, run, logs, status, date, uid, now, habitDone, undefined, takesDayId(routine, runs, date))
     if (!action) return null
     if (action.run) await e.save('routine_runs', action.run)
     for (const log of action.logs) await e.save('routine_step_logs', log)

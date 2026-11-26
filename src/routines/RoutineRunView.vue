@@ -27,7 +27,7 @@
           </button>
         </div>
         <!-- A run-anytime routine can still start fresh instead of going back over its skips. -->
-        <button v-if="resuming && isAnytime(routine)" type="button" class="min-h-11 self-start text-sm text-muted underline" @click="startAgain = true">
+        <button v-if="resuming" type="button" class="min-h-11 self-start text-sm text-muted underline" @click="startAgain = true">
           {{ m.run.startAgain }}
         </button>
       </section>
@@ -52,7 +52,7 @@ import { computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useBrainStore } from '@/stores/brain'
 import { useToday } from '@/composables/useToday'
-import { activeSteps, isAnytime } from '@/routines/rules'
+import { activeSteps } from '@/routines/rules'
 import { useRoutineRun } from '@/routines/useRoutineRun'
 import { messages } from '@/messages'
 

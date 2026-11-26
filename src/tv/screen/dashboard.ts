@@ -1,9 +1,10 @@
 // SPEC §9 TV app, The dashboard: the Monthly calendar's weeks and Your Day, worked out from what tv_snapshot returns.
 // Pure rules, built on the main app's (§5 Calendar and reminders, §5 Tasks, §5 Habits), so the TV shows the same things.
-import type { EventInviteRow, EventRow, HabitLogRow, HabitPauseRow, HabitRow, TaskRow } from '@/sync/types'
+import type { EventInviteRow, EventRow, HabitLogRow, HabitPauseRow, HabitRow, RoutineRow, RoutineRunRow, TaskRow } from '@/sync/types'
 import { calendarItems, myPlace, occursOn } from '@/events/rules'
 import { tasksForDay } from '@/tasks/rules'
 import { dayStatus } from '@/habits/rules'
+import { finishedOn, isScheduled as routineScheduled } from '@/routines/rules'
 import { addDays, clockIn, daysBetween, weekdayOf } from '@/time/days'
 
 /** Rows in Your Day's box per page (the top half of the right column, SPEC §9 Layout). */
@@ -96,7 +97,7 @@ export function monthItems(data: CalendarData, from: string, to: string): Record
 }
 
 export interface DayRow {
-  kind: 'event' | 'task' | 'habit'
+  kind: 'event' | 'task' | 'routine' | 'habit'
   id: string
   title: string
 }
@@ -105,12 +106,15 @@ export interface DayData extends CalendarData {
   habits: HabitRow[]
   habitLogs: HabitLogRow[]
   habitPauses: HabitPauseRow[]
+  routines: RoutineRow[]
+  routineRuns: RoutineRunRow[]
 }
 
 /**
  * Your Day (SPEC §9): what's left of today, titles only. Today's events (mine and ones I said Yes to; not cancelled)
  * that haven't ended, all-day ones first then by time; then today's open tasks in the Tasks page order, carried-over
- * ones included; then the habits due today and not done (the Habits page's own day status). `allDone` is true when
+ * ones included; then the routines scheduled today and not finished; then the habits due today and not done (the
+ * Habits page's own day status). `allDone` is true when
  * something was planned for today and nothing is left.
  */
 export function yourDay(data: DayData, today: string, now: Date, timeZone: string): { rows: DayRow[]; allDone: boolean } {
@@ -131,6 +135,7 @@ export function yourDay(data: DayData, today: string, now: Date, timeZone: strin
       return { row: { kind: 'event', id: e.id, title: e.title } as DayRow, start, ended: !!end && end <= clock }
     })
   const tasks = tasksForDay(data.tasks, today, today, timeZone)
+  const routines = data.routines.filter((r) => !r.deleted_at && routineScheduled(r, today))
   const habits = data.habits
     .filter((h) => !h.deleted_at)
     .map((h) => ({ h, status: dayStatus(h, today, data.habitLogs, now, timeZone, data.habitPauses) }))
@@ -142,8 +147,9 @@ export function yourDay(data: DayData, today: string, now: Date, timeZone: strin
     .sort((a, b) => minutes(a.start) - minutes(b.start))
     .map((x) => x.row)
     .concat(tasks.filter((t) => t.status === 'open').map((t): DayRow => ({ kind: 'task', id: t.id, title: t.title })))
+    .concat(routines.filter((r) => !finishedOn(data.routineRuns, r.id, today)).map((r): DayRow => ({ kind: 'routine', id: r.id, title: r.title })))
     .concat(habits.filter((x) => x.status === 'open').map(({ h }): DayRow => ({ kind: 'habit', id: h.id, title: h.title })))
-  const planned = events.length + tasks.length + habits.length
+  const planned = events.length + tasks.length + routines.length + habits.length
   return { rows, allDone: planned > 0 && rows.length === 0 }
 }
 

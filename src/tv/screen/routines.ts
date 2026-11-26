@@ -2,7 +2,7 @@
 // save with the main app's routine rules (§5 Routines) from the snapshot, and sends it in one tv_save_routine_step
 // call; the server checks it's all mine and fits together.
 import type { HabitLogRow, HabitPauseRow, HabitRow, RoutineRow, RoutineRunRow, RoutineStepLogRow, RoutineStepRow } from '@/sync/types'
-import { activeSteps, completeSkipped, currentRun, habitDoneStepIds, recordStep, resumableRun, stepsForDay } from '@/routines/rules'
+import { activeSteps, completeSkipped, currentRun, habitDoneStepIds, recordStep, resumableRun, stepsForDay, takesDayId } from '@/routines/rules'
 import { toggleAction } from '@/habits/rules'
 import { logIdFor } from '@/sync/ids'
 import { serverCall } from '@/server/server'
@@ -36,7 +36,7 @@ function habitLogFor(f: TvRoutineFacts, habitId: string | null | undefined, date
 export function stepSave(routine: RoutineRow, f: TvRoutineFacts, status: 'completed' | 'skipped', date: string, now: Date, timeZone: string): (RoutineSave & { finished: boolean }) | null {
   const steps = stepsForDay(activeSteps(f.steps, routine.id), f.habits, date)
   const habitDone = habitDoneStepIds(steps, f.habitLogs, date)
-  const action = recordStep(routine, steps, currentRun(routine, f.runs, date), f.logs, status, date, f.me, now, habitDone)
+  const action = recordStep(routine, steps, currentRun(routine, f.runs, date), f.logs, status, date, f.me, now, habitDone, undefined, takesDayId(routine, f.runs, date))
   if (!action) return null
   const runs = [action.run, action.finish].filter((r): r is RoutineRunRow => !!r)
   // A new run that also finishes is saved once, finished.
