@@ -2,29 +2,32 @@
   <IdleScreen v-if="idle" :now="now" :time-zone="timeZone" :next="upNextNow" :loaded="!!snapshot" />
   <p v-else-if="state === 'starting'" class="tv-status" role="status">{{ m.connecting }}</p>
   <PairingScreen v-else-if="state === 'pairing'" :unpaired="wasUnpaired" @paired="onPaired" />
-  <RoutineRunScreen
-    v-else-if="openRoutine && snapshot"
-    :routine="openRoutine"
-    :facts="routineFacts!"
-    :today="today"
-    :time-zone="timeZone"
-    :device-key="savedKey"
-    :refresh="refresh"
-    @close="closeRoutine"
-  />
-  <DashboardScreen
-    v-else
-    :now="now"
-    :time-zone="timeZone"
-    :today="today"
-    :month="month"
-    :items="items"
-    :day-rows="dayRows"
-    :routine-rows="routineRows"
-    :trouble="trouble"
-    @move="moveMonth"
-    @open-routine="(id) => (openRoutineId = id)"
-  />
+  <template v-else>
+    <RoutineRunScreen
+      v-if="openRoutine && snapshot"
+      :routine="openRoutine"
+      :facts="routineFacts!"
+      :today="today"
+      :time-zone="timeZone"
+      :device-key="savedKey"
+      :refresh="refresh"
+      @close="closeRoutine"
+    />
+    <!-- Hidden, not removed, under a routine: Back finds the strip on the page it was on. -->
+    <DashboardScreen
+      v-show="!(openRoutine && snapshot)"
+      :now="now"
+      :time-zone="timeZone"
+      :today="today"
+      :month="month"
+      :items="items"
+      :day-rows="dayRows"
+      :routine-rows="routineRows"
+      :trouble="trouble"
+      @move="moveMonth"
+      @open-routine="(id) => (openRoutineId = id)"
+    />
+  </template>
 </template>
 
 <script setup lang="ts">
@@ -150,7 +153,8 @@ function toPairing() {
 
 // The remote has arrows, not Tab: an arrow moves focus to the nearest control that way (Remote control).
 function moveFocus(arrow: 'up' | 'down' | 'left' | 'right') {
-  const controls = Array.prototype.slice.call(document.querySelectorAll('button:not([disabled]), a[href]')) as HTMLElement[]
+  // Only what shows: the dashboard stays on the page, hidden, under a routine.
+  const controls = (Array.prototype.slice.call(document.querySelectorAll('button:not([disabled]), a[href]')) as HTMLElement[]).filter((c) => c.offsetParent !== null)
   if (!controls.length) return
   const at = document.activeElement as HTMLElement | null
   const from = at ? controls.indexOf(at) : -1

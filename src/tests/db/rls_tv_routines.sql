@@ -86,6 +86,31 @@ begin
     raise exception 'FAIL: Spec §9: the TV completes only the habit a completed step is linked to';
   exception when sqlstate '42501' then null;
   end;
+  -- A TV a little behind can't turn a step completed on my phone into skipped.
+  perform public.tv_save_routine_step('alice-tv-key', '[]',
+    jsonb_build_array(jsonb_build_object('id', 'ffffffff-0000-4000-8000-000000000001', 'run_id', 'eeeeeeee-0000-4000-8000-000000000001', 'step_id', meds, 'status', 'skipped', 'logged_at', now())));
+  reset role;
+  if (select status from public.routine_step_logs where id = 'ffffffff-0000-4000-8000-000000000001') <> 'completed' then
+    raise exception 'FAIL: Spec §9: a press on the TV never overwrites a step already saved';
+  end if;
+  update public.routine_steps set deleted_at = now() where id = brush;
+  execute 'set local role anon';
+  begin
+    perform public.tv_save_routine_step('alice-tv-key', '[]',
+      jsonb_build_array(jsonb_build_object('id', 'ffffffff-0000-4000-8000-000000000004', 'run_id', 'eeeeeeee-0000-4000-8000-000000000001', 'step_id', brush, 'status', 'completed', 'logged_at', now())));
+    raise exception 'FAIL: Spec §9: a removed step isn''t logged';
+  exception when sqlstate '42501' then null;
+  end;
+  reset role;
+  update public.habit_logs set deleted_at = now() where habit_id = pills;
+  execute 'set local role anon';
+  begin
+    perform public.tv_save_routine_step('alice-tv-key', '[]',
+      jsonb_build_array(jsonb_build_object('id', 'ffffffff-0000-4000-8000-000000000001', 'run_id', 'eeeeeeee-0000-4000-8000-000000000001', 'step_id', meds, 'status', 'completed', 'logged_at', now())),
+      jsonb_build_object('id', 'ffffffff-0000-4000-8000-00000000000c', 'habit_id', pills, 'date', today - 7, 'completed_at', now()));
+    raise exception 'FAIL: Spec §9: a habit is completed only for a day its step''s run covers';
+  exception when sqlstate '42501' then null;
+  end;
   begin
     perform public.tv_save_routine_step('wrong-key', '[]', '[]');
     raise exception 'FAIL: Spec §9: a wrong key writes nothing';

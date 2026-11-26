@@ -224,4 +224,21 @@ test.describe('SPEC §9 Routines', () => {
     await expect(page.getByTestId('tv-routine')).toBeFocused()
     await expect(page.getByTestId('tv-routine')).toContainText(msg.routines.progress(1, 2))
   })
+
+  test("Back from a routine on the strip's second page returns to that page, with focus on it", async ({ page }) => {
+    await pairedTv(page)
+    server.rpcResults.tv_check = true
+    const all = ['A', 'B', 'C', 'D'].map((t, i) => tvRoutine(t, ['Step'], `r${i + 1}`))
+    server.rpcResults.tv_snapshot = tvSnapshot({ routines: all.map((r) => r.routine), routine_steps: all.flatMap((r) => r.steps) })
+    await page.goto('/tv/')
+    await page.getByTestId('tv-routines-next').focus()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-routines-page')).toHaveText(msg.tv.page(2, 2))
+    await page.getByTestId('tv-routine').focus()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-run')).toBeVisible()
+    await press(page, 'Escape')
+    await expect(page.getByTestId('tv-routines-page')).toHaveText(msg.tv.page(2, 2))
+    await expect(page.getByTestId('tv-routine')).toBeFocused()
+  })
 })
