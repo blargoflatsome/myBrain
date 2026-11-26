@@ -1,26 +1,50 @@
 <template>
-  <IdleScreen v-if="idle" :now="now" />
+  <IdleScreen v-if="idle" :now="now" :time-zone="timeZone" :next="upNextNow" :loaded="!!snapshot" />
   <p v-else-if="state === 'starting'" class="tv-status" role="status">{{ m.connecting }}</p>
   <PairingScreen v-else-if="state === 'pairing'" :unpaired="wasUnpaired" @paired="onPaired" />
-  <DashboardScreen v-else :now="now" />
+  <DashboardScreen
+    v-else
+    :now="now"
+    :time-zone="timeZone"
+    :today="today"
+    :month="month"
+    :items="items"
+    :day-rows="dayRows"
+    :trouble="trouble"
+    @move="moveMonth"
+  />
 </template>
 
 <script setup lang="ts">
 // SPEC §9 TV app: the page the TV launcher opens. Unpaired, it shows the pairing screen; paired, the dashboard. After
-// 15 minutes with no button pressed it dims to the night screen, and the press that wakes it does nothing else.
-import { computed, onMounted, onScopeDispose, provide, ref } from 'vue'
+// 15 minutes with no button pressed it dims to the night screen, and the press that wakes it does nothing else. What
+// the dashboard shows comes from tv_snapshot, asked for every 30 seconds, on waking and when the month changes.
+import { computed, nextTick, onMounted, onScopeDispose, provide, ref, watch } from 'vue'
 import IdleScreen from '@/tv/screen/components/IdleScreen.vue'
 import PairingScreen from '@/tv/screen/components/PairingScreen.vue'
 import DashboardScreen from '@/tv/screen/components/DashboardScreen.vue'
 import { useNow } from '@/composables/useNow'
 import { IDLE_HOLD, isIdle } from '@/tv/screen/idle'
-import { checkKey, RECHECK_MS, savedKey } from '@/tv/screen/pairing'
+import { checkKey, savedKey } from '@/tv/screen/pairing'
+import { REFRESH_MS, snapshotLoader, type Snapshot } from '@/tv/screen/snapshot'
+import { addMonths, monthItems, monthOf, monthRange, yourDay } from '@/tv/screen/dashboard'
+import { upNextFrom } from '@/dashboard/upNext'
+import { buttonOf } from '@/tv/screen/remote'
+import { nextFocus } from '@/tv/screen/spatial'
+import { isUnpaired } from '@/tv/screen/tvServer'
+import { deviceTimeZone, todayIn } from '@/time/days'
 import { messages } from '@/messages'
 
 const m = messages.tv
 const state = ref<'starting' | 'pairing' | 'dashboard'>('starting')
 const wasUnpaired = ref(false)
 const now = useNow(1_000)
+// Followed each tick, so the TV keeps up if its zone changes.
+const timeZone = computed(() => {
+  void now.value
+  return deviceTimeZone()
+})
+const today = computed(() => todayIn(timeZone.value, now.value))
 const lastPressAt = ref(Date.now())
 const held = ref(false)
 const heldEndedAt = ref<number | null>(null)
@@ -32,6 +56,74 @@ provide(IDLE_HOLD, (on: boolean) => {
   if (!on) heldEndedAt.value = Date.now()
 })
 
+// What the dashboard and the night screen show.
+const loader = snapshotLoader(savedKey)
+const snapshot = ref<Snapshot | null>(null)
+const trouble = ref(false)
+const month = ref(monthOf(today.value))
+const items = computed(() => {
+  if (!snapshot.value) return {}
+  const { from, to } = monthRange(month.value)
+  return monthItems(snapshot.value.facts, from, to)
+})
+const dayRows = computed(() => (snapshot.value ? yourDay(snapshot.value.facts, today.value, timeZone.value) : []))
+const upNextNow = computed(() => {
+  const s = snapshot.value
+  return s ? (upNextFrom(s.facts, now.value, timeZone.value, s.journalTime)[0] ?? null) : null
+})
+
+let loading = 0
+async function refresh() {
+  if (state.value !== 'dashboard') return
+  const asked = ++loading
+  const { from, to } = monthRange(month.value)
+  try {
+    const answer = await loader.load(from, to, today.value)
+    // A slower, older answer (another month) never replaces a newer one.
+    if (asked !== loading) return
+    snapshot.value = answer
+    trouble.value = false
+  } catch (err) {
+    if (asked !== loading) return
+    if (isUnpaired(err)) return toPairing()
+    // Out of reach: keep showing what it had and try again on the next refresh.
+    trouble.value = true
+  }
+}
+
+function moveMonth(by: number) {
+  month.value = by === 0 ? monthOf(today.value) : addMonths(month.value, by)
+}
+watch(month, () => void refresh())
+watch(today, () => void refresh())
+watch(idle, (dimmed) => {
+  // The morning starts on this month; waking shows what's current.
+  if (dimmed) month.value = monthOf(today.value)
+  else {
+    void refresh()
+    focusFirst()
+  }
+})
+
+function toPairing() {
+  wasUnpaired.value = true
+  state.value = 'pairing'
+  snapshot.value = null
+  loader.reset()
+}
+
+// The remote has arrows, not Tab: an arrow moves focus to the nearest control that way (Remote control).
+function moveFocus(arrow: 'up' | 'down' | 'left' | 'right') {
+  const controls = Array.prototype.slice.call(document.querySelectorAll('button:not([disabled]), a[href]')) as HTMLElement[]
+  if (!controls.length) return
+  const at = document.activeElement as HTMLElement | null
+  const from = at ? controls.indexOf(at) : -1
+  if (from < 0) return controls[0]!.focus()
+  const boxes = controls.map((c) => c.getBoundingClientRect())
+  const to = nextFocus(boxes[from]!, boxes, arrow)
+  if (to >= 0) controls[to]!.focus()
+}
+
 function onKey(e: KeyboardEvent) {
   const wasIdle = idle.value
   lastPressAt.value = Date.now()
@@ -40,6 +132,12 @@ function onKey(e: KeyboardEvent) {
     // Waking takes the whole press (SPEC §9 Idle screen).
     e.preventDefault()
     e.stopImmediatePropagation()
+    return
+  }
+  const button = buttonOf(e)
+  if (button === 'up' || button === 'down' || button === 'left' || button === 'right') {
+    e.preventDefault()
+    moveFocus(button)
   }
 }
 
@@ -50,24 +148,28 @@ async function start() {
   wasUnpaired.value = answer === 'unpaired'
   // Out of reach is not unpaired: show what it can and keep checking.
   state.value = answer === 'unpaired' ? 'pairing' : 'dashboard'
+  void refresh()
 }
 
 function onPaired() {
   wasUnpaired.value = false
   lastPressAt.value = Date.now()
+  loader.reset()
   state.value = 'dashboard'
+  month.value = monthOf(today.value)
+  void refresh()
 }
 
-// While the dashboard shows, notice an Unpair from my phone.
-const recheck = setInterval(() => {
-  const key = savedKey()
-  if (state.value !== 'dashboard' || !key) return
-  void checkKey(key).then((answer) => {
-    if (answer !== 'unpaired' || state.value !== 'dashboard') return
-    wasUnpaired.value = true
-    state.value = 'pairing'
-  })
-}, RECHECK_MS)
+// Focus starts on the first control, so the remote has somewhere to begin.
+function focusFirst() {
+  void nextTick(() => (document.querySelector('button') as HTMLElement | null)?.focus())
+}
+watch(state, (s) => {
+  if (s === 'dashboard') focusFirst()
+})
+
+// While the dashboard shows, the refresh also notices an Unpair from my phone (the snapshot refuses the key).
+const refresher = setInterval(() => void refresh(), REFRESH_MS)
 
 onMounted(() => {
   window.addEventListener('keydown', onKey, true)
@@ -75,6 +177,6 @@ onMounted(() => {
 })
 onScopeDispose(() => {
   window.removeEventListener('keydown', onKey, true)
-  clearInterval(recheck)
+  clearInterval(refresher)
 })
 </script>

@@ -31,6 +31,17 @@ export type Suggestion =
   | { key: string; kind: 'orphans'; count: number }
   | { key: string; kind: 'journal' }
 
+/** What Up next decides from: my rows, with Orphans and the journal only as facts (the TV reads no more, SPEC §9). */
+export interface UpNextFacts extends Pick<DayData, 'tasks' | 'habits' | 'habitLogs' | 'habitPauses' | 'routines' | 'routineRuns'> {
+  events: EventRow[]
+  invites: EventInviteRow[]
+  me: string | null
+  /** How many Orphans are waiting. */
+  orphans: number
+  /** Whether I've written in today's journal. */
+  wroteToday: boolean
+}
+
 export interface UpNextData extends DayData {
   events: EventRow[]
   invites: EventInviteRow[]
@@ -39,11 +50,22 @@ export interface UpNextData extends DayData {
   me: string | null
 }
 
+/** Whether I've written in a day's journal entry (an entry the app wrote for a missed day doesn't count). */
+export function wroteOn(journal: JournalEntryRow[], day: string): boolean {
+  return live(journal).some((e) => e.date === day && !e.auto && wroteIn(e))
+}
+
 /**
  * Everything worth doing now, in Up next's order (SPEC §5 Dashboard). An empty list means nothing is left
  * ("Past you cleared the decks."). `journalTime` is my journal reminder time, if I set one.
  */
 export function upNext(data: UpNextData, now: Date, timeZone: string, journalTime: string | null = null): Suggestion[] {
+  const facts = { ...data, orphans: live(data.inbox).length, wroteToday: wroteOn(data.journal, todayIn(timeZone, now)) }
+  return upNextFrom(facts, now, timeZone, journalTime)
+}
+
+/** Up next from the facts alone (SPEC §5 Dashboard); the TV's night screen uses it with what `tv_snapshot` returns. */
+export function upNextFrom(data: UpNextFacts, now: Date, timeZone: string, journalTime: string | null = null): Suggestion[] {
   const today = todayIn(timeZone, now)
   const at = now.getTime()
   const pauses = live(data.habitPauses ?? [])
@@ -97,12 +119,10 @@ export function upNext(data: UpNextData, now: Date, timeZone: string, journalTim
   out.push(...open.filter((t) => !stuck.includes(t)).map((t) => ({ key: `task:${t.id}`, kind: 'task' as const, id: t.id, title: t.title })))
 
   // 7. Orphans waiting to be sorted.
-  const orphans = live(data.inbox).length
-  if (orphans) out.push({ key: 'orphans', kind: 'orphans', count: orphans })
+  if (data.orphans) out.push({ key: 'orphans', kind: 'orphans', count: data.orphans })
 
   // 8. Tonight's journal, from my journal reminder time (or 7 pm), if I haven't written today.
-  const wrote = live(data.journal).some((e) => e.date === today && !e.auto && wroteIn(e))
-  if (!wrote && at >= zonedTime(today, (journalTime ?? JOURNAL_TIME).slice(0, 5), timeZone)) out.push({ key: 'journal', kind: 'journal' })
+  if (!data.wroteToday && at >= zonedTime(today, (journalTime ?? JOURNAL_TIME).slice(0, 5), timeZone)) out.push({ key: 'journal', kind: 'journal' })
 
   return out
 }

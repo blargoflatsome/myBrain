@@ -5,6 +5,7 @@ import { FakeSupabase } from '../support/fakeSupabase'
 import { isPhone, isSafari } from '../support/devices'
 import { expectFocused } from '../support/focus'
 import { goTo } from '../support/nav'
+import { pairedTv, tvSnapshot } from '../support/tv'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
 
@@ -162,6 +163,25 @@ for (const scheme of ['light', 'dark'] as const) {
         await scan(page, name)
       })
     }
+
+    test('TV dashboard and night screen, with long titles, also at 320 px', async ({ page }) => {
+      const day = '2026-11-10'
+      await pairedTv(page)
+      server.rpcResults.tv_check = true
+      server.rpcResults.tv_snapshot = tvSnapshot({
+        tasks: [LONG_LINE, LONG_WORD, PARAGRAPH, 'done'].map((title, i) => ({ id: `t${i}`, title, due_date: day, status: i === 3 ? 'done' : 'open', completed_at: i === 3 ? '2026-11-10T20:00:00Z' : null, priority: 1, source: 'manual', deleted_at: null })),
+        events: [{ id: 'e1', title: LONG_WORD, user_id: 'me', start_date: day, end_date: day, start_time: '21:00', end_time: '22:00', repeat: 'never', reminder_minutes: null, deleted_at: null }],
+      })
+      await page.goto('/tv/')
+      await expect(page.getByTestId('tv-day-row').first()).toBeVisible()
+      await scan(page, 'TV dashboard')
+      await page.setViewportSize({ width: 320, height: 640 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+      await page.clock.runFor(15 * 60_000)
+      await expect(page.getByTestId('tv-idle-next-title')).toBeVisible()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+      await scan(page, 'TV night screen')
+    })
 
     test('Invite to event window on a profile', async ({ page }) => {
       await page.goto(`/people/${FRIEND}`)
