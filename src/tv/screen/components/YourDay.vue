@@ -14,7 +14,7 @@
         <span v-else class="tv-day-check" :class="{ 'tv-day-checked': row.done }" aria-hidden="true" />
         <span class="tv-day-text">
           <span class="tv-day-title">{{ row.title }}</span>
-          <span v-if="row.kind === 'task' && row.done" class="tv-sr-only">, {{ m.done }}</span>
+          <span v-if="row.kind === 'task' && row.done" class="tv-sr-only">{{ m.heardAfter(m.done) }}</span>
           <span v-if="row.kind === 'task' && row.carriedOver" class="tv-day-note">{{ m.carriedOver }}</span>
         </span>
       </li>
@@ -45,7 +45,7 @@ function turn(by: number) {
   wanted.value = page.value.page + by
 }
 function when(start: string | null, end: string | null): string {
-  if (!start) return m.allDay
-  return end ? `${timeLabel(start)} – ${timeLabel(end)}` : timeLabel(start)
+  if (!start) return end ? m.until(timeLabel(end)) : m.allDay
+  return end ? m.timeRange(timeLabel(start), timeLabel(end)) : timeLabel(start)
 }
 </script>

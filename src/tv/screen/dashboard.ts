@@ -106,9 +106,17 @@ export function yourDay(data: CalendarData, today: string, timeZone: string): Da
     return place === 'mine' || place === 'yes'
   }
   const events = data.events
-    .filter((e) => !e.deleted_at && !e.cancelled_at && going(e) && covers(e, today))
-    .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''))
-    .map((e): DayRow => ({ kind: 'event', id: e.id, title: e.title, start: hhmm(e.start_time), end: hhmm(e.end_time) }))
+    .filter((e) => !e.deleted_at && !e.cancelled_at && going(e))
+    .map((e) => ({ e, from: startedOn(e, today) }))
+    .filter((x): x is { e: EventRow; from: string } => x.from !== null)
+    .map(({ e, from }): DayRow => {
+      // A timed event that began on an earlier day shows "until" its end time on its last day, and as all day between.
+      const ends = addDays(from, daysBetween(e.start_date, e.end_date))
+      const start = from === today ? hhmm(e.start_time) : null
+      const end = ends === today ? hhmm(e.end_time) : null
+      return { kind: 'event', id: e.id, title: e.title, start, end }
+    })
+    .sort((a, b) => sortTime(a) - sortTime(b))
   const tasks = tasksForDay(data.tasks, today, today, timeZone).map(
     (t): DayRow => ({ kind: 'task', id: t.id, title: t.title, priority: t.priority ?? 1, done: t.status === 'done', carriedOver: t.status === 'open' && t.due_date! < today }),
   )
@@ -117,11 +125,17 @@ export function yourDay(data: CalendarData, today: string, timeZone: string): Da
 
 const hhmm = (time: string | null) => (time ? time.slice(0, 5) : null)
 
-/** Whether an event (or one of its repeats) is on a day, counting the days a long one lasts. */
-function covers(e: EventRow, day: string): boolean {
+/** The day the occurrence of an event that covers `day` began (a long one may have begun earlier), or null. */
+function startedOn(e: EventRow, day: string): string | null {
   const length = daysBetween(e.start_date, e.end_date)
-  for (let i = 0; i <= length; i++) if (occursOn(e, addDays(day, -i))) return true
-  return false
+  for (let i = 0; i <= length; i++) if (occursOn(e, addDays(day, -i))) return addDays(day, -i)
+  return null
+}
+
+/** All-day first (and events going on since an earlier day), then by start time. */
+function sortTime(row: DayRow): number {
+  if (row.kind !== 'event' || !row.start) return -1
+  return Number(row.start.slice(0, 2)) * 60 + Number(row.start.slice(3, 5))
 }
 
 /** One page of a list, with how many pages there are (at least one). */

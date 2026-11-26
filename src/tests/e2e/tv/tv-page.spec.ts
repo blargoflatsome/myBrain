@@ -175,4 +175,19 @@ test.describe('SPEC §9 Up next on the night screen', () => {
     await press(page, 'Enter')
     await expect(page.getByTestId('tv-month-name')).toHaveText('November 2026')
   })
+
+  test('dimmed on the last night of a month, it wakes the next morning on the new month', async ({ page }) => {
+    await page.clock.setSystemTime(new Date('2026-12-01T04:00:00Z')) // Nov 30, 11:00 pm in New York
+    await pairedTv(page)
+    server.rpcResults.tv_check = true
+    server.rpcResults.tv_snapshot = tvSnapshot()
+    await page.goto('/tv/')
+    await expect(page.getByTestId('tv-month-name')).toHaveText('November 2026')
+    await page.clock.runFor(15 * 60_000)
+    await expect(page.getByTestId('tv-idle')).toBeVisible()
+    await page.clock.setSystemTime(new Date('2026-12-01T13:00:00Z')) // Dec 1, 8:00 am
+    await page.clock.runFor(1_000)
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-month-name')).toHaveText('December 2026')
+  })
 })

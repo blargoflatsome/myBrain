@@ -23,7 +23,7 @@
             <p class="tv-day-number">
               <span aria-hidden="true">{{ Number(day.slice(8)) }}</span>
               <span class="tv-sr-only">{{ shortDay(day) }}</span>
-              <span v-if="day === today" class="tv-sr-only">, {{ m.today }}</span>
+              <span v-if="day === today" class="tv-sr-only">{{ m.heardAfter(m.today) }}</span>
             </p>
             <ul v-if="shown(day).length" class="tv-cell-items">
               <li
@@ -35,9 +35,9 @@
               >
                 <span v-if="item.time" class="tv-item-time">{{ timeLabel(item.time) }}</span>
                 {{ item.title }}
-                <span v-if="item.done" class="tv-sr-only">, {{ m.done }}</span>
-                <span v-if="item.cancelled" class="tv-sr-only">, {{ m.cancelled }}</span>
-                <span v-if="item.pending" class="tv-sr-only">, {{ m.notAnswered }}</span>
+                <span v-if="item.done" class="tv-sr-only">{{ m.heardAfter(m.done) }}</span>
+                <span v-if="item.cancelled" class="tv-sr-only">{{ m.heardAfter(m.cancelled) }}</span>
+                <span v-if="item.pending" class="tv-sr-only">{{ m.heardAfter(m.notAnswered) }}</span>
               </li>
             </ul>
             <p v-if="hidden(day)" class="tv-cell-more" data-testid="tv-cell-more">{{ m.more(hidden(day)) }}</p>

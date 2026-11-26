@@ -17,6 +17,7 @@ begin
     (alice, 'In the month', 'secret task notes', '2026-11-10', 'open'),
     (alice, 'Carried over', null, '2026-10-01', 'open'),
     (alice, 'Far away', null, '2027-03-01', 'open'),
+    (alice, 'Due today', null, '2026-11-26', 'open'),
     (bob,   'Bob''s task', null, '2026-11-10', 'open');
   insert into public.events (user_id, title, notes, start_date, end_date, start_time, end_time, repeat) values
     (alice, 'Gym', 'secret event notes', '2026-11-26', '2026-11-26', '09:00', '10:00', 'never'),
@@ -31,8 +32,8 @@ begin
   perform set_config('request.jwt.claims', json_build_object('role', 'anon')::text, true);
   snap := public.tv_snapshot('alice-tv-key', '2026-10-26', '2026-12-06', today);
 
-  if jsonb_array_length(snap->'tasks') <> 2
-     or not (snap->'tasks') @> '[{"title": "In the month"}, {"title": "Carried over"}]' then
+  if jsonb_array_length(snap->'tasks') <> 3
+     or not (snap->'tasks') @> '[{"title": "In the month"}, {"title": "Carried over"}, {"title": "Due today"}]' then
     raise exception 'FAIL: Spec §9: the TV gets my tasks in the shown weeks and carried-over ones, nobody else''s';
   end if;
   if jsonb_array_length(snap->'events') <> 1 or snap->'events'->0->>'title' <> 'Gym' then
@@ -56,6 +57,12 @@ begin
   again := public.tv_snapshot('alice-tv-key', '2026-10-26', '2026-12-06', today, (snap->>'now')::timestamptz - interval '1 second');
   if jsonb_array_length(again->'habit_logs') <> 1 or again->'habit_logs'->0->>'deleted_at' is null then
     raise exception 'FAIL: Spec §9: a deleted log comes through so the TV drops it';
+  end if;
+
+  -- While the calendar shows a month a year and more away, Your Day still has today's open tasks.
+  again := public.tv_snapshot('alice-tv-key', '2028-02-27', '2028-04-08', today);
+  if not (again->'tasks') @> '[{"title": "Due today"}, {"title": "Carried over"}]' then
+    raise exception 'FAIL: Spec §9: Your Day gets today''s open tasks whichever month the calendar shows';
   end if;
 
   begin

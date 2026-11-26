@@ -87,6 +87,16 @@ describe('SPEC §9 Your Day: today’s events in time order, then today’s task
   })
 
   it.each([
+    ['starts and ends today: its times', '2026-11-26', '2026-11-26', '09:00', '10:00'],
+    ['began yesterday, ends today: until its end', '2026-11-25', '2026-11-26', null, '10:00'],
+    ['began yesterday, ends tomorrow: all day', '2026-11-25', '2026-11-27', null, null],
+    ['starts today, ends tomorrow: from its start', '2026-11-26', '2026-11-27', '09:00', null],
+  ])('a timed event that %s', (_what, start_date, end_date, start, end) => {
+    const [row] = yourDay(data({ events: [event('Trip', { start_date, end_date })] }), TODAY, TZ)
+    expect(row).toMatchObject({ start, end })
+  })
+
+  it.each([
     ['the first page', 15, 0, 7, 0, 3],
     ['the last page has what is left', 15, 2, 1, 2, 3],
     ['a page past the end stays on the last (rows went away)', 8, 5, 1, 1, 2],

@@ -97,9 +97,9 @@ function moveMonth(by: number) {
 watch(month, () => void refresh())
 watch(today, () => void refresh())
 watch(idle, (dimmed) => {
-  // The morning starts on this month; waking shows what's current.
-  if (dimmed) month.value = monthOf(today.value)
-  else {
+  // The morning starts on this month, even when a new month began overnight; waking shows what's current.
+  month.value = monthOf(today.value)
+  if (!dimmed) {
     void refresh()
     focusFirst()
   }
