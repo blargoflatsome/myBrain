@@ -326,6 +326,22 @@ test.describe('SPEC §9 Go on a Quest', () => {
 })
 
 test.describe('SPEC §9 Focus timer', () => {
+  test('a minimized timer opens full screen again after 15 minutes instead of the night screen', async ({ page }) => {
+    await pairedTv(page)
+    server.rpcResults.tv_check = true
+    server.rpcResults.tv_snapshot = tvSnapshot()
+    await page.goto('/tv/')
+    await page.getByTestId('tv-focus-open').focus()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-focus-pause')).toBeFocused()
+    await press(page, 'Escape')
+    await expect(page.getByTestId('tv-focus-open')).toBeFocused()
+    await page.clock.runFor(15 * 60_000)
+    await expect(page.getByTestId('tv-focus')).toBeVisible()
+    await expect(page.getByTestId('tv-focus-pause')).toBeFocused()
+    await expect(page.getByTestId('tv-idle')).toHaveCount(0)
+  })
+
   test('a TV found unpaired when it starts stops a timer saved from before', async ({ page }) => {
     await pairedTv(page)
     await page.addInitScript(() => localStorage.setItem('my-brain:tv-focus', JSON.stringify({ state: { phase: 'work', round: 1, endsAt: Date.now() + 60_000, pausedMs: null }, minimized: true })))

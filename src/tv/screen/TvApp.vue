@@ -75,7 +75,10 @@ const today = computed(() => todayIn(timeZone.value, now.value))
 const lastPressAt = ref(Date.now())
 const held = ref(false)
 const heldEndedAt = ref<number | null>(null)
-const idle = computed(() => state.value === 'dashboard' && isIdle(lastPressAt.value, now.value.getTime(), held.value, heldEndedAt.value))
+// 15 minutes with no press (SPEC §9 Idle screen). With a Focus timer minimized, it opens full screen instead of the
+// night screen (2026-11-26, user); full screen, it holds the night screen off.
+const dimDue = computed(() => state.value === 'dashboard' && isIdle(lastPressAt.value, now.value.getTime(), held.value, heldEndedAt.value))
+const idle = computed(() => dimDue.value && !focus.state.value)
 
 // A routine or the Focus timer holds the night screen off while it's open.
 provide(IDLE_HOLD, (on: boolean) => {
@@ -126,6 +129,9 @@ const focus = useTvFocus(savedKey)
 const focusPill = computed(() =>
   focus.state.value && focus.minimized.value ? { phase: messages.focus.phaseShort[focus.state.value.phase], time: focus.time.value } : null,
 )
+watch(dimDue, (due) => {
+  if (due && focus.state.value) focus.open()
+})
 // Minimized or stopped (✕), focus goes back to the strip's Focus timer button.
 watch(
   () => focus.showing.value,
