@@ -526,3 +526,8 @@ The fourth `/improve-codebase-architecture` pass (`docs/ARCHITECTURE_REVIEW_TASK
 - **Found:** Help had no install tutorial, only one line each for Android and iPhone inside Reminders on your phone.
 - **Decided (user, all as proposed):** one topic, Install on your phone, right after Getting around, with Android and iPhone steps; its picture is a drawing, since the browser's menus can't be screenshotted; Reminders on your phone points to it instead of repeating the steps.
 - **Claude's calls:** the drawing is `scripts/help-images/install.html`, rendered by `npm run docs:images` like the screenshots, so it stays in the same size and format. The iPhone step mentions ⋯ because newer Safari hides Share under it.
+
+## 2026-11-26 TV app
+- **Decided (user):** a My Brain app for the Samsung TV in the home office / bedroom (SPEC §9): Monthly calendar, Your Day (carried-over tasks and Yes events included, paginated), routines run with the remote, Go on a Quest following every Random Quest rule, the Focus timer, and a dim black-and-grey idle screen with a digital clock and Up next, woken by any button. No capture, alerts, Celebrations or Trophies on the TV. Device pairing comes back for the TV only (dropped with the Pi display, 2026-11-11).
+- **Why its own build (Claude):** the TV's 2019 engine (about Chrome 63) can't run the main app's Tailwind 4 styles. A page served from the site, opened by a thin installed launcher, keeps updates to normal deploys.
+- **Open:** where the code lives, the idle wait, and sharing with friends.
