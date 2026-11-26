@@ -5,6 +5,7 @@ import { FakeSupabase } from '../support/fakeSupabase'
 import { isPhone, isSafari } from '../support/devices'
 import { expectFocused } from '../support/focus'
 import { goTo } from '../support/nav'
+import { pairedTv, tvRoutine, tvSnapshot } from '../support/tv'
 // Wording comes from the messages file, so changing a message never breaks a test.
 import { messages as msg } from '../../../messages'
 
@@ -47,6 +48,8 @@ ${LONG_WORD}`, due_date: day, priority: 2, status: 'open', source: 'manual', cre
     { id: 'nt2', kind: 'event_message', item_id: null, title: LONG_LINE, body: `${PARAGRAPH} ${LONG_WORD}`, url: '/calendar', local_date: day, sent_at: '2026-11-10T14:00:00Z' },
   ])
   // Cheers (SPEC §5 Cheers): a pasted link and a long line as posts, and my own post with its counts.
+  server.rpcResults.tv_pair_start = [{ code: 'Q7KM2P', secret: 'secret', expires_at: '2026-11-10T14:10:00Z' }]
+  server.rpcResults.tv_pair_poll = [{ status: 'waiting', device_key: null }]
   server.rpcResults.cheer_feed = [
     { id: 'c1', kind: 'did_it', body: LONG_WORD, created_at: '2026-11-10T13:00:00Z', mine: false, my_reaction: null, got_this: null, proud: null, strength: null, celebrate: null },
     { id: 'c2', kind: 'did_it', body: LONG_LINE, created_at: '2026-11-10T12:00:00Z', mine: true, my_reaction: null, got_this: 3, proud: 1, strength: 0, celebrate: 2 },
@@ -138,6 +141,8 @@ const PAGES: [string, string, (page: Page) => Promise<void>][] = [
   ['Capture page', '/capture', (p) => expect(p.getByRole('heading', { name: msg.capture.typeHeading })).toBeVisible()],
   ['Privacy', '/privacy', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
   ['Terms', '/terms', (p) => expect(p.getByRole('heading', { level: 1 })).toBeVisible()],
+  ['Pair your TV', '/pair?code=Q7KM2P', (p) => expect(p.getByTestId('pair-code')).toBeVisible()],
+  ['TV pairing', '/tv/', (p) => expect(p.getByTestId('tv-code')).toBeVisible()],
   ['Page not found', '/no-such-page', (p) => expect(p.getByRole('heading', { name: msg.notFound.heading, level: 1 })).toBeVisible()],
 ]
 
@@ -158,6 +163,70 @@ for (const scheme of ['light', 'dark'] as const) {
         await scan(page, name)
       })
     }
+
+    test('TV dashboard and night screen, with long titles, also at 320 px', async ({ page }) => {
+      const day = '2026-11-10'
+      await pairedTv(page)
+      server.rpcResults.tv_check = true
+      server.rpcResults.tv_snapshot = tvSnapshot({
+        tasks: [LONG_LINE, LONG_WORD, PARAGRAPH, 'done'].map((title, i) => ({ id: `t${i}`, title, due_date: day, status: i === 3 ? 'done' : 'open', completed_at: i === 3 ? '2026-11-10T20:00:00Z' : null, priority: 1, source: 'manual', deleted_at: null })),
+        events: [{ id: 'e1', title: LONG_WORD, user_id: 'me', start_date: day, end_date: day, start_time: '21:00', end_time: '22:00', repeat: 'never', reminder_minutes: null, deleted_at: null }],
+        routines: [tvRoutine(LONG_WORD, ['Step']).routine],
+        routine_steps: tvRoutine(LONG_WORD, ['Step']).steps,
+      })
+      await page.goto('/tv/')
+      await expect(page.getByTestId('tv-day-row').first()).toBeVisible()
+      await scan(page, 'TV dashboard')
+      await page.setViewportSize({ width: 320, height: 640 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+      // Jumps to the night screen (the 15 minutes are proven in tv-page.spec.ts); stepping every second is too slow in Safari's engine.
+      await page.clock.fastForward(15 * 60_000)
+      await expect(page.getByTestId('tv-idle-next-title')).toBeVisible()
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+      await scan(page, 'TV night screen')
+    })
+
+    test('TV routine full screen, with a long title and step, also at 320 px', async ({ page }) => {
+      await pairedTv(page)
+      server.rpcResults.tv_check = true
+      const { routine, steps } = tvRoutine(LONG_WORD, [PARAGRAPH, LONG_LINE])
+      server.rpcResults.tv_snapshot = tvSnapshot({ routines: [routine], routine_steps: steps })
+      await page.goto('/tv/')
+      await expect(page.getByTestId('tv-routine')).toBeVisible()
+      await page.getByTestId('tv-routine').click()
+      await expect(page.getByTestId('tv-current-step')).toBeVisible()
+      await scan(page, 'TV routine')
+      await page.setViewportSize({ width: 320, height: 640 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+    })
+
+    test('TV Go on a Quest popup, with a long title and details, also at 320 px', async ({ page }) => {
+      await pairedTv(page)
+      server.rpcResults.tv_check = true
+      server.rpcResults.tv_snapshot = tvSnapshot()
+      server.rpcResults.tv_save_quest = null
+      server.rpcResults.tv_quest_draw = { quests: [{ id: 'q1', title: LONG_WORD, details: `<p>${PARAGRAPH}</p><p>${LONG_LINE}</p>`, energy_level: 'fun', time_bucket: '2h', status: 'open', times_picked: 3, deleted_at: null }], tasks: [] }
+      await page.goto('/tv/')
+      await page.getByTestId('tv-quest-open').click()
+      await page.getByTestId('tv-quest-pick').click()
+      await expect(page.getByTestId('tv-quest-result')).toBeVisible()
+      await scan(page, 'TV Go on a Quest')
+      await page.setViewportSize({ width: 320, height: 640 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+    })
+
+    test('TV Focus timer full screen, also at 320 px', async ({ page }) => {
+      await pairedTv(page)
+      server.rpcResults.tv_check = true
+      server.rpcResults.tv_snapshot = tvSnapshot()
+      server.rpcResults.tv_focus_room = { dots: [{ id: 'abc12345', s: 600 }], together: true }
+      await page.goto('/tv/')
+      await page.getByTestId('tv-focus-open').click()
+      await expect(page.getByTestId('tv-focus-dot')).toHaveCount(1)
+      await scan(page, 'TV Focus timer')
+      await page.setViewportSize({ width: 320, height: 640 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+    })
 
     test('Invite to event window on a profile', async ({ page }) => {
       await page.goto(`/people/${FRIEND}`)

@@ -44,6 +44,13 @@
   X-Robots-Tag: noindex, nofollow
 /connect/*
   X-Robots-Tag: noindex, nofollow
+/pair
+  X-Robots-Tag: noindex, nofollow
+# The TV page alone may be framed, by the TV's launcher (a local app file) or the site itself (docs/SPEC.md §9 The
+# launcher). The same policy otherwise; CSP frame-ancestors takes the place of X-Frame-Options.
+/tv/*
+  X-Robots-Tag: noindex, nofollow
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self'; manifest-src 'self'; frame-ancestors 'self' file:; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests
 /profile
   X-Robots-Tag: noindex, nofollow
 /quests

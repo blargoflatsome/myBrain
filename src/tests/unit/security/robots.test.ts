@@ -41,3 +41,27 @@ describe('SPEC §8 Search engines', () => {
     expect(robotsFile).not.toMatch(/^Disallow:\s*\/\s*$/m)
   })
 })
+
+/** Each path in public/_headers with its Content-Security-Policy, when it sets one. */
+function policies(): Record<string, string> {
+  const found: Record<string, string> = {}
+  let path = ''
+  for (const line of headersFile.split(/\r?\n/)) {
+    if (!line.trim() || line.trim().startsWith('#')) continue
+    if (!/^\s/.test(line)) path = line.trim()
+    else if (/^\s*Content-Security-Policy:/.test(line)) found[path] = line.slice(line.indexOf(':') + 1).trim()
+  }
+  return found
+}
+
+describe('SPEC §9 TV app, The launcher: only the TV page may be framed', () => {
+  it('the TV page has the site-wide policy, but may be framed by the launcher (a local file) or the site', () => {
+    const csp = policies()
+    expect(csp['/*']).toContain("frame-ancestors 'none'")
+    expect(csp['/tv/*']).toBe(csp['/*']!.replace("frame-ancestors 'none'", "frame-ancestors 'self' file:"))
+  })
+
+  it('no other path changes the site-wide policy', () => {
+    expect(Object.keys(policies()).sort()).toEqual(['/*', '/tv/*'])
+  })
+})

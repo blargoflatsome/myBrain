@@ -1,0 +1,10 @@
+# Built package and Tizen Studio's files (signatures, project settings). The certificate never lives here.
+*.wgt
+author-signature.xml
+signature*.xml
+.buildResult/
+.manifest.tmp
+.project
+.tproject
+.settings/
+*.p12

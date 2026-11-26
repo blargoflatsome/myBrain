@@ -32,7 +32,7 @@ export default defineConfig({
   webServer: {
     // vite build, not npm run build: the quick checks and the full review type-check first, so the browser tests don't
     // do it again. A fresh server every run, so a server left over from an earlier run never tests an old build.
-    command: 'npx vite build && npm run preview',
+    command: 'npx vite build && npx vite build --config vite.tv.config.ts && node scripts/check-tv-bundle.mjs && npm run preview',
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
     timeout: 120_000,

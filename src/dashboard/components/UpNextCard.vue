@@ -22,7 +22,6 @@
 
 <script setup lang="ts">
 import { linkTo } from '@/router/links'
-import { clockIn } from '@/time/days'
 // SPEC §5 Dashboard Up next: the first thing worth doing now (see upNext.ts for the order). The main button does it
 // here where it can, otherwise opens the right page; Something else skips it for today, on this device.
 import { readDayData } from '@/journal/dayData'
@@ -36,10 +35,10 @@ import UndoLine from '@/components/UndoLine.vue'
 import { useUndoInPlace } from '@/composables/useUndoInPlace'
 import { useNow } from '@/composables/useNow'
 import { useToday } from '@/composables/useToday'
-import { KEEP_GOING_DAYS, skippedToday, upNext, type Suggestion } from '@/dashboard/upNext'
+import { skippedToday, upNext, type Suggestion } from '@/dashboard/upNext'
+import { suggestionReason, suggestionTitle } from '@/dashboard/upNextText'
 import { cancelTask, moveTask } from '@/tasks/rules'
 import { messages } from '@/messages'
-import { timeLabel } from '@/ui/dates'
 import { readJson, writeJson } from '@/ui/storage'
 import { card, primaryButton, secondaryButton } from '@/ui/styles'
 
@@ -85,38 +84,8 @@ function skip() {
   if (current.value) saveSkips([...skipped.value, current.value.key])
 }
 
-const title = computed(() => {
-  const s = current.value
-  if (!s) return allSkipped.value ? u.allSkippedTitle : u.doneTitle
-  if (s.kind === 'orphans') return u.orphansTitle(s.count)
-  if (s.kind === 'journal') return u.journalTitle
-  return s.title
-})
-const clock = (ms: number) => timeLabel(clockIn(ms, timeZone.value))
-const reason = computed(() => {
-  const s = current.value
-  if (!s) return ''
-  switch (s.kind) {
-    case 'priority_habit':
-    case 'priority_task':
-      return u.priority
-    case 'habit':
-      return s.streak >= KEEP_GOING_DAYS ? u.keepGoing(s.streak, clock(s.by)) : u.dueBy(clock(s.by))
-    case 'routine':
-      return s.started ? u.routineStarted : u.routine
-    case 'event':
-      return u.event(timeLabel(s.time))
-    case 'stuck_task':
-      return u.stuck(s.times)
-    case 'task':
-      return u.task
-    case 'orphans':
-      return u.orphans
-    case 'journal':
-      return u.journal
-  }
-  return ''
-})
+const title = computed(() => (!current.value && allSkipped.value ? u.allSkippedTitle : suggestionTitle(current.value)))
+const reason = computed(() => suggestionReason(current.value, timeZone.value))
 const action = computed(() => {
   const s = current.value
   if (!s) return allSkipped.value ? u.showSkipped : u.pickQuest

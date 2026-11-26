@@ -1,0 +1,908 @@
+/*
+ * SPEC §9 TV app: plain CSS for the TV's engine (about Chrome 63), so no Tailwind, no flex `gap`, no `inset`, no
+ * `aspect-ratio`. A "10-foot" layout: large text, focus that shows from across the room. Colours follow the main app's
+ * calm dark palette; the night screen is muted black and greys only.
+ */
+:root {
+  --bg: #1c2230;
+  --surface: #262d3d;
+  --line: #3a4356;
+  --text: #e9e6df;
+  --muted: #b3b0a8;
+  --accent: #8fb3e8;
+  --done: #9cc4a8;
+  --night-bg: #000;
+  --night-text: #6b6b6b;
+  /* The dimmest grey that still reads as small text on black (4.5:1, WCAG 1.4.3); the large clock can be dimmer. */
+  --night-small: #767676;
+}
+
+html {
+  font-size: 28px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+#tv {
+  min-height: 100vh;
+}
+
+*:focus {
+  outline: 0.2rem solid var(--accent);
+  outline-offset: 0.2rem;
+}
+
+.tv-heading {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.tv-status,
+.tv-pairing {
+  margin: 0;
+  padding: 3rem 4rem;
+}
+
+.tv-pairing > * + * {
+  margin-top: 1rem;
+}
+
+.tv-lead {
+  max-width: 36rem;
+  font-size: 1.2rem;
+}
+
+.tv-muted {
+  color: var(--muted);
+}
+
+.tv-note {
+  max-width: 36rem;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--surface);
+}
+
+.tv-code {
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: 4rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+}
+
+.tv-dashboard {
+  padding: 1.5rem 2.5rem;
+}
+
+.tv-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.tv-clock {
+  margin: 0;
+  font-size: 1.6rem;
+  color: var(--muted);
+}
+
+.tv-idle {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--night-bg);
+  color: var(--night-text);
+}
+
+.tv-idle-clock {
+  margin: 0;
+  font-size: 7rem;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+}
+
+/* No flex gap on the TV's engine, so the QR code keeps its distance with a margin. */
+.tv-pair-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.tv-pair-text {
+  flex: 1 1 20rem;
+  margin-right: 2rem;
+}
+
+.tv-pair-text > * + * {
+  margin-top: 1rem;
+}
+
+.tv-qr {
+  display: block;
+  width: 12rem;
+  height: 12rem;
+  margin-top: 1rem;
+}
+
+/* The dashboard (SPEC §9 Layout): the calendar on the left two thirds, Your Day on the right. */
+.tv-columns {
+  display: flex;
+  align-items: stretch;
+  margin-top: 1rem;
+}
+
+.tv-col-wide {
+  flex: 2 1 0;
+  min-width: 0;
+  margin-right: 1.5rem;
+}
+
+.tv-col-side {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.tv-panel {
+  padding: 1rem 1.2rem;
+  border: 2px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--surface);
+}
+
+.tv-panel-heading,
+.tv-month-name {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.tv-button {
+  min-width: 2.4rem;
+  min-height: 2.4rem;
+  padding: 0.2rem 0.9rem;
+  border: 2px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tv-button:focus {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.tv-button[aria-disabled='true'] {
+  color: var(--muted);
+}
+
+.tv-arrow {
+  padding: 0;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.tv-month-bar {
+  display: flex;
+  align-items: center;
+}
+
+.tv-month-bar > * + * {
+  margin-left: 0.8rem;
+}
+
+.tv-month-name {
+  min-width: 11rem;
+  text-align: center;
+}
+
+.tv-grid {
+  width: 100%;
+  margin-top: 0.6rem;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.tv-grid th {
+  padding-bottom: 0.2rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.tv-grid td {
+  height: 3.7rem;
+  padding: 0.2rem 0.3rem;
+  border: 1px solid var(--line);
+  vertical-align: top;
+  overflow: hidden;
+}
+
+.tv-day-out {
+  color: var(--muted);
+}
+
+.tv-day-number {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Today is marked with a ring and bold, not colour alone. */
+.tv-day-today .tv-day-number span:first-child {
+  display: inline-block;
+  min-width: 1.3rem;
+  border: 2px solid var(--accent);
+  border-radius: 1rem;
+  text-align: center;
+  font-weight: 800;
+}
+
+.tv-cell-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-cell-item,
+.tv-cell-more {
+  margin: 0.1rem 0 0;
+  padding: 0 0.25rem;
+  font-size: 0.62rem;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tv-cell-item {
+  border-left: 3px solid var(--accent);
+  border-radius: 0.2rem;
+  background: var(--bg);
+}
+
+.tv-item-task {
+  border-left-color: var(--muted);
+}
+
+.tv-item-pending {
+  border: 1px dashed var(--muted);
+  border-left-width: 3px;
+}
+
+.tv-item-time {
+  color: var(--muted);
+}
+
+.tv-cell-more {
+  color: var(--muted);
+}
+
+.tv-item-done .tv-day-title,
+.tv-cell-item.tv-item-done {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.tv-day-list {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-day-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.tv-day-when {
+  flex: 0 0 5.6rem;
+  margin-right: 0.6rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.9;
+}
+
+.tv-day-check {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin: 0.25rem 0.8rem 0 0;
+  border: 2px solid var(--muted);
+  border-radius: 50%;
+}
+
+.tv-day-checked {
+  border-color: var(--done);
+  background: var(--done);
+}
+
+.tv-day-text {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Long titles keep to two lines, and a pasted link breaks, so the box never grows. */
+.tv-day-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.tv-day-note {
+  display: block;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.tv-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.8rem;
+}
+
+.tv-pager-count {
+  margin: 0 1rem;
+}
+
+/* SPEC §9 Layout: Routines (and, next, Go on a Quest) share a strip along the bottom. */
+.tv-strip {
+  display: flex;
+  margin-top: 1rem;
+}
+
+.tv-routines {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.tv-routines-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tv-routines-pager {
+  margin-top: 0;
+}
+
+.tv-routine-list {
+  display: flex;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-routine-item {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.tv-routine-item + .tv-routine-item {
+  margin-left: 0.8rem;
+}
+
+.tv-routine {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.4rem 0.8rem;
+  text-align: left;
+}
+
+.tv-routine-title,
+.tv-routine-status,
+.tv-routine-action {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tv-routine-title {
+  font-weight: 700;
+}
+
+.tv-routine-status {
+  font-size: 0.8rem;
+}
+
+.tv-routine-action {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* SPEC §9 Routines: a routine full screen, one step at a time. */
+.tv-run {
+  padding: 1.5rem 2.5rem;
+}
+
+/* min-width: 0 and break-word (Chrome 63 has no overflow-wrap: anywhere), so a pasted link breaks inside the bar. */
+.tv-run .tv-heading {
+  min-width: 0;
+  margin-right: 1rem;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.tv-run .tv-bar .tv-button {
+  flex: none;
+}
+
+.tv-run-step {
+  max-width: 44rem;
+  margin: 2rem auto 0;
+  padding: 1.5rem 2rem;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.tv-run-track {
+  height: 0.4rem;
+  margin-top: 0.4rem;
+  border-radius: 0.2rem;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.tv-run-bar {
+  height: 100%;
+  background: var(--done);
+  transition: width 500ms ease-out;
+}
+
+.tv-run-title {
+  margin: 1.2rem 0 0.4rem;
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.tv-run-buttons {
+  display: flex;
+  margin-top: 1.5rem;
+}
+
+.tv-run-button {
+  flex: 1 1 0;
+  min-height: 3.2rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.tv-run-button + .tv-run-button {
+  margin-left: 1rem;
+}
+
+.tv-run-again {
+  margin-top: 1rem;
+}
+
+/* Completed: a strikethrough draws across the step, then it fades and the next step appears (SPEC §5 Routines). */
+.tv-cross-out {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-position: 0 55%;
+  background-repeat: no-repeat;
+  background-size: 0 3px;
+  transition: background-size 400ms ease-out, opacity 200ms 400ms;
+}
+
+.tv-cross-out.tv-crossing {
+  background-size: 100% 3px;
+  opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-cross-out,
+  .tv-run-bar {
+    transition: none;
+  }
+}
+
+/* Centred in a column, it would grow to a pasted link's width; a set width lets the link break instead. */
+.tv-idle-next {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 40rem;
+  margin-top: 1.5rem;
+  padding: 0 1rem;
+  text-align: center;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.tv-idle-next {
+  color: var(--night-small);
+}
+
+.tv-idle-title {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.tv-idle-reason {
+  margin: 0.3rem 0 0;
+  font-size: 1rem;
+}
+
+/* WCAG 1.4.10: the page also reflows at 320 px (text enlarged, or opened on a phone). No clamp() on the TV's engine. */
+@media (max-width: 900px) {
+  html {
+    font-size: 16px;
+  }
+
+  .tv-status,
+  .tv-pairing,
+  .tv-dashboard,
+  .tv-run {
+    padding: 1.5rem 1rem;
+  }
+
+  .tv-code {
+    font-size: 2.5rem;
+    letter-spacing: 0.15em;
+  }
+
+  .tv-idle-clock {
+    font-size: 4rem;
+  }
+
+  .tv-pair-text {
+    margin-right: 0;
+  }
+
+  .tv-qr {
+    width: 10rem;
+    height: 10rem;
+  }
+
+  .tv-columns {
+    display: block;
+  }
+
+  .tv-col-wide {
+    margin: 0 0 1rem;
+  }
+
+  .tv-routine-list {
+    display: block;
+  }
+
+  .tv-routine-item + .tv-routine-item {
+    margin: 0.5rem 0 0;
+  }
+
+  .tv-run-step {
+    padding: 1rem;
+  }
+
+  .tv-run-title {
+    font-size: 1.6rem;
+  }
+
+  .tv-panel {
+    padding: 0.6rem;
+  }
+
+  .tv-month-name {
+    min-width: 0;
+  }
+
+  .tv-grid td {
+    height: 3rem;
+    padding: 0.1rem;
+  }
+
+  .tv-cell-item,
+  .tv-cell-more {
+    padding: 0 0.1rem;
+    font-size: 0.6rem;
+  }
+}
+
+.tv-pairing,
+.tv-note,
+.tv-lead {
+  overflow-wrap: break-word;
+}
+
+/* Heard by screen readers, not shown. */
+.tv-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* SPEC §9 Go on a Quest: its button shares the strip with Routines; the picker opens in a popup over the dashboard. */
+.tv-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.tv-popup {
+  box-sizing: border-box;
+  width: 46rem;
+  max-width: calc(100% - 2rem);
+  max-height: calc(100% - 2rem);
+  padding: 1.2rem 1.6rem;
+  overflow-y: auto;
+  border: 2px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--surface);
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.tv-popup-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tv-popup-bar .tv-button {
+  flex: none;
+  margin-left: 1rem;
+}
+
+.tv-filter {
+  margin: 0.8rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.tv-filter-label {
+  margin-bottom: 0.3rem;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+/* No flex gap on Chrome 63: chips space themselves. */
+.tv-chip {
+  margin: 0 0.5rem 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+/* A chosen option is a soft tint with a check mark, never a solid fill (SPEC §2 Choices look alike everywhere). */
+.tv-chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: rgba(143, 179, 232, 0.18);
+}
+
+.tv-chip[aria-pressed='true']:focus {
+  background: var(--accent);
+}
+
+.tv-quest-pick {
+  margin-top: 0.6rem;
+  min-height: 3rem;
+  font-weight: 700;
+}
+
+.tv-quest-result {
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border: 2px solid var(--line);
+  border-left: 0.4rem solid var(--accent);
+  border-radius: 0.6rem;
+  background: var(--bg);
+}
+
+.tv-quest-result > p {
+  margin: 0;
+}
+
+.tv-quest-title {
+  margin: 0.2rem 0;
+  font-size: 1.4rem;
+}
+
+.tv-quest-notes p {
+  margin: 0.3rem 0;
+}
+
+.tv-quest-tags {
+  font-size: 0.85rem;
+}
+
+.tv-tag {
+  display: inline-block;
+  margin: 0.3rem 0.5rem 0 0;
+  padding: 0 0.6rem;
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.tv-quest-buttons {
+  margin-top: 0.8rem;
+}
+
+.tv-quest-buttons .tv-button {
+  margin: 0 0.6rem 0.5rem 0;
+}
+
+.tv-quest-notice {
+  margin: 1rem 0 0;
+}
+
+.tv-undo-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1rem 0 0;
+  padding: 0.4rem 0.4rem 0.4rem 1rem;
+  border: 2px dashed var(--line);
+  border-radius: 0.6rem;
+}
+
+.tv-undo-line .tv-muted {
+  min-width: 0;
+  margin-right: 1rem;
+}
+
+.tv-undo-line .tv-button {
+  flex: none;
+}
+
+/* The strip's buttons beside Routines: Go on a Quest and the Focus timer, one above the other. */
+.tv-strip-actions {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 1rem;
+}
+
+.tv-strip-action {
+  min-height: 2.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tv-strip-action + .tv-strip-action {
+  margin-top: 0.6rem;
+}
+
+/* SPEC §9 Focus timer: full screen, black, with only the time and what to do now. */
+.tv-focus {
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: #000;
+  color: #fff;
+  overflow: hidden;
+}
+
+.tv-focus .tv-button {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: #000;
+  color: #fff;
+}
+
+.tv-focus .tv-button:focus {
+  border-color: #fff;
+  background: #fff;
+  color: #000;
+}
+
+.tv-focus-room {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.tv-focus-dot {
+  position: absolute;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin: -0.2rem 0 0 -0.2rem;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.2;
+  transition: opacity 1s, box-shadow 1s;
+}
+
+.tv-focus-dot-glow {
+  opacity: 0.7;
+  box-shadow: 0 0 0.5rem 0.2rem rgba(255, 255, 255, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tv-focus-dot {
+    transition: none;
+  }
+}
+
+.tv-focus-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+}
+
+.tv-focus-phase,
+.tv-focus-time,
+.tv-focus-round,
+.tv-focus-buttons {
+  position: relative;
+  margin: 0;
+}
+
+.tv-focus-phase {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.tv-focus-time {
+  font-size: 9rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-focus-round {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tv-focus-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.tv-focus-button {
+  min-height: 3rem;
+  margin: 0 0.5rem 0.5rem;
+  padding: 0.2rem 1.4rem;
+  font-weight: 700;
+}
+
+@media (max-width: 40rem) {
+  .tv-focus-time {
+    font-size: 5rem;
+  }
+}

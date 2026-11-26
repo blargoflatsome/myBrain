@@ -84,6 +84,11 @@ export const SHOTS: Shot[] = [
   { name: 'help-reminders', path: '/account', accountOpen: true, ready: async (p) => { await p.getByTestId('notification-settings').waitFor() }, ring: (p) => p.getByTestId('notification-settings') },
   { name: 'help-search', path: '/tasks', ready: waitFor('Pay rent'), ring: (p) => p.getByRole('button', { name: msg.search.open }) },
   { name: 'help-offline', path: '/tasks', ready: waitFor('Pay rent'), ring: (p) => p.getByTestId('sync-indicator') },
+  {
+    name: 'help-tv', path: '/account', accountOpen: true,
+    seed: (s) => { s.rpcResults.my_paired_devices = () => [{ id: 'dddddddd-0000-4000-8000-000000000001', name: 'TV', created_at: '2026-11-20T15:00:00Z', last_seen_at: '2026-11-26T14:00:00Z' }] },
+    ready: async (p) => { await p.getByTestId('paired-device').waitFor() }, ring: (p) => p.getByTestId('pair-tv-form'),
+  },
   { name: 'help-data', path: '/account', accountOpen: true, ready: async (p) => { await p.getByTestId('data-export').waitFor() }, ring: (p) => p.getByTestId('data-export') },
 
   // ---------- Home page ----------

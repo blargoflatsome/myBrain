@@ -77,11 +77,22 @@ function offsetFormat(timeZone: string): Intl.DateTimeFormat {
   return f
 }
 
+/**
+ * The 24-hour hour in a formatted time. Engines older than `hourCycle` (Chrome 73; the TV's is about Chrome 63, SPEC §9)
+ * ignore it and answer in 12-hour time with AM or PM, and some engines write midnight as 24.
+ */
+export function hourOf(parts: readonly Intl.DateTimeFormatPart[]): number {
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? 0)
+  const period = parts.find((p) => p.type === 'dayPeriod')?.value.toLowerCase()
+  if (!period) return hour % 24
+  return (hour % 12) + (period.startsWith('p') ? 12 : 0)
+}
+
 /** Offset of a timezone from UTC at a moment, in milliseconds. */
 function offsetAt(utcMs: number, timeZone: string): number {
   const parts = offsetFormat(timeZone).formatToParts(new Date(utcMs))
   const get = (t: string) => Number(parts.find((p) => p.type === t)!.value)
-  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'))
+  const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), hourOf(parts), get('minute'), get('second'))
   return asUtc - Math.floor(utcMs / 1000) * 1000
 }
 
@@ -107,8 +118,7 @@ export function clockIn(ms: number, timeZone: string): string {
   }
   const parts = format.formatToParts(new Date(ms))
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0)
-  // Some engines write midnight as 24.
-  return `${String(get('hour') % 24).padStart(2, '0')}:${String(get('minute')).padStart(2, '0')}`
+  return `${String(hourOf(parts)).padStart(2, '0')}:${String(get('minute')).padStart(2, '0')}`
 }
 
 /** The local day and time of a moment, in a time zone. */

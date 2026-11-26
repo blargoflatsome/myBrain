@@ -23,10 +23,13 @@ interface Answer {
   together: boolean
 }
 
-/** Check in with my current part and see the room. */
-export async function checkIn(part: { phase: FocusPhase; endsAt: number }): Promise<Room> {
-  const args = { p_phase: part.phase, p_ends_at: new Date(part.endsAt).toISOString() }
-  const data = await serverCall<Partial<Answer> | null>('focus_room', args)
+/**
+ * Check in with my current part and see the room. The TV (SPEC §9) calls its own function, with its device key in
+ * `extra`.
+ */
+export async function checkIn(part: { phase: FocusPhase; endsAt: number }, fn = 'focus_room', extra: Record<string, unknown> = {}): Promise<Room> {
+  const args = { ...extra, p_phase: part.phase, p_ends_at: new Date(part.endsAt).toISOString() }
+  const data = await serverCall<Partial<Answer> | null>(fn, args)
   const now = Date.now()
   const a = data ?? {}
   return {
@@ -36,8 +39,8 @@ export async function checkIn(part: { phase: FocusPhase; endsAt: number }): Prom
 }
 
 /** Leave the room (the timer stopped). If it fails, my dot fades by itself when my part's time is up. */
-export async function leave(): Promise<void> {
-  await serverCall('focus_leave').catch(() => {})
+export async function leave(fn = 'focus_leave', extra?: Record<string, unknown>): Promise<void> {
+  await serverCall(fn, extra).catch(() => {})
 }
 
 /** Where a dot sits, as percentages of the screen: from its id, on a ring around the time so it never covers it. */

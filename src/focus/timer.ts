@@ -53,6 +53,17 @@ export function catchUp(state: FocusState, now: number): { state: FocusState; en
   return { state: current, ended }
 }
 
+/** How many of the `ended` parts after `state` were work (each counts as a finished Focus session). */
+export function workPartsEnded(state: FocusState, ended: number): number {
+  let part = { phase: state.phase, round: state.round }
+  let work = 0
+  for (let i = 0; i < ended; i++) {
+    if (part.phase === 'work') work++
+    part = nextPart(part.phase, part.round)
+  }
+  return work
+}
+
 export function pause(state: FocusState, now: number): FocusState {
   if (state.endsAt === null) return state
   return { ...state, endsAt: null, pausedMs: Math.max(0, state.endsAt - now) }

@@ -12,6 +12,10 @@ function format(date: string, options: Intl.DateTimeFormatOptions): string {
 export const shortDay = (date: string) => format(date, { weekday: 'short', month: 'short', day: 'numeric' })
 /** "Tue, Nov 10, 2026" */
 export const shortDayWithYear = (date: string) => format(date, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+/** "November 2026" (a month, from any day in it) */
+export const monthLabel = (date: string) => format(date, { month: 'long', year: 'numeric' })
+/** "Sun" (a weekday's short name) */
+export const weekdayShort = (date: string) => format(date, { weekday: 'short' })
 /** "Nov 10, 2026" */
 export const dateWithYear = (date: string) => format(date, { month: 'short', day: 'numeric', year: 'numeric' })
 

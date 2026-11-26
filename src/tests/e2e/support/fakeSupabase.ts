@@ -122,7 +122,7 @@ export class FakeSupabase {
     if (this.openAccountGroups) {
       await page.addInitScript(() => {
         if (!localStorage.getItem('my-brain:account-open')) {
-          localStorage.setItem('my-brain:account-open', JSON.stringify(['profile', 'settings', 'reminders', 'events', 'people', 'data']))
+          localStorage.setItem('my-brain:account-open', JSON.stringify(['profile', 'settings', 'reminders', 'events', 'people', 'devices', 'data']))
         }
       })
     }
@@ -154,6 +154,8 @@ export class FakeSupabase {
       this.rpcCalls.push(table)
       const args = (req.postDataJSON() ?? {}) as Record<string, unknown>
       this.rpcArgs.push({ name: table, args })
+      const code = this.rpcErrors[table]
+      if (code) return { status: 400, json: { code, message: code } }
       const result = this.rpcResults[table]
       if (result === undefined) return { status: 204, body: '' }
       return { json: typeof result === 'function' ? (result as (a: Record<string, unknown>) => unknown)(args) : result }
@@ -178,6 +180,8 @@ export class FakeSupabase {
   rpcArgs: { name: string; args: Record<string, unknown> }[] = []
   /** What a database function returns: a value, or a function of its arguments. Unset = no content. */
   rpcResults: Record<string, unknown> = {}
+  /** Make a database function fail with this Postgres error code (for example 28000, a TV that isn't paired). */
+  rpcErrors: Record<string, string> = {}
   /** Start with every Account group and the Dashboard's More stats open (set false to see the page's own defaults). */
   openAccountGroups = true
 
