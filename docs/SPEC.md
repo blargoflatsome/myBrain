@@ -669,11 +669,13 @@ Trophies give me things to work toward and a little dopamine for using the app. 
   - **Routines:** a paginated list of my routines. Choosing one with the remote starts it and walks me through it on the TV, following every rule in §5 Routines (Skip and Completed, the cross-out, habit steps, Resume, Start again, finishing goes back to the list). Progress is the same run as on my phone, so I can start on one and finish on the other.
   - **Go on a Quest:** a button that shows a quest in a popup until I dismiss it. It follows every rule and choice in §5 Random Quest (filters, recently picked, tasks in the draw, accept, re-roll, done, pick counts).
 - **Focus timer:** the §5 Focus timer, full screen on the TV, with the same parts, controls (Pause / Resume, Skip, Minimize, ✕), chime and focus room. It keeps the TV screen awake while it shows. Like on any device, the timer lives on the TV only.
-- **Idle screen:** after a while with no button pressed, the TV dims to a night screen: the time as a large digital clock, with the Dashboard's **Up next** text just under it. It's meant to be on while I sleep, so it uses muted black and greys only: enough contrast to read, never bright enough to disturb sleep. Pressing any button returns to the dashboard (that press only wakes it; it doesn't also act).
+- **Idle screen:** after **15 minutes** with no button pressed, the TV dims to a night screen: the time as a large digital clock, with the Dashboard's **Up next** text just under it. It's meant to be on while I sleep, so it uses muted black and greys only: enough contrast to read, never bright enough to disturb sleep. Pressing any button returns to the dashboard (that press only wakes it; it doesn't also act).
+  - **Active use holds it off (2026-11-26, user):** while a routine or the Focus timer is open, the idle timer is halted; the 15 minutes start again when I leave it.
 - **Remote control:** everything is reachable with the arrow keys and OK, Back goes back (closes the popup, leaves a routine or the timer), focus is obvious from across the room, and text is large (a "10-foot" layout). WCAG 2.2 AA still applies.
 - **Signing in by pairing:** Google sign-in can't run on the TV, so the TV shows a short code (and a QR code) and I approve it in My Brain on my phone. The TV then stays signed in. **Paired devices** on the Account page lists it, with **Unpair**. The TV's access is limited to reading what it shows plus the writes it needs (routine progress, quest picks and their outcomes, the focus room check-in).
-- **How it's built (Claude's proposal):** the TV's browser engine is about Chrome 63 (2018), older than the main app supports (Tailwind 4 needs Chrome 111+), so the TV gets its own small page and build (Vue with plain CSS) served from the My Brain site, sharing the data code and `messages.ts`. The app installed on the TV is a thin launcher that opens that page, so updates arrive with a normal deploy. The launcher is installed through the TV's Developer Mode; its signing certificate and password are never committed.
-- **Open (to confirm with the user):** where the TV page and launcher live (in this repo or a separate one); how long until the idle screen; whether the idle screen waits while a routine or the full-screen Focus timer is showing; whether friends can use it (see §12).
+- **How it's built (Claude's proposal; where it lives agreed 2026-11-26, user):** the TV's browser engine is about Chrome 63 (2018), older than the main app supports (Tailwind 4 needs Chrome 111+), so the TV gets its own small page and build (Vue with plain CSS) served from the My Brain site, sharing the data code and `messages.ts`. The app installed on the TV is a thin launcher that opens that page, so updates arrive with a normal deploy. The launcher is installed through the TV's Developer Mode; its signing certificate and password are never committed.
+- **Where it lives (2026-11-26, user):** everything stays in this repo. The TV page is part of the website's code (shared data code and wording); the launcher sits in its own self-contained folder at the root (`tv-launcher/`), separate from the website, with its own short README and nothing the website build or tests depend on.
+- **Open:** whether friends can use it (see §12).
 - **Earlier:** the Raspberry Pi display (dropped 2026-11-11) is still dropped; pairing came back for the TV only.
 
 ## 10. Phase 2 (nothing planned; 2026-11-25, user)
@@ -708,7 +710,7 @@ After each step, the app should deploy and be usable, and all Vitest and Playwri
 ## 12. Questions for Claude Code to confirm with me before or during the build
 - The "past you" voice is decided (see Voice and tone in section 2). Ask me if a new kind of message isn't covered.
 - Anything in this document that conflicts with current platform limits; flag it rather than silently working around it.
-- **TV app (§9):** where its code lives, the idle screen's wait, and whether other people can use it.
+- **TV app (§9):** whether other people can use it.
 
 - Automatic email: dropped (2026-11-24). Phone verification and any SMS service: dropped (2026-11-12).
 
