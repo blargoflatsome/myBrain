@@ -1,5 +1,5 @@
-// My Brain's TV launcher (docs/SPEC.md §9 The launcher). It fills the screen with the TV page from the site and makes
-// Samsung's TV calls for it, which the page can't make itself. Plain old JavaScript: the TV's engine is about Chrome 63.
+// My Brain's TV launcher (docs/SPEC.md §9 The launcher). It fills the screen with the TV page from the site and keeps
+// the TV awake (no screen saver) the whole time it shows, through Samsung's calls, which the page can't make itself. Plain old JavaScript: the TV's engine is about Chrome 63.
 ;(function () {
   // The site the TV page comes from. To try another one (a deploy preview), change it here and in config.xml.
   var SITE = 'https://myadhdbrain.netlify.app'
@@ -29,7 +29,7 @@
   }
 
   // Loads the TV page. If it finished loading without saying it's ready (My Brain was out of reach), tries again
-  // 30 seconds later; a page still loading on a slow network is left to finish.
+  // 30 seconds later; a page still loading on a slow network is left to finish. An error screen may dim as usual.
   function load() {
     ready = false
     keepAwake(false)
@@ -52,16 +52,15 @@
     }
   }
 
-  // Only the TV page, from the site, in this frame, may ask. The shapes match src/tv/screen/launcher.ts.
+  // Only the TV page, from the site, in this frame, may say it's ready. The shape matches src/tv/screen/launcher.ts.
   window.addEventListener('message', function (event) {
     if (event.origin !== SITE || event.source !== frame.contentWindow) return
     var data = event.data || {}
     if (data.myBrainTv === 'ready') {
       ready = true
       clearTimeout(retry)
+      keepAwake(true)
       focusPage()
-    } else if (data.myBrainTv === 'keep-awake') {
-      keepAwake(data.on === true)
     }
   })
 

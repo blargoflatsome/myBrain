@@ -9,5 +9,5 @@ import '@/tv/screen/tv.css'
 
 useServerAdapter(tvServerAdapter(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY))
 createApp(TvApp).mount('#tv')
-// The launcher stops retrying once the page has loaded (SPEC §9 The launcher).
+// The launcher stops retrying and keeps the TV awake once the page has loaded (SPEC §9 The launcher).
 tellLauncher({ myBrainTv: 'ready' })

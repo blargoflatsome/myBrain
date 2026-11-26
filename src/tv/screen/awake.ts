@@ -1,17 +1,15 @@
-// SPEC §9 TV app, Focus timer: keep the TV screen awake while the timer shows. On the TV the page is framed by the
-// launcher, which alone can use Samsung's calls (the screen saver, the power manager), so the page asks it and the
-// launcher makes the same calls (tv-launcher/launcher.js). In any other browser the page uses
-// the Screen Wake Lock where there is one. Each call is tried only when present; a refusal just lets the TV dim.
-import { tellLauncher, type Framed } from '@/tv/screen/launcher'
+// SPEC §9 TV app, Focus timer: keep the screen awake while the timer shows. On the TV the launcher already keeps it
+// awake the whole time My Brain shows (tv-launcher/launcher.js); these calls are for a page opened where Samsung's
+// calls exist without the launcher, and the Screen Wake Lock covers other browsers. Each is tried only when present,
+// and a refusal just lets the screen dim as usual.
 
-interface TvGlobals extends Framed {
+interface TvGlobals {
   tizen?: { power?: { request(resource: 'SCREEN', state: 'SCREEN_NORMAL'): void; release(resource: 'SCREEN'): void } }
   webapis?: { appcommon?: { setScreenSaver(state: number): void; AppCommonScreenSaverState?: { SCREEN_SAVER_OFF: number; SCREEN_SAVER_ON: number } } }
 }
 
 /** Turn the TV's screen saver and screen dimming off (true) or back on (false). */
 export function keepTvAwake(on: boolean, g: TvGlobals = window as unknown as TvGlobals) {
-  tellLauncher({ myBrainTv: 'keep-awake', on }, g)
   try {
     const states = g.webapis?.appcommon?.AppCommonScreenSaverState
     if (states) g.webapis!.appcommon!.setScreenSaver(on ? states.SCREEN_SAVER_OFF : states.SCREEN_SAVER_ON)

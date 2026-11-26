@@ -1,14 +1,14 @@
 # My Brain TV launcher
 
 The small app installed on the Samsung TV (Tizen 5.0 and later). It fills the screen with My Brain's TV page (`/tv/`
-on the site) and turns the TV's screen saver off while the Focus timer shows, which the page can't do by itself
-(docs/SPEC.md §9 The launcher). Updates to the TV page arrive with a normal deploy; this app only needs installing again
-if these files change.
+on the site) and keeps the TV awake (no screen saver) the whole time My Brain shows, so the night screen stays on
+overnight, which the page can't do by itself (docs/SPEC.md §9 The launcher). Updates to the TV page arrive with a
+normal deploy; this app only needs installing again if these files change.
 
 Nothing in the website's build or tests uses this folder.
 
 - `config.xml`: the app's name, icon and permissions, and the site it may reach.
-- `index.html`, `launcher.js`: the full-screen frame, and the screen-saver calls the TV page asks for.
+- `index.html`, `launcher.js`: the full-screen frame, and the screen-saver calls once the TV page has loaded.
 
 ## Install it on the TV
 
@@ -54,7 +54,9 @@ install again, then set them back. The TV page must be allowed in a frame there,
 
 - **Black or error screen at start:** My Brain was out of reach. The launcher tries again every 30 seconds and when the
   network comes back.
-- **The TV dims during a Focus timer:** the TV refused the screen-saver call, or the page couldn't reach the launcher.
-  Check the TV page loads in the launcher (not the TV's browser), and that `SITE` matches the address exactly.
+- **The TV dims or the screen saver starts:** the TV refused the screen-saver call, or the page couldn't reach the
+  launcher. Check the TV page loads in the launcher (not the TV's browser), and that `SITE` matches the address exactly.
+- **The TV turns itself off overnight:** that's the TV's Auto Power Off, which apps can't stop. Turn it off in
+  Settings → General → Eco Solution → Auto Power Off.
 - **The page refuses to load in the frame:** the site's `/tv/*` headers must allow framing (`frame-ancestors 'self'
   file:`). Check them with `curl -I <site>/tv/`.

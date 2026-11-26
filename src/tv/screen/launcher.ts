@@ -1,9 +1,9 @@
-// SPEC §9 TV app, The launcher: on the TV the page runs in a frame inside the launcher (tv-launcher/), whose own page
-// alone may use Samsung's TV calls. The page asks it for them with a message; the launcher checks that it comes from
+// SPEC §9 TV app, The launcher: on the TV the page runs in a frame inside the launcher (tv-launcher/). Once the page
+// says it's ready, the launcher stops retrying and keeps the TV awake while it shows; it checks the message comes from
 // the My Brain site and its own frame. In any other browser there is no launcher and nothing is sent.
 
-/** What the page can tell the launcher. tv-launcher/launcher.js reads the same shapes. */
-export type LauncherMessage = { myBrainTv: 'ready' } | { myBrainTv: 'keep-awake'; on: boolean }
+/** What the page can tell the launcher. tv-launcher/launcher.js reads the same shape. */
+export type LauncherMessage = { myBrainTv: 'ready' }
 
 export interface Framed {
   parent?: { postMessage(message: unknown, targetOrigin: string): void } | null

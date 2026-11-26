@@ -4,7 +4,7 @@ import { buttonOf } from '@/tv/screen/remote'
 import { isUnpaired, tvServerAdapter } from '@/tv/screen/tvServer'
 import { ServerError, serverCall, useServerAdapter } from '@/server/server'
 import { cleanCode } from '@/tv/devices'
-import { keepTvAwake } from '@/tv/screen/awake'
+import { tellLauncher, type Framed } from '@/tv/screen/launcher'
 
 const MIN = 60_000
 
@@ -70,19 +70,18 @@ describe('SPEC §9 Pairing: the code is read the way the TV shows it', () => {
   })
 })
 
-describe('SPEC §9 TV app, The launcher: the TV page asks it to keep the TV awake', () => {
-  it.each([true, false])('in the launcher’s frame, keep awake %s is sent to the launcher', (on) => {
+describe('SPEC §9 TV app, The launcher: the TV page tells it when it has loaded', () => {
+  it('in the launcher’s frame, ready is sent to the launcher', () => {
     const sent: unknown[] = []
-    const page = { parent: { postMessage: (message: unknown) => sent.push(message) } }
-    keepTvAwake(on, page)
-    expect(sent).toEqual([{ myBrainTv: 'keep-awake', on }])
+    tellLauncher({ myBrainTv: 'ready' }, { parent: { postMessage: (message: unknown) => sent.push(message) } })
+    expect(sent).toEqual([{ myBrainTv: 'ready' }])
   })
 
   it('outside a frame nothing is sent', () => {
     const sent: unknown[] = []
-    const page: { parent?: unknown } = {}
+    const page: Framed = {}
     page.parent = Object.assign(page, { postMessage: (message: unknown) => sent.push(message) })
-    keepTvAwake(true, page as Parameters<typeof keepTvAwake>[1])
+    tellLauncher({ myBrainTv: 'ready' }, page)
     expect(sent).toEqual([])
   })
 })
