@@ -179,7 +179,8 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'TV dashboard')
       await page.setViewportSize({ width: 320, height: 640 })
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
-      await page.clock.runFor(15 * 60_000)
+      // Jumps to the night screen (the 15 minutes are proven in tv-page.spec.ts); stepping every second is too slow in Safari's engine.
+      await page.clock.fastForward(15 * 60_000)
       await expect(page.getByTestId('tv-idle-next-title')).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
       await scan(page, 'TV night screen')
