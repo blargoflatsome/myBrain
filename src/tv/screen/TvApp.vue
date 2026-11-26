@@ -26,7 +26,9 @@
       :trouble="trouble"
       @move="moveMonth"
       @open-routine="(id) => (openRoutineId = id)"
+      @quest="quest.show()"
     />
+    <QuestPopup v-if="quest.open.value && !openRoutine" :quest="quest" @close="closeQuest" />
   </template>
 </template>
 
@@ -39,6 +41,8 @@ import IdleScreen from '@/tv/screen/components/IdleScreen.vue'
 import PairingScreen from '@/tv/screen/components/PairingScreen.vue'
 import DashboardScreen from '@/tv/screen/components/DashboardScreen.vue'
 import RoutineRunScreen from '@/tv/screen/components/RoutineRunScreen.vue'
+import QuestPopup from '@/tv/screen/components/QuestPopup.vue'
+import { useTvQuest } from '@/tv/screen/quest'
 import { routineToday } from '@/routines/listing'
 import type { TvRoutineFacts } from '@/tv/screen/routines'
 import { useNow } from '@/composables/useNow'
@@ -105,6 +109,13 @@ function closeRoutine() {
   void nextTick(() => (document.querySelector(`[data-routine="${id}"]`) as HTMLElement | null ?? document.querySelector('button') as HTMLElement | null)?.focus())
 }
 
+// Go on a Quest (SPEC §9): kept here, so the popup is still open when the TV wakes from the night screen.
+const quest = useTvQuest(savedKey, () => today.value, () => timeZone.value)
+function closeQuest() {
+  quest.close()
+  void nextTick(() => (document.querySelector('[data-testid="tv-quest-open"]') as HTMLElement | null)?.focus())
+}
+
 const upNextNow = computed(() => {
   const s = snapshot.value
   return s ? (upNextFrom(s.facts, now.value, timeZone.value, s.journalTime)[0] ?? null) : null
@@ -145,16 +156,23 @@ watch(idle, (dimmed) => {
 
 function toPairing() {
   openRoutineId.value = null
+  quest.close()
   wasUnpaired.value = true
   state.value = 'pairing'
   snapshot.value = null
   loader.reset()
 }
 
+/** The controls the remote can reach: only what shows, and only inside the popup while it's open (it traps focus). */
+function reachable(): HTMLElement[] {
+  // The dashboard stays on the page, hidden, under a routine.
+  const scope = document.querySelector('[role="dialog"]') ?? document
+  return (Array.prototype.slice.call(scope.querySelectorAll('button:not([disabled]), a[href]')) as HTMLElement[]).filter((c) => c.offsetParent !== null)
+}
+
 // The remote has arrows, not Tab: an arrow moves focus to the nearest control that way (Remote control).
 function moveFocus(arrow: 'up' | 'down' | 'left' | 'right') {
-  // Only what shows: the dashboard stays on the page, hidden, under a routine.
-  const controls = (Array.prototype.slice.call(document.querySelectorAll('button:not([disabled]), a[href]')) as HTMLElement[]).filter((c) => c.offsetParent !== null)
+  const controls = reachable()
   if (!controls.length) return
   const at = document.activeElement as HTMLElement | null
   const from = at ? controls.indexOf(at) : -1
@@ -175,6 +193,11 @@ function onKey(e: KeyboardEvent) {
     return
   }
   const button = buttonOf(e)
+  if (e.key === 'Tab' && quest.open.value) return trapTab(e)
+  if (button === 'back' && quest.open.value && !openRoutine.value) {
+    e.preventDefault()
+    return closeQuest()
+  }
   if (button === 'back' && openRoutineId.value) {
     e.preventDefault()
     return closeRoutine()
@@ -183,6 +206,16 @@ function onKey(e: KeyboardEvent) {
     e.preventDefault()
     moveFocus(button)
   }
+}
+
+// SPEC §2 Windows: Tab and Shift+Tab stay inside the popup (a keyboard trying the page; the remote has no Tab).
+function trapTab(e: KeyboardEvent) {
+  const controls = reachable()
+  if (!controls.length) return
+  const at = controls.indexOf(document.activeElement as HTMLElement)
+  const to = at < 0 ? 0 : (at + (e.shiftKey ? -1 : 1) + controls.length) % controls.length
+  e.preventDefault()
+  controls[to]!.focus()
 }
 
 async function start() {
@@ -204,9 +237,13 @@ function onPaired() {
   void refresh()
 }
 
-// Focus starts on the first control, so the remote has somewhere to begin.
+// Focus starts on the first control (in the popup, if it's open), so the remote has somewhere to begin.
 function focusFirst() {
-  void nextTick(() => (document.querySelector('button') as HTMLElement | null)?.focus())
+  void nextTick(() => {
+    const controls = reachable()
+    // The popup, opening again on waking, already put focus where it belongs.
+    if (controls.indexOf(document.activeElement as HTMLElement) < 0) controls[0]?.focus()
+  })
 }
 watch(state, (s) => {
   if (s === 'dashboard') focusFirst()

@@ -11,13 +11,16 @@
     </div>
     <div class="tv-strip">
       <RoutinesStrip :rows="routineRows" @open="(id) => emit('open-routine', id)" />
+      <div class="tv-panel tv-quest-panel">
+        <button type="button" class="tv-button tv-quest-open" data-testid="tv-quest-open" @click="emit('quest')">{{ m.questHeading }}</button>
+      </div>
     </div>
   </main>
 </template>
 
 <script setup lang="ts">
 // SPEC §9 TV app, The dashboard: the Monthly calendar on the left two thirds and Your Day on the right (Layout).
-// Routines fill the strip along the bottom; Go on a Quest joins it in the next build step.
+// Routines and Go on a Quest share the strip along the bottom.
 import { computed } from 'vue'
 import MonthCalendar from '@/tv/screen/components/MonthCalendar.vue'
 import YourDay from '@/tv/screen/components/YourDay.vue'
@@ -38,7 +41,7 @@ const props = defineProps<{
   routineRows: RoutineToday[]
   trouble: boolean
 }>()
-const emit = defineEmits<{ move: [by: number]; 'open-routine': [id: string] }>()
+const emit = defineEmits<{ move: [by: number]; 'open-routine': [id: string]; quest: [] }>()
 const m = messages.tv
 const clock = computed(() => timeLabel(clockIn(props.now.getTime(), props.timeZone)))
 </script>

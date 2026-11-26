@@ -1765,6 +1765,8 @@ export const messages = {
     previousPage: 'Previous page',
     nextPage: 'Next page',
     upNextLabel: 'Up next',
+    /** SPEC §9 Go on a Quest: the strip's button and the popup's heading. */
+    questHeading: 'Go on a Quest',
   },
   sync: {
     online: 'Synced',

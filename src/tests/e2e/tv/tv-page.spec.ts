@@ -242,3 +242,68 @@ test.describe('SPEC §9 Routines', () => {
     await expect(page.getByTestId('tv-routine')).toBeFocused()
   })
 })
+
+test.describe('SPEC §9 Go on a Quest', () => {
+  const hike = { id: 'q1', title: 'Go for a hike', details: '<p>Bring water</p>', energy_level: 'fun', time_bucket: '2h', status: 'open', times_picked: 0, last_picked_at: null, completed_at: null, deleted_at: null }
+  test.beforeEach(async ({ page }) => {
+    await pairedTv(page)
+    server.rpcResults.tv_check = true
+    server.rpcResults.tv_snapshot = tvSnapshot()
+    server.rpcResults.tv_save_quest = null
+    server.rpcResults.tv_save_draw_task = null
+  })
+
+  test('the popup picks a quest and saves the pick; Mark done leaves an Undo that puts it back; Back closes it', async ({ page }) => {
+    server.rpcResults.tv_quest_draw = { quests: [hike], tasks: [] }
+    await page.goto('/tv/')
+    await page.getByTestId('tv-quest-open').focus()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-quest-pick')).toBeFocused()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-quest-title')).toHaveText(hike.title)
+    await expect(page.getByTestId('tv-quest-result')).toContainText('Bring water')
+    await expect(page.getByTestId('tv-quest-accept')).toBeFocused()
+    expect(calls('tv_save_quest')[0]!.args).toMatchObject({ device_key: 'old-key', quest_id: 'q1', action: 'pick' })
+
+    await page.getByTestId('tv-quest-done').focus()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-quest-undo')).toBeFocused()
+    const done = calls('tv_save_quest')[1]!.args as { log_id: string }
+    expect(done).toMatchObject({ quest_id: 'q1', action: 'done', today: TODAY })
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-quest-undo-line')).toHaveCount(0)
+    expect(calls('tv_save_quest')[2]!.args).toMatchObject({ quest_id: 'q1', action: 'undo_done', log_id: done.log_id, before_status: 'open' })
+    await expect(page.getByTestId('tv-quest-pick')).toBeFocused()
+
+    // Arrows and Tab stay inside the popup.
+    const inside = page.getByTestId('tv-quest').locator(':focus')
+    await press(page, 'ArrowDown', 'ArrowDown')
+    await expect(inside).toHaveCount(1)
+    await page.getByTestId('tv-quest-close').focus()
+    await press(page, 'Shift+Tab')
+    await expect(inside).toHaveCount(1)
+    await press(page, 'Escape')
+    await expect(page.getByTestId('tv-quest')).toHaveCount(0)
+    await expect(page.getByTestId('tv-quest-open')).toBeFocused()
+  })
+
+  test('a task can come up in the draw: Do it today dates it, Done crosses it off', async ({ page }) => {
+    const stamps = { id: 't1', title: 'Buy stamps', notes: null, due_date: null, status: 'open', source: 'manual', created_at: '2026-11-20T10:00:00Z', deleted_at: null }
+    server.rpcResults.tv_quest_draw = { quests: [], tasks: [stamps] }
+    await page.goto('/tv/')
+    await page.getByTestId('tv-quest-open').focus()
+    await press(page, 'Enter', 'Enter')
+    await expect(page.getByTestId('tv-quest-title')).toHaveText(stamps.title)
+    await page.getByTestId('tv-quest-today').focus()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-quest-today')).toHaveCount(0)
+    await expect(page.getByTestId('tv-quest-task-done')).toBeFocused()
+    await press(page, 'Enter')
+    await expect(page.getByTestId('tv-quest-task')).toHaveCount(0)
+    expect(calls('tv_save_draw_task').map((c) => c.args)).toMatchObject([
+      { task_id: 't1', action: 'today', today: TODAY },
+      { task_id: 't1', action: 'done', today: TODAY },
+    ])
+    expect(calls('tv_save_quest')).toHaveLength(0)
+  })
+})

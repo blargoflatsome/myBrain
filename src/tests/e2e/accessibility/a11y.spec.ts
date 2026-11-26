@@ -199,6 +199,21 @@ for (const scheme of ['light', 'dark'] as const) {
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
     })
 
+    test('TV Go on a Quest popup, with a long title and details, also at 320 px', async ({ page }) => {
+      await pairedTv(page)
+      server.rpcResults.tv_check = true
+      server.rpcResults.tv_snapshot = tvSnapshot()
+      server.rpcResults.tv_save_quest = null
+      server.rpcResults.tv_quest_draw = { quests: [{ id: 'q1', title: LONG_WORD, details: `<p>${PARAGRAPH}</p><p>${LONG_LINE}</p>`, energy_level: 'fun', time_bucket: '2h', status: 'open', times_picked: 3, deleted_at: null }], tasks: [] }
+      await page.goto('/tv/')
+      await page.getByTestId('tv-quest-open').click()
+      await page.getByTestId('tv-quest-pick').click()
+      await expect(page.getByTestId('tv-quest-result')).toBeVisible()
+      await scan(page, 'TV Go on a Quest')
+      await page.setViewportSize({ width: 320, height: 640 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+    })
+
     test('Invite to event window on a profile', async ({ page }) => {
       await page.goto(`/people/${FRIEND}`)
       await page.getByRole('button', { name: msg.personProfile.invite }).click()
