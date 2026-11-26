@@ -62,7 +62,7 @@ export function useTvFocus(deviceKey: () => string | null) {
     const work = workPartsEnded(state.value, ended)
     const together = checkIns.together()
     for (let i = 0; i < work; i++) {
-      const args = { ...device(), id: crypto.randomUUID(), at: new Date(now.value).toISOString(), together }
+      const args = { ...device(), id: crypto.randomUUID(), together }
       // Out of reach, that session just isn't kept: the timer goes on.
       void serverCall('tv_log_focus', args).catch(() => {})
     }

@@ -326,12 +326,25 @@ test.describe('SPEC §9 Go on a Quest', () => {
 })
 
 test.describe('SPEC §9 Focus timer', () => {
+  test('a TV found unpaired when it starts stops a timer saved from before', async ({ page }) => {
+    await pairedTv(page)
+    await page.addInitScript(() => localStorage.setItem('my-brain:tv-focus', JSON.stringify({ state: { phase: 'work', round: 1, endsAt: Date.now() + 60_000, pausedMs: null }, minimized: true })))
+    server.rpcErrors.tv_check = '28000'
+    server.rpcResults.tv_pair_start = [{ code: 'Q7KM2P', secret: 'secret', expires_at: new Date(NOW.getTime() + 10 * 60_000).toISOString() }]
+    server.rpcResults.tv_pair_poll = [{ status: 'waiting', device_key: null }]
+    await page.goto('/tv/')
+    await expect(page.getByTestId('tv-unpaired')).toBeVisible()
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('my-brain:tv-focus'))).toBeNull()
+  })
+
   test('opens full screen from the strip and joins the room with the TV key; a finished work part is kept; Back minimizes it to the strip', async ({ page }) => {
     await pairedTv(page)
     server.rpcResults.tv_check = true
     server.rpcResults.tv_snapshot = tvSnapshot()
     server.rpcResults.tv_focus_room = { dots: [{ id: 'abc12345', s: 600 }], together: true }
     await page.goto('/tv/')
+    // Time only moves when the test moves it, so the time left is known exactly.
+    await page.clock.pauseAt(new Date(NOW.getTime() + 10_000))
     await page.getByTestId('tv-focus-open').focus()
     await press(page, 'Enter')
     await expect(page.getByTestId('tv-focus-pause')).toBeFocused()
@@ -348,9 +361,7 @@ test.describe('SPEC §9 Focus timer', () => {
     await press(page, 'Escape')
     await expect(page.getByTestId('tv-dashboard')).toBeVisible()
     await expect(page.getByTestId('tv-focus-open')).toBeFocused()
-    // Its part and time left, whichever second it is now.
-    const label = (await page.getByTestId('tv-focus-open').getAttribute('aria-label')) ?? ''
-    expect(label).toBe(msg.focus.openPill(msg.focus.phaseShort.short, /\d\d:\d\d/.exec(label)?.[0] ?? ''))
+    await expect(page.getByTestId('tv-focus-open')).toHaveAccessibleName(msg.focus.openPill(msg.focus.phaseShort.short, '04:59'))
     await press(page, 'Enter')
     await expect(page.getByTestId('tv-focus-phase')).toHaveText(msg.focus.phase.short)
     await page.getByTestId('tv-focus-close').focus()

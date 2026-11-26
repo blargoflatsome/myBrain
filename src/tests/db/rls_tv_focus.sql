@@ -27,8 +27,8 @@ begin
   execute 'set local role anon';
 
   -- A finished work part counts toward trophies, once even if sent twice.
-  perform public.tv_log_focus('alice-tv-key', session, now(), true);
-  perform public.tv_log_focus('alice-tv-key', session, now(), true);
+  perform public.tv_log_focus('alice-tv-key', session, true);
+  perform public.tv_log_focus('alice-tv-key', session, true);
   perform public.tv_focus_leave('alice-tv-key');
   reset role;
   if (select count(*) from public.activity_log where user_id = alice and kind = 'focus' and detail = '{"minutes": 25, "together": true}') <> 1 then
@@ -39,11 +39,6 @@ begin
   end if;
   execute 'set local role anon';
 
-  begin
-    perform public.tv_log_focus('alice-tv-key', 'aaaaaaaa-0000-4000-8000-000000000002', now() - interval '3 days');
-    raise exception 'FAIL: Spec §9: the TV keeps only a session that just ended';
-  exception when sqlstate '22023' then null;
-  end;
   begin
     perform public.focus_room_as(alice, 'work', now() + interval '25 minutes');
     raise exception 'FAIL: Spec §9: nobody calls the room for someone else directly';

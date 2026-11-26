@@ -250,6 +250,8 @@ async function start() {
   if (!key) return (state.value = 'pairing')
   const answer = await checkKey(key)
   wasUnpaired.value = answer === 'unpaired'
+  // Unpaired while it was off: a timer saved from before stops, as it does when unpaired while on.
+  if (answer === 'unpaired') focus.stop()
   // Out of reach is not unpaired: show what it can and keep checking.
   state.value = answer === 'unpaired' ? 'pairing' : 'dashboard'
   void refresh()
