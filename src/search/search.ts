@@ -74,10 +74,10 @@ export function searchDocs(data: SearchData): SearchDoc[] {
       .map((v) => doc('vault_item', v.id, v.title, [plainText(v.notes ?? ''), v.link].filter(Boolean).join('\n'), v.updated_at, { bucketId: v.bucket_id, context: bucketName.get(v.bucket_id) })),
     ...data.journal
       // A locked journal's writing isn't searched until this device unlocks it (SPEC §5 Locking my journal), but an
-      // Important day is still listed by its date.
+      // Important day is still listed by its date, though no words find it (its date isn't something I wrote).
       .map((j) => ({ j, words: [readable(j.body), readable(j.tomorrow)].map(plainText).filter(Boolean).join('\n') }))
       .filter(({ j, words }) => !j.deleted_at && (words || j.important))
-      .map(({ j, words }) => doc('journal_entry', j.id, j.date, words, j.updated_at, { date: j.date, important: !!j.important })),
+      .map(({ j, words }) => doc('journal_entry', j.id, j.date, words, j.updated_at, { date: j.date, important: !!j.important, ...(words ? {} : { haystack: '' }) })),
     ...data.quests.filter((q) => !q.deleted_at).map((q) => doc('quest', q.id, q.title, plainText(q.details ?? ''), q.updated_at)),
     ...data.events.filter((e) => shownToMe(e, data.invites, data.me)).map((e) => doc('event', e.id, e.title, plainText(e.notes ?? ''), e.updated_at, { date: e.start_date })),
     ...data.habits.filter((h) => !h.deleted_at).map((h) => doc('habit', h.id, h.title, '', h.updated_at)),

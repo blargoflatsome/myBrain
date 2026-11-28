@@ -61,6 +61,7 @@ describe('Spec §5 Global search', () => {
     expect(search(marked, '', [], true).map((d) => d.id)).toEqual(['new', 'locked', 'old'])
     expect(search(marked, 'insight', [], true).map((d) => d.id)).toEqual(['old'])
     expect(search(marked, 'insight').map((d) => d.id)).toEqual(['t1', 'old', 'plain']) // without the filter, unmarked days are found too
+    expect(search(marked, '2026-11-10').map((d) => d.id)).toEqual([]) // a locked day isn't found by words, only listed
   })
 
   it('SPEC §5 Shared events: an event I said No to or dropped out of is not found; one I said Yes to is', () => {

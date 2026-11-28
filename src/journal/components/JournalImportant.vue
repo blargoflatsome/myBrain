@@ -38,6 +38,9 @@ async function toggle() {
   emit('busy', true)
   try {
     await brain.markJournalImportant(props.date, on.value)
+  } catch {
+    // Not saved: show what's really stored, rather than a mark that isn't there.
+    on.value = !!props.entry?.important
   } finally {
     emit('busy', false)
   }

@@ -4,6 +4,10 @@ Older history moved out of `PROGRESS.md` on 2026-11-10 to keep session start-up 
 
 Newest first from here on, up to the next "Step 1" heading; below that, oldest first.
 
+## Important journal days (merged 2026-11-27, branch `journal-important`)
+- Each journal day has an Important toggle (star) by its heading; Search's Important journals chip lists those days, newest first, or the matching ones with words, in pages of 20 (SPEC §5 Journal, Global search and tags; DECISIONS 2026-11-27). Column `journal_entries.important` (migration `20261127010000_journal_important.sql`, dev and prod). Readable when the journal is locked (Privacy page says so); a locked important day is listed by date but no words find it.
+- Merge review (`/code-review medium`) found 3, all fixed with tests: the toggle stayed on when the save failed; locked Important days matched plain searches by their date; the Important list stayed on a later page after new words. Help (Journal, Search) and the home page's Journal line updated; Journal pictures retaken.
+
 ## Refused fields; Claude runs test:db; dropped plans (merged via PR 112, branch `test-db-by-claude`)
 - SPEC §5 Forms "When a save is refused" (DECISIONS 2026-11-25 "Refused fields"): `useFieldError` + `v-field-error` + `FieldError` in every form that refuses one field. The field is marked `aria-invalid`, described by its message, its fold-outs open and focus moves to it; a refusal while focus is already there, or with no field shown, is said through `announce()`. Picks from a time or day list clear it (`FIELD_CHANGED`). Editors check titles and names themselves (`messages.forms.titleNeeded`/`nameNeeded`, no browser pop-up); a refused field has a red border. Each Save shows only its own answer.
 - Claude runs `npm run test:db` itself (37/37 passed). Dropped from the plan: wording and phone checks, guest poll, further iPhone work, Discord invites, the gamifying ideas, the smartwatch and the `.ics` feed; Download my data leaves out Cheers.

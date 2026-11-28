@@ -142,6 +142,8 @@ const results = computed(() => search(docs.value, query.value, chosenTags.value,
 // Every Important day can be listed, so that list comes in pages (SPEC §2 Long lists come in pages); other results
 // show the first 30 of each type.
 const { page, pageCount, pageItems } = usePagination(results, 20)
+// A new filter or new words start again from the newest important days.
+watch([importantOnly, query, chosenTags], () => (page.value = 1))
 const shown = computed(() => (importantOnly.value ? pageItems.value : results.value))
 const groups = computed(() =>
   RESULT_ORDER.map((type) => ({ type, items: shown.value.filter((r) => r.type === type).slice(0, 30) })).filter((g) => g.items.length),
