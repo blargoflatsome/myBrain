@@ -349,6 +349,8 @@ export const messages = {
     no: 'No',
     betterYes: 'Better than yesterday',
     betterNo: 'Not better than yesterday',
+    important: 'Important',
+    importantLabel: (day: string) => `Important: ${day}`,
   },
   /** SPEC §5 Locking my journal. */
   journalLock: {
@@ -1436,8 +1438,10 @@ export const messages = {
     placeholder: 'Search everything',
     close: 'Close',
     noResults: "I can't find anything matching that.",
-    hint: 'Search everything, or pick a tag.',
+    hint: 'Search everything, or pick a filter.',
     tagsLabel: 'Filter by tag',
+    filtersLabel: 'Filters',
+    importantJournals: 'Important journals',
     types: { task: 'Tasks', habit: 'Habits', routine: 'Routines', event: 'Events', journal_entry: 'Journal', vault_item: 'The Vault', quest: 'Quests' },
     type: { task: 'Task', habit: 'Habit', routine: 'Routine', event: 'Event', journal_entry: 'Journal', vault_item: 'Vault', quest: 'Quest' },
   },

@@ -7,8 +7,11 @@
 
     <section class="flex flex-col gap-4 rounded-2xl border border-line p-4" data-testid="journal-today">
       <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h2 class="text-lg font-semibold">{{ m.today }} · {{ shortDay(today) }}</h2>
-        <SaveStatus :busy="isBusy(today)" :has-saved="!!todayEntry" />
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h2 class="text-lg font-semibold">{{ m.today }} · {{ shortDay(today) }}</h2>
+          <SaveStatus :busy="isBusy(today)" :has-saved="!!todayEntry" />
+        </div>
+        <JournalImportant :key="today" :date="today" :entry="todayEntry" @busy="track(today, 'important', $event)" />
       </div>
       <JournalStatsCard v-if="todayStats" :stats="todayStats" />
       <JournalBetter :key="today" :date="today" :entry="todayEntry" @busy="track(today, 'better', $event)" />
@@ -44,15 +47,18 @@
         :class="highlight === e.date ? 'border-accent' : 'border-line'"
         :data-testid="`journal-entry-${e.date}`"
       >
-        <div class="flex items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h3 class="font-semibold">{{ shortDay(e.date) }}</h3>
             <SaveStatus v-if="editingDate === e.date" :busy="isBusy(e.date)" :has-saved="true" />
           </div>
-          <!-- SPEC §2 Rows look alike: journal days are the exception, with an Edit button. -->
-          <button v-if="editingDate !== e.date && !locked" type="button" :class="rowAction" :aria-label="m.editLabel(shortDay(e.date))" data-testid="journal-edit" @click="editingDate = e.date">
-            <AppIcon name="pencil" />{{ m.edit }}
-          </button>
+          <div class="flex flex-wrap items-center gap-2">
+            <JournalImportant :date="e.date" :entry="e" @busy="track(e.date, 'important', $event)" />
+            <!-- SPEC §2 Rows look alike: journal days are the exception, with an Edit button. -->
+            <button v-if="editingDate !== e.date && !locked" type="button" :class="rowAction" :aria-label="m.editLabel(shortDay(e.date))" data-testid="journal-edit" @click="editingDate = e.date">
+              <AppIcon name="pencil" />{{ m.edit }}
+            </button>
+          </div>
         </div>
         <JournalStatsCard v-if="hasStats(e.stats)" :stats="e.stats" />
         <p v-if="editingDate !== e.date && e.better_than_yesterday != null" class="text-sm text-muted" data-testid="journal-better">
@@ -100,6 +106,7 @@ import { useRoute } from 'vue-router'
 import JournalStatsCard from '@/journal/components/JournalStatsCard.vue'
 import JournalBetter from '@/journal/components/JournalBetter.vue'
 import JournalTomorrow from '@/journal/components/JournalTomorrow.vue'
+import JournalImportant from '@/journal/components/JournalImportant.vue'
 import SaveStatus from '@/journal/components/SaveStatus.vue'
 import { onPageHide } from '@/composables/usePageHide'
 import { useBrainStore } from '@/stores/brain'
@@ -158,10 +165,11 @@ watch(
 )
 
 const todayEntry = computed(() => entries.value.find((e) => e.date === today.value))
-// Past entries; a day with no writing and nothing done is not shown (SPEC §5 Journal: entries only when I did something).
+// Past entries; a day with no writing and nothing done is not shown (SPEC §5 Journal: entries only when I did something),
+// unless I marked it Important.
 const earlier = computed(() =>
   entries.value
-    .filter((e) => e.date < today.value && (written(e.body) || written(e.tomorrow) || e.better_than_yesterday != null || (hasStats(e.stats) && hadActivity(e.stats))))
+    .filter((e) => e.date < today.value && (e.important || written(e.body) || written(e.tomorrow) || e.better_than_yesterday != null || (hasStats(e.stats) && hadActivity(e.stats))))
     .sort((a, b) => b.date.localeCompare(a.date)),
 )
 // Three days per page, newest first (SPEC §5 Journal).

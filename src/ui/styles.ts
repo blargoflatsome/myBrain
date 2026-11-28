@@ -37,6 +37,8 @@ export const secondaryButton = 'min-h-12 rounded-xl border border-line px-4'
 export const smallButton = 'min-h-11 rounded-xl border border-line px-3 text-sm'
 /** A small action at the end of a list row (Edit, Cancel), the same in every list (SPEC §2 Calm by design). */
 export const rowAction = 'flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 text-sm font-medium'
+/** An on/off button beside a heading, shaped like rowAction (the journal's Important). */
+export const rowToggle = (on: boolean) => ['flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-sm font-medium', on ? selected : 'border-line']
 /** The "+ New …" button beside a list page's heading: the same on every page (SPEC §2 Adding looks alike). */
 export const newButton = 'flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-accent bg-accent/10 px-3 text-sm font-semibold text-ink'
 /** The trash can at the end of a list row (SPEC §2 Rows look alike). */

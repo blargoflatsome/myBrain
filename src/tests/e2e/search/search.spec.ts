@@ -88,5 +88,23 @@ test.describe('Spec §5 Global search and tags', () => {
     expect(server.written('item_tags')[0]).toMatchObject({ item_type: 'task', item_id: 'aaaaaaaa-0000-4000-8000-000000000001' })
     expect(server.written('tags')[0]).toMatchObject({ name: 'money' })
   })
+
+  test('SPEC §5 Journal, Important days: a day I mark Important is listed by the Important journals filter and opens where it lives', async ({ page }) => {
+    server.seed('journal_entries', [
+      { id: 'j1', date: '2026-11-08', body: '<p>Had an insight about mornings</p>', stats: {}, stats_final: true, auto: false },
+      { id: 'j2', date: '2026-11-07', body: '<p>An ordinary day</p>', stats: {}, stats_final: true, auto: false },
+    ])
+    await open(page, '/journal')
+    const day = page.getByTestId('journal-entry-2026-11-08')
+    await day.getByTestId('journal-important').click()
+    await expect(day.getByTestId('journal-important')).toHaveAttribute('aria-pressed', 'true')
+    await expect.poll(() => server.written('journal_entries').find((e) => e.id === 'j1')?.important).toBe(true)
+
+    const dialog = await openSearch(page)
+    await dialog.getByTestId('search-important').click()
+    await expect(dialog.getByTestId('search-result')).toHaveCount(1)
+    await dialog.getByTestId('search-result').click()
+    await expect(page).toHaveURL(/\/journal\?date=2026-11-08/)
+  })
 })
 

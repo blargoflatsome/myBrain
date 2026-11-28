@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useBrainStore } from '@/stores/brain'
 import { FakeRemote } from '@/tests/support/fakeRemote'
 import { live } from '@/sync/live'
+import { emptyEntry } from '@/journal/stats'
 
 let remote: FakeRemote
 
@@ -122,6 +123,22 @@ describe('Spec §5 Journal: one entry per day, even when saves happen at once', 
     const entries = (await brain.db!.journal_entries.where('date').equals('2026-11-10').toArray()).filter((e) => !e.deleted_at)
     expect(entries).toHaveLength(1)
     expect(entries[0]).toMatchObject({ body: '<p>A good day</p>', tomorrow: '<p>Sleep early</p>', better_than_yesterday: false })
+  })
+
+  it('SPEC §5 Journal, Important days: marking a day makes its entry if needed; marking one the app wrote keeps it the app’s', async () => {
+    const brain = useBrainStore()
+    const me = `u-${crypto.randomUUID()}`
+    brain.start(me, remote)
+    const now = new Date('2026-11-10T15:00:00Z')
+    await brain.markJournalImportant('2026-11-10', true, now, 'UTC')
+    await brain.db!.journal_entries.put({ ...emptyEntry(me, '2026-11-08', true), stats_final: true })
+    await brain.markJournalImportant('2026-11-08', true, now, 'UTC')
+    await brain.markJournalImportant('2026-11-10', false, now, 'UTC')
+    const rows = (await brain.db!.journal_entries.toArray()).filter((e) => !e.deleted_at).sort((a, b) => a.date.localeCompare(b.date))
+    expect(rows).toMatchObject([
+      { date: '2026-11-08', important: true, auto: true },
+      { date: '2026-11-10', important: false, auto: false },
+    ])
   })
 })
 

@@ -567,3 +567,8 @@ The fourth `/improve-codebase-architecture` pass (`docs/ARCHITECTURE_REVIEW_TASK
 - **Decided (user, after trying the TV):** a routine is always runnable. Scheduling only puts it in today's lists and sets when its optional reminder goes off; run anytime means no schedule and no reminder. Routines are listed scheduled first, then run anytime. Today's scheduled routines also show in the TV's Your Day until finished.
 - **Claude's recommendation (user OK'd):** an off-day run counts toward times finished and the Routines finished trophies, not toward possible days, the percentage or the streak. After finishing, Start again starts a fresh run; a scheduled day counts as done once.
 - **Claude's calls:** a scheduled day's first run keeps its fixed id (so phone and TV share it); off-day runs and Start again runs get their own ids, like run-anytime ones. A scheduled routine's open run is only today's (it doesn't carry over to the next day); a run-anytime one's carries over as before.
+
+## 2026-11-27 Journal: Important days
+- **Asked (user):** a way to mark journal days as important, and to get a list of just the important ones from Search.
+- **Claude's proposal (user OK'd):** an Important toggle (outline star) on each day's heading; Search's Important journals chip lists them, newest first with no words, or the matching ones with words. Stored as `journal_entries.important`, readable on the server even when the journal is locked (like the yes/no answer), so the list still shows dates on a locked device; the Privacy page says so.
+- **Claude's calls:** marking is a routine action with no Undo line; marking an entry the app wrote keeps it the app's (`auto` unchanged); a marked past day stays in Earlier even when it has nothing else in it.

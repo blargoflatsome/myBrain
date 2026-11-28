@@ -46,6 +46,23 @@ describe('Spec §5 Global search', () => {
     expect(search(locked, 'sam').map((d) => d.id)).toEqual(['j2'])
   })
 
+  it('SPEC §5 Global search, Important journals: only days I marked Important, newest day first, or the ones matching my words; a locked one is still listed by date', () => {
+    const entry = (id: string, date: string, body: string, important: boolean, updated_at: string) => ({ id, date, body, important, stats: {}, stats_final: true, auto: false, updated_at, deleted_at: null })
+    const marked = searchDocs({
+      tasks: [{ id: 't1', title: 'An insight to act on', due_date: null, status: 'open', source: 'manual', updated_at: '2026-11-20', deleted_at: null }],
+      vaultItems: [], buckets: [], quests: [], events: [], invites: [], me: UID, habits: [], routines: [], itemTags: [],
+      journal: [
+        entry('old', '2026-11-01', '<p>An insight about sleep</p>', true, '2026-11-25'),
+        entry('new', '2026-11-20', '<p>Talked to Sam</p>', true, '2026-11-20'),
+        entry('plain', '2026-11-21', '<p>An insight, not marked</p>', false, '2026-11-21'),
+        entry('locked', '2026-11-10', 'enc:v1:c2VjcmV0', true, '2026-11-10'),
+      ],
+    })
+    expect(search(marked, '', [], true).map((d) => d.id)).toEqual(['new', 'locked', 'old'])
+    expect(search(marked, 'insight', [], true).map((d) => d.id)).toEqual(['old'])
+    expect(search(marked, 'insight').map((d) => d.id)).toEqual(['t1', 'old', 'plain']) // without the filter, unmarked days are found too
+  })
+
   it('SPEC §5 Shared events: an event I said No to or dropped out of is not found; one I said Yes to is', () => {
     const HOST = '99999999-2222-4333-8444-555555555555'
     const party = (id: string) => ({ ...newEvent(HOST, '2026-11-20', '19:00', id), title: 'Party' })
