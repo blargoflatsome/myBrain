@@ -23,6 +23,8 @@ export interface SearchDoc {
   date?: string | null
   bucketId?: string
   context?: string
+  /** A journal day I marked Important (SPEC §5 Journal). */
+  important?: boolean
 }
 
 /** Lower case and accents removed, so "Café" matches "cafe". */
@@ -71,10 +73,11 @@ export function searchDocs(data: SearchData): SearchDoc[] {
       .filter((v) => !v.deleted_at)
       .map((v) => doc('vault_item', v.id, v.title, [plainText(v.notes ?? ''), v.link].filter(Boolean).join('\n'), v.updated_at, { bucketId: v.bucket_id, context: bucketName.get(v.bucket_id) })),
     ...data.journal
-      // A locked journal's writing isn't searched until this device unlocks it (SPEC §5 Locking my journal).
+      // A locked journal's writing isn't searched until this device unlocks it (SPEC §5 Locking my journal), but an
+      // Important day is still listed by its date, though no words find it (its date isn't something I wrote).
       .map((j) => ({ j, words: [readable(j.body), readable(j.tomorrow)].map(plainText).filter(Boolean).join('\n') }))
-      .filter(({ j, words }) => !j.deleted_at && words)
-      .map(({ j, words }) => doc('journal_entry', j.id, j.date, words, j.updated_at, { date: j.date })),
+      .filter(({ j, words }) => !j.deleted_at && (words || j.important))
+      .map(({ j, words }) => doc('journal_entry', j.id, j.date, words, j.updated_at, { date: j.date, important: !!j.important, ...(words ? {} : { haystack: '' }) })),
     ...data.quests.filter((q) => !q.deleted_at).map((q) => doc('quest', q.id, q.title, plainText(q.details ?? ''), q.updated_at)),
     ...data.events.filter((e) => shownToMe(e, data.invites, data.me)).map((e) => doc('event', e.id, e.title, plainText(e.notes ?? ''), e.updated_at, { date: e.start_date })),
     ...data.habits.filter((h) => !h.deleted_at).map((h) => doc('habit', h.id, h.title, '', h.updated_at)),
@@ -83,13 +86,17 @@ export function searchDocs(data: SearchData): SearchDoc[] {
 }
 
 /**
- * Items matching every word typed (anywhere in the text) and carrying every chosen tag. Title matches come first,
- * then the most recently changed. With no words and no tags, nothing is listed.
+ * Items matching every word typed (anywhere in the text) and carrying every chosen tag; with `importantOnly`, only
+ * journal days marked Important (SPEC §5 Global search and tags). Title matches come first, then the most recently
+ * changed; Important days with no words are newest day first. With no words and no filter, nothing is listed.
  */
-export function search(docs: SearchDoc[], query: string, tagIds: string[] = []): SearchDoc[] {
+export function search(docs: SearchDoc[], query: string, tagIds: string[] = [], importantOnly = false): SearchDoc[] {
   const words = fold(query).split(/\s+/).filter(Boolean)
-  if (!words.length && !tagIds.length) return []
-  const hits = docs.filter((d) => words.every((w) => d.haystack.includes(w)) && tagIds.every((t) => d.tagIds.has(t)))
+  if (!words.length && !tagIds.length && !importantOnly) return []
+  const hits = docs.filter(
+    (d) => (!importantOnly || (d.type === 'journal_entry' && d.important)) && words.every((w) => d.haystack.includes(w)) && tagIds.every((t) => d.tagIds.has(t)),
+  )
+  if (importantOnly && !words.length) return hits.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
   const inTitle = (d: SearchDoc) => (words.length && words.every((w) => fold(d.title).includes(w)) ? 0 : 1)
   return hits.sort((a, b) => inTitle(a) - inTitle(b) || b.updatedAt.localeCompare(a.updatedAt))
 }

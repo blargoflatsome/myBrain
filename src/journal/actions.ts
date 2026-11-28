@@ -104,5 +104,22 @@ export function journalActions({ ready, habitsReady }: ActionContext) {
     await e.save('journal_entries', { ...emptyEntry(uid, date, false), ...fields, stats, stats_final: date < todayIn(timeZone, now) })
   }
 
-  return { journalStats, refreshJournal, saveJournalBody, saveJournalFields }
+  /**
+   * Mark a day Important or not (SPEC §5 Journal). Creates the day's entry if needed. An entry the app wrote stays
+   * the app's, since marking it isn't writing in it.
+   */
+  function markJournalImportant(date: string, important: boolean, now = new Date(), timeZone = deviceTimeZone()) {
+    return oneAtATime(date, async () => {
+      const { engine: e, uid, local } = ready()
+      const existing = await entryFor(local, date)
+      if (existing) {
+        await e.patch('journal_entries', existing.id, (fresh) => (!!fresh.important === important ? null : { important }))
+        return
+      }
+      const stats = dayStats(await dayData(), date, now, timeZone)
+      await e.save('journal_entries', { ...emptyEntry(uid, date, false), important, stats, stats_final: date < todayIn(timeZone, now) })
+    })
+  }
+
+  return { journalStats, refreshJournal, saveJournalBody, saveJournalFields, markJournalImportant }
 }

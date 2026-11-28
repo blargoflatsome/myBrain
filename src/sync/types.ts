@@ -353,6 +353,8 @@ export interface JournalEntryRow extends BaseRow {
   word_count?: number
   /** Whether the writing has any words, worked out at save and kept readable. */
   has_writing?: boolean
+  /** Marked Important, found with Search's Important journals filter (SPEC §5 Journal). Readable when locked. */
+  important?: boolean
 }
 
 /** My journal key, wrapped by my passphrase and by my recovery key (SPEC §5 Locking my journal). Base64 strings. */

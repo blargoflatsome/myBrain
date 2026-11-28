@@ -19,13 +19,23 @@
         >
       </div>
 
-      <div v-if="tags.length" class="flex gap-1.5 overflow-x-auto border-b border-line px-3 py-2" role="group" :aria-label="m.tagsLabel">
+      <div class="flex gap-1.5 overflow-x-auto border-b border-line px-3 py-2" role="group" :aria-label="m.filtersLabel">
+        <!-- SPEC §5 Global search and tags: Important journals lists the journal days I marked Important. -->
+        <button
+          type="button"
+          class="flex items-center gap-1.5"
+          :class="filterChip(importantOnly)"
+          :aria-pressed="importantOnly"
+          data-testid="search-important"
+          @click="importantOnly = !importantOnly"
+        >
+          <AppIcon name="star" />{{ m.importantJournals }}
+        </button>
         <button
           v-for="t in tags"
           :key="t.id"
           type="button"
-          class="min-h-9 shrink-0 rounded-full border px-3 text-sm"
-          :class="chosenTags.includes(t.id) ? selected : 'border-line text-ink'"
+          :class="filterChip(chosenTags.includes(t.id))"
           :aria-pressed="chosenTags.includes(t.id)"
           @click="toggleTag(t.id)"
         >
@@ -58,6 +68,7 @@
             <span v-if="snippet(r, query)" class="line-clamp-2 text-sm text-muted">{{ snippet(r, query) }}</span>
           </button>
         </section>
+        <PageControls v-if="importantOnly" v-model:page="page" :page-count="pageCount" :label="m.importantJournals" />
       </div>
     </div>
     <CloseX :label="m.close" @click="store.close()" />
@@ -79,6 +90,9 @@ import { messages } from '@/messages'
 import { dayLabel, shortDayWithYear } from '@/ui/dates'
 import { selected } from '@/ui/styles'
 import { useJournalLock } from '@/journal/useJournalLock'
+import { usePagination } from '@/composables/usePagination'
+import AppIcon from '@/components/AppIcon.vue'
+import PageControls from '@/components/PageControls.vue'
 
 const store = useSearchStore()
 const route = useRoute()
@@ -94,6 +108,8 @@ const dialog = ref<HTMLDialogElement | null>(null)
 const box = ref<HTMLInputElement | null>(null)
 const query = ref('')
 const chosenTags = ref<string[]>([])
+const importantOnly = ref(false)
+const filterChip = (on: boolean) => ['min-h-9 shrink-0 rounded-full border px-3 text-sm', on ? selected : 'border-line text-ink']
 
 // Built only while the window is open: building it reads every searchable row, so keeping it up to date in the
 // background would redo that work after every save anywhere in the app.
@@ -122,11 +138,17 @@ const docs = useDeviceQuery<SearchDoc[]>(
 const allTags = useRows((db) => (store.isOpen ? db.tags.toArray() : Promise.resolve([])), [() => store.isOpen])
 const tags = computed(() => [...allTags.value].sort((a, b) => a.name.localeCompare(b.name)))
 
-const results = computed(() => search(docs.value, query.value, chosenTags.value))
+const results = computed(() => search(docs.value, query.value, chosenTags.value, importantOnly.value))
+// Every Important day can be listed, so that list comes in pages (SPEC §2 Long lists come in pages); other results
+// show the first 30 of each type.
+const { page, pageCount, pageItems } = usePagination(results, 20)
+// A new filter or new words start again from the newest important days.
+watch([importantOnly, query, chosenTags], () => (page.value = 1))
+const shown = computed(() => (importantOnly.value ? pageItems.value : results.value))
 const groups = computed(() =>
-  RESULT_ORDER.map((type) => ({ type, items: results.value.filter((r) => r.type === type).slice(0, 30) })).filter((g) => g.items.length),
+  RESULT_ORDER.map((type) => ({ type, items: shown.value.filter((r) => r.type === type).slice(0, 30) })).filter((g) => g.items.length),
 )
-const searching = computed(() => !!query.value.trim() || chosenTags.value.length > 0)
+const searching = computed(() => !!query.value.trim() || chosenTags.value.length > 0 || importantOnly.value)
 
 function toggleTag(id: string) {
   chosenTags.value = chosenTags.value.includes(id) ? chosenTags.value.filter((t) => t !== id) : [...chosenTags.value, id]
@@ -140,6 +162,7 @@ watch(
       if (store.startTag) {
         query.value = ''
         chosenTags.value = [store.startTag]
+        importantOnly.value = false
         store.startTag = null
       }
       dialog.value?.showModal()
